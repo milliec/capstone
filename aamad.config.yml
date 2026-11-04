@@ -1,0 +1,5 @@
+version: 2
+project:
+  mode: greenfield
+runtime:
+  target: crewai
