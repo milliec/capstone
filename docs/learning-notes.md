@@ -45,6 +45,14 @@ someone could disagree with ("22 entries", "tax deadlines don't roll"). Vague do
 with, so they can't be checked either. Listing the calls the PM made alone, and asking the owner to
 confirm them, turns hidden assumptions into decisions.
 
+**Name the stakeholders you leave out.** The filing parties (AIFM, administrator, auditor) do most of the
+real work, but they aren't MVP users. Listing them explicitly, with what they get now (a "who files" field)
+and later (notifications), shows they were excluded on purpose, not forgotten.
+
+**Background context explains the problem; it isn't a requirement.** Notes on overlapping regulatory
+layers made the problem clearer, so they went into the evidence note, labelled "not verified". Nothing
+in the requirements depends on them.
+
 **Don't cut scope before there's an estimate.** Six-week fit was unproven, but cutting features without
 an estimate is guessing. The decision was to keep full scope, ask the architect for an estimate, and
 keep a proposed cut line ready in case it's needed.

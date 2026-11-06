@@ -22,6 +22,10 @@ not here.
 - **Impact**: Internal documents describing the same obligations disagree on lead times, scheduling
   patterns and due dates. None of the mismatches was caught by a check. *(MRD §2)* No time or cost
   impact has been measured. *(MRD §5)*
+- **Why it's hard**: a Part II fund's obligations come from overlapping layers of rules (Luxembourg
+  product law, the AIFM Law, EU rules such as PRIIPs and SFDR, and tax, registry and cross-border
+  rules). Each layer has its own authorities, deadlines and wording, so interpretation happens across
+  several sources at once. *(MRD §2, background only)*
 - **User population**: **N/A, internal tool.** One compliance team and the GPs it serves. No external
   market. *(MRD, top note)*
 
@@ -53,6 +57,7 @@ not here.
 |---|---|---|---|---|
 | **Compliance specialist** | Owns the obligation calendar. Expert in the rules. | Rules they can trust and check quickly. Every rule traceable to its source. Conflicts surfaced, not hidden. | Run the pipeline, review, edit, reject, approve at G1–G3, publish. | SD §1, MRD §1 |
 | **GP / fund manager** | Accountable for the fund's filings, files few of them. Often less familiar with Luxembourg rules. | Know what is due, when, who files and why, without reading legal text. | **Read only.** View the published calendar. | SD §1, MRD §1 |
+| **Filing parties** (AIFM, administrator, auditor, tax advisor, local reporting agent) | Do most of the actual filings. Stakeholders, **not MVP users**. | Know what they must file and when (future). | **Nothing in the MVP.** Named on every obligation as "who files". No notifications, logins or confirmations. | SD §1, SD A-9, SRC-BRIEF |
 
 Market segment size and geographic expansion: **N/A, internal tool.**
 
@@ -319,6 +324,7 @@ SD MD-005), so it falls away if that chain is cut. The architect should estimate
 | Feature | Trace |
 |---|---|
 | Filing status, evidence and confirmations, linked by stable entry ID. | SD §9 |
+| Notifying filing parties and collecting their confirmations, together with filing status. Routed by each obligation's "who files" role. | SD §9, SD A-9 |
 | Multiple funds and frameworks, reusing approved libraries. | SD §9 |
 | Official holiday calendar in place of the mock list. | SD §9 |
 
@@ -519,3 +525,5 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   approval target deferred to after the MVP (OQ-2)
 - 2026-11-06 · persona `product-mgr` · action `update` · added stretch goal F10 (change monitoring),
   moved out of P2; risk row; A-8
+- 2026-11-06 · persona `product-mgr` · action `update` · "why it's hard" (overlapping layers, MRD §2);
+  filing parties named as out-of-scope stakeholders (§2 users, P2 future), operator decision

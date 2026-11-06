@@ -45,7 +45,9 @@ Three gates (not one) · filing status out of scope · web surfaces · WCAG 2.2 
 calendar published at once · end-of-month date convention · business-day rule per obligation · `OBL-04`
 resolved at G2 as "applies (precautionary: registration unconfirmed)" (P-1) · business-day rolls in
 scope · G1 completes only when every row is decided · overrides cannot set "unsure" · GPs keep the last
-published calendar until republished · "roll rule unconfirmed" marks are specialist-only.
+published calendar until republished · "roll rule unconfirmed" marks are specialist-only · filing
+parties (AIFM, administrator, auditor, tax advisor, local agent) are named stakeholders but not MVP
+users (SD A-9).
 
 ## Still open (none blocks the architecture)
 
