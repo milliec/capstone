@@ -1,3 +1,7 @@
 .venv/
 .env
 __pycache__/
+
+# Real source material: contains real fund names and company references.
+# Never commit. The capstone uses anonymised mock data derived from it instead.
+reference/
