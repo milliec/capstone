@@ -56,6 +56,7 @@ published calendar until republished · "roll rule unconfirmed" marks are specia
 | Roll rules for CNMV and business-register filings; AED subscription tax (PRD OQ-7) | Final demo data |
 | How close must an extracted name be to pass? (OQ-US001-1) | QA evaluation design |
 | **Does the scope fit six weeks?** Not yet shown. Full scope kept until the architect estimates (PRD OQ-5) | **SAD**: please include an estimate |
+| **Stretch goal F10 (change monitoring, US-014):** fits after the core? Depends on the MD-005 chain | **SAD**: please estimate it separately |
 
 ## Sources
 
@@ -77,3 +78,5 @@ published calendar until republished · "roll rule unconfirmed" marks are specia
   renamed
 - 2026-11-06 · persona `product-mgr` · action `readiness-check` · five PM calls confirmed by the operator;
   six-week fit handed to the SAD as an estimate request
+- 2026-11-06 · persona `product-mgr` · action `update` · stretch goal F10 (change monitoring) added;
+  separate estimate requested

@@ -13,6 +13,9 @@ This repository is **public**. Anything committed should be treated as published
   files. Create anonymised mock data instead (see `project-context/1.define/mock-data/`).
 - The repo is a git repository with a GitHub remote (`origin`). Before every commit and push, confirm
   `reference/` and `.env` do not appear in `git status`, and run the real-name scan below.
+- Start new work on a branch, never on `main`. Changes reach `main` only through a reviewed pull
+  request. If edits were started on `main` by mistake, move them with `git switch -c <branch>` before
+  committing.
 
 ## Checks to run after changing committed files
 

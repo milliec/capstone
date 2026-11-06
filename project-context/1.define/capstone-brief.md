@@ -46,6 +46,12 @@ calendar for one Luxembourg UCI Part II fund.
 
 The AI model provider is the only live service. Everything else is mocked.
 
+**Stretch goal (after the core works): change monitoring.** When a rule amendment arrives, the system
+works out which obligations it affects (one, several or none), flags only those, and sends them back
+through the gates. This is the part where the system decides its own path. Extraction, verification and
+applicability follow a fixed order. It is tested with three mock amendments and is **not** part of the
+Week 6 definition of done.
+
 ## Behaviour you could demo
 
 | # | Story | Acceptance criteria you can see in a demo |
@@ -84,7 +90,7 @@ These are still undecided. Everything else has been decided and recorded.
 
 | Question | Options | Needed by |
 |---|---|---|
-| Does the full scope fit six weeks? | Keep everything / cut the hardening work | Architect's estimate |
+| Does the full scope fit six weeks, and is there room for the stretch goal? | Keep everything / cut the hardening work / drop the stretch | Architect's estimate |
 | Four-eyes review (a second specialist confirms before publish)? | In the MVP / after the MVP | Build planning |
 | Should GPs see a neutral "under review" note for items still with compliance? | Show / hide (default: hide) | UX design |
 | Do Spanish (CNMV) and business-register deadlines roll past weekends? Does the Luxembourg subscription tax? | Roll / no roll (default: keep the earlier date) | Final demo data |
@@ -113,3 +119,4 @@ scripted, so in Week 6 that rate would measure the script, not the agents.
 - 2026-11-06 · persona `product-mgr` · action `create-brief` (cohort summary of the Define documents)
 - 2026-11-06 · persona `product-mgr` · action `update` · DoD #11 scored from the evaluation report;
   no-edit target deferred to after the MVP
+- 2026-11-06 · persona `product-mgr` · action `update` · added the change-monitoring stretch goal

@@ -30,6 +30,7 @@ decides.
 | `FACT-04` | Registered with the CNMV for marketing in Spain | **Unknown — not confirmed in fund records** | Spain A01 → **unsure** |
 | `FACT-05` | Registered for VAT in Luxembourg | **No** | VAT annual return → **does not apply** |
 | `FACT-06` | Registered entity with the Luxembourg Business Registers | **Yes** | RBE |
+| `FACT-07` | Redemption frequency in constitutive documents | **Monthly** | Stretch only: re-check after amendment `AMD-02` |
 
 ## Parties (roles only)
 
@@ -78,3 +79,5 @@ The demo calendar covers obligations whose **due date falls between 2027-01-01 a
 - 2026-11-06 · persona `product-mgr` · action `create-mock-data` · fictional fund profile
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · renamed the fund to Bramblegate; added
   required sections
+- 2026-11-06 · persona `product-mgr` · action `update` · added `FACT-07` (redemption frequency) for the
+  change-monitoring stretch goal

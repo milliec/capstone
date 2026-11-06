@@ -292,6 +292,28 @@ against the answer key, so that I can prove the system works.*
 | Full trail view per row: source, quote, flags, verdict, approvals in one place. | SD FR-019 (Should) |
 | "Not legal advice" note on the GP view. | SD FR-020 (Should), MN-009 |
 
+### Stretch Goal (P1, Could): built only after the core works
+
+#### F10. Change monitoring
+**Why:** UN-S1, UN-S3 · MRD §1, §3 (interpretation is repeated every time rules change) · Assumption A-8
+*As a compliance specialist, I want the system to work out which obligations a rule amendment affects
+and flag only those, so that I re-check what changed instead of re-reading everything.*
+
+This is the part of the product where the system must **decide how far a change reaches**: one duty,
+several, or none. Extraction, verification and applicability follow a fixed order. Impact assessment
+does not. How it is built is for the SAD.
+
+| Acceptance criterion | Trace |
+|---|---|
+| `AMD-01`: only `OBL-03` is flagged and its entry marked out of date. `OBL-02` is not flagged. | SD AC-018, KEY §6 |
+| `AMD-02`: `OBL-01` and `OBL-03` are flagged for re-check at G2, and their 13 entries are marked out of date. | SD AC-019, KEY §6 |
+| `AMD-03`: nothing is flagged, and the report says "wording change only". | SD AC-020, KEY §6 |
+| The system never applies a change. Affected items go back through G1 or G2. | SD MD-011, MN-003 |
+
+**Guardrails:** not part of the Week 6 definition of done. Depends on the edit-and-re-verify chain (F3,
+SD MD-005), so it falls away if that chain is cut. The architect should estimate it separately
+(OQ-5).
+
 ### Future Features (P2)
 
 | Feature | Trace |
@@ -299,7 +321,6 @@ against the answer key, so that I can prove the system works.*
 | Filing status, evidence and confirmations, linked by stable entry ID. | SD §9 |
 | Multiple funds and frameworks, reusing approved libraries. | SD §9 |
 | Official holiday calendar in place of the mock list. | SD §9 |
-| Re-extraction when a regulation changes, showing what changed. | SD §9 |
 
 Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 
@@ -415,6 +436,7 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 | Date conventions are wrong. | Conventions written down, operator-confirmed where possible, open ones marked. Safe default for unknown roll rules. | KEY §5, SD A-3, A-7 |
 | Scope grows into filing tracking. | Filing status explicitly out of scope, with a stable-ID hook for later. | SD §9, FR-016 |
 | Three gates make the happy path too long for the demo. | Specialist time target of under 30 minutes is measured. | SD MC-003 |
+| The stretch goal (F10) takes time from the core. | Built only after F1–F9 pass. Estimated separately. Not in the Week 6 definition of done. | SD MD-011, OQ-5 |
 
 ## 9. Launch & Go-to-Market Strategy
 
@@ -460,6 +482,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   framework (SD A-1). It is not a measured limit.
 - **A-7**: **Needs are inferred from the brief and internal documents. No interviews were conducted.**
   The user needs in §2 are hypotheses. The demo is the first test of them.
+- **A-8**: Rule amendments create the same manual re-reading burden as new frameworks. This is inferred
+  from the brief and the MRD, not observed directly. It is the basis for the F10 stretch goal.
 
 ## Open Questions
 
@@ -493,3 +517,5 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   section) to F1–F9; OQ-5 records that the six-week fit awaits the architect's estimate
 - 2026-11-06 · persona `product-mgr` · action `update` · review time measured from audit log; no-edit
   approval target deferred to after the MVP (OQ-2)
+- 2026-11-06 · persona `product-mgr` · action `update` · added stretch goal F10 (change monitoring),
+  moved out of P2; risk row; A-8

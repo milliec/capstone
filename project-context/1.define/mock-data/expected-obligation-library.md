@@ -157,6 +157,22 @@ Day) · 17 May (Whit Monday) · 23 Jun (National Day) · 15 Aug (Assumption) · 
 > *Note: in this demo every roll is caused by a weekend. None of the due dates falls on a public
 > holiday.*
 
+## 6. Stretch goal: expected impact of amendments (change monitoring)
+
+Run **after** the 22-entry calendar has been published. Each amendment is run on its own against that
+published state. The system proposes impact. The specialist decides at G1 and G2 as usual.
+
+| Amendment | Expected impact | Rows to flag | Gate | Calendar effect | Must **not** flag |
+|---|---|---|---|---|---|
+| `AMD-01` (annual report: 6 → 5 months) | **One** duty | `OBL-03` (its quote and offset no longer match the new text) | G1 | The `OBL-03` entry is marked out of date. If the specialist approves "+5 months", the new date is **2027-05-31** (Monday, no roll). | `OBL-02` (same source document, different paragraph) |
+| `AMD-02` (new Part II scope paragraph) | **Several** duties | `OBL-01`, `OBL-03` (applicability depends on "subject to Part II") | G2 | 13 entries marked out of date until verdicts are re-confirmed. After re-check (`FACT-07`: monthly redemption) both still **apply**, and the dates are unchanged. | `OBL-02`, `OBL-04`, `OBL-05`, `OBL-06` |
+| `AMD-03` (RBE wording reordered) | **None** | none | — | None. The report says "wording change only; no impact". | `OBL-05` |
+
+**What this tests:** that the system decides *how far* a change reaches. It must find several affected
+duties where they exist (`AMD-02`), stop at one where only one is affected (`AMD-01`), and recognise when
+nothing is affected (`AMD-03`). Over-flagging (for example flagging `OBL-02` for `AMD-01`) counts as a
+failure.
+
 ## Sources
 
 - Date conventions `D-2`, `D-4`, `D-5` and `D-7`: operator-provided domain guidance (Define phase). Not
@@ -192,3 +208,5 @@ Day) · 17 May (Whit Monday) · 23 Jun (National Day) · 15 Aug (Assumption) · 
   decision: applies, pending confirmation, per P-1); total 18 → 22 entries
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` (stories) · added internal-conflict test
   `I-1`; renamed the Spain note to "precautionary: registration unconfirmed"
+- 2026-11-06 · persona `product-mgr` · action `update` · added section 6 (stretch: expected impact of
+  amendments AMD-01 to AMD-03)
