@@ -19,13 +19,17 @@ architecture step (`@system.arch`) in a later sprint.
 - **Problem statement**: Managers of regulated funds (for example Luxembourg UCI Part II funds) receive
   their filing obligations as static legal text and track them in spreadsheets. Every new regulatory
   framework means another manual round of reading, interpreting and setting deadlines. Manual
-  interpretation produces inconsistent rules (evidence: `mrd.md` §2).
+  interpretation produces inconsistent rules (evidence: `mrd.md` §2). The difficulty grows because a
+  Part II fund's obligations come from overlapping layers (Luxembourg product law, the AIFM Law and EU
+  rules, plus tax, registry and cross-border rules), each with its own authorities, deadlines and wording
+  (`mrd.md` §2, background only).
 - **Primary users / operators**:
 
   | User | Setting | Can do |
   |---|---|---|
   | **Compliance specialist** | Owns the obligation calendar. Works through agent output and decides. | Approve, edit or reject at every gate. Set business-day rules. Publish the calendar. |
   | **GP / fund manager** | Accountable for the fund's filings, but files few of them. Often less familiar with Luxembourg rules. | **Read only.** Sees what is due, when, who files it, and why. |
+  | **Filing parties** (AIFM, administrator, auditor, tax advisor, local reporting agent) | Do most of the actual filings for the fund. | **Nothing in the MVP.** Stakeholders, not users. Named on every obligation as "who files". |
 
 - **Success definition (MVP)**: On the mock data set, the system produces the results in
   `mock-data/expected-obligation-library.md`. Every calendar entry traces back to a source paragraph and
@@ -197,6 +201,8 @@ error this system can make. Naming the principle stops the same choice being mad
 - **A-8**: Business-day and public-holiday rolls are **in scope** for the MVP, although the original brief
   named only "anchor + offset". Operator-confirmed. Scope fit to six weeks awaits the architect's
   estimate (PRD OQ-5).
+- **A-9**: Filing parties are out of scope as users (operator decision). Each obligation's "who files"
+  role is enough to route notifications to them later, together with filing status.
 
 ## 8. Acceptance Criteria
 
@@ -250,6 +256,8 @@ error this system can make. Naming the principle stops the same choice being mad
 **Out of scope for the MVP**
 - Real client data, fund names or branding.
 - Live email or any contact with external parties.
+- **Filing parties as users** (AIFM, administrator, auditor, tax advisor, local reporting agent): no
+  notifications, logins or confirmations. They appear only as each obligation's "who files" role (A-9).
 - Task tools as the system of record.
 - **Filing status** (filed, filed late, overdue), evidence of filing, confirmations from filing parties
   and reminders. Operator decision: the capstone tests rule generation, not filing tracking. A design
@@ -263,6 +271,8 @@ error this system can make. Naming the principle stops the same choice being mad
 
 **Future work**
 - Filing status and evidence, linked to calendar entries by stable ID.
+- Notifying filing parties and collecting their confirmations, routed by each obligation's "who files"
+  role.
 - Multiple funds and frameworks, reusing approved libraries.
 - An official holiday calendar source in place of the mock list.
 - *(Moved to a stretch goal: impact of rule amendments, MD-011 / FR-021. Built only after the core,
@@ -319,3 +329,5 @@ error this system can make. Naming the principle stops the same choice being mad
   MD-009 records gate opening (operator decision)
 - 2026-11-06 · persona `product-mgr` · action `update` · change monitoring moved from future work to a
   stretch goal (MD-011, FR-021 Could, AC-018 to AC-020), operator decision
+- 2026-11-06 · persona `product-mgr` · action `update` · problem statement enriched (overlapping layers);
+  filing parties named as out-of-scope stakeholders (§1, A-9, §9), operator decision

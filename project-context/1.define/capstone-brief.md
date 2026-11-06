@@ -18,6 +18,7 @@ them, and fund managers get a calendar they can trust and understand.
 |---|---|
 | **Compliance specialist** (primary) | Owns the obligation calendar. Reviews agent output and approves at three gates. |
 | **GP / fund manager** | Accountable for filings but files few of them. Reads the published calendar only. |
+| **Filing parties** (AIFM, administrator, auditor, tax advisor, local agent) | Do most of the actual filings. Named on every obligation as "who files". **Not users in the MVP:** no notifications or confirmations. |
 
 **Primary use case:** a specialist turns a set of regulatory sources into an approved compliance
 calendar for one Luxembourg UCI Part II fund.
@@ -39,7 +40,7 @@ calendar for one Luxembourg UCI Part II fund.
 | Five obligations covering monthly, quarterly, year-end, conditional and event-triggered patterns, plus one decoy | Other funds, frameworks or jurisdictions |
 | Mock regulatory text (our wording, citing real public laws) | Reading real legal documents (e.g. PDFs) |
 | Extraction, separate verification, applicability judgement | Filing status, evidence of filing, reminders |
-| Three human approval gates, with edit and re-verify | Live email or contact with any external party |
+| Three human approval gates, with edit and re-verify | Live email or contact with any external party, including notifying filing parties |
 | Deterministic due dates, with per-authority weekend rolls | Task tools as the system of record |
 | Read-only GP calendar | Real login (roles are mocked) |
 | Add-only audit log and an automatic evaluation against an answer key | Architecture choices (decided later, in the SAD) |
@@ -120,3 +121,4 @@ scripted, so in Week 6 that rate would measure the script, not the agents.
 - 2026-11-06 · persona `product-mgr` · action `update` · DoD #11 scored from the evaluation report;
   no-edit target deferred to after the MVP
 - 2026-11-06 · persona `product-mgr` · action `update` · added the change-monitoring stretch goal
+- 2026-11-06 · persona `product-mgr` · action `update` · filing parties named as out-of-scope stakeholders

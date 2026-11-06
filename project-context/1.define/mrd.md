@@ -39,6 +39,15 @@
 
 None of these mismatches was caught by a check. A person had to notice it. This is the core problem the capstone targets.
 
+**Why interpretation drifts: obligations come from overlapping layers** (SRC-CONTEXT). A Part II fund sits under several sets of rules at once:
+
+- **Luxembourg product law:** the Law of 17 December 2010 (Part II), which governs the fund itself and its authorisation by the CSSF.
+- **Fund-manager law:** the Law of 12 July 2013 on AIFMs, which applies because Part II funds qualify as alternative investment funds, and the EU AIFM Directive behind it.
+- **Other EU rules:** for example PRIIPs (the KID, for funds open to retail investors) and SFDR (sustainability disclosures).
+- **Tax, registry and cross-border rules:** for example the subscription tax, the beneficial-owner register, and reporting in each country where the fund is marketed.
+
+Each layer brings its own authorities, deadlines and wording. The same filing can be described differently in different places, and a change in one layer can affect obligations in another. A specialist therefore interprets across several sources at once, and that is where the inconsistencies above come from. The capstone's five obligations deliberately span several of these layers.
+
 ## 3. Why this is worth six weeks
 
 - **The risky part is interpretation, not the calendar.** Calendars, statuses and reminders are well-understood problems. The open question is whether legal text can be turned into structured, **source-linked** rows that a specialist trusts. The table above shows this is where errors enter today.
@@ -82,6 +91,7 @@ The capstone answers one question: **can agents turn legal text into deadline ru
 
 - **SRC-INT**: The operator's internal working documents. Private and confidential; not in the repository and not described further.
 - **SRC-BRIEF**: Operator brief for this capstone (problem, users, MVP scope, in/out of scope).
+- **SRC-CONTEXT**: Operator-provided regulatory background drawn from public sources (Luxembourg industry and law-firm summaries). Summarised in our own words. **Not independently verified.**
 
 ## Assumptions
 
@@ -90,6 +100,7 @@ The capstone answers one question: **can agents turn legal text into deadline ru
 - **A-3**: Six weeks is the capstone timebox given in the brief. This note does not estimate effort.
 - **A-4**: A full MRD is skipped because the tool is internal with no external market. This evidence note replaces it, by operator decision.
 - **A-5**: The alternatives "advice from legal counsel" and "general AI chat tools" in §4 are described from general knowledge of how such work is done. They were not researched.
+- **A-6**: The description of overlapping regulatory layers in §2 is background for the problem only. No requirement depends on it, and it is not used as a legal reference.
 
 ## Open Questions
 
@@ -101,3 +112,4 @@ The capstone answers one question: **can agents turn legal text into deadline ru
 - 2026-11-06 · persona `product-mgr` · action `create-mrd` (internal-tool evidence-note variant, operator-requested) · runtime `crewai`
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · reduced detail on internal sources for the public repo; added the decoy obligation to §5
 - 2026-11-06 · persona `product-mgr` · action `update` · added "Why a thin slice is enough" (§3), two alternatives (§4, A-5) and two claims not made (§5), to match the cohort material
+- 2026-11-06 · persona `product-mgr` · action `update` · enriched §2 with why interpretation drifts (overlapping regulatory layers); SRC-CONTEXT, A-6
