@@ -92,6 +92,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | MD-008 | Give GPs a read-only view of what is due and why | requirement | Each entry shows **what** (obligation + authority), **when** (date, plus a roll note if moved), **who** files, and **why** (plain-English reason + source citation and quote). |
 | MD-009 | Keep an audit log | requirement | Every agent output and every human decision is recorded with who, when, what and (for overrides and rejections) why. Opening each gate is also recorded, so review time can be measured (MC-003). |
 | MD-010 | Prepare for filing status later | requirement | Every calendar entry has a stable ID that a future filing record could reference. |
+| MD-011 | **Stretch:** assess the impact of a rule amendment | requirement | Given an amendment to a source, the system identifies which rows, verdicts and calendar entries are affected (one, several or none), flags only those, and explains why. It never applies a change itself. Affected items go back through G1 or G2. |
 
 ### Must not do
 
@@ -154,6 +155,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | FR-018 | An evaluation run compares agent and calendar output with the answer key and writes a report. | Must | MP-001 to MP-004 |
 | FR-019 | The specialist can view a row's full trail: source, quote, verifier flags, verdict, approvals. | Should | MP-005 |
 | FR-020 | GP view shows a plain "not legal advice" note. | Should | MN-009 |
+| FR-021 | **Stretch:** given an amendment, produce an impact report listing affected rows, verdicts and calendar entries with reasons, and send them back through G1 or G2. Unaffected items are left alone. | Could | MD-011, MN-003 |
 
 ## 5. Non-Functional Requirements
 
@@ -234,6 +236,15 @@ error this system can make. Naming the principle stops the same choice being mad
   unchanged ("within 20 calendar days…"), when the verifier runs, then an **internal** conflict is
   flagged, even though the quote check passes.
 
+*Stretch goal (FR-021). Not part of the Week 6 definition of done.*
+
+- **AC-018** (MD-011): Given the published calendar and amendment `AMD-01`, when impact is assessed,
+  then only `OBL-03` is flagged and its calendar entry is marked out of date. `OBL-02` is not flagged.
+- **AC-019** (MD-011): Given `AMD-02`, then `OBL-01` and `OBL-03` are flagged for applicability re-check
+  at G2, and their 13 calendar entries are marked out of date. No other row is flagged.
+- **AC-020** (MD-011): Given `AMD-03`, then nothing is flagged and the report states that the change is
+  wording only.
+
 ## 9. Out of Scope / Future Work
 
 **Out of scope for the MVP**
@@ -254,7 +265,8 @@ error this system can make. Naming the principle stops the same choice being mad
 - Filing status and evidence, linked to calendar entries by stable ID.
 - Multiple funds and frameworks, reusing approved libraries.
 - An official holiday calendar source in place of the mock list.
-- Re-running extraction when a regulation changes, and showing what changed.
+- *(Moved to a stretch goal: impact of rule amendments, MD-011 / FR-021. Built only after the core,
+  and it depends on the edit-and-re-verify chain in MD-005.)*
 
 ---
 
@@ -305,3 +317,5 @@ error this system can make. Naming the principle stops the same choice being mad
   operator-confirmed)
 - 2026-11-06 · persona `product-mgr` · action `update` · MC-003 measured from audit-log timestamps;
   MD-009 records gate opening (operator decision)
+- 2026-11-06 · persona `product-mgr` · action `update` · change monitoring moved from future work to a
+  stretch goal (MD-011, FR-021 Could, AC-018 to AC-020), operator decision

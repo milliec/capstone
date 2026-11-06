@@ -1,7 +1,8 @@
 # User Stories — Index
 
 MVP stories derived from `prd.md` (features F1–F9) and `system-description.md`. One story per file.
-All stories are **Must** priority. P1 features from the PRD are listed at the end but **not written**
+US-001 to US-013 are **Must** priority. **US-014 is a stretch goal (Could)**, built only after the Must
+stories pass. It depends on US-005 and is not part of the Week 6 definition of done. P1 features from the PRD are listed at the end but **not written**
 (MVP only).
 
 ## Story map (follows the happy path in PRD §2)
@@ -21,6 +22,7 @@ All stories are **Must** priority. P1 features from the PRD are listed at the en
 | 9 | [US-011](US-011-gp-read-only-calendar.md) | View the published calendar as a GP | GP | F8 | FR-015 |
 | all | [US-012](US-012-audit-log.md) | Record every output and decision | Specialist | F9 | FR-017 |
 | all | [US-013](US-013-evaluation-report.md) | Compare a run with the answer key | Specialist | F9 | FR-018 |
+| after 9 | [US-014](US-014-assess-amendment-impact.md) | **Stretch (Could):** assess the impact of a rule amendment | Specialist | F10 | FR-021 |
 
 ## Coverage check
 
@@ -54,6 +56,8 @@ Every acceptance criterion in `system-description.md` §8 is tested by at least 
 | AC-007 | US-006 | AC-015 | US-008 |
 | AC-008 | US-007 | AC-016 | US-012 |
 | AC-009 | US-008 | AC-017 | US-003, US-005 |
+
+Stretch: AC-018, AC-019 and AC-020 are covered by US-014.
 
 ### Constraints covered outside the stories
 
@@ -104,3 +108,4 @@ at each gate. The stories assume these demo decisions:
   pending confirmation" (P-1); calendar 18 → 22 entries across stories
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · AC coverage table; constraints covered
   outside stories; Spain note renamed "precautionary"; US-003 retitled
+- 2026-11-06 · persona `product-mgr` · action `create-stories` · added US-014 (stretch, Could)

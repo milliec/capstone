@@ -125,6 +125,36 @@ The monthly U1.1 report is due 10 calendar days after month-end.
 
 ---
 
+## Amendments (stretch goal: change monitoring)
+
+> These arrive **after** the library has been approved. They are used only by the stretch goal
+> (US-014). Each tests a different path: one duty affected, several affected, or none.
+
+**AMD-01: replaces `SRC-UCILAW-P3`**
+An undertaking for collective investment subject to Part II of this law shall publish an audited annual
+report and file it with the CSSF within five months of the end of the period to which it relates.
+
+> *Test note: one duty affected (`OBL-03`). The offset changes from six to five months.*
+
+**AMD-02: adds a new paragraph `SRC-UCILAW-P4`**
+For the purposes of this law and of any circular referring to it, an undertaking subject to Part II
+includes only undertakings whose constitutive documents provide for the redemption of units at least
+once a year.
+
+> *Test note: several duties affected. Every rule whose applicability depends on "subject to Part II"
+> must be re-checked: `OBL-01` and `OBL-03`. Their dates do not change. The fund redeems monthly
+> (`FACT-07`), so both should still apply after re-checking.*
+
+**AMD-03: replaces `SRC-RBELAW-P1`**
+Registered entities shall, within one month of becoming aware of the event that made the change
+necessary, file with the Luxembourg Business Registers any change to the information on their beneficial
+owners.
+
+> *Test note: no duty affected. Same meaning, words reordered. `OBL-05`'s quote still appears word for
+> word. Nothing should be flagged.*
+
+---
+
 ## Sources
 
 - Instrument names: public Luxembourg legislation and CSSF circulars, cited by title only.
@@ -148,3 +178,5 @@ The monthly U1.1 report is due 10 calendar days after month-end.
 - 2026-11-06 · persona `product-mgr` · action `create-mock-data` · mock sources for the demo
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · clarified which instrument names are
   real; added required sections
+- 2026-11-06 · persona `product-mgr` · action `update` · added amendments AMD-01 to AMD-03 for the
+  change-monitoring stretch goal

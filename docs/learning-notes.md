@@ -68,6 +68,15 @@ calendar entry costs minutes; a missed filing is a breach. So: unsure if an obli
 it as a precaution; unsure if a deadline rolls past a weekend → keep the earlier date. Good systems make
 the cheap mistake the default.
 
+**Workflow or agent? Ask who decides the next step.** In a workflow the path is fixed by design, even
+if each step uses AI judgement (extract → verify → judge applicability, always in that order). In an
+agent the model decides what to look at next and when it's done. Change monitoring is agentic: an
+amendment might affect one duty, several or none, and the system has to work out how far it reaches. The
+product manager requires the behaviour. The architect decides whether it is built as an agent.
+
+**Test the "none" case.** When a system decides its own scope, over-reaching is the likely failure. A
+test where the right answer is "nothing is affected" is as important as one where something is.
+
 **Words that mean two things cause bugs.** "Pending confirmation" (a precaution the GP should see) clashed
 with "pending" (not yet approved, which the GP must never see). Renaming it "precautionary" removed the
 contradiction. This is UX writing as a correctness tool.
