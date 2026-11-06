@@ -1,0 +1,495 @@
+# Product Requirements Document (PRD)
+
+**Product**: Regulatory Intelligence for fund compliance calendars
+**Scope**: **MVP only** (six-week capstone)
+**Inputs**: `mrd.md` (evidence note, no external market) · `system-description.md` · `mock-data/`
+**Selected Runtime**: `crewai`, recorded from `aamad.config.yml`. It constrains Build conventions only.
+The **application pattern, runtime design and agent roster are decided in the SAD** (`@system.arch`),
+not here.
+
+> **How to read the Trace column.** `SD` = `system-description.md` (e.g. `SD FR-005`, `SD AC-010`).
+> `MRD` = `mrd.md` (e.g. `MRD §2`). `KEY` = `mock-data/expected-obligation-library.md`. Every requirement
+> in this PRD traces to at least one of these.
+
+---
+
+## 1. Executive Summary
+
+### Problem Statement
+
+- **Operator problem**: Fund compliance teams turn static legal text into deadlines by hand. Every new
+  framework repeats the work, and manual interpretation produces inconsistent rules. *(MRD §1–§2)*
+- **Impact**: Internal documents describing the same obligations disagree on lead times, scheduling
+  patterns and due dates. None of the mismatches was caught by a check. *(MRD §2)* No time or cost
+  impact has been measured. *(MRD §5)*
+- **User population**: **N/A, internal tool.** One compliance team and the GPs it serves. No external
+  market. *(MRD, top note)*
+
+### Solution Overview
+
+- **Approach**: An agentic system turns mock regulatory text into a **verified, source-linked
+  obligation library**, judges which obligations apply to one fictional Luxembourg UCI Part II fund, and
+  generates its **compliance calendar** with deterministic code. A compliance specialist approves at
+  three gates before GPs see anything. *(SD §1, SD MD-001 to MD-008)*
+- **Differentiator vs today's manual process**: every rule carries its **source paragraph and verbatim
+  quote**. A **separate verifier** checks quotes and cross-source conflicts. Deadlines come from
+  **code, not a language model**. *(SD MD-003, MN-005, MN-006)* No comparison with commercial products
+  is claimed. *(MRD §4)*
+- **Expected outcome**: the specialist moves from *authoring* rules to *checking* them. *(MRD §3)*
+
+### Strategic Rationale
+
+- **Why this response**: errors enter at interpretation, not in the calendar, so that is where the
+  capstone tests agents. *(MRD §3)*
+- **Value**: a contained test of whether framework onboarding can become configuration rather than
+  manual reading. *(MRD §3)*
+- **Market timing / positioning**: **N/A, internal tool.**
+
+## 2. Market Context & User Analysis
+
+### Users
+
+| Persona | Who they are | Needs | Can do in MVP | Trace |
+|---|---|---|---|---|
+| **Compliance specialist** | Owns the obligation calendar. Expert in the rules. | Rules they can trust and check quickly. Every rule traceable to its source. Conflicts surfaced, not hidden. | Run the pipeline, review, edit, reject, approve at G1–G3, publish. | SD §1, MRD §1 |
+| **GP / fund manager** | Accountable for the fund's filings, files few of them. Often less familiar with Luxembourg rules. | Know what is due, when, who files and why, without reading legal text. | **Read only.** View the published calendar. | SD §1, MRD §1 |
+
+Market segment size and geographic expansion: **N/A, internal tool.**
+
+### The happy path (the one user-facing flow in the MVP)
+
+| Step | Who | What happens | Gate | Trace |
+|---|---|---|---|---|
+| 1 | Specialist | Starts a run on the mock source documents for fund `FND-DEMO-01`. | — | SD FR-001 |
+| 2 | System | Extracts obligation rows, each with a paragraph ID and verbatim quote. | — | SD FR-002 |
+| 3 | System | Verifies each row: quote check and conflict check. | — | SD FR-003, FR-004 |
+| 4 | Specialist | Reviews rows and flags. Resolves conflicts (with a reason if overriding), sets business-day rules, approves or rejects each row. Any edit re-verifies the row. | **G1** | SD FR-005, FR-006 |
+| 5 | System | Judges applicability for each approved row: applies / does not apply / unsure, with reasoning, using the mock fund profile. | — | SD FR-008, FR-009 |
+| 6 | Specialist | Confirms or overrides each verdict. Decides every "unsure". | **G2** | SD FR-010 |
+| 7 | System | Generates the calendar with deterministic code. | — | SD FR-011 to FR-013 |
+| 8 | Specialist | Reviews the calendar and publishes it. | **G3** | SD FR-014 |
+| 9 | GP | Opens the read-only calendar and sees what, when, who and why for each entry. | — | SD FR-015 |
+
+### User Needs Analysis
+
+> **Evidence base.** These needs are **inferred** from the operator brief (SRC-BRIEF) and from the
+> operator's internal working documents as summarised in `mrd.md`. **No user interviews were
+> conducted** (Assumption A-7). Treat each need as a hypothesis the demo should test, not a validated
+> finding.
+
+#### Compliance specialist
+
+| ID | Need | Happy-path step | Source |
+|---|---|---|---|
+| UN-S1 | Turn new regulatory text into deadline rules without re-reading and re-typing everything by hand. | 1–4 | MRD §1, §3 · SRC-BRIEF |
+| UN-S2 | See exactly where each rule comes from, so it can be checked quickly against the source. | 4 | SRC-BRIEF ("every rule links to its source paragraph") |
+| UN-S3 | Have disagreements between sources surfaced by a check, not found by chance. | 3–4 | MRD §2 |
+| UN-S4 | Stay in control: nothing consequential happens without their approval. | 4, 6, 8 | SRC-BRIEF ("approves every consequential handoff") |
+| UN-S5 | Decide unclear cases themselves, with the reasoning in front of them. | 6 | SRC-BRIEF ("applies / does not / unsure + reasoning") |
+| UN-S6 | Trust that dates are calculated the same way every time. | 7 | SRC-BRIEF ("deterministic due-date code") |
+| UN-S7 | Show afterwards who decided what, and why. | 4, 6, 8 | MRD §3 |
+
+#### GP / fund manager
+
+| ID | Need | Happy-path step | Source |
+|---|---|---|---|
+| UN-G1 | Know what is due and when, without reading legal text. | 9 | SRC-BRIEF ("what is due and why") · MRD §1 |
+| UN-G2 | Understand why each obligation applies to their fund. | 9 | SRC-BRIEF ("what is due and why") |
+| UN-G3 | Know who files each obligation, so they know whether they need to act. | 9 | MRD §1 (accountable for filings, but file few of them) |
+| UN-G4 | Trust what they see: only information a specialist has approved. | 9 | SRC-BRIEF ("trustworthy read-only view") |
+| UN-G5 | Not miss a filing deadline. | 9 | SRC-BRIEF ("so they don't miss the filing deadlines") |
+| UN-G6 | Get help with Luxembourg-specific rules they are less familiar with. | 9 | MRD §1 |
+
+#### Adoption barriers
+
+| ID | Barrier | Who | How the MVP addresses it | Source |
+|---|---|---|---|---|
+| AB-1 | **Distrust of AI-written rules.** If output can't be verified quickly, the specialist redoes it by hand and the benefit disappears. | Specialist | Verbatim quote on every row, separate verifier, three gates. | MRD §3, §5 |
+| AB-2 | **Checking takes as long as writing.** | Specialist | Flags point to what needs attention. Review time target of under 30 minutes is measured. | MRD §3 · SD MC-003 |
+| AB-3 | **False alarms.** Too many flags and the specialist stops reading them. | Specialist | Tested: no flag where sources agree. | SD MP-003 |
+| AB-4 | **Professional responsibility.** Specialists may be wary of relying on a tool for legal interpretation. | Specialist | Output is a draft. Every rule is approved by a person. Not legal advice. | MRD §5 · SD MN-009 |
+| AB-5 | **One wrong date breaks trust** in the whole calendar. | GP | Deterministic dates, exact-match tests, roll notes, publish gate. | SD MD-006, MN-007 |
+| AB-6 | **Legal language** the GP cannot interpret. | GP | Plain-English "why" for each entry. | SD NFR-005 |
+| AB-7 | **Expecting filing status.** GPs may expect to see what has been filed. The MVP does not show it. | GP | Stated as out of scope. Stable entry IDs keep the path open. | SD §9, FR-016 |
+
+### Competitive Landscape
+
+**Not researched.** No comparison is made or claimed. *(MRD §4)*
+
+## 3. Technical Requirements & Architecture
+
+> This section states **constraints the architecture must satisfy**. It does not choose a pattern,
+> runtime design or agent roster. Those are recorded in `sad.md` by `@system.arch`.
+
+### Discovery constraints
+
+The full must-do / must-not / must-cost / must-prove tables are in `system-description.md` §3. They are
+summarised here and not repeated.
+
+| Bucket | IDs | Key constraints |
+|---|---|---|
+| Must do | SD MD-001 to MD-010 | Source-linked extraction, applicability verdicts, separate verifier, three gates, re-verify on edit, deterministic dates, event handling, GP view, audit log, stable entry IDs |
+| Must not | SD MN-001 to MN-009 | No real data, no live externals, no gate bypass, verifier never auto-resolves, no model-computed dates, no unsourced rows, no unfinished work shown to GPs, no task tool as record, not legal advice |
+| Must cost | SD MC-001 to MC-003 | See §5 |
+| Must prove | SD MP-001 to MP-008 | Exact match with the answer key, traceability, gate enforcement, determinism, complete audit log |
+
+### Feasibility notes for the architect
+
+These are inputs, not a pattern verdict.
+
+- The brief names three **agent responsibilities**: extraction, applicability and verification. The
+  verifier **must be separate** from the extractor (SD MD-003). How these map to runtime agents, and
+  whether other agents are needed, is for the SAD.
+- Date calculation is **not** an agent responsibility. It must be deterministic code (SD MN-005).
+- The three gates are **hard stops**. The design must make it impossible for work to move on without
+  the matching approval (SD MN-003, SD AC-013).
+- Agent output must be **structured and validated** before a gate sees it. Invalid output stops the
+  run (SD NFR-004).
+
+### Runtime constraints
+
+| Constraint | Requirement | Trace |
+|---|---|---|
+| Tool boundaries | Agents read only the mock source documents and the mock fund profile. They have no tools that write to the calendar, approve, or publish. | SD MN-002, MN-003 |
+| Network | No calls to email, regulator portals or task tools. The language-model provider is the only live service (see A-3). | SD MN-002 |
+| Identity | Every approval, edit, override and rejection records who did it. Roles may be mocked. | SD MD-009, SD A-5 |
+| Data minimisation | Only mock data is processed. No real client data enters prompts, logs or files. | SD MN-001 |
+| Logging | Every agent output and human decision is written to an add-only audit log. | SD MD-009, NFR-003 |
+| Testability | Tests for gates, due-date calculation and the audit log run **without** calling a language model. | SD NFR-011 |
+
+### Integration Requirements
+
+| Item | MVP | Trace |
+|---|---|---|
+| External APIs | Language-model provider only. Every business-side external system is mocked. | SD MN-002 |
+| Mocked externals | Regulatory sources, fund records, holiday calendar, event log. All under `mock-data/`. | SD §2, KEY §5 |
+| Storage | Must persist rows, verdicts, approvals, calendar entries and the audit log between sessions. The technology is decided in the SAD. | SD MD-009, MD-010 |
+| Authentication | Mocked roles (specialist, GP). Real authentication is out of scope. | SD A-5, SD §9 |
+| Secrets | Model API keys come from local environment settings that git ignores. Never committed. | SD NFR-009 |
+| Performance | See §5. | SD MC-001 |
+
+### Infrastructure Specifications
+
+**Deferred to the SAD.** The MVP has no hosting, compute or network targets beyond §5. *(SD §6)*
+
+## 4. Functional Requirements
+
+### Core Features (P0, MVP)
+
+Acceptance criteria are written as tests. "SD AC-xxx" refers to the full Given/When/Then in
+`system-description.md` §8.
+
+#### F1. Source-linked extraction
+**Why:** UN-S1, UN-S2 · MRD §1 (manual re-reading per framework), MRD §3 (authoring → checking)
+*As a compliance specialist, I want obligations extracted from regulatory text into fixed rows, each
+quoting its source paragraph, so that I check rules instead of writing them.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Exactly the 6 expected rows are produced from the 6 mock source documents. | SD AC-001, KEY §1 |
+| No row cites a paragraph that contains no obligation (e.g. `SRC-UCILAW-P1`). | SD AC-002 |
+| Every row has one paragraph ID and a quote found word for word in that paragraph. | SD AC-001, MN-006 |
+| Business-day rule is output as "not confirmed" when the source does not state it. | SD FR-002, KEY §5 |
+
+#### F2. Independent verification
+**Why:** UN-S2, UN-S3 · MRD §2 (conflicting interpretations were never caught by a check)
+*As a compliance specialist, I want a separate check of every row's quote and of conflicts with other
+sources, so that I see problems before I approve.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Conflicts `C-1` (`OBL-03`) and `C-2` (`OBL-05`) are flagged. | SD AC-003, KEY §3 |
+| No conflict is flagged on `OBL-01`, where the sources agree. | SD AC-003 |
+| A quote altered by one word fails the quote check, and the row cannot be approved. | SD AC-004 |
+| A row whose fields don't match its own (correct) quote is flagged as an internal conflict. | SD AC-017 |
+| The verifier never changes a row. | SD MN-004 |
+
+#### F3. Gate G1: rule approval
+**Why:** UN-S4, UN-S7 · MRD §3 (human approval stays in place), MRD §5 (not legal advice)
+*As a compliance specialist, I want to approve, edit or reject each verified row, so that only rules I
+trust enter the library.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Each row can be approved, edited or rejected. The business-day rule is set at approval. | SD FR-005 |
+| An edit re-runs the verifier on that row. | SD AC-005 |
+| A row with a remaining flag cannot be approved without a written reason. With a reason, it is approved and the reason is logged. | SD AC-006 |
+| Editing an approved row returns it to pending and marks its calendar entries out of date. | SD AC-005, FR-007 |
+
+#### F4. Applicability verdicts
+**Why:** UN-S5 · MRD §1 (each framework means interpreting obligations again), MRD §3
+*As a compliance specialist, I want the system to judge which approved rules apply to the fund, with
+reasons, so that I confirm decisions instead of making each from scratch.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Verdicts match the answer key: 4 applies, `OBL-04` unsure, `OBL-06` does not apply. | SD AC-007, KEY §2 |
+| Every verdict cites at least one fund fact ID. | SD MD-002 |
+| A verdict of "applies" for `OBL-04` counts as a failed test. | KEY §2 |
+
+#### F5. Gate G2: applicability approval
+**Why:** UN-S4, UN-S5 · MRD §3 (human approval stays in place)
+*As a compliance specialist, I want to confirm or override each verdict, so that no obligation is
+wrongly hidden or added.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Each verdict can be confirmed or overridden. Overrides are logged with a reason. | SD FR-010, MD-009 |
+| G2 cannot be completed while any verdict is "unsure". | SD AC-008 |
+
+#### F6. Deterministic calendar
+**Why:** UN-S6, UN-G5 · MRD §2 (deadlines set by hand, inconsistently), MRD §4 (anchor + offset)
+*As a compliance specialist, I want due dates calculated by code from approved rules, so that dates are
+correct and repeatable.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| The calendar contains exactly the 22 entries in the answer key, with the same dates. | SD AC-009, KEY §4 |
+| A CSSF deadline on a weekend rolls to Monday with a note (2027-01-10 → 2027-01-11). | SD AC-010 |
+| A deadline with an unconfirmed roll rule keeps the earlier date and is marked (2027-02-28). | SD AC-011 |
+| An event-triggered deadline is calculated from the awareness date, not the event date. | SD AC-012 |
+| Two runs from the same approved inputs give identical calendars. | SD AC-015 |
+| Every calendar entry has a stable ID. | SD FR-016 |
+
+#### F7. Gate G3: publish
+**Why:** UN-S4, UN-G4 · MRD §1 (GPs need a view they can trust), MRD §3
+*As a compliance specialist, I want to publish the fund's calendar only when I am satisfied, so that GPs
+never see unfinished work.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Before G3, the GP view shows no entries for the fund. | SD AC-013 |
+| Publishing without G1 and G2 complete is refused. | SD MP-006 |
+| G3 publishes the whole fund calendar at once. | SD A-6 |
+
+#### F8. GP read-only calendar
+**Why:** UN-G1 to UN-G6 · MRD §1 (static legal documents, no live view, unfamiliar local rules)
+*As a GP, I want to see what is due, when, who files it and why it applies, so that I don't miss a
+filing and don't have to read legal text.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Each entry shows what (obligation + authority), when (date + roll note if moved), who files, and why (reason + source citation and quote). | SD AC-014 |
+| No pending, unsure, rejected or conflicted item is shown. | SD MN-007 |
+| The GP cannot change anything. | SD §1, NFR-010 |
+
+#### F9. Audit log and evaluation
+**Why:** UN-S7 · MRD §3 (auditable process), MRD §5 (no claims without evidence: the evaluation is the
+evidence)
+*As a compliance specialist, I want every agent output and decision recorded and the whole run checked
+against the answer key, so that I can prove the system works.*
+
+| Acceptance criterion | Trace |
+|---|---|
+| Every agent output and human decision appears in the log with who, when and what. | SD AC-016 |
+| Log entries cannot be edited or deleted. | SD NFR-003 |
+| An evaluation report compares extraction, verdicts, verifier flags and calendar with the answer key. | SD FR-018, MP-001 to MP-004 |
+
+### Enhanced Features (P1, after MVP unless time allows)
+
+| Feature | Trace |
+|---|---|
+| Full trail view per row: source, quote, flags, verdict, approvals in one place. | SD FR-019 (Should) |
+| "Not legal advice" note on the GP view. | SD FR-020 (Should), MN-009 |
+
+### Future Features (P2)
+
+| Feature | Trace |
+|---|---|
+| Filing status, evidence and confirmations, linked by stable entry ID. | SD §9 |
+| Multiple funds and frameworks, reusing approved libraries. | SD §9 |
+| Official holiday calendar in place of the mock list. | SD §9 |
+| Re-extraction when a regulation changes, showing what changed. | SD §9 |
+
+Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
+
+## 5. Non-Functional Requirements
+
+### Performance
+
+| Target | Value | Source |
+|---|---|---|
+| Full pipeline run on the demo set (agent output only) | Under 5 minutes | SD MC-001, operator-confirmed |
+| Throughput / concurrency | One run at a time | Assumption A-6 |
+| Availability | **N/A for the MVP** (local demo) | SD §6 |
+
+### Security & Compliance
+
+| Requirement | Trace |
+|---|---|
+| No real client data, names or branding in any committed file. Checked by scanning against a private, git-ignored list. | SD MN-001 |
+| No secrets in the repository. | SD NFR-009 |
+| Only the specialist role can approve, edit, reject or publish. GPs are read-only. | SD NFR-010 |
+| Output is a specialist-approved interpretation, not legal advice. | SD MN-009 |
+
+### Scalability & Reliability
+
+| Requirement | Trace |
+|---|---|
+| **Scaling: deferred.** One fund, one framework in the MVP. | SD A-1, §9 |
+| If an agent fails or returns invalid output, nothing moves forward and the failure is logged. | SD NFR-004 |
+| A partial calendar is never published. | SD NFR-004 |
+
+### Cost
+
+| Target | Value | Source |
+|---|---|---|
+| Model usage per full demo run | Under US$2 | SD MC-002, operator-confirmed |
+
+## 6. User Experience Design
+
+> Interaction requirements only. Screens, layout and visual direction belong to `@ux.designer`
+> (`ux.md`).
+
+### Interface Requirements
+
+| Requirement | Trace |
+|---|---|
+| Two surfaces: a **specialist review surface** (runs, gates G1–G3) and a **GP read-only calendar**. | SD §1, F3, F5, F7, F8 |
+| The specialist sees, for each row, its source quote, verifier flags and status in one place. | SD MP-005 |
+| Platform: web. | Assumption A-4 (operator-confirmed) |
+| Accessibility standard: **WCAG 2.2 AA**. | Operator decision (Define) |
+
+### Human–system interaction
+
+| Requirement | Trace |
+|---|---|
+| Every agent claim is shown with its evidence: quote for rows, fact IDs for verdicts. | SD MD-001, MD-002 |
+| Flags and "unsure" verdicts are visibly distinct and block their gate until resolved. | SD AC-006, AC-008 |
+| Overrides ask for a written reason. | SD AC-006 |
+| Agent failures are shown as plain messages. The run stops at the last safe state. | SD NFR-004 |
+| Rolled and unconfirmed dates are labelled in plain English. | SD AC-010, AC-011 |
+| GP-facing "why" text is readable by a non-lawyer. | SD NFR-005 |
+
+## 7. Success Metrics & KPIs
+
+### Operational
+
+| Metric | Target | Source |
+|---|---|---|
+| Specialist time to complete G1–G3 on the demo set, from audit-log timestamps | Under 30 minutes | SD MC-003, operator-confirmed |
+| Share of extracted rows approved **without edits** | **After the MVP.** Not a Week 6 metric: demo decisions are scripted, so the rate would measure the script, not the agents. | OQ-2 (MRD OQ-2) |
+
+### Technical
+
+| Metric | Target | Source |
+|---|---|---|
+| Extraction accuracy | 6 of 6 rows, 0 extra rows | SD MP-001, KEY §1 |
+| Applicability accuracy | 6 of 6 verdicts | SD MP-002, KEY §2 |
+| Verifier recall and false alarms | Both planted conflicts caught. No flag on agreeing sources. Altered quote caught. Wrong field with a correct quote caught. | SD MP-003, KEY §3 |
+| Calendar accuracy | 22 of 22 entries, exact dates | SD MP-004, KEY §4 |
+| Determinism | Identical calendar on repeated runs | SD MP-007 |
+| Gate enforcement | 100% of bypass attempts refused | SD MP-006 |
+| Cost per run | Under US$2 | SD MC-002 |
+| Run time | Under 5 minutes | SD MC-001 |
+
+### User Experience
+
+| Metric | Target | Source |
+|---|---|---|
+| Happy path completed end to end by one specialist, then viewed by a GP | Yes / no in the demo | §2 happy path |
+| Satisfaction measure | **None defined** | OQ-3 |
+
+## 8. Implementation Strategy
+
+### Development Phases
+
+| Phase | Work | Owner |
+|---|---|---|
+| 1. Define | Evidence note ✅ · System description ✅ · PRD (this) · User stories · SAD (pattern, runtime design, agent roster) · UX | `@product-mgr`, `@system.arch`, `@ux.designer` |
+| 2. Build | Setup → frontend / backend → integration → QA (evaluation against the answer key) → security review | `@project.mgr`, engineers, `@qa.eng`, `@security.eng` |
+| 3. Deliver | Run instructions and user guide | `@devops.eng` |
+
+Total timebox: six weeks. *(SRC-BRIEF)* How the weeks split across phases is **not set** (OQ-5).
+
+### Resource Requirements
+
+One operator, using the AAMAD personas. *(SRC-BRIEF)*
+
+### Risk Mitigation
+
+| Risk | Mitigation | Trace |
+|---|---|---|
+| Agents produce confident but wrong rows or verdicts. | Separate verifier, mandatory quotes, three gates, answer-key evaluation. | SD MD-003, MD-004, FR-018 |
+| Real data leaks into the public repo. | Mock data only. Private identifier scan. `reference/` is git-ignored. | SD MN-001 |
+| Date conventions are wrong. | Conventions written down, operator-confirmed where possible, open ones marked. Safe default for unknown roll rules. | KEY §5, SD A-3, A-7 |
+| Scope grows into filing tracking. | Filing status explicitly out of scope, with a stable-ID hook for later. | SD §9, FR-016 |
+| Three gates make the happy path too long for the demo. | Specialist time target of under 30 minutes is measured. | SD MC-003 |
+
+## 9. Launch & Go-to-Market Strategy
+
+**N/A, internal capstone tool.** See Assumption A-1.
+
+---
+
+## Quality Assurance Checklist
+
+- [x] Requirements traceable to MRD, system description, or recorded Assumptions (Trace columns)
+- [x] Technical specifications feasible with the selected runtime adapter (no runtime-specific design made; SAD to confirm)
+- [x] Success metrics aligned with stated objectives (§7 maps to SD must-prove)
+- [x] MVP vs Future Work boundaries explicit (§4 P0 / P1 / P2, SD §9)
+- [x] Market sections marked N/A when MRD was intentionally skipped (§1, §2, §9)
+
+## Sources
+
+- `project-context/1.define/mrd.md`: evidence note (internal tool, no external market).
+- `project-context/1.define/system-description.md`: requirements, buckets, acceptance criteria.
+- `project-context/1.define/mock-data/`: sources, fund profile, answer key (KEY).
+- **SRC-BRIEF**: operator brief for this capstone.
+- **Operator PRD instructions**: MVP only, one happy path, mock every external, testable acceptance
+  criteria, trace every requirement, leave pattern/runtime/roster to the SAD, unsourced numbers to Open
+  Questions.
+- **Operator decisions** in Define: keep three gates, defer four-eyes timing, confirm MC-001 to MC-003,
+  confirm SD A-5 and A-6, confirm PRD A-3 (with the testability condition) and A-4, WCAG 2.2 AA.
+
+## Assumptions
+
+- **A-1**: Launch / go-to-market is N/A. The tool is internal and not sold. *(MRD)*
+- **A-2**: **Three approval gates, not one.** The operator's PRD instructions asked for one human
+  approval gate. The operator then decided to keep three gates (G1, G2, G3), as agreed in the system
+  description and required by the brief ("approves every consequential handoff"). This PRD follows that
+  decision.
+- **A-3**: "Mock every external system" covers business systems (regulators, email, fund records,
+  holiday calendars, task tools). The **language-model provider** is a live dependency, because the
+  agents cannot run without it. Operator-confirmed, with one condition: code that contains no AI
+  (gates, dates, audit log) must be testable without the live model (SD NFR-011).
+- **A-4**: The two surfaces are web-based. Operator-confirmed. The web framework is for the SAD.
+- **A-5**: The happy path counts as one flow even though a GP views the result at the end. The GP only
+  reads and has no decisions to make.
+- **A-6**: The MVP handles one pipeline run at a time. This follows from one operator, one fund and one
+  framework (SD A-1). It is not a measured limit.
+- **A-7**: **Needs are inferred from the brief and internal documents. No interviews were conducted.**
+  The user needs in §2 are hypotheses. The demo is the first test of them.
+
+## Open Questions
+
+- **OQ-1**: **Four-eyes review**: in the MVP or later? The operator wants it. Timing is undecided.
+  (SD OQ-5)
+- **OQ-2**: *Deferred to after the MVP* (operator decision). The share of rows approved without edits
+  needs real specialists reviewing unscripted text. The Week 6 accuracy checks against the answer key
+  cover agent correctness instead. (MRD OQ-2)
+- **OQ-3**: Is any user-satisfaction measure needed for the capstone? None defined.
+- **OQ-4**: *Resolved.* Accessibility standard is WCAG 2.2 AA (operator decision).
+- **OQ-5**: Does the MVP scope fit six weeks, and how are the weeks split across Define, Build and
+  Deliver? **Not yet shown.** Operator decision: keep the full scope until the architect estimates it
+  after the SAD. A possible cut line (a core demo path vs hardening stories) was proposed in Define and
+  **not** adopted.
+- **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
+- **OQ-7**: Business-day rules for `OBL-04` and `OBL-05`, and whether the AED subscription tax follows
+  the "tax does not roll" rule. (SD OQ-2, OQ-4; KEY OQ-D1, OQ-D3)
+
+## Audit
+
+- 2026-11-06 · persona `product-mgr` · action `create-prd` · runtime `crewai` (recorded from config; not
+  a design decision)
+- 2026-11-06 · persona `product-mgr` · action `quality-pass` · rewrote User Needs Analysis (needs per
+  persona, adoption barriers, A-7), moved an unsourced number to A-6, recorded operator decisions on
+  A-3, A-4 and accessibility, added FR-008 trace
+- 2026-11-06 · persona `product-mgr` · action `update` · calendar target 18 → 22 entries (operator
+  decision on `OBL-04`, SD principle P-1)
+- 2026-11-06 · persona `product-mgr` · action `quality-pass` (stories) · added internal-conflict
+  criterion to F2 and §7 (SD AC-017)
+- 2026-11-06 · persona `product-mgr` · action `readiness-check` · added a "Why" trace (user need + MRD
+  section) to F1–F9; OQ-5 records that the six-week fit awaits the architect's estimate
+- 2026-11-06 · persona `product-mgr` · action `update` · review time measured from audit log; no-edit
+  approval target deferred to after the MVP (OQ-2)

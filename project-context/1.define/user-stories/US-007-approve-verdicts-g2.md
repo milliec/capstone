@@ -1,0 +1,62 @@
+# US-007 — Confirm or override verdicts (Gate G2)
+
+## 1. Story Identity
+
+- **ID**: US-007
+- **Title**: Confirm or override verdicts (G2)
+- **Priority**: Must
+- **Persona**: Compliance specialist
+
+## 2. Narrative
+
+As a compliance specialist, I want to confirm or override each applicability verdict and decide every
+unclear case myself, so that no obligation is wrongly hidden from, or added to, the fund's calendar.
+
+## 3. Acceptance Criteria
+
+1. **Given** verdicts from US-006, **when** the specialist opens G2, **then** each verdict shows its
+   reasoning and the fund facts it cites, with their values.
+2. **When** the specialist confirms a verdict, **then** it becomes **approved** as it is.
+3. **When** the specialist overrides a verdict, **then** a written reason is required, and the new
+   verdict and reason are recorded.
+4. **Given** any verdict is still **unsure**, **then** G2 cannot be completed.
+5. **Given** the demo decisions in the story index, **when** the specialist resolves `OBL-04` as
+   **applies (precautionary)** with the reason "Treated as applicable until CNMV registration is
+   confirmed" and confirms the other five, **then** G2 is complete.
+6. **Given** a verdict resolved as precautionary, **then** it is recorded as **applies** with the note
+   "precautionary: registration unconfirmed", so the calendar includes it and the note stays visible
+   (design principle P-1). The word "pending" is not used, because "pending" means *not yet approved*.
+7. **Then** every confirmation and override is recorded in the audit log with who and when.
+
+## 4. Scope Notes
+
+- **In Scope for MVP**: one specialist; one decision per verdict.
+- **Deferred**: four-eyes review, pending decision on timing.
+
+## 5. Traceability
+
+- **PRD Anchors**: F5 · §2 step 6 · UN-S4, UN-S5, UN-S7 · AB-4
+- **System description**: FR-010 · MD-004 · MD-009 · AC-008
+- **Related SFS**: none yet
+
+## Sources
+
+- `prd.md` F5 · `system-description.md` MD-004, AC-008 · `user-stories/README.md` (demo decisions)
+
+## Assumptions
+
+- An override can turn any verdict into any other verdict, except "unsure", which only the agent can
+  give. Operator-confirmed.
+- When resolving "unsure", the specialist follows design principle P-1 (`system-description.md` §2):
+  choose the option whose mistake is cheaper.
+
+## Open Questions
+
+- **OQ-US007-1**: Four-eyes review: in the MVP or later? (PRD OQ-1)
+
+## Audit
+
+- 2026-11-06 · persona `product-mgr` · action `create-stories`
+- 2026-11-06 · persona `product-mgr` · action `update` · `OBL-04` demo decision changed to applies (P-1)
+- 2026-11-06 · persona `product-mgr` · action `quality-pass` · note renamed to "precautionary:
+  registration unconfirmed"
