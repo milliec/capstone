@@ -12,17 +12,17 @@ stories pass. It depends on US-005 and is not part of the Week 6 definition of d
 | 1–2 | [US-001](US-001-extract-obligation-rows.md) | Extract source-linked obligation rows | Specialist | F1 | FR-001, FR-002 |
 | 3 | [US-002](US-002-verify-quotes.md) | Verify quotes | Specialist | F2 | FR-003 |
 | 3 | [US-003](US-003-check-source-conflicts.md) | Check conflicts (internal and between sources) | Specialist | F2 | FR-004 |
-| 4 | [US-004](US-004-approve-rules-g1.md) | Approve or reject rules (G1) | Specialist | F3 | FR-005 |
+| 4 | [US-004](US-004-approve-rules-g1.md) | Approve or reject rules (G1) | Specialist | F3 | FR-005, FR-023 |
 | 4 | [US-005](US-005-edit-rule-and-reverify.md) | Edit a rule and re-verify it | Specialist | F3 | FR-006, FR-007 |
 | 5 | [US-006](US-006-judge-applicability.md) | Judge applicability for the fund | Specialist | F4 | FR-008, FR-009 |
-| 6 | [US-007](US-007-approve-verdicts-g2.md) | Confirm or override verdicts (G2) | Specialist | F5 | FR-010 |
+| 6 | [US-007](US-007-approve-verdicts-g2.md) | Confirm or override verdicts (G2) | Specialist | F5 | FR-010, FR-024 |
 | 7 | [US-008](US-008-generate-scheduled-calendar.md) | Generate calendar dates for scheduled obligations | Specialist | F6 | FR-011, FR-012, FR-016 |
 | 7 | [US-009](US-009-event-triggered-entry.md) | Generate a calendar entry from a logged event | Specialist | F6 | FR-013 |
-| 8 | [US-010](US-010-publish-calendar-g3.md) | Publish the calendar (G3) | Specialist | F7 | FR-014 |
-| 9 | [US-011](US-011-gp-read-only-calendar.md) | View the published calendar as a GP | GP | F8 | FR-015 |
+| 8 | [US-010](US-010-publish-calendar-g3.md) | Publish the calendar (G3) | Specialist | F7 | FR-014, FR-022 |
+| 9 | [US-011](US-011-gp-read-only-calendar.md) | View the published calendar as a GP | GP | F8 | FR-015, FR-025 |
 | all | [US-012](US-012-audit-log.md) | Record every output and decision | Specialist | F9 | FR-017 |
 | all | [US-013](US-013-evaluation-report.md) | Compare a run with the answer key | Specialist | F9 | FR-018 |
-| after 9 | [US-014](US-014-assess-amendment-impact.md) | **Stretch (Could):** assess the impact of a rule amendment | Specialist | F10 | FR-021 |
+| after 9 | [US-014](US-014-assess-amendment-impact.md) | **Stretch (Could):** assess the impact of a rule amendment | Specialist | F10 | FR-021, FR-026 |
 
 ## Coverage check
 
@@ -39,8 +39,15 @@ Every Must requirement in `system-description.md` §4 is covered by at least one
 | FR-007 | US-005 | FR-016 | US-008 |
 | FR-008 | US-006 | FR-017 | US-012 |
 | FR-009 | US-006 | FR-018 | US-013 |
+| FR-022 | US-010 | FR-024 | US-007 |
+| FR-023 | US-004, US-005 | FR-025 | US-011 (also linked from US-004, US-010, US-014) |
 
 **Not written (P1, after MVP):** FR-019 full trail view, FR-020 "not legal advice" note.
+
+**Stretch (Could):** FR-021 and FR-026 are covered by US-014.
+
+**Interaction rule (PRD §6, Must):** no bulk or preselected approval decisions. Tested in US-004
+(criteria 12–13), US-007 (10–11), US-010 (10) and, for the stretch, US-014 (15).
 
 ### Acceptance criteria coverage
 
@@ -56,8 +63,11 @@ Every acceptance criterion in `system-description.md` §8 is tested by at least 
 | AC-007 | US-006 | AC-015 | US-008 |
 | AC-008 | US-007 | AC-016 | US-012 |
 | AC-009 | US-008 | AC-017 | US-003, US-005 |
+| AC-021 | US-010 | AC-023 | US-007 |
+| AC-022 | US-004, US-005 | AC-024 | US-011 |
+| AC-026 | US-004, US-007, US-010 (stretch: US-014) | | |
 
-Stretch: AC-018, AC-019 and AC-020 are covered by US-014.
+Stretch: AC-018, AC-019, AC-020 and AC-025 are covered by US-014.
 
 ### Constraints covered outside the stories
 
@@ -99,7 +109,8 @@ at each gate. The stories assume these demo decisions:
 
 ## Open Questions
 
-- See each story. Shared ones: four-eyes timing (PRD OQ-1), GP "under review" note (PRD OQ-6).
+- See each story. Shared ones: four-eyes timing (PRD OQ-1), GP "under review" note before first
+  publication (PRD OQ-6).
 
 ## Audit
 
@@ -109,3 +120,9 @@ at each gate. The stories assume these demo decisions:
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · AC coverage table; constraints covered
   outside stories; Spain note renamed "precautionary"; US-003 retitled
 - 2026-11-06 · persona `product-mgr` · action `create-stories` · added US-014 (stretch, Could)
+- 2026-11-07 · persona `product-mgr` · action `update` · story map and coverage updated for FR-022 to
+  FR-026 and the PRD §6 interaction rule (approval-map decisions)
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · AC coverage table
+  adds SD AC-021 to AC-024 and stretch AC-025
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · AC coverage table
+  adds SD AC-026 (explicit decisions)

@@ -220,6 +220,7 @@ trust enter the library.*
 | An edit re-runs the verifier on that row. | SD AC-005 |
 | A row with a remaining flag cannot be approved without a written reason. With a reason, it is approved and the reason is logged. | SD AC-006 |
 | Editing an approved row returns it to pending and marks its calendar entries out of date. | SD AC-005, FR-007 |
+| A rejected row can be reopened with a reason, before or after publication. It returns to pending and goes through G1 and G2 again. | SD FR-023, AC-022 |
 
 #### F4. Applicability verdicts
 **Why:** UN-S5 · MRD §1 (each framework means interpreting obligations again), MRD §3
@@ -241,6 +242,7 @@ wrongly hidden or added.*
 |---|---|
 | Each verdict can be confirmed or overridden. Overrides are logged with a reason. | SD FR-010, MD-009 |
 | G2 cannot be completed while any verdict is "unsure". | SD AC-008 |
+| A confirmed verdict can be reopened with a reason, before or after publication, without editing its rule. It returns to G2, and its entries are marked out of date until the dates are regenerated. | SD FR-024, AC-023 |
 
 #### F6. Deterministic calendar
 **Why:** UN-S6, UN-G5 · MRD §2 (deadlines set by hand, inconsistently), MRD §4 (anchor + offset)
@@ -266,6 +268,7 @@ never see unfinished work.*
 | Before G3, the GP view shows no entries for the fund. | SD AC-013 |
 | Publishing without G1 and G2 complete is refused. | SD MP-006 |
 | G3 publishes the whole fund calendar at once. | SD A-6 |
+| Declining G3 requires a reason, publishes no new version and keeps the draft and review history. Any previously published version stays visible to GPs. | SD FR-022, AC-021 |
 
 #### F8. GP read-only calendar
 **Why:** UN-G1 to UN-G6 · MRD §1 (static legal documents, no live view, unfamiliar local rules)
@@ -275,7 +278,8 @@ filing and don't have to read legal text.*
 | Acceptance criterion | Trace |
 |---|---|
 | Each entry shows what (obligation + authority), when (date + roll note if moved), who files, and why (reason + source citation and quote). | SD AC-014 |
-| No pending, unsure, rejected or conflicted item is shown. | SD MN-007 |
+| No pending, unsure, rejected or conflicted working content is shown. | SD MN-007 |
+| After publication, a change that questions the published calendar shows GPs a neutral review notice. The last published entries and their publication date stay visible. The notice clears only on a successful republish. | SD FR-025, AC-024 |
 | The GP cannot change anything. | SD §1, NFR-010 |
 
 #### F9. Audit log and evaluation
@@ -286,7 +290,7 @@ against the answer key, so that I can prove the system works.*
 
 | Acceptance criterion | Trace |
 |---|---|
-| Every agent output and human decision appears in the log with who, when and what. | SD AC-016 |
+| Every agent output and human decision appears in the log with who, when and what. Every approval decision names the row, verdict or calendar version it was made on. | SD AC-016, MD-009 |
 | Log entries cannot be edited or deleted. | SD NFR-003 |
 | An evaluation report compares extraction, verdicts, verifier flags and calendar with the answer key. | SD FR-018, MP-001 to MP-004 |
 
@@ -313,7 +317,9 @@ does not. How it is built is for the SAD.
 | `AMD-01`: only `OBL-03` is flagged and its entry marked out of date. `OBL-02` is not flagged. | SD AC-018, KEY §6 |
 | `AMD-02`: `OBL-01` and `OBL-03` are flagged for re-check at G2, and their 13 entries are marked out of date. | SD AC-019, KEY §6 |
 | `AMD-03`: nothing is flagged, and the report says "wording change only". | SD AC-020, KEY §6 |
-| The system never applies a change. Affected items go back through G1 or G2. | SD MD-011, MN-003 |
+| The change-monitoring system may update review status and flags, but never changes the substance of a rule, applicability decision or deadline itself. Affected items go back through G1 or G2. | SD MD-011, MN-003 |
+| Every impact report, including "no impact", needs specialist acceptance or a documented manual review. Acceptance changes review status only. | SD FR-026, AC-025 |
+| Each acceptance, referral and manual-review completion records the report and amendment versions it was made on. A revised report or amendment needs a fresh review; it does not inherit acceptance. If the revision happens during manual review, the old review is kept as superseded (logged as a system event), accepting the revised report does not close the amendment, and completion is accepted only for the current versions. | SD FR-026, MD-009, AC-025 |
 
 **Guardrails:** not part of the Week 6 definition of done. Depends on the edit-and-re-verify chain (F3,
 SD MD-005), so it falls away if that chain is cut. The architect should estimate it separately
@@ -346,7 +352,7 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 |---|---|
 | No real client data, names or branding in any committed file. Checked by scanning against a private, git-ignored list. | SD MN-001 |
 | No secrets in the repository. | SD NFR-009 |
-| Only the specialist role can approve, edit, reject or publish. GPs are read-only. | SD NFR-010 |
+| Only the specialist role can approve, edit, reject, override, reopen, publish or decline (and, in the stretch, accept or send impact reports for manual review). GPs are read-only. | SD NFR-010 |
 | Output is a specialist-approved interpretation, not legal advice. | SD MN-009 |
 
 ### Scalability & Reliability
@@ -387,6 +393,7 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 | Agent failures are shown as plain messages. The run stops at the last safe state. | SD NFR-004 |
 | Rolled and unconfirmed dates are labelled in plain English. | SD AC-010, AC-011 |
 | GP-facing "why" text is readable by a non-lawyer. | SD NFR-005 |
+| **No bulk or preselected approval decisions (Must).** At G1 and G2, each row or verdict needs its own separate, explicit decision. No approval decision is preselected. Silence, a timeout or closing the screen leaves undecided items pending, and decisions already recorded stay intact. Safe default *values* (for example, the business-day rule "not confirmed") are still allowed. G3 stays one explicit decision to publish the whole calendar. If the stretch is built, the same rule applies to impact-report acceptance. *Separate clicks support deliberate review but don't prove it happened. The 30-minute review target (SD MC-003) must still be measured, not assumed.* | Operator decision (Define) · SD MD-004, MD-009, A-6, MC-003, AC-026 |
 
 ## 7. Success Metrics & KPIs
 
@@ -505,8 +512,12 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   after the SAD. A possible cut line (a core demo path vs hardening stories) was proposed in Define and
   **not** adopted.
 - **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
+  *Before first publication only. After publication, see SD FR-025 (SD OQ-7 resolved).*
 - **OQ-7**: Business-day rules for `OBL-04` and `OBL-05`, and whether the AED subscription tax follows
   the "tax does not roll" rule. (SD OQ-2, OQ-4; KEY OQ-D1, OQ-D3)
+- **OQ-8**: **Frontend framework, for the SAD.** The operator intends to use Next.js. This is a stated
+  intent, **not a requirement**: A-4 still says only "web" and leaves the framework to the SAD.
+  `@system.arch` to confirm or propose otherwise. *(Approval map OD-12, conflict K-4.)*
 
 ## Audit
 
@@ -527,3 +538,31 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   moved out of P2; risk row; A-8
 - 2026-11-06 · persona `product-mgr` · action `update` · "why it's hard" (overlapping layers, MRD §2);
   filing parties named as out-of-scope stakeholders (§2 users, P2 future), operator decision
+- 2026-11-07 · persona `product-mgr` · action `record-open-questions` · added OQ-8 (Next.js intent, for
+  the SAD); OQ-6 cross-referenced to SD OQ-7; no requirement changed
+- 2026-11-07 · persona `product-mgr` · action `update` · F7 criterion for G3 decline (SD FR-022),
+  operator decision
+- 2026-11-07 · persona `product-mgr` · action `update` · F3 criterion for reopening a rejected row (SD
+  FR-023), a new scope decision by the operator
+- 2026-11-07 · persona `product-mgr` · action `update` · F5 criterion for reopening a confirmed verdict
+  (SD FR-024), a new scope decision by the operator
+- 2026-11-07 · persona `product-mgr` · action `update` · F8: "working content" wording (SD MN-007) and
+  review-notice criterion (SD FR-025); OQ-6 limited to before first publication; operator decision
+- 2026-11-07 · persona `product-mgr` · action `update` · F10: guardrail scoped to the change-monitoring
+  system; report-acceptance criterion (SD FR-026); operator decision
+- 2026-11-07 · persona `product-mgr` · action `update` · §6: no bulk or preselected approval decisions
+  (Must), operator decision (approval map PR-6)
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `consistency-sweep` · §3
+  access constraint lists reopen and decline (SD NFR-010, FR-022 to FR-026); no new decision
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · trace columns cite
+  SD AC-021 to AC-026 next to their FR IDs (F3, F5, F7, F8, F10, §6); F9 audit row requires the version
+  of every approval decision (SD MD-009, AC-016); operator decision
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · F10: report-review
+  decisions record report and amendment versions; no silent inheritance by a revised report (SD
+  FR-026); operator decision, stretch only
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · F10: revision
+  during manual review (superseded review kept; completion only for current versions; SD FR-026);
+  operator decision, stretch only
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · F10: no shortcut
+  past a referred review; superseding logged as a system event (SD FR-026, MD-009); operator
+  decisions, stretch only

@@ -32,6 +32,20 @@ calendar for one Luxembourg UCI Part II fund.
 7. **Gate 3:** the specialist publishes the calendar.
 8. The GP sees what is due, when, who files it and why.
 
+**When something needs correcting.** Every gate decision is made one item at a time. There is no
+"approve all", nothing is preselected, and walking away approves nothing.
+
+- **Decline at Gate 3.** The specialist gives a reason and sends the work back to Gate 1 or 2, or keeps
+  it for later. Nothing new is published, and the draft and its history are kept.
+- **Reopen a rejected rule, or a confirmed verdict.** A reason is required. The item goes back through
+  its gate, and the earlier decision stays in the audit log.
+- **After publishing.** GPs keep seeing the last published calendar. If a correction calls it into
+  question, they see a neutral "under review" notice, which stays until a corrected calendar is
+  published. The notice warns; it doesn't stop anyone relying on a wrong date.
+
+There is no way to withdraw a published calendar in the MVP. That is deliberately deferred for this
+demonstration and must be revisited before real-world use.
+
 ## In and out of the MVP
 
 | In | Out |
@@ -49,7 +63,9 @@ The AI model provider is the only live service. Everything else is mocked.
 
 **Stretch goal (after the core works): change monitoring.** When a rule amendment arrives, the system
 works out which obligations it affects (one, several or none), flags only those, and sends them back
-through the gates. This is the part where the system decides its own path. Extraction, verification and
+through the gates. The specialist must review every impact report, including "no impact" ones: accept it, or send it for
+manual review. This is
+the part where the system decides its own path. Extraction, verification and
 applicability follow a fixed order. It is tested with three mock amendments and is **not** part of the
 Week 6 definition of done.
 
@@ -93,7 +109,7 @@ These are still undecided. Everything else has been decided and recorded.
 |---|---|---|
 | Does the full scope fit six weeks, and is there room for the stretch goal? | Keep everything / cut the hardening work / drop the stretch | Architect's estimate |
 | Four-eyes review (a second specialist confirms before publish)? | In the MVP / after the MVP | Build planning |
-| Should GPs see a neutral "under review" note for items still with compliance? | Show / hide (default: hide) | UX design |
+| Before a calendar is first published, should GPs see a neutral "under review" note? (After publishing, a notice is already decided.) | Show / hide (default: hide) | UX design |
 | Do Spanish (CNMV) and business-register deadlines roll past weekends? Does the Luxembourg subscription tax? | Roll / no roll (default: keep the earlier date) | Final demo data |
 | How close must an extracted obligation name be to the expected one to pass? | Exact / close match | Evaluation design |
 
@@ -122,3 +138,6 @@ scripted, so in Week 6 that rate would measure the script, not the agents.
   no-edit target deferred to after the MVP
 - 2026-11-06 · persona `product-mgr` · action `update` · added the change-monitoring stretch goal
 - 2026-11-06 · persona `product-mgr` · action `update` · filing parties named as out-of-scope stakeholders
+- 2026-11-07 · persona `product-mgr` · action `update` · "When something needs correcting" (SD FR-022 to
+  FR-025, PRD §6); stretch report acceptance (FR-026); withdraw deferred; GP note question narrowed to
+  before first publication. Definition of done unchanged.

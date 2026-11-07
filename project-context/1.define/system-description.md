@@ -89,14 +89,14 @@ error this system can make. Naming the principle stops the same choice being mad
 | MD-001 | Extract obligations from source text into fixed-schema rows | requirement | Each row cites exactly one source paragraph ID and a verbatim quote from it. Paragraphs with no obligation produce no row. |
 | MD-002 | Judge whether each approved row applies to the fund | requirement | Each verdict is one of applies / does not apply / unsure, with reasoning that cites at least one fund fact ID. |
 | MD-003 | Verify rows with a **separate** verifier agent | requirement | The verifier is not the agent that extracted the row. It runs a quote check and a conflict check (internal and cross-source) on every row and reports flags. |
-| MD-004 | Require specialist approval at three gates | requirement | **G1** rule approval (per row, after verification) · **G2** applicability approval (per verdict; "unsure" cannot pass without a human decision) · **G3** calendar publish (per fund). Each gate offers approve / edit / reject. |
+| MD-004 | Require specialist approval at three gates | requirement | **G1** rule approval (per row, after verification) · **G2** applicability approval (per verdict; "unsure" cannot pass without a human decision) · **G3** calendar publish (per fund). G1 and G2 offer approve / edit / reject for each item. G3 offers publish or decline (FR-022). |
 | MD-005 | Re-verify after any edit | requirement | Editing a row re-runs the verifier on that row. A remaining flag can only be overridden with a written reason. Editing an approved row returns it to pending, sends its verdict back through G2 once it is re-approved, and marks dependent calendar entries out of date. |
 | MD-006 | Calculate due dates with deterministic code | requirement | Dates come from approved rows only, using anchor + offset and conventions `D-1` to `D-7`. Each row's own business-day rule is applied. An unconfirmed rule keeps the earlier, unrolled date and marks it. |
 | MD-007 | Handle event-triggered obligations | requirement | A logged event with an awareness date produces a calendar entry anchored on the **awareness** date. |
 | MD-008 | Give GPs a read-only view of what is due and why | requirement | Each entry shows **what** (obligation + authority), **when** (date, plus a roll note if moved), **who** files, and **why** (plain-English reason + source citation and quote). |
-| MD-009 | Keep an audit log | requirement | Every agent output and every human decision is recorded with who, when, what and (for overrides and rejections) why. Opening each gate is also recorded, so review time can be measured (MC-003). |
+| MD-009 | Keep an audit log | requirement | Every agent output and every human decision is recorded with who, when, what and (for overrides, rejections, reopenings (FR-023, FR-024), G3 declines and, in the stretch, sending an amendment for manual review (FR-026)) why. Every approval decision also records the version of the item it was made on: the row version for G1 approvals and rejections (including approvals over a flag) and for reopening a rejected row; the verdict version for G2 confirmations, overrides and decisions on "unsure", and for reopening a verdict; and the calendar version for G3 publishes and declines. In the stretch, impact-report decisions record the report and amendment versions instead (FR-026), and marking a manual review superseded is recorded as a **system event**, with the system as actor (not a human decision), the time, the triggering revision, the affected review and the old and new version references. How versions are identified and stored is for the SAD (approval map OD-11). Opening each gate is also recorded, so review time can be measured (MC-003). |
 | MD-010 | Prepare for filing status later | requirement | Every calendar entry has a stable ID that a future filing record could reference. |
-| MD-011 | **Stretch:** assess the impact of a rule amendment | requirement | Given an amendment to a source, the system identifies which rows, verdicts and calendar entries are affected (one, several or none), flags only those, and explains why. It never applies a change itself. Affected items go back through G1 or G2. |
+| MD-011 | **Stretch:** assess the impact of a rule amendment | requirement | Given an amendment to a source, the system identifies which rows, verdicts and calendar entries are affected (one, several or none), flags only those, and explains why. The change-monitoring system may update review status and flags (including marking entries out of date), but never changes the substance of a rule, applicability decision or deadline itself. Affected items go back through G1 or G2. Every impact report needs specialist acceptance or a documented manual review (FR-026). |
 
 ### Must not do
 
@@ -108,7 +108,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | MN-004 | Let the verifier resolve conflicts on its own | requirement | Conflicts are flagged for the specialist. The verifier never changes a row. |
 | MN-005 | Let a language model calculate dates | requirement | Every due date is produced by deterministic code. Agent output contains no computed dates. |
 | MN-006 | Accept a row without a source | requirement | A row with a missing paragraph ID or a failed quote check cannot be approved. |
-| MN-007 | Show unfinished work to GPs | requirement | The GP view shows no pending, unsure, rejected or conflicted items (see OQ-1). |
+| MN-007 | Show unfinished work to GPs | requirement | The GP view shows no pending, unsure, rejected or conflicted working content (see OQ-1). A neutral calendar-level review notice is permitted (FR-025). |
 | MN-008 | Use a task tool as the system of record | requirement | Obligations, verdicts, approvals and calendar entries live in this system only. |
 | MN-009 | Present output as legal advice | requirement | The GP view and exports carry a note that rules are specialist-approved interpretations, not legal advice. |
 
@@ -160,6 +160,11 @@ error this system can make. Naming the principle stops the same choice being mad
 | FR-019 | The specialist can view a row's full trail: source, quote, verifier flags, verdict, approvals. | Should | MP-005 |
 | FR-020 | GP view shows a plain "not legal advice" note. | Should | MN-009 |
 | FR-021 | **Stretch:** given an amendment, produce an impact report listing affected rows, verdicts and calendar entries with reasons, and send them back through G1 or G2. Unaffected items are left alone. | Could | MD-011, MN-003 |
+| FR-022 | G3 decline: declining G3 requires a reason, publishes no new version and retains the draft and review history (including its evidence), visible to the specialist only. Any previously published version remains visible to GPs. The specialist chooses the next step: *a rule needs correcting* (go to G1), *a verdict needs review* (return to G2 by reopening the verdict under FR-024), or *keep unpublished for later*. Declining cancels no earlier G1 or G2 approval. | Must | MD-004, MD-009 |
+| FR-023 | Reopen a rejected row: the specialist can reopen a rejected row, before or after publication. A reason is required, and the original rejection stays in the audit log. The row returns to pending, is re-verified, and needs fresh G1 approval and then a G2 verdict. Until those are complete, publishing a new calendar version is refused. GPs keep seeing the last published version until the specialist republishes. A rejected row is read-only: direct editing is refused until it is reopened, and after reopening normal pending-row editing applies (MD-005). *New scope decision (operator, 2026-11-07), supporting P-1; not implied by earlier requirements. Scope is limited to this recovery path; it is not a general undo system.* | Must | MD-004, MD-005, MD-009, P-1 |
+| FR-024 | Reopen a confirmed verdict: the specialist can reopen a confirmed or overridden G2 verdict, before or after publication, to correct a judgement while the rule and the relevant fund facts are unchanged. A reason is required. The original decision and the agent's reasoning stay in the audit log. The rule keeps its G1 approval, and the applicability agent is not re-run. The verdict returns to pending G2, its calendar entries are marked out of date, and publishing a new version is refused until G2 is complete and the dates are regenerated. GPs keep seeing the last published version. The specialist must finish with "applies" or "does not apply", and an override still needs a reason. If the rule has changed, the edit path applies instead (MD-005). Fund facts are static in the MVP, so reassessment after a fact change is not defined (OQ-9). *New scope decision (operator, 2026-11-07).* | Must | MD-004, MD-009, FR-022, P-1 |
+| FR-025 | Published-calendar review notice: when a change calls the currently published calendar's accuracy or completeness into question, the GP view shows a neutral, calendar-level review notice. Triggers: an edit to an approved row the published version used (MD-005); reopening a verdict the published version used, including a "does not apply" decision that excluded an obligation (FR-024); reopening a rejected row for the published calendar's fund and regulatory scope (FR-023); and, only if the stretch is built, an impact flag on a published item (MD-011). Unrelated draft work does not trigger it. The last published entries stay visible with their publication date. No draft content, flag detail or specialist reasoning is shown. The notice clears only when a replacement calendar is successfully published; a declined (FR-022) or failed publication does not clear it. Exact wording is set at the UX step. *Limit: the notice warns of uncertainty; it does not by itself prevent reliance on an incorrect date.* *New scope decision (operator, 2026-11-07).* | Must | MN-007, FR-015, P-1 |
+| FR-026 | **Stretch:** impact-report acceptance. Whenever change monitoring is built, every impact report needs specialist acceptance or a documented manual review, including reports with flags and "no impact" reports. This is a separate review step, not a replacement for G1 to G3. Acceptance confirms the assessment only. It does not approve or apply any regulatory change, clear flags, restore invalidated approvals or clear the GP review notice, and flagged items still need their own G1 or G2 review. Instead of accepting, the specialist can send the amendment for manual review with a logged reason. It stays open until the specialist explicitly completes it with a completion note that records the conclusion and references any resulting corrections, or explains why none were needed. Corrections use existing paths (MD-005, FR-023, FR-024). Neither sending for nor completing a manual review clears flags, restores approvals or bypasses G1 to G3, and sending for manual review does not resolve the amendment. The specialist sees a visible queue of amendments not yet accepted or completed. Acceptance, sending for manual review and completing a manual review each record the actor, the time, the exact report version and the exact source amendment version decided on, plus the required reason (sending) or completion note (completing); identifier design is for the SAD (approval map OD-11). A decision covers only the report and amendment versions it names: if either is revised, the earlier decision does not carry over, the amendment returns to unreviewed and needs a fresh acceptance or manual review, and the earlier decision stays in the audit log. If either is revised while a manual review is still open, that review is marked superseded and keeps its notes and version references; the amendment stays unresolved in the specialist's queue, linked to the new report and amendment versions; the specialist can consult the earlier notes, but must make an explicit completion decision for the current versions, and completion against a superseded version is refused. Once an amendment has been referred for manual review, accepting a revised report does not close it: the new report is evidence for the review, and the amendment closes only when the specialist completes the manual review with a completion note against the current versions. Superseding a review does not clear impact flags or the GP review notice, restore approvals or bypass G1 to G3. The GP review notice stays tied to concrete impact flags (FR-025). *Limit: an unaccepted amendment may contain an undiscovered impact, so the absence of a notice does not mean the calendar has been checked against it. Human sign-off reduces the risk of a silent miss; it does not guarantee completeness.* *Operator decision, 2026-11-07.* | Could | MD-011, FR-025, P-1 |
 
 ## 5. Non-Functional Requirements
 
@@ -174,7 +179,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | NFR-007 | Cost | See MC-002. | MC-002 |
 | NFR-008 | Usability | See MC-003. | MC-003 |
 | NFR-009 | Security and privacy | No secrets or real data in the repository. API keys come from local environment settings that git ignores. | MN-001 |
-| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, reject or publish. Roles may be mocked for the MVP. | MN-003 |
+| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, reject, override, reopen (FR-023, FR-024), publish or decline (FR-022), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
 | NFR-011 | Testability | Tests for gates, due-date calculation and the audit log run without calling a language model. Only agent evaluations need the live model. | MP-006, MP-007, MP-008 |
 
 ## 6. Constraints
@@ -237,12 +242,46 @@ error this system can make. Naming the principle stops the same choice being mad
 - **AC-015** (MP-007): Given the same approved inputs, when the calendar is generated twice, then both
   outputs are identical.
 - **AC-016** (MD-009): Given a full demo run, then every agent output and human decision appears in the
-  audit log with who, when and what.
+  audit log with who, when and what, and every approval decision names the row, verdict or calendar
+  version it was made on.
 - **AC-017** (MD-003): Given `OBL-02` with its offset changed to "+30 calendar days" but its quote
   unchanged ("within 20 calendar days…"), when the verifier runs, then an **internal** conflict is
   flagged, even though the quote check passes.
 
-*Stretch goal (FR-021). Not part of the Week 6 definition of done.*
+*Recovery paths and explicit decisions (added 2026-11-07). Each criterion states the observable
+outcome; the linked story criteria hold the detail.*
+
+- **AC-021** (FR-022): Given a generated calendar, when the specialist declines G3 without a reason,
+  then the decline is refused. With a reason and a chosen next step, no new version is published, the
+  draft and its review history stay available to the specialist, any previously published version
+  stays visible to GPs, and no G1 or G2 approval changes. *Detail: US-010 criteria 8–9.*
+- **AC-022** (FR-023): Given a rejected row, when the specialist edits it directly or reopens it without
+  a reason, then both are refused. When it is reopened with a reason, the row returns to pending and is
+  re-verified, G1 is incomplete until the row is decided again, its verdict then needs G2, and
+  publishing a new version is refused until both are done. The original rejection stays in the audit
+  log. *Detail: US-004 criteria 9–11.*
+- **AC-023** (FR-024): Given a confirmed verdict, when the specialist reopens it without a reason, then
+  reopening is refused. With a reason, the verdict returns to pending G2 while its rule keeps its G1
+  approval, the applicability agent does not re-run, the verdict's calendar entries are marked out of
+  date, and publishing is refused until G2 is complete and the dates are regenerated. The original
+  decision stays in the audit log. *Detail: US-007 criteria 8–9.*
+- **AC-024** (FR-025): Given a published calendar, when an approved row it used is edited, a verdict it
+  used is reopened (including `OBL-06`'s "does not apply"), or a rejected row in its scope is reopened,
+  then the GP view shows a neutral calendar-level review notice with the last published entries and
+  their publication date, and no draft content, flag detail or reasoning. Draft work that does not
+  affect the published calendar shows no notice. The notice clears only when a replacement calendar is
+  successfully published; a declined or failed publication leaves it in place. *Detail: US-011
+  criteria 9–10; stretch trigger in US-014 criterion 10.*
+- **AC-026** (MD-004, PRD §6): Given the G1 and G2 review screens, then there is no bulk approve or
+  confirm action and no row or verdict has a preselected decision; each decision is a separate,
+  explicit action logged on its own. When the specialist closes the screen, the session times out or
+  nothing is done, undecided items stay pending, the gate stays incomplete, and decisions already
+  recorded stay intact. Safe default values (such as the business-day rule "not confirmed") may still
+  be shown as proposed values. G3 remains one explicit decision for the whole calendar, never
+  preselected and never triggered by a timeout or by closing the screen. *Detail: US-004 criteria
+  12–13, US-007 criteria 10–11, US-010 criterion 10; stretch: US-014 criterion 15.*
+
+*Stretch goal (FR-021, FR-026). Not part of the Week 6 definition of done.*
 
 - **AC-018** (MD-011): Given the published calendar and amendment `AMD-01`, when impact is assessed,
   then only `OBL-03` is flagged and its calendar entry is marked out of date. `OBL-02` is not flagged.
@@ -250,6 +289,18 @@ error this system can make. Naming the principle stops the same choice being mad
   at G2, and their 13 calendar entries are marked out of date. No other row is flagged.
 - **AC-020** (MD-011): Given `AMD-03`, then nothing is flagged and the report states that the change is
   wording only.
+- **AC-025** (FR-026; applies only if the stretch is built): Given any impact report, including
+  `AMD-03`'s "no impact", then the amendment stays unreviewed in the specialist's queue until the report
+  is accepted or a manual review is completed. Accepting changes the review status only: flags stay,
+  invalidated approvals are not restored, flagged items still need G1 or G2, and any GP review notice
+  stays. Sending for manual review requires a reason, and the amendment stays open until it is
+  completed with a completion note. Each of these decisions names the report and amendment versions it
+  was made on; when either is revised, the amendment returns to unreviewed and the earlier decision
+  stays in the log. If the revision happens during an open manual review, that review is marked
+  superseded with its notes kept, the amendment stays in the queue, accepting the revised report does
+  not close it, and completion is accepted only for the current versions. The superseding appears in
+  the audit log as a system event with the triggering revision and the old and new version references.
+  *Detail: US-014 criteria 11–17.*
 
 ## 9. Out of Scope / Future Work
 
@@ -268,6 +319,12 @@ error this system can make. Naming the principle stops the same choice being mad
 - Reading real regulatory documents (e.g. PDF parsing). The MVP reads mock text.
 - Real authentication.
 - Application pattern, full runtime roster and system architecture (SAD). Later sprints.
+- **Withdrawing or unpublishing** a published calendar or entry. Operator decision: deliberately
+  deferred for this bounded demonstration. It is not judged unnecessary or inherently less safe.
+  Recovery in the MVP is: review notice (FR-025) → correct (FR-022 to FR-024, MD-005) → republish. One
+  fictional fund removes the cross-fund publication case, but a calendar can still be wrong throughout.
+  **Revisit before real-world use**, where leaving seriously misleading information visible could itself
+  cause harm.
 
 **Future work**
 - Filing status and evidence, linked to calendar entries by stable ID.
@@ -275,6 +332,12 @@ error this system can make. Naming the principle stops the same choice being mad
   role.
 - Multiple funds and frameworks, reusing approved libraries.
 - An official holiday calendar source in place of the mock list.
+- **Fund-fact changes** (operator decision; direction only, not designed). When a fund fact changes,
+  identify affected applicability decisions, invalidate their approvals and derived calendar entries,
+  reassess applicability using the updated facts, and require fresh G2 confirmation before
+  republishing. Where the published calendar is affected, show the review notice (FR-025). Dependency
+  detection must account for newly applicable obligations, not only existing fact citations. FR-024's
+  judgement-only reopening is not the path for this, because its inputs must stay unchanged.
 - *(Moved to a stretch goal: impact of rule amendments, MD-011 / FR-021. Built only after the core,
   and it depends on the edit-and-re-verify chain in MD-005.)*
 
@@ -300,7 +363,7 @@ error this system can make. Naming the principle stops the same choice being mad
 
 - **OQ-1**: Should the GP view show a neutral note such as "1 possible obligation is under review by
   compliance"? **Decide before the UX step (`@ux.designer`).** Until then, nothing under review is
-  shown.
+  shown. *Before first publication only. After publication, see FR-025.*
 - **OQ-2**: Business-day rules for Luxembourg Business Registers (`OBL-05`) and CNMV (`OBL-04`) filings.
   See answer key `OQ-D1`.
 - **OQ-3**: *Resolved.* MC-001 to MC-003 confirmed by the operator.
@@ -309,6 +372,21 @@ error this system can make. Naming the principle stops the same choice being mad
 - **OQ-5**: The operator wants **four-eyes review** (a second, different specialist confirms before
   publish). **Timing is undecided:** MVP or a later version. Until decided, the MVP happy path has one
   specialist, and every approval records who made it (MD-009) so a second approver can be added.
+- **OQ-6**: *Resolved* (operator decision, 2026-11-07). Declining G3 requires a reason, publishes no new
+  version and retains the draft and review history. Any previously published version remains visible
+  to GPs. See MD-004, FR-022. *(Approval map OD-1, conflict K-1.)*
+- **OQ-7**: *Resolved* (operator decision, 2026-11-07). GPs keep seeing the last published entries
+  with their publication date, plus a neutral calendar-level review notice when a change questions the
+  published calendar's accuracy or completeness, including an obligation possibly missing after a
+  rejected row is reopened. MN-007 clarified to cover working content. See FR-025. *(Approval map OD-4,
+  conflicts K-2 and K-3.)*
+- **OQ-8**: *Resolved: not in the MVP* (operator decision, 2026-11-07). Deliberately deferred; revisit
+  before real-world use. See §9. *Original question:* Is a way to withdraw a published calendar or
+  entry needed? None exists in the requirements, and none is assumed. *(Approval map OD-5.)*
+- **OQ-9**: *Deferred beyond MVP; direction recorded* (operator decision, 2026-11-07). See §9 Future
+  work. The detailed design is not resolved. *Original question:* Should a change to fund facts
+  invalidate approved G2 verdicts? The fund profile is static mock data in the MVP, so this does not
+  arise yet. *(Approval map OD-6.)*
 
 ## Audit
 
@@ -331,3 +409,45 @@ error this system can make. Naming the principle stops the same choice being mad
   stretch goal (MD-011, FR-021 Could, AC-018 to AC-020), operator decision
 - 2026-11-06 · persona `product-mgr` · action `update` · problem statement enriched (overlapping layers);
   filing parties named as out-of-scope stakeholders (§1, A-9, §9), operator decision
+- 2026-11-07 · persona `product-mgr` · action `record-open-questions` · added OQ-6 to OQ-9 from the
+  draft approval map (OD-1, OD-4, OD-5, OD-6); no requirement changed
+- 2026-11-07 · persona `product-mgr` · action `update` · G3 decline defined (MD-004 wording, MD-009,
+  new FR-022); OQ-6 resolved, operator decision (approval map PR-1)
+- 2026-11-07 · persona `product-mgr` · action `update` · new FR-023 (reopen a rejected row, Must), a new
+  scope decision by the operator (approval map PR-2); OQ-7 extended to cover omissions from reopened rows
+- 2026-11-07 · persona `product-mgr` · action `update` · new FR-024 (reopen a confirmed verdict, Must),
+  a new scope decision by the operator (approval map OD-3); FR-022 G2 route now points to FR-024
+- 2026-11-07 · persona `product-mgr` · action `update` · MN-007 clarified (working content); new FR-025
+  (published-calendar review notice, Must); FR-023: rejected rows read-only until reopened; OQ-7
+  resolved; OQ-1 limited to before first publication; operator decisions (approval map OD-4)
+- 2026-11-07 · persona `product-mgr` · action `update` · withdraw/unpublish deliberately deferred for
+  the demonstration (§9), revisit before real-world use; OQ-8 resolved, operator decision (approval map
+  OD-5)
+- 2026-11-07 · persona `product-mgr` · action `update` · §9 Future work: fund-fact changes (direction
+  only); OQ-9 deferred beyond MVP, direction recorded, operator decision (approval map OD-6)
+- 2026-11-07 · persona `product-mgr` · action `update` · stretch: MD-011 wording scoped to the
+  change-monitoring system (status and flags only); new FR-026 (impact-report acceptance, Could;
+  mandatory whenever the stretch is built), operator decision (approval map OD-9, PR-5)
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `consistency-sweep` · aligned
+  MD-009 (reasons for reopenings and manual-review sends), MD-011 (acceptance *or* manual review) and
+  NFR-010 (reopen, decline, report acceptance are specialist-only) with FR-022 to FR-026; no new decision
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · new AC-021 to AC-024
+  (FR-022 to FR-025) and AC-025 (FR-026, stretch only), linking to story criteria; NFR-010 states that
+  naming "override" adds no permission and lists the non-overridable checks; MD-009: each override
+  records the rule or verdict version (scheme left to the SAD, OD-11); operator decisions
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · MD-009 and AC-016:
+  every approval decision (G1, G2, reopenings, G3 publish and decline) records the version of the row,
+  verdict or calendar it was made on, superseding the override-only wording above; version scheme
+  still for the SAD (OD-11); new AC-026 (explicit decisions, PRD §6); operator decisions
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · stretch only, if
+  built: FR-026 impact-report decisions record actor, time, report and amendment versions, and the
+  reason or completion note; a revised report or amendment does not inherit an earlier decision;
+  MD-009 and AC-025 updated to match; operator decision
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · stretch only, if
+  built: FR-026 and AC-025 cover a revision during an open manual review (old review superseded with
+  notes kept; amendment stays queued; completion only for current versions; nothing cleared, restored
+  or bypassed); operator decision
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · stretch only, if
+  built: FR-026, a referred amendment cannot be closed by accepting a revised report; MD-009,
+  superseding a manual review is a system event (system actor, time, triggering revision, affected
+  review, old and new versions); AC-025 updated; operator decisions

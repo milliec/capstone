@@ -33,6 +33,8 @@ so that a human edit is never the one change nobody checked.
 ## 4. Scope Notes
 
 - **In Scope for MVP**: edits during G1, and edits to already-approved rows.
+- **Not editable**: rejected rows. They are read-only until reopened with a reason (US-004 criteria 9
+  and 11, SD FR-023). After reopening, they are edited as pending rows under this story.
 - **Deferred**: bulk edits; edit history comparison views.
 
 ## 5. Traceability
@@ -59,3 +61,5 @@ so that a human edit is never the one change nobody checked.
 - 2026-11-06 · persona `product-mgr` · action `update` · 14 → 18 unaffected entries (calendar now 22)
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · criterion 2 uses the internal check;
   added criterion 5 (edited rows re-enter G2)
+- 2026-11-07 · persona `product-mgr` · action `update` · scope note: rejected rows are not editable
+  until reopened (SD FR-023), operator decision

@@ -1,0 +1,19 @@
+---
+description: Project-owned pointer (not AAMAD core). Consult the agentic-approval-design skill when writing or reviewing requirements, the SAD, or build/QA work that touches agent permissions, the G1–G3 gates, approvals, edits that invalidate approvals, recovery, or change monitoring.
+globs: project-context/**/*.md
+alwaysApply: false
+---
+
+# Approval design pointer
+
+When your work touches who may decide or act, read `.cursor/skills/agentic-approval-design/SKILL.md`
+and the canonical map `project-context/1.define/approval-map.md` (a draft until the operator approves it).
+
+- **@product-mgr** (PRD, system description, stories): check new or changed requirements against the
+  map. Propose requirement changes; do not apply them without operator approval.
+- **@system.arch** (SAD, SFS): say where each Alone / Ask / Never row is enforced in code, and resolve
+  the map's open decisions marked "SAD".
+- **@backend.eng, @frontend.eng, @integration.eng, @qa.eng, @security.eng**: enforce the map on the
+  server, not only in the UI, and test the map's test matrix.
+
+Keep one map. Update it rather than creating another. The map and this rule are guidance, not enforcement.
