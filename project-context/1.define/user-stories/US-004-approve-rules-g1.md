@@ -19,7 +19,7 @@ rule, so that only rules I trust enter the obligation library.
 2. **When** the specialist approves a row, **then** they set its business-day rule (roll forward / no
    roll / not confirmed) and the row becomes **approved**.
 3. **When** the specialist rejects a row, **then** a written reason is required, and the row is marked
-   **rejected** and is never sent to applicability.
+   **rejected** and is not sent to applicability unless it is reopened (criterion 9).
 4. **Given** a row that failed the quote check, **then** it cannot be approved.
 5. **Given** `OBL-03` with conflict `C-1`, **when** the specialist approves it without a reason, **then**
    approval is refused. **With** a reason, it is approved and the reason is recorded.
@@ -29,6 +29,23 @@ rule, so that only rules I trust enter the obligation library.
    who and when.
 8. **Given** the demo decisions in the story index, **then** all 6 rows end G1 approved, with business-day
    rules as in answer key §5.
+9. **Given** a rejected row, before or after publication, **when** the specialist reopens it without a
+   reason, **then** reopening is refused. **With** a reason, the row returns to **pending** and is
+   re-verified. The original rejection stays in the audit log.
+10. **Given** a reopened row, **then** G1 is not complete until the row is approved or rejected again,
+    and its verdict then needs G2. Until both are done, publishing a new calendar version is refused
+    (US-010 criterion 2). If a calendar is already published, GPs keep seeing it until the specialist
+    republishes, with a neutral review notice (US-011 criterion 9).
+11. **Given** a rejected row, **when** the specialist tries to edit it directly, **then** the edit is
+    refused. A rejected row is read-only until it is reopened (criterion 9); after reopening, normal
+    pending-row editing applies (US-005).
+12. **Given** the G1 review screen, **then** there is no "approve all" or other bulk decision, and no
+    row has a preselected approve or reject decision. Each decision is a separate, explicit action,
+    recorded on its own in the audit log with its own timestamp. Safe default values, such as the
+    business-day rule "not confirmed", may be shown as proposed values.
+13. **Given** undecided rows, **when** the specialist closes the screen, the session times out, or
+    nothing is done, **then** those rows stay **pending** and G1 is not complete. Rows already decided
+    keep their recorded decisions.
 
 ## 4. Scope Notes
 
@@ -38,7 +55,7 @@ rule, so that only rules I trust enter the obligation library.
 ## 5. Traceability
 
 - **PRD Anchors**: F3 · §2 step 4 · UN-S4, UN-S7 · AB-1, AB-4
-- **System description**: FR-005 · MD-004 · MN-003, MN-006 · AC-006 · NFR-010
+- **System description**: FR-005, FR-023 · MD-004 · MN-003, MN-006 · AC-006 · NFR-010
 - **Answer key**: §5 (business-day rules)
 - **Related SFS**: none yet
 
@@ -54,7 +71,18 @@ rule, so that only rules I trust enter the obligation library.
 ## Open Questions
 
 - **OQ-US004-1**: Four-eyes review: in the MVP or later? (PRD OQ-1)
+- **OQ-US004-2**: *Resolved* (operator decision, 2026-11-07). Yes, with a reason, before or after
+  publication. See criteria 9 and 10, SD FR-023. *(Approval map OD-2.)*
 
 ## Audit
 
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
+- 2026-11-07 · persona `product-mgr` · action `record-open-questions` · added OQ-US004-2 (approval map
+  OD-2); no criterion changed
+- 2026-11-07 · persona `product-mgr` · action `update` · reopen a rejected row (new scope decision, SD
+  FR-023): criterion 3 reworded ("never" → "unless reopened"), criteria 9 and 10 added; OQ-US004-2
+  resolved
+- 2026-11-07 · persona `product-mgr` · action `update` · criterion 11 (rejected rows read-only until
+  reopened); criterion 10 links the GP review notice; operator decision
+- 2026-11-07 · persona `product-mgr` · action `update` · criteria 12 and 13 (no bulk or preselected
+  decisions; silence leaves rows pending; PRD §6), operator decision

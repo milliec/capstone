@@ -25,16 +25,28 @@ so that GPs never see unfinished work.
 5. **When** the specialist publishes, **then** the whole fund calendar is published at once.
 6. **Given** the calendar has not been published, **then** the GP view shows no entries for the fund.
 7. **Then** every publish, and every refused attempt, is recorded in the audit log with who and when.
+8. **Given** a generated calendar, **when** the specialist declines at G3 without a reason, **then** the
+   decline is refused. **With** a reason and a chosen next step (G1, G2, or keep unpublished), it is
+   accepted. *(The G2 route reopens the verdict: SD FR-024, US-007 criteria 8 and 9.)*
+9. **When** the specialist declines, **then** no new version is published. The draft and its review
+   history stay available to the specialist only, any previously published version stays visible to
+   GPs together with any review notice (US-011 criterion 10), and no earlier G1 or G2 approval is cancelled. The decline, the reason and the chosen next step
+   are recorded in the audit log with who and when.
+10. **Then** publishing happens only through an explicit publish action. It is never preselected, and
+    is never triggered by a timeout or by closing the screen. If the specialist leaves without
+    publishing, the calendar stays unpublished.
 
 ## 4. Scope Notes
 
 - **In Scope for MVP**: one specialist publishes one fund's calendar.
-- **Deferred**: four-eyes review, scheduled publishing, publishing single entries.
+- **Deferred**: four-eyes review, scheduled publishing, publishing single entries, withdrawing or
+  unpublishing a calendar (deliberately deferred for the demonstration; revisit before real-world use,
+  SD §9).
 
 ## 5. Traceability
 
 - **PRD Anchors**: F7 · §2 step 8 · UN-S4, UN-G4 · AB-5
-- **System description**: FR-014 · MD-004 · MN-003, MN-007 · AC-013 · MP-006 · A-6
+- **System description**: FR-014, FR-022 · MD-004 · MN-003, MN-007 · AC-013 · MP-006 · A-6
 - **Related SFS**: none yet
 
 ## Sources
@@ -44,13 +56,19 @@ so that GPs never see unfinished work.
 ## Assumptions
 
 - Once a calendar is published, GPs keep seeing that version until the specialist publishes again.
-  Operator-confirmed.
+  Operator-confirmed. When a change questions that version, GPs also see a neutral review notice (SD
+  FR-025, US-011 criteria 9 and 10).
 
 ## Open Questions
 
 - **OQ-US010-1**: Four-eyes review: in the MVP or later? (PRD OQ-1)
 - **OQ-US010-2**: *Resolved.* After a post-publish edit, GPs keep seeing the last published version
   until the specialist publishes again (operator-confirmed).
+- **OQ-US010-3**: *Resolved* (operator decision, 2026-11-07). See criteria 8 and 9. (SD OQ-6)
+- **OQ-US010-4**: *Resolved* (operator decision, 2026-11-07). The last published version plus a neutral
+  review notice; OQ-US010-2 stands. (SD OQ-7, FR-025; US-011 criteria 9 and 10)
+- **OQ-US010-5**: *Resolved: not in the MVP* (operator decision, 2026-11-07). Recovery is review notice
+  → correct → republish. Revisit before real-world use. (SD OQ-8, §9)
 
 ## Audit
 
@@ -58,3 +76,16 @@ so that GPs never see unfinished work.
 - 2026-11-06 · persona `product-mgr` · action `update` · 18 → 22 entries
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · added criterion 4 (safe-default marks do
   not block publishing); Spain note renamed
+- 2026-11-07 · persona `product-mgr` · action `record-open-questions` · added OQ-US010-3 to -5 (approval
+  map OD-1, OD-4, OD-5); no criterion changed
+- 2026-11-07 · persona `product-mgr` · action `update` · added criteria 8 and 9 (G3 decline, FR-022);
+  OQ-US010-3 resolved, operator decision
+- 2026-11-07 · persona `product-mgr` · action `update` · criterion 8 note now points to SD FR-024
+- 2026-11-07 · persona `product-mgr` · action `update` · criterion 9 links the review notice; OQ-US010-4
+  resolved (SD FR-025), operator decision
+- 2026-11-07 · persona `product-mgr` · action `update` · withdraw/unpublish added to Deferred;
+  OQ-US010-5 resolved (not in the MVP), operator decision
+- 2026-11-07 · persona `product-mgr` · action `update` · criterion 10 (publish only by explicit action;
+  PRD §6), operator decision
+- 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `consistency-sweep` ·
+  Assumptions cross-reference the review notice (SD FR-025); no new decision

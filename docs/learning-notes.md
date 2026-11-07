@@ -57,6 +57,17 @@ in the requirements depends on them.
 an estimate is guessing. The decision was to keep full scope, ask the architect for an estimate, and
 keep a proposed cut line ready in case it's needed.
 
+**New features can break old absolutes.** Adding "reopen a rejected rule" contradicted a criterion
+saying a rejected row is "never" sent on. "The system never changes an entry" clashed with the system
+marking entries out of date. When adding a capability, search for "never", "only" and "always" in what
+already exists, and reword them so they say exactly what is forbidden.
+
+**A new action belongs in every list of actions.** Adding "reopen" and "decline" updated the stories
+for them, but two lists elsewhere still named only the old actions: who may act (the access rule) and
+which decisions need a logged reason (the audit log). Searching for the new requirement's ID won't find
+these, because they never mention it. After adding an action, also search for the old list, such as
+"approve, edit, reject", and add the new action wherever it appears.
+
 ## 2. Designing AI agent systems
 
 **Use AI where judgement is needed, plain code where correctness is needed.** Agents read text and
@@ -88,6 +99,20 @@ test where the right answer is "nothing is affected" is as important as one wher
 **Words that mean two things cause bugs.** "Pending confirmation" (a precaution the GP should see) clashed
 with "pending" (not yet approved, which the GP must never see). Renaming it "precautionary" removed the
 contradiction. This is UX writing as a correctness tool.
+
+**A skill on disk is not a skill in use.** Cursor finds project skills in `.cursor/skills/`, but an
+agent only reads one when it decides the description fits the task. Personas don't load skills
+automatically. A short rule that names the skill and the files it matters for makes it reliable. Even
+then, a rule is guidance: approvals are only enforced by code that refuses the action.
+
+**"Never" means the button doesn't exist.** In an approval map, an action marked Never (an agent
+publishing, approving a row whose quote failed) must be missing from the system, not hidden behind a
+confirmation. A confirmation is an Ask; a missing capability is a Never.
+
+**Recovery paths need the same guards as the main path.** Reopening a rejected rule needs a reason. If
+editing that rule had also sent it back for review, it would have been a second way back with no reason
+asked for. The fix was to make rejected rules read-only until they are reopened. And a warning notice
+reduces harm without preventing it, so the requirement says so.
 
 ## 3. Testing and evaluation
 
@@ -142,3 +167,7 @@ the target month (30 June + 2 months = 31 August).
 ## Audit
 
 - 2026-11-06 · started during the Define phase; collects all learning notes from the session so far
+- 2026-11-07 · added two notes from the approval-map session (skill discovery; Never vs Ask)
+- 2026-11-07 · added two notes from the approval-decisions session (recovery paths need guards; new
+  features can break old absolutes)
+- 2026-11-07 · added one note from the consistency sweep (a new action belongs in every list of actions)

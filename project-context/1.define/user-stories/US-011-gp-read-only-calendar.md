@@ -23,12 +23,20 @@ miss a filing and don't have to read legal text.
 3. **Example:** the first `OBL-01` entry shows "Monthly financial report U1.1 · CSSF", "11 Jan 2027
    (moved from Sun 10 Jan)", "Filed by: fund administrator", "Applies because the fund is subject to
    Part II", and "Source: CSSF Circular 15/627, `SRC-CSSF15627-P2`" with its quote.
-4. **Then** no entry appears for `OBL-06`, and nothing pending, rejected, unsure or conflicted is shown.
+4. **Then** no entry appears for `OBL-06`, and no pending, rejected, unsure or conflicted working content
+   is shown. A neutral calendar-level review notice (criterion 9) is permitted.
 5. **Then** each `OBL-04` entry's "why" says plainly that it is included **as a precaution** while the
    fund's CNMV registration is confirmed.
 6. **Then** the GP has no way to change anything. Any attempt to change data as a GP is refused.
 7. **Given** the calendar is not published, **then** the view shows an empty state with no entries.
 8. **Then** the view meets WCAG 2.2 AA.
+9. **Given** a published calendar, **when** a change calls its accuracy or completeness into question
+   (SD FR-025 triggers, including reopening a "does not apply" verdict or a rejected rule), **then** the
+   GP view shows a neutral calendar-level review notice. The last published entries stay visible with
+   their publication date. No draft content, flag detail or specialist reasoning is shown. Draft work
+   that doesn't affect the published calendar does not trigger it.
+10. **Given** the notice is shown, **then** it clears only when a replacement calendar is successfully
+    published. A declined or failed publication does not clear it.
 
 ## 4. Scope Notes
 
@@ -38,7 +46,7 @@ miss a filing and don't have to read legal text.
 ## 5. Traceability
 
 - **PRD Anchors**: F8 · §2 step 9 · §6 · UN-G1 to UN-G6 · AB-5, AB-6, AB-7
-- **System description**: FR-015 · MD-008 · MN-007 · NFR-005, NFR-010 · AC-013, AC-014
+- **System description**: FR-015, FR-025 · MD-008 · MN-007 · NFR-005, NFR-010 · AC-013, AC-014
 - **Related SFS**: none yet
 
 ## Sources
@@ -54,10 +62,14 @@ miss a filing and don't have to read legal text.
 ## Open Questions
 
 - **OQ-US011-1**: Should the GP see a neutral "under review" note for items still with compliance?
-  Decide before the UX step. (PRD OQ-6)
+  Decide before the UX step. (PRD OQ-6) *Before first publication only. After publication, see
+  criteria 9 and 10.*
 
 ## Audit
 
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
 - 2026-11-06 · persona `product-mgr` · action `update` · 18 → 22 entries; `OBL-04` shown as a
   precaution (P-1)
+- 2026-11-07 · persona `product-mgr` · action `update` · criterion 4 clarified (working content);
+  criteria 9 and 10 added (review notice, SD FR-025); OQ-US011-1 limited to before first publication;
+  operator decision
