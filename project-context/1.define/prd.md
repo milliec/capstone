@@ -48,6 +48,10 @@ not here.
 - **Value**: a contained test of whether framework onboarding can become configuration rather than
   manual reading. *(MRD §3)*
 - **Market timing / positioning**: **N/A, internal tool.**
+- **Product direction** *(operator decision, 2026-11-08)*: the MVP is the **first validated
+  configuration of a shared product**, designed for future reuse, not a bespoke build. The expected
+  future buyer is the GP. Market research is revisited before commercialising, not for this MVP. *(SD
+  §10.1, NFR-012)*
 
 ## 2. Market Context & User Analysis
 
@@ -150,6 +154,19 @@ These are inputs, not a pattern verdict.
   the matching approval (SD MN-003, SD AC-013).
 - Agent output must be **structured and validated** before a gate sees it. Invalid output stops the
   run (SD NFR-004).
+
+### Architecture quality goal: extensibility
+
+*Operator decision, 2026-11-08. Full text in SD §10 and NFR-012. Mechanisms are for the SAD.*
+
+| Item | Requirement | Trace |
+|---|---|---|
+| Framing | Build the MVP as the first validated configuration of a shared product. Prefer shared capabilities with configuration and defined extension points over client-specific copies. | SD §10.1, NFR-012, EX-1 |
+| Kinds of variation | Keep variation driven by **regulation**, **fund terms** and **client policy** apart. Client policy may tighten controls but never override mandatory ones. | SD §10.2 |
+| Extension rules | Any future extension keeps the Part II answer-key results exactly, keeps the verification, approval and audit controls, is validated by a qualified specialist, and addresses the relevant kinds of check in SD MP-001 to MP-008 with its own evidence (a justified "not applicable" is allowed; fixtures and counts need not match the demo set). | SD EX-2 to EX-5 |
+| Walkthroughs | The SAD walks through **S-1** (a fictional Luxembourg RAIF) and **S-2** (`FND-DEMO-01` considering marketing to institutional investors in Singapore, with marketing **not** assumed to be permitted) separately. They test extensibility only; they promise no regulatory coverage. Each identifies the tests it would need, without building or running them. | SD §10.4, EX-5, EX-6 |
+| Limits | The walkthroughs do not validate multi-client security. The SAD names the future isolation boundary and access-control assumptions only. | SD §10.5, OQ-13 |
+| MVP scope | **Unchanged.** One fictional Part II fund, static fund facts. Nothing in this block is built in the MVP. | SD §9 |
 
 ### Runtime constraints
 
@@ -333,6 +350,9 @@ SD MD-005), so it falls away if that chain is cut. The architect should estimate
 | Notifying filing parties and collecting their confirmations, together with filing status. Routed by each obligation's "who files" role. | SD §9, SD A-9 |
 | Multiple funds and frameworks, reusing approved libraries. | SD §9 |
 | Official holiday calendar in place of the mock list. | SD §9 |
+| Additional clients, other regimes (e.g. a RAIF) and other marketing jurisdictions (e.g. Singapore), as configurations of the shared product. Each needs specialist validation and its own tests. | SD §9, §10, EX-1 to EX-6 |
+| Fund-fact editing and configuration screens. Client-policy changes need an authorised decision, reason, version history and impact assessment. | SD §9, §10.2 |
+| Separation of one client's data from another's. | SD §10.5 |
 
 Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 
@@ -362,6 +382,7 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 | **Scaling: deferred.** One fund, one framework in the MVP. | SD A-1, §9 |
 | If an agent fails or returns invalid output, nothing moves forward and the failure is logged. | SD NFR-004 |
 | A partial calendar is never published. | SD NFR-004 |
+| **Extensibility: architecture quality goal.** Designed for reuse; only the Part II configuration is built. See §3. | SD NFR-012, §10 |
 
 ### Cost
 
@@ -450,6 +471,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 | Scope grows into filing tracking. | Filing status explicitly out of scope, with a stable-ID hook for later. | SD §9, FR-016 |
 | Three gates make the happy path too long for the demo. | Specialist time target of under 30 minutes is measured. | SD MC-003 |
 | The stretch goal (F10) takes time from the core. | Built only after F1–F9 pass. Estimated separately. Not in the Week 6 definition of done. | SD MD-011, OQ-5 |
+| Designing for extensibility over-builds the six-week MVP. | Only the Part II configuration is built. Extension points are added where the walkthroughs show a need, not speculatively. The architect includes this in the estimate. | SD NFR-012, §10, OQ-5 |
+| Walkthroughs are read as regulatory coverage, or as saying Singapore marketing is permitted. | Each is labelled architecture-only. Regulatory differences are questions for a specialist. S-2 keeps marketing permission separate and labels results conditional. | SD §10.4, EX-6 |
 
 ## 9. Launch & Go-to-Market Strategy
 
@@ -476,10 +499,15 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   Questions.
 - **Operator decisions** in Define: keep three gates, defer four-eyes timing, confirm MC-001 to MC-003,
   confirm SD A-5 and A-6, confirm PRD A-3 (with the testability condition) and A-4, WCAG 2.2 AA.
+- **Operator decisions, 2026-11-08**: extensibility as an architecture quality goal; product
+  direction; two architecture-only walkthroughs; P-1 before marketing; client-policy changes;
+  client-data separation deferred (SD §10, OQ-10 to OQ-13).
 
 ## Assumptions
 
-- **A-1**: Launch / go-to-market is N/A. The tool is internal and not sold. *(MRD)*
+- **A-1**: Launch / go-to-market is N/A. The tool is internal and not sold. *(MRD)* *Note,
+  2026-11-08: still true for the capstone. The longer-term direction is a shared product with GPs as
+  the expected buyers. Market research is revisited before commercialising (SD §10.1, OQ-9).*
 - **A-2**: **Three approval gates, not one.** The operator's PRD instructions asked for one human
   approval gate. The operator then decided to keep three gates (G1, G2, G3), as agreed in the system
   description and required by the brief ("approves every consequential handoff"). This PRD follows that
@@ -518,6 +546,11 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - **OQ-8**: **Frontend framework, for the SAD.** The operator intends to use Next.js. This is a stated
   intent, **not a requirement**: A-4 still says only "web" and leaves the framework to the SAD.
   `@system.arch` to confirm or propose otherwise. *(Approval map OD-12, conflict K-4.)*
+- **OQ-9**: *Resolved* (operator decision, 2026-11-08). The shared-product direction does not change the
+  MVP or require market research to complete it. The capstone stays an internal specialist tool designed
+  for reuse; GPs are the expected future buyers; market research is revisited before commercialising.
+  P-1 before marketing, client-policy changes and client-data separation are recorded in SD OQ-11 to
+  OQ-13. *(SD OQ-10, §10.)*
 
 ## Audit
 
@@ -566,3 +599,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · F10: no shortcut
   past a referred review; superseding logged as a system event (SD FR-026, MD-009); operator
   decisions, stretch only
+- 2026-11-08 · persona `product-mgr` · action `update` · extensibility as an architecture quality goal
+  (§3 block, §5 row, SD NFR-012, §10); product direction (§1, note on A-1); P2 future features; two
+  risks; OQ-9 resolved; MVP scope unchanged; operator decisions. Same day, before commit: GP
+  notifications row removed from P2 (not agreed future scope); extension-tests wording aligned with
+  SD EX-5

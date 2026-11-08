@@ -181,6 +181,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | NFR-009 | Security and privacy | No secrets or real data in the repository. API keys come from local environment settings that git ignores. | MN-001 |
 | NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, reject, override, reopen (FR-023, FR-024), publish or decline (FR-022), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
 | NFR-011 | Testability | Tests for gates, due-date calculation and the audit log run without calling a language model. Only agent evaluations need the live model. | MP-006, MP-007, MP-008 |
+| NFR-012 | Extensibility (architecture quality goal) | The MVP is built as the **first validated configuration of a shared product**, not a bespoke implementation (§10). The SAD (a) names the shared capabilities, the configuration and the defined extension points; (b) walks through scenarios S-1 and S-2 (§10.4) separately and shows, for each, what would be configuration, what would need an extension point and what would stay unchanged, with no client-specific copy of a shared capability; and (c) shows how the extension rules EX-1 to EX-6 (§10.3) would be checked. The MVP builds only the Luxembourg UCI Part II configuration. No extension, extra configuration or configuration screen is in the MVP. *Operator decision, 2026-11-08.* | §10, MP-001 to MP-008 |
 
 ## 6. Constraints
 
@@ -314,6 +315,15 @@ outcome; the linked story criteria hold the detail.*
   and reminders. Operator decision: the capstone tests rule generation, not filing tracking. A design
   for this exists outside the capstone. FR-016 keeps the path open.
 - More than one fund, or frameworks other than Luxembourg UCI Part II.
+- **Additional clients, other regimes (for example a RAIF) and other marketing jurisdictions (for
+  example Singapore).** These are explored only as architecture walkthroughs (§10.4). They are not
+  built, and they are not a promise of regulatory coverage. *(Operator decision, 2026-11-08.)*
+- **Fund-fact editing.** Fund facts are static mock data in the MVP. *(Operator decision,
+  2026-11-08; see also Future work, fund-fact changes.)*
+- **Configuration screens**, and any feature for editing client policy. *(Operator decision,
+  2026-11-08.)*
+- **Separating one client's data from another's.** Deferred. The SAD names the future boundary only
+  (§10.5).
 - Obligations driven by an external published calendar, continuously monitored obligations and
   per-transaction reporting.
 - Reading real regulatory documents (e.g. PDF parsing). The MVP reads mock text.
@@ -340,6 +350,118 @@ outcome; the linked story criteria hold the detail.*
   judgement-only reopening is not the path for this, because its inputs must stay unchanged.
 - *(Moved to a stretch goal: impact of rule amendments, MD-011 / FR-021. Built only after the core,
   and it depends on the edit-and-re-verify chain in MD-005.)*
+- **Client-policy changes** (future requirement; §10.2).
+
+## 10. Extensibility (architecture quality goal)
+
+*Added 2026-11-08 by operator decision. This section sets a quality goal for the architecture. It adds
+no MVP feature and changes no MVP requirement. The mechanisms are for the SAD (`@system.arch`).*
+
+### 10.1 Product framing
+
+- **The capstone stays an internal specialist tool, designed for future reuse.** The MVP is the
+  **first validated configuration** of a shared product, not a bespoke build for one client. Later
+  clients, regimes and jurisdictions should reuse the same capabilities through configuration and
+  defined extension points, not through client-specific copies.
+- **The future buyer is expected to be the GP** (general partner / fund manager), who uses the GP view
+  of the compliance calendar. This names the buyer only. It adds no GP feature to the MVP or to agreed
+  future scope.
+- **Market research is revisited before commercialising, not to complete this MVP.** The MRD's
+  internal-tool framing (`mrd.md`, A-4) and the PRD's "not sold" assumption (PRD A-1) still describe
+  the capstone. They were not written for a commercial product.
+- **The MVP is unchanged:** one fictional Luxembourg UCI Part II fund (`FND-DEMO-01`) with static fund
+  facts.
+
+### 10.2 Kinds of expected variation
+
+Future configurations are expected to differ in three ways. They are kept apart because each has a
+different owner and a different way of changing.
+
+| Kind | Driven by | Examples | In the MVP |
+|---|---|---|---|
+| **Regulation** | Law and regulator guidance, interpreted by a specialist | Legal regime, marketing jurisdiction, authorities, source documents, obligations, anchors and offsets, business-day rules, holiday calendars | Mock sources, answer key, conventions `D-1` to `D-7` (fixed) |
+| **Fund terms** | The fund's documents and records | Legal form, domicile, financial year-end, dealing frequency, investor types, marketing countries and marketing status, registrations, appointed filing parties ("who files") | Mock fund profile `FACT-01` to `FACT-07` (static) |
+| **Client policy** | Choices a client makes within what regulation allows | Default for unconfirmed roll rules (A-3, `D-6`), precautionary treatment (P-1), internal lead times ahead of legal deadlines, four-eyes review (OQ-5), notice wording | Fixed values in the Define documents |
+
+**Client policy cannot override mandatory controls.** It may add controls or set stricter values. It
+may never remove, bypass or weaken the controls in EX-3 or any mandatory regulatory requirement.
+
+**Future requirement for client-policy changes** (not in the MVP; no policy-editing feature is built).
+A change to client policy needs an authorised decision, a reason, version history, and an assessment of
+the work it affects (rows, verdicts and calendar entries). The SAD proposes the mechanism.
+
+### 10.3 Extension rules
+
+Every future extension (a new regime, jurisdiction, client, obligation set or convention) must meet
+these rules.
+
+| ID | Rule |
+|---|---|
+| EX-1 | **Shared first.** An extension uses shared capabilities with configuration or a defined extension point. A client-specific copy of a shared capability is not the default; any exception is recorded with its reason in the SAD. |
+| EX-2 | **Validated behaviour is preserved.** After any extension, the evaluation of the Part II demo set (FR-018) still matches the answer key exactly: 6 rows, 6 verdicts, the expected verifier flags and 22 calendar entries (MP-001 to MP-004). |
+| EX-3 | **Controls are preserved.** No extension or configuration removes, bypasses or weakens the separate verifier (MD-003, MN-004), the three gates (MD-004, MN-003), deterministic dates (MN-005, NFR-001), source links (MN-006), the add-only audit log with versioned decisions (MD-009, NFR-003), role limits (NFR-010) or the rule that GPs see only published content (MN-007). |
+| EX-4 | **Specialist validation.** Before use, each extension is validated by a compliance specialist qualified for that regime or jurisdiction. The validation is recorded. |
+| EX-5 | **Its own tests.** Each implemented extension addresses the relevant kinds of check in MP-001 to MP-008 with its own evidence (for example its own mock sources, fund facts and expected results), plus the EX-2 regression. A kind of check may be marked "not applicable" with a recorded justification. The extension's fixtures and counts need not match the Part II demo set. For the paper walkthroughs (§10.4), the tests are identified only, not built or run. |
+| EX-6 | **No coverage promise.** An extension point or walkthrough is not a claim of regulatory coverage (`mrd.md` §5). |
+
+### 10.4 Architecture walkthroughs
+
+Two walkthroughs test extensibility **on paper**. **They do not promise regulatory coverage.** Each
+starts from the MVP baseline on its own; they are not combined. Nothing in them is built, and no mock
+data is added for them. Any regulatory difference named below is a question for a specialist, not a
+finding.
+
+**For each walkthrough, the SAD should show:**
+
+- what is shared and unchanged;
+- what is configuration, and which kind it is (regulation, fund terms or client policy);
+- what needs a defined extension point;
+- how EX-1 to EX-6 would be met;
+- which tests EX-5 would need, for each kind of check in MP-001 to MP-008 (or why it is not
+  applicable). The tests are identified, not built or run;
+- what a specialist must validate.
+
+#### S-1: a fictional Luxembourg RAIF
+
+A second, fictional fund set up as a Luxembourg reserved alternative investment fund (RAIF).
+
+- **Regulation (may differ, to be validated):** the governing law, how the fund is supervised (for
+  example through its authorised AIFM rather than direct product authorisation), which authorities
+  receive filings, which obligations exist, and their deadlines and tax treatment. Some Part II rows may
+  not apply; others may be new.
+- **Fund terms:** a new fund profile with its own fact IDs.
+- **Client policy:** may be the same as for the Part II fund, or different.
+- **Tests the architecture on:** adding a regime and a second fund without copying the extraction,
+  verification, applicability, gate, date or audit capabilities.
+
+#### S-2: the Part II fund considering marketing in Singapore
+
+The existing fictional Part II fund (`FND-DEMO-01`) is **considering** marketing to institutional
+investors in Singapore.
+
+- **Marketing is not assumed to be permitted.** Whether the fund may be offered in Singapore, and on
+  what basis, is a specialist's question. The system does not decide it.
+- **Considered is not active.** A jurisdiction being considered is a different fund-term state from an
+  approved or active marketing arrangement, just as "marketed" and "registered" are different states
+  for Spain (`FACT-03`, `FACT-04`).
+- **Conditional assessment.** Obligations are assessed against the stated hypothetical ("if the fund
+  were marketed to institutional investors in Singapore on a given basis"). Conclusions are labelled
+  **conditional**, and marketing permission is kept separate from obligation applicability.
+- **P-1 in this case.** Uncertainty prompts specialist review. It must not silently become "applies",
+  and nothing may imply that marketing is authorised. *(Operator decision, 2026-11-08; see OQ-11.)*
+- **Regulation (may differ, to be validated):** Singapore sources and authority, the obligations tied
+  to any marketing basis, a Singapore business-day calendar.
+- **Fund terms:** marketing status and investor type for Singapore.
+- **Client policy:** for example, whether to prepare a conditional calendar before a marketing decision.
+- **Tests the architecture on:** adding a jurisdiction to an existing fund without changing its
+  validated Part II results (EX-2), and handling conditional results.
+
+### 10.5 Limits of these walkthroughs
+
+- **Multi-client security is not validated.** Separating one client's data from another's is deferred.
+  The SAD identifies the future isolation boundary and its access-control assumptions only.
+- The walkthroughs check structure, not legal content. Neither adds an obligation, verdict or date to
+  the answer key.
 
 ---
 
@@ -387,6 +509,22 @@ outcome; the linked story criteria hold the detail.*
   work. The detailed design is not resolved. *Original question:* Should a change to fund facts
   invalidate approved G2 verdicts? The fund profile is static mock data in the MVP, so this does not
   arise yet. *(Approval map OD-6.)*
+- **OQ-10**: *Resolved* (operator decision, 2026-11-08). **Product direction.** The capstone stays an
+  internal specialist tool designed for future reuse. GPs are the expected future buyers. No new GP
+  feature is added to agreed future scope. Market research is revisited before commercialising,
+  not to complete this MVP. See §10.1.
+- **OQ-11**: *Resolved* (operator decision, 2026-11-08). **P-1 before marketing.** A jurisdiction being
+  considered is not an approved or active marketing arrangement. Obligations are assessed against the
+  stated hypothetical and labelled conditional; marketing permission stays separate. Uncertainty
+  prompts specialist review and never silently becomes "applies" or implies authorisation. See §10.4,
+  S-2. *Original question:* how does P-1 apply to a jurisdiction that is only under consideration?
+- **OQ-12**: *Resolved: future requirement, no MVP feature* (operator decision, 2026-11-08).
+  **Client-policy changes** need an authorised decision, a reason, version history and an assessment
+  of affected work. Policy must not override mandatory regulatory controls. The SAD proposes the
+  mechanism. See §10.2.
+- **OQ-13**: *Deferred* (operator decision, 2026-11-08). **Client-data separation.** Not built. The
+  SAD identifies the future isolation boundary and access-control assumptions. The walkthroughs do not
+  validate multi-client security. See §10.5.
 
 ## Audit
 
@@ -451,3 +589,10 @@ outcome; the linked story criteria hold the detail.*
   built: FR-026, a referred amendment cannot be closed by accepting a revised report; MD-009,
   superseding a manual review is a system event (system actor, time, triggering revision, affected
   review, old and new versions); AC-025 updated; operator decisions
+- 2026-11-08 · persona `product-mgr` · action `update` · new NFR-012 (extensibility, architecture
+  quality goal) and §10 (product framing, kinds of variation, extension rules EX-1 to EX-6,
+  walkthroughs S-1 RAIF and S-2 Singapore, limits); §9 out of scope adds additional clients, regimes,
+  jurisdictions, fund-fact editing, configuration screens and client-data separation; §9 future work
+  adds client-policy changes; OQ-10 to OQ-13; MVP scope unchanged; operator decisions. Same day,
+  before commit: GP notifications removed (not agreed future scope); EX-5 allows a justified "not
+  applicable", does not require identical fixtures or counts, and walkthroughs identify tests only

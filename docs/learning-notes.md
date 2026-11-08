@@ -68,6 +68,13 @@ which decisions need a logged reason (the audit log). Searching for the new requ
 these, because they never mention it. After adding an action, also search for the old list, such as
 "approve, edit, reject", and add the new action wherever it appears.
 
+**"Extensible" is only checkable with scenarios.** A quality goal like "make it extensible" can't be
+tested on its own. It became checkable once it had two concrete walkthroughs for the architect (a new
+fund regime, a new marketing country) and rules any extension must pass (the old answer key still
+matches, no check or approval is weakened). Sorting variation into regulation, fund terms and client
+policy also helped, because each changes in a different way and has a different owner. Write paper
+scenarios as questions for a specialist, not legal findings, so they don't read as a coverage promise.
+
 ## 2. Designing AI agent systems
 
 **Use AI where judgement is needed, plain code where correctness is needed.** Agents read text and
@@ -206,3 +213,4 @@ question to answer.
   browser)
 - 2026-11-08 · added four notes from setting up the case-study site (recorded exceptions to safety
   checks; reference files can leak; design tokens; self-hosted fonts)
+- 2026-11-08 · added one note from the extensibility session (extensible needs scenarios)

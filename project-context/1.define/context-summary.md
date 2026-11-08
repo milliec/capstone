@@ -20,7 +20,7 @@ are mocked.
 | # | Document | What it gives the architect |
 |---|---|---|
 | 1 | `prd.md` | Happy path (§2), features F1–F9 with testable criteria (§4), constraints for the architecture (§3) |
-| 2 | `system-description.md` | Must do / must not / must cost / must prove, FR and NFR lists, 26 acceptance criteria (AC-018 to AC-020 and AC-025 are stretch; AC-021 to AC-024 cover the recovery paths; AC-026 covers explicit decisions), design principle **P-1** |
+| 2 | `system-description.md` | Must do / must not / must cost / must prove, FR and NFR lists, 26 acceptance criteria (AC-018 to AC-020 and AC-025 are stretch; AC-021 to AC-024 cover the recovery paths; AC-026 covers explicit decisions), design principle **P-1**, and **§10 extensibility** (quality goal, kinds of variation, extension rules, two walkthroughs) |
 | 3 | `user-stories/README.md` | 13 stories, coverage map, demo decisions at each gate |
 | 4 | `mock-data/expected-obligation-library.md` | Expected results: 6 rows, verdicts, 2 conflicts, **22 calendar entries**, date conventions D-1 to D-7 |
 | 5 | `mock-data/mock-regulatory-sources.md`, `mock-fund-profile.md` | The inputs |
@@ -38,6 +38,10 @@ are mocked.
 - **Safe on failure**: invalid agent output stops the run, and nothing partial is published. *(SD NFR-004)*
 - **Targets**: run under 5 min, under US$2 per run, specialist review under 30 min. *(SD MC-001 to MC-003)*
 - **Public repo**: mock data only; real material stays in the git-ignored `reference/`. *(SD MN-001)*
+- **Extensibility (quality goal)**: the MVP is the first validated configuration of a shared product.
+  Prefer shared capabilities with configuration and defined extension points over client-specific
+  copies. Future extensions keep the Part II results and every verification, approval and audit
+  control. Only the Part II configuration is built. *(SD NFR-012, §10, EX-1 to EX-6)*
 
 ## Decided in Define
 
@@ -53,7 +57,14 @@ undo) · a confirmed verdict can be reopened with a reason without editing its r
 scope decision) · rejected rows are read-only until reopened (FR-023) · after publication, a change that
 questions the published calendar shows GPs a neutral review notice; it clears only on a successful
 republish (SD FR-025, MN-007 clarified) · no bulk or preselected approval decisions at G1, G2, G3 or
-(stretch) report acceptance; silence leaves items pending (PRD §6).
+(stretch) report acceptance; silence leaves items pending (PRD §6) · extensibility is an architecture
+quality goal; the capstone stays an internal specialist tool designed for reuse, with GPs as the
+expected future buyers; market research waits until commercialising (SD §10.1, OQ-10) · additional
+clients, regimes, marketing jurisdictions, fund-fact editing and configuration screens are out of MVP
+scope (SD §9) · a jurisdiction under consideration is not active marketing: results are conditional,
+and uncertainty prompts specialist review (SD §10.4, OQ-11) · client policy cannot override mandatory
+controls; its future changes need an authorised decision, reason, version history and impact
+assessment (SD §10.2, OQ-12).
 
 ## Still open (none blocks the architecture)
 
@@ -68,6 +79,9 @@ republish (SD FR-025, MN-007 clarified) · no bulk or preselected approval decis
 | Gate recovery paths: none open. *Stretch: every impact report needs acceptance or a documented manual review (SD FR-026, Could; mandatory whenever F10 is built).* *Fund-fact changes: deferred beyond MVP, direction recorded (SD OQ-9, §9). Verdicts already cite fact IDs; the SAD may use these references, but no fact editing or reassessment is in scope.* *Decided: G3 decline (SD FR-022), reopening a rejected row (FR-023), reopening a confirmed verdict (FR-024), GP review notice (FR-025); withdraw/unpublish deliberately deferred, revisit before real-world use (SD §9).* | Operator decision, before build planning |
 | Effort for FR-022 to FR-025, added after the estimate request. Reopening is meant to reuse the edit path (MD-005); the effort is not yet checked | **SAD**: include in the core estimate |
 | Frontend framework: operator intends Next.js; not a requirement (PRD OQ-8) | **SAD**: confirm or propose otherwise |
+| **Extensibility walkthroughs** S-1 (fictional Luxembourg RAIF) and S-2 (`FND-DEMO-01` considering Singapore institutional marketing; marketing not assumed permitted). Each is done separately and is architecture-only. For each, show what is shared, what is configuration (and of which kind), what needs an extension point, how EX-1 to EX-6 would be met, and which tests each would need (identified, not built or run) (SD NFR-012, §10.4, EX-5) | **SAD**: include both, and include any extensibility effort in the estimate |
+| Client-data separation is deferred. The walkthroughs do not validate multi-client security (SD §10.5, OQ-13) | **SAD**: name the future isolation boundary and access-control assumptions |
+| Client-policy changes: future requirement, no MVP feature (SD §10.2, OQ-12) | **SAD**: propose the mechanism |
 | Code folders for the approval-design rule. `.cursor/rules/approval-design.mdc` attaches only to `project-context/**/*.md`, so build and QA personas working in application code won't see the approval-map pointer. List the folders that will hold application code, agent configuration and tests, so the operator can widen the rule's file pattern before build starts. The rule is guidance only; enforcement stays in code and tests (approval map §7). | **SAD**: list the folders |
 
 ## Sources
@@ -120,3 +134,6 @@ republish (SD FR-025, MN-007 clarified) · no bulk or preselected approval decis
 - 2026-11-08 · operator session (Claude Code, no AAMAD persona) · action `record-open-questions` · asked
   the SAD to list code folders so the approval-design rule's file pattern can be widened before build;
   no requirement changed
+- 2026-11-08 · persona `product-mgr` · action `update` · extensibility quality goal added to
+  constraints and "Decided" (SD NFR-012, §10, OQ-10 to OQ-12); walkthroughs, isolation boundary and
+  client-policy mechanism requested from the SAD; MVP scope unchanged
