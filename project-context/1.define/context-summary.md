@@ -68,6 +68,7 @@ republish (SD FR-025, MN-007 clarified) · no bulk or preselected approval decis
 | Gate recovery paths: none open. *Stretch: every impact report needs acceptance or a documented manual review (SD FR-026, Could; mandatory whenever F10 is built).* *Fund-fact changes: deferred beyond MVP, direction recorded (SD OQ-9, §9). Verdicts already cite fact IDs; the SAD may use these references, but no fact editing or reassessment is in scope.* *Decided: G3 decline (SD FR-022), reopening a rejected row (FR-023), reopening a confirmed verdict (FR-024), GP review notice (FR-025); withdraw/unpublish deliberately deferred, revisit before real-world use (SD §9).* | Operator decision, before build planning |
 | Effort for FR-022 to FR-025, added after the estimate request. Reopening is meant to reuse the edit path (MD-005); the effort is not yet checked | **SAD**: include in the core estimate |
 | Frontend framework: operator intends Next.js; not a requirement (PRD OQ-8) | **SAD**: confirm or propose otherwise |
+| Code folders for the approval-design rule. `.cursor/rules/approval-design.mdc` attaches only to `project-context/**/*.md`, so build and QA personas working in application code won't see the approval-map pointer. List the folders that will hold application code, agent configuration and tests, so the operator can widen the rule's file pattern before build starts. The rule is guidance only; enforcement stays in code and tests (approval map §7). | **SAD**: list the folders |
 
 ## Sources
 
@@ -116,3 +117,6 @@ republish (SD FR-025, MN-007 clarified) · no bulk or preselected approval decis
   count 20 → 25 (new SD AC-021 to AC-025)
 - 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · acceptance-criteria
   count 25 → 26 (new SD AC-026)
+- 2026-11-08 · operator session (Claude Code, no AAMAD persona) · action `record-open-questions` · asked
+  the SAD to list code folders so the approval-design rule's file pattern can be widened before build;
+  no requirement changed
