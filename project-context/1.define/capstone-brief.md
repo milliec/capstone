@@ -12,6 +12,11 @@ verifier, and approved by a specialist before anyone relies on it. Deadlines are
 plain code, so they are the same every time. The specialist moves from *writing* rules to *checking*
 them, and fund managers get a calendar they can trust and understand.
 
+The capstone is an internal specialist tool, built as the **first validated configuration of a shared
+product** rather than a one-off. Other regimes, jurisdictions and clients should later be added through
+configuration, not copies, without weakening any check or approval. Two paper walkthroughs (a RAIF, and
+possible marketing in Singapore) test this. They do not promise regulatory coverage.
+
 ## Users and the primary use case
 
 | User | Role in the system |

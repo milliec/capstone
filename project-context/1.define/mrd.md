@@ -106,6 +106,10 @@ The capstone answers one question: **can agents turn legal text into deadline ru
 
 - **OQ-1**: Which value is correct in each §2 conflict? The capstone does not need the answer, only to *detect* the conflict. Production would.
 - **OQ-2**: What is a credible success signal for "worth it" that does not need a measured baseline? For example: the share of extracted rows a specialist approves without edits. *Deferred to after the MVP:* in the scripted demo this rate would measure the script, not the agents.
+- **OQ-3**: *Resolved for the capstone* (operator decision, 2026-11-08). This note describes an internal
+  tool with no external market. The longer-term direction is a shared product with GPs as the expected
+  buyers (system description §10.1). That does not change this note or the MVP. Market research is
+  revisited before commercialising.
 
 ## Audit
 
@@ -113,3 +117,4 @@ The capstone answers one question: **can agents turn legal text into deadline ru
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · reduced detail on internal sources for the public repo; added the decoy obligation to §5
 - 2026-11-06 · persona `product-mgr` · action `update` · added "Why a thin slice is enough" (§3), two alternatives (§4, A-5) and two claims not made (§5), to match the cohort material
 - 2026-11-06 · persona `product-mgr` · action `update` · enriched §2 with why interpretation drifts (overlapping regulatory layers); SRC-CONTEXT, A-6
+- 2026-11-08 · persona `product-mgr` · action `update` · OQ-3 records the shared-product direction (system description §10.1); no claim added, operator decision
