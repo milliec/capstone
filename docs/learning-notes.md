@@ -162,6 +162,17 @@ next business day; tax deadlines do not. Never apply one global rule.
 **End-of-month convention.** For deadlines in months from a month end, the due date is the last day of
 the target month (30 June + 2 months = 31 August).
 
+## 6. Front-end and design in code
+
+**In CSS, the later rule wins a tie.** When two rules are equally specific, the one further down the
+file wins. A sticky contents menu stopped sticking because a later rule (added for an unrelated
+annotation feature) reset its `position`. A panel stopped breaking out of the column because a later
+`margin` shorthand reset its side margins. The fix both times: keep each property in one place, and
+let add-on features (like annotations) live in their own layer instead of restyling the page.
+
+**Check a design in the browser, not just in the code.** Screenshots at desktop and phone widths
+caught colliding cards, clipped tables and wrong text sizes that looked fine when reading the code.
+
 ---
 
 ## Audit
@@ -171,3 +182,5 @@ the target month (30 June + 2 months = 31 August).
 - 2026-11-07 · added two notes from the approval-decisions session (recovery paths need guards; new
   features can break old absolutes)
 - 2026-11-07 · added one note from the consistency sweep (a new action belongs in every list of actions)
+- 2026-11-08 · added theme 6 from the case-study microsite mockup session (CSS cascade; check in the
+  browser)
