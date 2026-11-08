@@ -151,6 +151,16 @@ leak the real names. The private identifier list lives only in the git-ignored `
 **Disagreements in internal documents are evidence.** Conflicting lead times across internal documents
 became both the proof that the problem is real (MRD) and test data for the verifier.
 
+**A safety check needs a recorded exception, not a switch-off.** The real-name scan blocked the first
+commit of the case-study site because my own first name is on the private identifier list. The fix was
+one named exception for that one entry, in that repo only, written into its `CLAUDE.md` with the date
+and the reason. Every other identifier is still blocked, and the capstone's own scan stays strict.
+Turning the check off "just this once" would have left the site with no check at all.
+
+**Reference files can leak too.** The design-system files I worked from named the website the style was
+extracted from. They stay out of the public repo; the tokens were rewritten into the site's own
+stylesheet. A file you only *used* can still publish a name you didn't mean to.
+
 ## 5. Domain: fund compliance calendars
 
 **Anchor + offset.** A deadline is stored as a rule ("year-end + 6 months"), not a date, so the same
@@ -173,6 +183,16 @@ let add-on features (like annotations) live in their own layer instead of restyl
 **Check a design in the browser, not just in the code.** Screenshots at desktop and phone widths
 caught colliding cards, clipped tables and wrong text sizes that looked fine when reading the code.
 
+**Design tokens: one source of truth.** Colours, type sizes, spacing and corners live in one file
+(`@theme` in Tailwind v4). Each value becomes both a CSS variable and a class name, such as `text-brass`
+or `bg-ivory`, so changing it once changes it everywhere. That is how a design system "lives in code"
+instead of drifting away from a Figma library. A bonus: the spacing scale (8, 12, 16, 20, 36, 40, 60,
+140px) is all multiples of 4px, which Tailwind already uses, so no custom spacing was needed.
+
+**Self-host fonts.** Installing the fonts as packages (Fontsource) instead of loading them from Google
+means visitors' browsers never contact a font service. Pages load faster and there is one less privacy
+question to answer.
+
 ---
 
 ## Audit
@@ -184,3 +204,5 @@ caught colliding cards, clipped tables and wrong text sizes that looked fine whe
 - 2026-11-07 · added one note from the consistency sweep (a new action belongs in every list of actions)
 - 2026-11-08 · added theme 6 from the case-study microsite mockup session (CSS cascade; check in the
   browser)
+- 2026-11-08 · added four notes from setting up the case-study site (recorded exceptions to safety
+  checks; reference files can leak; design tokens; self-hosted fonts)
