@@ -100,16 +100,18 @@ The operator reviewed the PRD from a business point of view.
 - **Still open**: the earlier wording remains in the public git history. Whether to make the repository
   private or rewrite the history is a separate decision, not yet taken.
 
-### DL-08 · The MVP must fit about 40–50 operator hours
+### DL-08 · The MVP must fit the six-week timebox
 
-- **Decision**: the budget is about 40–50 hours (operator estimate, 8–10 hours a week). The architect
-  estimates the Must scope in hours against it, and a cut line between the core demo path and hardening
-  is agreed before Build.
+- **Decision**: the MVP must fit the six-week capstone timebox. The architect estimates the Must scope
+  against it, and a cut line between the core demo path and hardening is agreed before Build.
+- **Revised 2026-11-09**: first recorded as a budget of about 40–50 operator hours (an estimate from
+  8–10 hours a week). The operator replaced it with the six-week timebox the same day, so the estimate
+  is framed in weeks, as in the brief.
 - **Why**: the Must list includes the recovery paths (SD FR-022 to FR-025), the full gate logic and now
   the failed-step re-run (DL-02). Six-week fit had not been shown, and the cut line proposed earlier was
   not adopted.
 - **Note**: the two extensibility walkthroughs are paper exercises in the SAD, not Build work.
-- **Changed**: PRD §8 risks (new row), OQ-5.
+- **Changed**: PRD §8 risks (new row), OQ-5 · context summary · project README.
 
 ### DL-09 · Two unrecorded constraints become open questions
 
@@ -157,3 +159,5 @@ The operator reviewed the PRD from a business point of view.
 
 - 2026-11-09 · persona `product-mgr` · action `update` · log created; DL-01 to DL-12 from the UX and
   business reviews of the PRD
+- 2026-11-09 · persona `product-mgr` · action `update` · DL-08 revised: six-week timebox replaces the
+  40–50 hour budget; operator decision

@@ -40,8 +40,8 @@ are mocked.
 - **Targets**: run under 5 min, under US$2 per run, specialist review under 30 min. *(SD MC-001 to MC-003)*
 - **Public repo**: mock data only; real material stays in the git-ignored `reference/`. No employer
   documents are cited or summarised. *(SD MN-001, PRD §5, decision log DL-07)*
-- **Time budget**: the MVP must fit about **40–50 operator hours**. A cut line between the core demo
-  path and hardening is agreed before Build. *(PRD §8, OQ-5, decision log DL-08)*
+- **Timebox**: the MVP must fit the **six-week** capstone. A cut line between the core demo path and
+  hardening is agreed before Build. *(PRD §8, OQ-5, decision log DL-08)*
 - **Extensibility (quality goal)**: the MVP is the first validated configuration of a shared product.
   Prefer shared capabilities with configuration and defined extension points over client-specific
   copies. Future extensions keep the Part II results and every verification, approval and audit
@@ -76,7 +76,7 @@ and a failed step can be re-run from the last safe state without losing gate dec
 (DL-02, US-015) · each verifier flag states its type and evidence (DL-03) · cited fund facts viewable
 read-only at G2 (DL-04) · voice for agent and system text (DL-05) · persona claims and the expected buyer
 labelled unvalidated (DL-06) · evidence uses only the fictional firm and public regulation (DL-07) ·
-40–50 hour budget and a cut line before Build (DL-08) · a missed target is reported, not hidden (DL-10) ·
+six-week timebox and a cut line before Build (DL-08) · a missed target is reported, not hidden (DL-10) ·
 no ROI claim; labelled effort estimate for comparison (DL-11) · "not legal advice" is a Must, shown with
 the unverified date-conventions note as one GP calendar-level note (SD FR-020, DL-12).
 
@@ -88,7 +88,7 @@ the unverified date-conventions note as one GP calendar-level note (SD FR-020, D
 | GP "under review" note **before first publication**? (PRD OQ-6; after publication it is decided, SD FR-025) | UX step |
 | Roll rules for CNMV and business-register filings; AED subscription tax (PRD OQ-7) | Final demo data |
 | How close must an extracted name be to pass? (OQ-US001-1) | QA evaluation design |
-| **Does the scope fit the time left?** Not yet shown. Budget: about **40–50 operator hours**. Full scope kept until the architect estimates; a cut line between the core demo path and hardening is then agreed (PRD OQ-5, §8, DL-08) | **SAD**: please estimate **in hours**, including the failed-step re-run (US-015, new scope) |
+| **Does the scope fit six weeks?** Not yet shown. Full scope kept until the architect estimates; a cut line between the core demo path and hardening is then agreed (PRD OQ-5, §8, DL-08) | **SAD**: please include an estimate, including the failed-step re-run (US-015, new scope) |
 | Retry limit for re-running a failed step (approval map OD-7, OQ-US015-1) | **SAD** |
 | Capstone programme submission requirements (PRD OQ-10) | Operator, before the SAD estimate |
 | Reused prototype front end: origin and clean-up (PRD OQ-11) | Operator, before Build |
@@ -159,3 +159,5 @@ the unverified date-conventions note as one GP calendar-level note (SD FR-020, D
   the reading order; story count 13 → 15; time-budget and no-employer-documents constraints; "Decided
   2026-11-09" paragraph; estimate request now in hours against 40–50; new open rows (retry limit, OQ-10
   to OQ-12); handover still pending operator approval
+- 2026-11-09 · persona `product-mgr` · action `update` · time budget restated as the six-week timebox
+  instead of 40–50 operator hours (decision log DL-08, revised); operator decision
