@@ -173,6 +173,17 @@ Turning the check off "just this once" would have left the site with no check at
 extracted from. They stay out of the public repo; the tokens were rewritten into the site's own
 stylesheet. A file you only *used* can still publish a name you didn't mean to.
 
+**Moving a file can break its links.** The framework's README moved from the repo root to `docs/` to
+make room for a project README. Its link `CHECKLIST.md` meant "the file next to me", so after the move
+it pointed at `docs/CHECKLIST.md`, which doesn't exist. It needed `../CHECKLIST.md` ("go up one folder
+first"). Lesson: after moving a file, search it for links that don't start with `http` and check each
+one still lands. It's like moving a Figma component to another page and checking its instances still
+resolve.
+
+**A README is the front door, not a copy.** The project README summarises the PRD in a few lines per
+section and links to the detailed documents. When something is still undecided (here, the agent
+roster, which waits for the SAD), the README says "planned, not final" instead of guessing.
+
 ## 5. Domain: fund compliance calendars
 
 **Anchor + offset.** A deadline is stored as a rule ("year-end + 6 months"), not a date, so the same
@@ -219,3 +230,5 @@ question to answer.
 - 2026-11-08 · added four notes from setting up the case-study site (recorded exceptions to safety
   checks; reference files can leak; design tokens; self-hosted fonts)
 - 2026-11-08 · added one note from the extensibility session (extensible needs scenarios)
+- 2026-11-09 · added two notes from the project README session (moved files break relative links; a
+  README links rather than copies)
