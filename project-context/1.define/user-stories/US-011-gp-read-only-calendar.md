@@ -26,7 +26,8 @@ miss a filing and don't have to read legal text.
 4. **Then** no entry appears for `OBL-06`, and no pending, rejected, unsure or conflicted working content
    is shown. A neutral calendar-level review notice (criterion 9) is permitted.
 5. **Then** each `OBL-04` entry's "why" says plainly that it is included **as a precaution** while the
-   fund's CNMV registration is confirmed.
+   fund's CNMV registration is confirmed. The entry shows "precautionary" and its reason. No GP text
+   states or implies that a registration or marketing is permitted. (PRD F8, SD P-1, OQ-11)
 6. **Then** the GP has no way to change anything. Any attempt to change data as a GP is refused.
 7. **Given** the calendar is not published, **then** the view shows an empty state with no entries.
 8. **Then** the view meets WCAG 2.2 AA.
@@ -37,6 +38,10 @@ miss a filing and don't have to read legal text.
    that doesn't affect the published calendar does not trigger it.
 10. **Given** the notice is shown, **then** it clears only when a replacement calendar is successfully
     published. A declined or failed publication does not clear it.
+11. **Given** the published calendar, **then** the view shows one calendar-level note: entries are
+    specialist-approved interpretations, not legal advice, and the date conventions behind them have
+    not yet been checked against the legal texts. The note is not repeated on each entry. (SD FR-020,
+    Must)
 
 ## 4. Scope Notes
 
@@ -46,7 +51,7 @@ miss a filing and don't have to read legal text.
 ## 5. Traceability
 
 - **PRD Anchors**: F8 · §2 step 9 · §6 · UN-G1 to UN-G6 · AB-5, AB-6, AB-7
-- **System description**: FR-015, FR-025 · MD-008 · MN-007 · NFR-005, NFR-010 · AC-013, AC-014
+- **System description**: FR-015, FR-020, FR-025 · A-7 · MD-008 · MN-007 · NFR-005, NFR-010 · AC-013, AC-014
 - **Related SFS**: none yet
 
 ## Sources
@@ -73,3 +78,7 @@ miss a filing and don't have to read legal text.
 - 2026-11-07 · persona `product-mgr` · action `update` · criterion 4 clarified (working content);
   criteria 9 and 10 added (review notice, SD FR-025); OQ-US011-1 limited to before first publication;
   operator decision
+- 2026-11-09 · persona `product-mgr` · action `update` (business review) · criterion 11: one
+  calendar-level "not legal advice" and unverified date-conventions note (SD FR-020 now Must, A-7);
+  operator decision
+- 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 5: shows "precautionary" and its reason; no implied registration or marketing permission (PRD F8); decision log DL-01

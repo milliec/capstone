@@ -25,6 +25,8 @@ in the law.
 5. **Then** each verification result records which check produced it, and that it is **not** the
    extraction step that produced the row.
 6. **Then** every result is recorded in the audit log.
+7. **Given** a failed quote check, **then** the flag states its type ("quote check") and shows the
+   text that does not match, next to the source paragraph it was checked against. (PRD F2)
 
 ## 4. Scope Notes
 
@@ -53,3 +55,4 @@ in the law.
 ## Audit
 
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
+- 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 7: quote-check flag states its type and shows the mismatched text (PRD F2); decision log DL-03

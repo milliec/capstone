@@ -158,7 +158,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | FR-017 | Audit log records every agent output and human decision. | Must | MD-009 |
 | FR-018 | An evaluation run compares agent and calendar output with the answer key and writes a report. | Must | MP-001 to MP-004 |
 | FR-019 | The specialist can view a row's full trail: source, quote, verifier flags, verdict, approvals. | Should | MP-005 |
-| FR-020 | GP view shows a plain "not legal advice" note. | Should | MN-009 |
+| FR-020 | GP view shows one plain calendar-level note: entries are specialist-approved interpretations, not legal advice, and the date conventions have not yet been checked against the legal texts (A-7). *Raised from Should to Must, operator decision 2026-11-09; MN-009 already required the note.* | Must | MN-009, A-7 |
 | FR-021 | **Stretch:** given an amendment, produce an impact report listing affected rows, verdicts and calendar entries with reasons, and send them back through G1 or G2. Unaffected items are left alone. | Could | MD-011, MN-003 |
 | FR-022 | G3 decline: declining G3 requires a reason, publishes no new version and retains the draft and review history (including its evidence), visible to the specialist only. Any previously published version remains visible to GPs. The specialist chooses the next step: *a rule needs correcting* (go to G1), *a verdict needs review* (return to G2 by reopening the verdict under FR-024), or *keep unpublished for later*. Declining cancels no earlier G1 or G2 approval. | Must | MD-004, MD-009 |
 | FR-023 | Reopen a rejected row: the specialist can reopen a rejected row, before or after publication. A reason is required, and the original rejection stays in the audit log. The row returns to pending, is re-verified, and needs fresh G1 approval and then a G2 verdict. Until those are complete, publishing a new calendar version is refused. GPs keep seeing the last published version until the specialist republishes. A rejected row is read-only: direct editing is refused until it is reopened, and after reopening normal pending-row editing applies (MD-005). *New scope decision (operator, 2026-11-07), supporting P-1; not implied by earlier requirements. Scope is limited to this recovery path; it is not a general undo system.* | Must | MD-004, MD-005, MD-009, P-1 |
@@ -211,7 +211,7 @@ error this system can make. Naming the principle stops the same choice being mad
   role is enough to route notifications to them later, together with filing status.
 - **A-10**: The user descriptions in §1 are **unvalidated**. That GPs are often less familiar with
   Luxembourg rules, and that filing parties do most of the filings, come from the brief and the
-  operator's experience. No users were interviewed. The same applies to GPs as the expected future buyer
+  illustrative scenario (MRD SRC-ILLUS). No users were interviewed. The same applies to GPs as the expected future buyer
   (§10.1): it is the operator's expectation, not a finding.
 
 ## 8. Acceptance Criteria
@@ -482,7 +482,8 @@ investors in Singapore.
 
 - See §7. A-5 (mocked roles) and A-6 (whole-calendar publish) began as PM recommendations and were then
   confirmed by the operator.
-- User needs behind this document are inferred from the brief and internal documents. No user
+- User needs behind this document are inferred from the brief and an illustrative scenario for a
+  fictional firm (MRD SRC-ILLUS). No user
   interviews were conducted (PRD A-7).
 
 ## Open Questions
@@ -603,3 +604,8 @@ investors in Singapore.
   applicable", does not require identical fixtures or counts, and walkthroughs identify tests only
 - 2026-11-09 · persona `product-mgr` · action `update` (UX review) · new A-10: user descriptions in §1
   and GPs as expected buyer (§10.1, OQ-10) labelled unvalidated; no requirement changed
+- 2026-11-09 · persona `product-mgr` · action `update` (business review) · A-10 and Assumptions note
+  cite the illustrative scenario (MRD SRC-ILLUS) instead of internal documents; no requirement changed
+- 2026-11-09 · persona `product-mgr` · action `update` (business review) · FR-020 raised from Should to
+  Must (now consistent with MN-009) and extended with the unverified date-conventions note (A-7);
+  operator decision

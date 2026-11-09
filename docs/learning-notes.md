@@ -155,8 +155,13 @@ identify an organisation.
 **Keep the real-to-fake mapping out of the repo.** A list matching real names to mock names would itself
 leak the real names. The private identifier list lives only in the git-ignored `reference/` folder.
 
-**Disagreements in internal documents are evidence.** Conflicting lead times across internal documents
-became both the proof that the problem is real (MRD) and test data for the verifier.
+**Disagreements between documents make good test data, but not from an employer.** Conflicting
+deadlines across documents are both a strong illustration of the problem and test data for the verifier.
+At first the MRD summarised real internal documents. A business review caught that this is confidential
+material, even with every name removed, because specific figures and document details can still identify
+the source. The evidence was rewritten as an illustrative scenario for a fictional firm, built from the
+conflicts planted in the mock data. Lesson: the real-name scan catches names, not details. Anonymising
+names is not enough; use evidence you made up or that is public.
 
 **A safety check needs a recorded exception, not a switch-off.** The real-name scan blocked the first
 commit of the case-study site because my own first name is on the private identifier list. The fix was

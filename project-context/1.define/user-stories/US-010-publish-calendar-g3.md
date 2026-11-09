@@ -35,6 +35,8 @@ so that GPs never see unfinished work.
 10. **Then** publishing happens only through an explicit publish action. It is never preselected, and
     is never triggered by a timeout or by closing the screen. If the specialist leaves without
     publishing, the calendar stays unpublished.
+11. **When** the specialist opens G3, **then** they see a note that the date conventions have not yet
+    been checked against the legal texts (SD A-7). The note does not block publishing.
 
 ## 4. Scope Notes
 
@@ -89,3 +91,5 @@ so that GPs never see unfinished work.
   PRD §6), operator decision
 - 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `consistency-sweep` ·
   Assumptions cross-reference the review notice (SD FR-025); no new decision
+- 2026-11-09 · persona `product-mgr` · action `update` (business review) · criterion 11: G3 note that
+  date conventions are unverified (SD A-7, PRD F7); operator decision

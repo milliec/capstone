@@ -15,7 +15,8 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
 ## 3. Acceptance Criteria
 
 1. **Given** verdicts from US-006, **when** the specialist opens G2, **then** each verdict shows its
-   reasoning and the fund facts it cites, with their values.
+   reasoning and the fund facts it cites. Each cited fact ID can be opened to show what the fact says.
+   Facts are read-only at G2. (PRD F5)
 2. **When** the specialist confirms a verdict, **then** it becomes **approved** as it is.
 3. **When** the specialist overrides a verdict, **then** a written reason is required, and the new
    verdict and reason are recorded.
@@ -82,3 +83,4 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
   SD FR-024): criteria 8 and 9 added; OQ-US007-2 resolved
 - 2026-11-07 · persona `product-mgr` · action `update` · criteria 10 and 11 (no bulk or preselected
   decisions; silence leaves verdicts pending; PRD §6), operator decision
+- 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 1: cited fund facts can be opened, read-only (PRD F5); decision log DL-04

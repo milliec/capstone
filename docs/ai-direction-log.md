@@ -53,8 +53,29 @@ decision could have been lost without anyone noticing.
 apart from an error.
 **Recorded in:** `docs/learning-notes.md` §1
 
+## AID-003 · 2026-11-09 · Define phase · Anonymised is not the same as not confidential
+**Persona / tool:** @product-mgr (MRD and PRD), later Claude Code
+**The rule I gave:** The public-repo rules in `CLAUDE.md`: never commit real names *or other internal
+details*, and never copy from `reference/` into committed files.
+**What the AI did:** It wrote the MRD evidence from my employer's internal working documents. It
+replaced every name with a role ("the operator", "a GP") and cited the documents as a private source.
+But it kept specific figures and document disagreements from them, and the PRD repeated the claim. An
+earlier quality pass even "reduced detail on internal sources", yet the specifics stayed.
+**Why it was subtly wrong:** It followed the half of the rule that can be checked (no names) and missed
+the half that needs judgement (no internal details). The real-name scan passed, so everything looked
+safe. But specific figures can still identify their source, and confidential material doesn't become
+public just because the names are gone. It was already merged to `main` on a public repo.
+**How I caught it:** My own business review of the PRD, reading it as a portfolio piece rather than as a
+requirements document.
+**How I tightened it:** The evidence is now an illustrative scenario for a fictional firm (SRC-ILLUS),
+built only from the conflicts planted in the mock data. A PRD §5 rule says no employer documents are cited
+or summarised. The rule is listed in the stories README for `@security.eng` to check, because a scan
+can't. The old wording is still in the git history; how to handle that is a separate decision.
+**Recorded in:** `project-context/1.define/decision-log.md` DL-07 · `docs/learning-notes.md` · PRD §5
+
 ---
 
 ## Audit
 
 - 2026-11-08 · created with the template and two entries from the Define phase
+- 2026-11-09 · added AID-003 (employer details in the evidence, caught in the business review)
