@@ -49,8 +49,8 @@ not here.
   manual reading. *(MRD §3)*
 - **Market timing / positioning**: **N/A, internal tool.**
 - **Product direction** *(operator decision, 2026-11-08)*: the MVP is the **first validated
-  configuration of a shared product**, designed for future reuse, not a bespoke build. The expected
-  future buyer is the GP. Market research is revisited before commercialising, not for this MVP. *(SD
+  configuration of a shared product**, designed for future reuse, not a bespoke build. The operator
+  expects the future buyer to be the GP (unvalidated, A-7). Market research is revisited before commercialising, not for this MVP. *(SD
   §10.1, NFR-012)*
 
 ## 2. Market Context & User Analysis
@@ -60,8 +60,8 @@ not here.
 | Persona | Who they are | Needs | Can do in MVP | Trace |
 |---|---|---|---|---|
 | **Compliance specialist** | Owns the obligation calendar. Expert in the rules. | Rules they can trust and check quickly. Every rule traceable to its source. Conflicts surfaced, not hidden. | Run the pipeline, review, edit, reject, approve at G1–G3, publish. | SD §1, MRD §1 |
-| **GP / fund manager** | Accountable for the fund's filings, files few of them. Often less familiar with Luxembourg rules. | Know what is due, when, who files and why, without reading legal text. | **Read only.** View the published calendar. | SD §1, MRD §1 |
-| **Filing parties** (AIFM, administrator, auditor, tax advisor, local reporting agent) | Do most of the actual filings. Stakeholders, **not MVP users**. | Know what they must file and when (future). | **Nothing in the MVP.** Named on every obligation as "who files". No notifications, logins or confirmations. | SD §1, SD A-9, SRC-BRIEF |
+| **GP / fund manager** | Accountable for the fund's filings, files few of them. Often less familiar with Luxembourg rules *(unvalidated, A-7)*. | Know what is due, when, who files and why, without reading legal text. | **Read only.** View the published calendar. | SD §1, MRD §1 |
+| **Filing parties** (AIFM, administrator, auditor, tax advisor, local reporting agent) | Do most of the actual filings *(unvalidated, A-7)*. Stakeholders, **not MVP users**. | Know what they must file and when (future). | **Nothing in the MVP.** Named on every obligation as "who files". No notifications, logins or confirmations. | SD §1, SD A-9, SRC-BRIEF |
 
 Market segment size and geographic expansion: **N/A, internal tool.**
 
@@ -225,6 +225,7 @@ sources, so that I see problems before I approve.*
 | A quote altered by one word fails the quote check, and the row cannot be approved. | SD AC-004 |
 | A row whose fields don't match its own (correct) quote is flagged as an internal conflict. | SD AC-017 |
 | The verifier never changes a row. | SD MN-004 |
+| Each flag states its type and shows the evidence for it. **Quote check:** the text that does not match the source paragraph. **Internal:** the field that disagrees with the row's own quote. **Cross-source:** the conflicting paragraph ID and its quote. | SD MD-003, FR-003, FR-004 · Operator decision (UX review, 2026-11-09) |
 
 #### F3. Gate G1: rule approval
 **Why:** UN-S4, UN-S7 · MRD §3 (human approval stays in place), MRD §5 (not legal advice)
@@ -259,6 +260,8 @@ wrongly hidden or added.*
 |---|---|
 | Each verdict can be confirmed or overridden. Overrides are logged with a reason. | SD FR-010, MD-009 |
 | G2 cannot be completed while any verdict is "unsure". | SD AC-008 |
+| When the specialist decides an "unsure" verdict as "applies" under P-1, it is labelled **precautionary** with its reason (for `OBL-04`: "precautionary: registration unconfirmed"). The label is visible at G2 and carried into the calendar. | SD P-1, OQ-11 · KEY §2 |
+| At G2, each fund fact ID cited in a verdict can be opened to show what the fact says. Read-only. | SD MD-002, FR-008 · Operator decision (UX review, 2026-11-09) |
 | A confirmed verdict can be reopened with a reason, before or after publication, without editing its rule. It returns to G2, and its entries are marked out of date until the dates are regenerated. | SD FR-024, AC-023 |
 
 #### F6. Deterministic calendar
@@ -296,6 +299,7 @@ filing and don't have to read legal text.*
 |---|---|
 | Each entry shows what (obligation + authority), when (date + roll note if moved), who files, and why (reason + source citation and quote). | SD AC-014 |
 | No pending, unsure, rejected or conflicted working content is shown. | SD MN-007 |
+| A precautionary entry shows "precautionary" and its reason. GP text must not state or imply that a registration or marketing is permitted. | SD P-1, OQ-11 |
 | After publication, a change that questions the published calendar shows GPs a neutral review notice. The last published entries and their publication date stay visible. The notice clears only on a successful republish. | SD FR-025, AC-024 |
 | The GP cannot change anything. | SD §1, NFR-010 |
 
@@ -411,9 +415,11 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 | Every agent claim is shown with its evidence: quote for rows, fact IDs for verdicts. | SD MD-001, MD-002 |
 | Flags and "unsure" verdicts are visibly distinct and block their gate until resolved. | SD AC-006, AC-008 |
 | Overrides ask for a written reason. | SD AC-006 |
-| Agent failures are shown as plain messages. The run stops at the last safe state. | SD NFR-004 |
+| **Run status.** During a run, the specialist sees which steps have finished and which step is running. | SD MC-001 · Operator decision (UX review, 2026-11-09) |
+| **Failures.** If a step fails, a plain message names the step and confirms nothing moved forward. The run stops at the last safe state, and gate decisions already recorded are kept. The specialist can re-run the failed step from that state, without repeating finished steps or earlier gate decisions. | SD NFR-004 · Operator decision (UX review, 2026-11-09) · OQ-5 |
 | Rolled and unconfirmed dates are labelled in plain English. | SD AC-010, AC-011 |
 | GP-facing "why" text is readable by a non-lawyer. | SD NFR-005 |
+| **Voice.** Agent and system text uses plain British English. It states facts and uncertainty without reassurance or alarm, cites its source and gives no advice. GP-facing text is written for a non-lawyer and stays neutral. Checked in a copy review before the demo. Detailed voice guidance belongs to `@ux.designer`. | SD NFR-005, MN-009 · Operator decision (UX review, 2026-11-09) |
 | **No bulk or preselected approval decisions (Must).** At G1 and G2, each row or verdict needs its own separate, explicit decision. No approval decision is preselected. Silence, a timeout or closing the screen leaves undecided items pending, and decisions already recorded stay intact. Safe default *values* (for example, the business-day rule "not confirmed") are still allowed. G3 stays one explicit decision to publish the whole calendar. If the stretch is built, the same rule applies to impact-report acceptance. *Separate clicks support deliberate review but don't prove it happened. The 30-minute review target (SD MC-003) must still be measured, not assumed.* | Operator decision (Define) · SD MD-004, MD-009, A-6, MC-003, AC-026 |
 
 ## 7. Success Metrics & KPIs
@@ -507,7 +513,7 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 
 - **A-1**: Launch / go-to-market is N/A. The tool is internal and not sold. *(MRD)* *Note,
   2026-11-08: still true for the capstone. The longer-term direction is a shared product with GPs as
-  the expected buyers. Market research is revisited before commercialising (SD §10.1, OQ-9).*
+  the expected buyers (operator expectation, unvalidated; see A-7). Market research is revisited before commercialising (SD §10.1, OQ-9).*
 - **A-2**: **Three approval gates, not one.** The operator's PRD instructions asked for one human
   approval gate. The operator then decided to keep three gates (G1, G2, G3), as agreed in the system
   description and required by the brief ("approves every consequential handoff"). This PRD follows that
@@ -522,7 +528,10 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - **A-6**: The MVP handles one pipeline run at a time. This follows from one operator, one fund and one
   framework (SD A-1). It is not a measured limit.
 - **A-7**: **Needs are inferred from the brief and internal documents. No interviews were conducted.**
-  The user needs in §2 are hypotheses. The demo is the first test of them.
+  The user needs in §2 are hypotheses. The demo is the first test of them. The same applies to the
+  persona descriptions in §2 (for example, that GPs are often less familiar with Luxembourg rules and
+  that filing parties do most of the filings) and to GPs as the expected future buyer (§1, A-1). These
+  are the operator's expectations, not findings. *(SD A-10)*
 - **A-8**: Rule amendments create the same manual re-reading burden as new frameworks. This is inferred
   from the brief and the MRD, not observed directly. It is the basis for the F10 stretch goal.
 
@@ -538,7 +547,7 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - **OQ-5**: Does the MVP scope fit six weeks, and how are the weeks split across Define, Build and
   Deliver? **Not yet shown.** Operator decision: keep the full scope until the architect estimates it
   after the SAD. A possible cut line (a core demo path vs hardening stories) was proposed in Define and
-  **not** adopted.
+  **not** adopted. *2026-11-09: re-running a failed step (§6) is new scope and goes into the estimate.*
 - **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
   *Before first publication only. After publication, see SD FR-025 (SD OQ-7 resolved).*
 - **OQ-7**: Business-day rules for `OBL-04` and `OBL-05`, and whether the AED subscription tax follows
@@ -604,3 +613,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   risks; OQ-9 resolved; MVP scope unchanged; operator decisions. Same day, before commit: GP
   notifications row removed from P2 (not agreed future scope); extension-tests wording aligned with
   SD EX-5
+- 2026-11-09 · persona `product-mgr` · action `update` (UX review) · F2 flag content per type; F5
+  precautionary label (SD P-1) and read-only fund facts at G2; F8 precautionary label, no implied
+  permission; §6 run status, failure handling with re-run of the failed step (new scope, OQ-5) and
+  voice; persona claims and expected buyer labelled unvalidated (§1, §2, A-1, A-7, SD A-10); operator
+  decisions

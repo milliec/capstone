@@ -28,8 +28,8 @@ architecture step (`@system.arch`) in a later sprint.
   | User | Setting | Can do |
   |---|---|---|
   | **Compliance specialist** | Owns the obligation calendar. Works through agent output and decides. | Approve, edit or reject at every gate. Set business-day rules. Publish the calendar. |
-  | **GP / fund manager** | Accountable for the fund's filings, but files few of them. Often less familiar with Luxembourg rules. | **Read only.** Sees what is due, when, who files it, and why. |
-  | **Filing parties** (AIFM, administrator, auditor, tax advisor, local reporting agent) | Do most of the actual filings for the fund. | **Nothing in the MVP.** Stakeholders, not users. Named on every obligation as "who files". |
+  | **GP / fund manager** | Accountable for the fund's filings, but files few of them. Often less familiar with Luxembourg rules *(unvalidated, A-10)*. | **Read only.** Sees what is due, when, who files it, and why. |
+  | **Filing parties** (AIFM, administrator, auditor, tax advisor, local reporting agent) | Do most of the actual filings for the fund *(unvalidated, A-10)*. | **Nothing in the MVP.** Stakeholders, not users. Named on every obligation as "who files". |
 
 - **Success definition (MVP)**: On the mock data set, the system produces the results in
   `mock-data/expected-obligation-library.md`. Every calendar entry traces back to a source paragraph and
@@ -209,6 +209,10 @@ error this system can make. Naming the principle stops the same choice being mad
   estimate (PRD OQ-5).
 - **A-9**: Filing parties are out of scope as users (operator decision). Each obligation's "who files"
   role is enough to route notifications to them later, together with filing status.
+- **A-10**: The user descriptions in §1 are **unvalidated**. That GPs are often less familiar with
+  Luxembourg rules, and that filing parties do most of the filings, come from the brief and the
+  operator's experience. No users were interviewed. The same applies to GPs as the expected future buyer
+  (§10.1): it is the operator's expectation, not a finding.
 
 ## 8. Acceptance Criteria
 
@@ -365,7 +369,7 @@ no MVP feature and changes no MVP requirement. The mechanisms are for the SAD (`
   defined extension points, not through client-specific copies.
 - **The future buyer is expected to be the GP** (general partner / fund manager), who uses the GP view
   of the compliance calendar. This names the buyer only. It adds no GP feature to the MVP or to agreed
-  future scope.
+  future scope. It is the operator's expectation and has not been validated (A-10).
 - **Market research is revisited before commercialising, not to complete this MVP.** The MRD's
   internal-tool framing (`mrd.md`, A-4) and the PRD's "not sold" assumption (PRD A-1) still describe
   the capstone. They were not written for a commercial product.
@@ -510,7 +514,8 @@ investors in Singapore.
   invalidate approved G2 verdicts? The fund profile is static mock data in the MVP, so this does not
   arise yet. *(Approval map OD-6.)*
 - **OQ-10**: *Resolved* (operator decision, 2026-11-08). **Product direction.** The capstone stays an
-  internal specialist tool designed for future reuse. GPs are the expected future buyers. No new GP
+  internal specialist tool designed for future reuse. GPs are the expected future buyers (unvalidated,
+  A-10). No new GP
   feature is added to agreed future scope. Market research is revisited before commercialising,
   not to complete this MVP. See §10.1.
 - **OQ-11**: *Resolved* (operator decision, 2026-11-08). **P-1 before marketing.** A jurisdiction being
@@ -596,3 +601,5 @@ investors in Singapore.
   adds client-policy changes; OQ-10 to OQ-13; MVP scope unchanged; operator decisions. Same day,
   before commit: GP notifications removed (not agreed future scope); EX-5 allows a justified "not
   applicable", does not require identical fixtures or counts, and walkthroughs identify tests only
+- 2026-11-09 · persona `product-mgr` · action `update` (UX review) · new A-10: user descriptions in §1
+  and GPs as expected buyer (§10.1, OQ-10) labelled unvalidated; no requirement changed
