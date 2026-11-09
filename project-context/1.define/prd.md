@@ -489,7 +489,7 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 | Three gates make the happy path too long for the demo. | Specialist time target of under 30 minutes is measured. | SD MC-003 |
 | The stretch goal (F10) takes time from the core. | Built only after F1–F9 pass. Estimated separately. Not in the Week 6 definition of done. | SD MD-011, OQ-5 |
 | Designing for extensibility over-builds the six-week MVP. | Only the Part II configuration is built. Extension points are added where the walkthroughs show a need, not speculatively. The architect includes this in the estimate. | SD NFR-012, §10, OQ-5 |
-| The MVP does not fit the operator's remaining time. | The MVP must fit about **40–50 operator hours** (operator estimate, from 8–10 hours a week). The SAD estimates the work in hours against this, and a cut line between the core demo path and hardening is agreed before Build. | OQ-5 · Operator decision (business review, 2026-11-09) |
+| The MVP does not fit the six-week timebox. | The MVP must fit the **six-week** capstone timebox. The SAD estimates the work against it, and a cut line between the core demo path and hardening is agreed before Build. | SRC-BRIEF · OQ-5 · Operator decision (business review, 2026-11-09) |
 | Walkthroughs are read as regulatory coverage, or as saying Singapore marketing is permitted. | Each is labelled architecture-only. Regulatory differences are questions for a specialist. S-2 keeps marketing permission separate and labels results conditional. | SD §10.4, EX-6 |
 
 ## 9. Launch & Go-to-Market Strategy
@@ -564,8 +564,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   Deliver? **Not yet shown.** Operator decision: keep the full scope until the architect estimates it
   after the SAD. A possible cut line (a core demo path vs hardening stories) was proposed in Define and
   **not** adopted. *2026-11-09: re-running a failed step (§6) is new scope and goes into the estimate.*
-  *2026-11-09 (business review): the budget is about 40–50 operator hours. `@system.arch` estimates the
-  Must scope in hours against it, including the recovery paths (SD FR-022 to FR-025) and the full gate
+  *2026-11-09 (business review): the timebox is six weeks. `@system.arch` estimates the Must scope
+  against it, including the recovery paths (SD FR-022 to FR-025) and the full gate
   logic, and a cut line is agreed with the operator before Build (§8 risks).*
 - **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
   *Before first publication only. After publication, see SD FR-025 (SD OQ-7 resolved).*
@@ -654,3 +654,5 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   advice" note made Must and moved from P1 to F8 (SD FR-020), combined with the unverified
   date-conventions note (SD A-7) as one calendar-level GP note; G3 note for the specialist (F7); §7
   manual-effort baseline row and OQ-12; operator decisions
+- 2026-11-09 · persona `product-mgr` · action `update` · §8 risk row and OQ-5: the 40–50 hour budget
+  replaced by the six-week timebox (decision log DL-08, revised); operator decision
