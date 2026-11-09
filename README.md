@@ -164,7 +164,7 @@ the work and hand over through written documents in `project-context/`. Persona 
 
 | Phase | Persona | Owns | Status |
 |---|---|---|---|
-| 1. Define | `@product-mgr` | Requirements, PRD, user stories | ✅ Done (handover not yet approved) |
+| 1. Define | `@product-mgr` | Requirements, PRD, user stories | ✅ Done (handover approved 2026-11-09) |
 | 1. Define | `@system.arch` | Architecture (SAD): pattern, agent roster, estimate | ⏳ Next |
 | 1. Define | `@ux.designer` | Interaction design and visual direction (`ux.md`) | ⏳ After the SAD |
 | 2. Build | `@project.mgr` | Project scaffold and environment | Not started |
@@ -274,7 +274,7 @@ Two paths are **git-ignored** and never committed: `reference/` (private source 
 
 ### What happens next
 
-1. **Approve the Define handover.** The operator signs off
+1. ✅ **Approve the Define handover.** Done on 2026-11-09: the operator signed off
    [`context-summary.md`](project-context/1.define/context-summary.md).
 2. **Write the SAD** (`@system.arch`). It must:
    - choose the application pattern and the CrewAI agent roster,

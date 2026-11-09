@@ -1,7 +1,8 @@
 # Context Summary — Define → Architecture
 
-> **Handover status: NOT YET APPROVED.** The operator will approve the handover to `@system.arch`
-> later. Until then, Define documents may still change.
+> **Handover status: APPROVED** (operator, 2026-11-09; decision log DL-13). `@system.arch` may start
+> the SAD. The items under "Still open" do not block it. Any later change to a Define document is
+> recorded in `decision-log.md` and reflected here.
 
 **Product**: Regulatory Intelligence for fund compliance calendars · **Mode**: greenfield ·
 **Runtime (config)**: `crewai`, recorded only. Pattern, runtime design and agent roster are for the SAD.
@@ -161,3 +162,5 @@ the unverified date-conventions note as one GP calendar-level note (SD FR-020, D
   to OQ-12); handover still pending operator approval
 - 2026-11-09 · persona `product-mgr` · action `update` · time budget restated as the six-week timebox
   instead of 40–50 operator hours (decision log DL-08, revised); operator decision
+- 2026-11-09 · persona `product-mgr` · action `approve-handover` · handover to `@system.arch`
+  approved by the operator (decision log DL-13); status banner updated
