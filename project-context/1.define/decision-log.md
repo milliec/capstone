@@ -148,6 +148,19 @@ The operator reviewed the PRD from a business point of view.
 - **Changed**: SD FR-020 · PRD F7, F8, P1 table (row removed) · US-010 criterion 11 · US-011 criterion
   11 · stories README.
 
+## 2026-11-09 · Define handover
+
+### DL-13 · Handover to the architect approved
+
+- **Decision**: the operator approved `context-summary.md`. `@system.arch` may start the SAD.
+- **Why**: both reviews (DL-01 to DL-12) are applied and merged, and none of the items under "Still
+  open" in the context summary blocks the architecture.
+- **Carried forward**: the open questions in the context summary (including OQ-10 to OQ-12 for the
+  operator) and the separate decision on the public git history (DL-07). Any later change to a Define
+  document is recorded in this log.
+- **Changed**: `context-summary.md` status banner · `approval-map.md` §1 · project README status and
+  next steps.
+
 ### Reviewed, no change needed
 
 - **Buyer stated too firmly** (PRD A-1): already handled by DL-06.
@@ -161,3 +174,5 @@ The operator reviewed the PRD from a business point of view.
   business reviews of the PRD
 - 2026-11-09 · persona `product-mgr` · action `update` · DL-08 revised: six-week timebox replaces the
   40–50 hour budget; operator decision
+- 2026-11-09 · persona `product-mgr` · action `approve-handover` · DL-13 added: handover to
+  `@system.arch` approved; operator decision

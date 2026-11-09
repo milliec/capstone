@@ -44,9 +44,9 @@ the SAD.
 | 6 | `capstone-brief.md`, `context-summary.md`, `mrd.md` | Summaries and evidence. Used for context only. |
 | 7 | This map | Proposals only. |
 
-**No SAD exists yet** (`aamad validate` reports `sad.md` missing). `context-summary.md` says the
-Define → Architecture handover is **not yet approved**, so the Define documents may still change. This
-map must be re-checked when they do.
+**No SAD exists yet** (`aamad validate` reports `sad.md` missing). The Define → Architecture handover
+was **approved** on 2026-11-09 (`context-summary.md`, decision log DL-13). If a Define document changes
+after that, the change is recorded in `decision-log.md`, and this map must be re-checked.
 
 ### Fixed boundaries this map preserves
 
@@ -511,3 +511,5 @@ current state.
 - 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · stretch only, if
   built: no shortcut past a referred review (Card S3 step 5); superseding logged as a system event (§7
   audit, SD MD-009); T-24 extended; operator decisions
+- 2026-11-09 · persona `product-mgr` · action `update` · §1 handover status: approved (decision log
+  DL-13); map content unchanged
