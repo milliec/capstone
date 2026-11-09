@@ -27,6 +27,11 @@ can prove the system works and see exactly where it doesn't.
 4. **Then** the altered-quote case and the `I-1` case are tested by changing **a copy** of the row
    (one word of `OBL-01`'s quote; `OBL-02`'s offset), never by editing the mock sources.
 5. **Then** each report is saved with its run ID and is not overwritten by later runs.
+6. **Then** a target counts as passed only at its exact value (for example 6 of 6 rows, 22 of 22
+   entries). A missed target is reported as a result, with what was expected and what happened. The
+   report never leaves a miss out. (PRD §7)
+7. **Then** the report shows the operator's manual-effort estimate next to the measured review time,
+   labelled as an **estimate**. It claims no time saving or ROI. (PRD §7, OQ-12)
 
 ## 4. Scope Notes
 
@@ -60,3 +65,4 @@ can prove the system works and see exactly where it doesn't.
 - 2026-11-06 · persona `product-mgr` · action `update` · calendar out of 22
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · added internal-conflict test `I-1`
 - 2026-11-06 · persona `product-mgr` · action `update` · review time reported from audit-log timestamps
+- 2026-11-09 · persona `product-mgr` · action `update` (business review) · criterion 6 (exact-value pass, misses reported) and criterion 7 (labelled manual-effort estimate, no ROI claim) (PRD §7); decision log DL-10, DL-11

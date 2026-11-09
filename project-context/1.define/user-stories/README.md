@@ -1,7 +1,7 @@
 # User Stories — Index
 
 MVP stories derived from `prd.md` (features F1–F9) and `system-description.md`. One story per file.
-US-001 to US-013 are **Must** priority. **US-014 is a stretch goal (Could)**, built only after the Must
+US-001 to US-013 and US-015 are **Must** priority. **US-014 is a stretch goal (Could)**, built only after the Must
 stories pass. It depends on US-005 and is not part of the Week 6 definition of done. P1 features from the PRD are listed at the end but **not written**
 (MVP only).
 
@@ -22,6 +22,7 @@ stories pass. It depends on US-005 and is not part of the Week 6 definition of d
 | 9 | [US-011](US-011-gp-read-only-calendar.md) | View the published calendar as a GP | GP | F8 | FR-015, FR-025 |
 | all | [US-012](US-012-audit-log.md) | Record every output and decision | Specialist | F9 | FR-017 |
 | all | [US-013](US-013-evaluation-report.md) | Compare a run with the answer key | Specialist | F9 | FR-018 |
+| 1–7 | [US-015](US-015-follow-run-and-recover.md) | Follow a run and recover from a failed step | Specialist | §6 | NFR-004 (no FR; PRD §6 decision) |
 | after 9 | [US-014](US-014-assess-amendment-impact.md) | **Stretch (Could):** assess the impact of a rule amendment | Specialist | F10 | FR-021, FR-026 |
 
 ## Coverage check
@@ -42,7 +43,10 @@ Every Must requirement in `system-description.md` §4 is covered by at least one
 | FR-022 | US-010 | FR-024 | US-007 |
 | FR-023 | US-004, US-005 | FR-025 | US-011 (also linked from US-004, US-010, US-014) |
 
-**Not written (P1, after MVP):** FR-019 full trail view, FR-020 "not legal advice" note.
+**Not written (P1, after MVP):** FR-019 full trail view.
+
+**FR-020** ("not legal advice" and unverified date-conventions note) became a Must on 2026-11-09 and is
+covered by US-011 (criterion 11).
 
 **Stretch (Could):** FR-021 and FR-026 are covered by US-014.
 
@@ -82,6 +86,8 @@ must still check them.
 | SD NFR-009 | No secrets in the repository | `@security.eng` |
 | SD NFR-011 | Gate, date and audit tests run without a language model | `@qa.eng` |
 | PRD §5 | Run time under 5 minutes, cost under US$2 (measured in US-013) | `@qa.eng` |
+| PRD §5 | Evidence, examples and personas use only the fictional firm and public regulation; no employer documents cited or summarised | `@security.eng` |
+| PRD §6 | Voice: plain British English, facts and uncertainty without reassurance or alarm, sources cited, no advice; checked in a copy review before the demo | `@ux.designer` |
 
 ## Demo decisions the stories assume
 
@@ -126,3 +132,7 @@ at each gate. The stories assume these demo decisions:
   adds SD AC-021 to AC-024 and stretch AC-025
 - 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · AC coverage table
   adds SD AC-026 (explicit decisions)
+- 2026-11-09 · persona `product-mgr` · action `update` · stories brought up to date with the UX and
+  business reviews of the PRD: new US-015 (run status and failed-step re-run, Must); criteria added to
+  US-002, US-003, US-007, US-010, US-011, US-013; FR-020 now Must (US-011); two system-wide rules
+  (no employer documents, voice). See `../decision-log.md` DL-01 to DL-12

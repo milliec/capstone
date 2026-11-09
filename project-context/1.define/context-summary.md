@@ -21,10 +21,11 @@ are mocked.
 |---|---|---|
 | 1 | `prd.md` | Happy path (§2), features F1–F9 with testable criteria (§4), constraints for the architecture (§3) |
 | 2 | `system-description.md` | Must do / must not / must cost / must prove, FR and NFR lists, 26 acceptance criteria (AC-018 to AC-020 and AC-025 are stretch; AC-021 to AC-024 cover the recovery paths; AC-026 covers explicit decisions), design principle **P-1**, and **§10 extensibility** (quality goal, kinds of variation, extension rules, two walkthroughs) |
-| 3 | `user-stories/README.md` | 13 stories, coverage map, demo decisions at each gate |
+| 3 | `user-stories/README.md` | 15 stories (14 Must, 1 stretch), coverage map, demo decisions at each gate |
 | 4 | `mock-data/expected-obligation-library.md` | Expected results: 6 rows, verdicts, 2 conflicts, **22 calendar entries**, date conventions D-1 to D-7 |
 | 5 | `mock-data/mock-regulatory-sources.md`, `mock-fund-profile.md` | The inputs |
-| 6 | `mrd.md` | Why this is worth six weeks, and what is **not** claimed |
+| 6 | `mrd.md` | Why this is worth six weeks, and what is **not** claimed. Its evidence is an illustrative scenario for a fictional firm |
+| 7 | `decision-log.md` | What was decided on 2026-11-09 (UX and business reviews), why, and where each document changed |
 
 ## Constraints the SAD must satisfy
 
@@ -37,7 +38,10 @@ are mocked.
 - **Stable calendar-entry IDs**, so filing status can be added later. *(SD MD-010)*
 - **Safe on failure**: invalid agent output stops the run, and nothing partial is published. *(SD NFR-004)*
 - **Targets**: run under 5 min, under US$2 per run, specialist review under 30 min. *(SD MC-001 to MC-003)*
-- **Public repo**: mock data only; real material stays in the git-ignored `reference/`. *(SD MN-001)*
+- **Public repo**: mock data only; real material stays in the git-ignored `reference/`. No employer
+  documents are cited or summarised. *(SD MN-001, PRD §5, decision log DL-07)*
+- **Time budget**: the MVP must fit about **40–50 operator hours**. A cut line between the core demo
+  path and hardening is agreed before Build. *(PRD §8, OQ-5, decision log DL-08)*
 - **Extensibility (quality goal)**: the MVP is the first validated configuration of a shared product.
   Prefer shared capabilities with configuration and defined extension points over client-specific
   copies. Future extensions keep the Part II results and every verification, approval and audit
@@ -59,12 +63,22 @@ questions the published calendar shows GPs a neutral review notice; it clears on
 republish (SD FR-025, MN-007 clarified) · no bulk or preselected approval decisions at G1, G2, G3 or
 (stretch) report acceptance; silence leaves items pending (PRD §6) · extensibility is an architecture
 quality goal; the capstone stays an internal specialist tool designed for reuse, with GPs as the
-expected future buyers; market research waits until commercialising (SD §10.1, OQ-10) · additional
+expected future buyers (unvalidated, SD A-10); market research waits until commercialising (SD §10.1, OQ-10) · additional
 clients, regimes, marketing jurisdictions, fund-fact editing and configuration screens are out of MVP
 scope (SD §9) · a jurisdiction under consideration is not active marketing: results are conditional,
 and uncertainty prompts specialist review (SD §10.4, OQ-11) · client policy cannot override mandatory
 controls; its future changes need an authorised decision, reason, version history and impact
 assessment (SD §10.2, OQ-12).
+
+**Decided 2026-11-09** (details and reasons in `decision-log.md`): precautionary verdicts labelled at G2
+and in the GP view, with no implied registration or marketing permission (DL-01) · run status shown,
+and a failed step can be re-run from the last safe state without losing gate decisions; new scope
+(DL-02, US-015) · each verifier flag states its type and evidence (DL-03) · cited fund facts viewable
+read-only at G2 (DL-04) · voice for agent and system text (DL-05) · persona claims and the expected buyer
+labelled unvalidated (DL-06) · evidence uses only the fictional firm and public regulation (DL-07) ·
+40–50 hour budget and a cut line before Build (DL-08) · a missed target is reported, not hidden (DL-10) ·
+no ROI claim; labelled effort estimate for comparison (DL-11) · "not legal advice" is a Must, shown with
+the unverified date-conventions note as one GP calendar-level note (SD FR-020, DL-12).
 
 ## Still open (none blocks the architecture)
 
@@ -74,7 +88,11 @@ assessment (SD §10.2, OQ-12).
 | GP "under review" note **before first publication**? (PRD OQ-6; after publication it is decided, SD FR-025) | UX step |
 | Roll rules for CNMV and business-register filings; AED subscription tax (PRD OQ-7) | Final demo data |
 | How close must an extracted name be to pass? (OQ-US001-1) | QA evaluation design |
-| **Does the scope fit six weeks?** Not yet shown. Full scope kept until the architect estimates (PRD OQ-5) | **SAD**: please include an estimate |
+| **Does the scope fit the time left?** Not yet shown. Budget: about **40–50 operator hours**. Full scope kept until the architect estimates; a cut line between the core demo path and hardening is then agreed (PRD OQ-5, §8, DL-08) | **SAD**: please estimate **in hours**, including the failed-step re-run (US-015, new scope) |
+| Retry limit for re-running a failed step (approval map OD-7, OQ-US015-1) | **SAD** |
+| Capstone programme submission requirements (PRD OQ-10) | Operator, before the SAD estimate |
+| Reused prototype front end: origin and clean-up (PRD OQ-11) | Operator, before Build |
+| Manual-effort estimate for the five demo obligations (PRD OQ-12) | Operator, before the demo |
 | **Stretch goal F10 (change monitoring, US-014, now including report acceptance FR-026):** fits after the core? Depends on the MD-005 chain | **SAD**: please estimate it separately |
 | Gate recovery paths: none open. *Stretch: every impact report needs acceptance or a documented manual review (SD FR-026, Could; mandatory whenever F10 is built).* *Fund-fact changes: deferred beyond MVP, direction recorded (SD OQ-9, §9). Verdicts already cite fact IDs; the SAD may use these references, but no fact editing or reassessment is in scope.* *Decided: G3 decline (SD FR-022), reopening a rejected row (FR-023), reopening a confirmed verdict (FR-024), GP review notice (FR-025); withdraw/unpublish deliberately deferred, revisit before real-world use (SD §9).* | Operator decision, before build planning |
 | Effort for FR-022 to FR-025, added after the estimate request. Reopening is meant to reuse the edit path (MD-005); the effort is not yet checked | **SAD**: include in the core estimate |
@@ -137,3 +155,7 @@ assessment (SD §10.2, OQ-12).
 - 2026-11-08 · persona `product-mgr` · action `update` · extensibility quality goal added to
   constraints and "Decided" (SD NFR-012, §10, OQ-10 to OQ-12); walkthroughs, isolation boundary and
   client-policy mechanism requested from the SAD; MVP scope unchanged
+- 2026-11-09 · persona `product-mgr` · action `update` · UX and business reviews: decision log added to
+  the reading order; story count 13 → 15; time-budget and no-employer-documents constraints; "Decided
+  2026-11-09" paragraph; estimate request now in hours against 40–50; new open rows (retry limit, OQ-10
+  to OQ-12); handover still pending operator approval

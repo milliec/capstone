@@ -27,6 +27,9 @@ source, so that disagreements are found by a check and not by chance.
 6. **Then** each internal flag names the field that disagrees, its value, and what the quote says.
 7. **Then** the check does not change any row and does not choose which source is right.
 8. **Then** every flag is recorded in the audit log.
+9. **Then** every flag states its type: **internal** (shows the field that disagrees with the row's own
+   quote, as in criterion 6) or **cross-source** (shows the conflicting paragraph ID and its quote, as
+   in criteria 1 and 2). (PRD F2)
 
 ## 4. Scope Notes
 
@@ -59,3 +62,4 @@ source, so that disagreements are found by a check and not by chance.
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · added the internal check (fields vs own
   quote) and test `I-1`
+- 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 9: every flag states its type and its evidence (PRD F2); decision log DL-03

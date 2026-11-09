@@ -19,9 +19,10 @@ not here.
 
 - **Operator problem**: Fund compliance teams turn static legal text into deadlines by hand. Every new
   framework repeats the work, and manual interpretation produces inconsistent rules. *(MRD §1–§2)*
-- **Impact**: Internal documents describing the same obligations disagree on lead times, scheduling
-  patterns and due dates. None of the mismatches was caught by a check. *(MRD §2)* No time or cost
-  impact has been measured. *(MRD §5)*
+- **Impact**: In the illustrative scenario for the fictional operator, documents describing the same
+  obligation disagree (for example, on the annual-report deadline and on what starts the clock for a
+  beneficial-owner update). None of the mismatches was caught by a check. *(MRD §2, SRC-ILLUS)* No time
+  or cost impact has been measured. *(MRD §5)*
 - **Why it's hard**: a Part II fund's obligations come from overlapping layers of rules (Luxembourg
   product law, the AIFM Law, EU rules such as PRIIPs and SFDR, and tax, registry and cross-border
   rules). Each layer has its own authorities, deadlines and wording, so interpretation happens across
@@ -82,7 +83,7 @@ Market segment size and geographic expansion: **N/A, internal tool.**
 ### User Needs Analysis
 
 > **Evidence base.** These needs are **inferred** from the operator brief (SRC-BRIEF) and from the
-> operator's internal working documents as summarised in `mrd.md`. **No user interviews were
+> illustrative scenario for the fictional operator in `mrd.md` (SRC-ILLUS). **No user interviews were
 > conducted** (Assumption A-7). Treat each need as a hypothesis the demo should test, not a validated
 > finding.
 
@@ -289,6 +290,7 @@ never see unfinished work.*
 | Publishing without G1 and G2 complete is refused. | SD MP-006 |
 | G3 publishes the whole fund calendar at once. | SD A-6 |
 | Declining G3 requires a reason, publishes no new version and keeps the draft and review history. Any previously published version stays visible to GPs. | SD FR-022, AC-021 |
+| At G3, the specialist sees a note that the date conventions have not yet been checked against the legal texts. | SD A-7 · Operator decision (business review, 2026-11-09) |
 
 #### F8. GP read-only calendar
 **Why:** UN-G1 to UN-G6 · MRD §1 (static legal documents, no live view, unfamiliar local rules)
@@ -302,6 +304,7 @@ filing and don't have to read legal text.*
 | A precautionary entry shows "precautionary" and its reason. GP text must not state or imply that a registration or marketing is permitted. | SD P-1, OQ-11 |
 | After publication, a change that questions the published calendar shows GPs a neutral review notice. The last published entries and their publication date stay visible. The notice clears only on a successful republish. | SD FR-025, AC-024 |
 | The GP cannot change anything. | SD §1, NFR-010 |
+| **Must.** The GP view carries one calendar-level note: entries are specialist-approved interpretations, not legal advice, and the date conventions behind them have not yet been checked against the legal texts. The note is not repeated on each entry. | SD FR-020, MN-009, A-7 · Operator decision (business review, 2026-11-09) |
 
 #### F9. Audit log and evaluation
 **Why:** UN-S7 · MRD §3 (auditable process), MRD §5 (no claims without evidence: the evaluation is the
@@ -320,7 +323,8 @@ against the answer key, so that I can prove the system works.*
 | Feature | Trace |
 |---|---|
 | Full trail view per row: source, quote, flags, verdict, approvals in one place. | SD FR-019 (Should) |
-| "Not legal advice" note on the GP view. | SD FR-020 (Should), MN-009 |
+
+The "not legal advice" note (SD FR-020) moved to F8 as a Must on 2026-11-09.
 
 ### Stretch Goal (P1, Could): built only after the core works
 
@@ -378,6 +382,7 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 | No secrets in the repository. | SD NFR-009 |
 | Only the specialist role can approve, edit, reject, override, reopen, publish or decline (and, in the stretch, accept or send impact reports for manual review). GPs are read-only. | SD NFR-010 |
 | Output is a specialist-approved interpretation, not legal advice. | SD MN-009 |
+| Evidence, examples and personas use only the fictional firm and public regulation. No employer documents are cited or summarised in the repository or portfolio. | SD MN-001 · MRD SRC-ILLUS · Operator decision (business review, 2026-11-09) |
 
 ### Scalability & Reliability
 
@@ -429,6 +434,7 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 | Metric | Target | Source |
 |---|---|---|
 | Specialist time to complete G1–G3 on the demo set, from audit-log timestamps | Under 30 minutes | SD MC-003, operator-confirmed |
+| Manual-effort baseline | **No ROI or time saving is claimed.** A labelled estimate of manual effort for the five demo obligations is recorded for comparison with the review time. A measured baseline is needed before any value claim. | MRD §5 · OQ-12 · Operator decision (business review, 2026-11-09) |
 | Share of extracted rows approved **without edits** | **After the MVP.** Not a Week 6 metric: demo decisions are scripted, so the rate would measure the script, not the agents. | OQ-2 (MRD OQ-2) |
 
 ### Technical
@@ -443,6 +449,11 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 | Gate enforcement | 100% of bypass attempts refused | SD MP-006 |
 | Cost per run | Under US$2 | SD MC-002 |
 | Run time | Under 5 minutes | SD MC-001 |
+
+**If a target is missed.** The targets are exact on a small set, so a pass means the exact value above.
+If a technical target is missed, the evaluation report states the result. Gates still prevent
+unapproved output from reaching GPs. A miss is a finding, not hidden. *(SD FR-018, MRD §5 · Operator
+decision, business review, 2026-11-09)*
 
 ### User Experience
 
@@ -478,6 +489,7 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 | Three gates make the happy path too long for the demo. | Specialist time target of under 30 minutes is measured. | SD MC-003 |
 | The stretch goal (F10) takes time from the core. | Built only after F1–F9 pass. Estimated separately. Not in the Week 6 definition of done. | SD MD-011, OQ-5 |
 | Designing for extensibility over-builds the six-week MVP. | Only the Part II configuration is built. Extension points are added where the walkthroughs show a need, not speculatively. The architect includes this in the estimate. | SD NFR-012, §10, OQ-5 |
+| The MVP does not fit the operator's remaining time. | The MVP must fit about **40–50 operator hours** (operator estimate, from 8–10 hours a week). The SAD estimates the work in hours against this, and a cut line between the core demo path and hardening is agreed before Build. | OQ-5 · Operator decision (business review, 2026-11-09) |
 | Walkthroughs are read as regulatory coverage, or as saying Singapore marketing is permitted. | Each is labelled architecture-only. Regulatory differences are questions for a specialist. S-2 keeps marketing permission separate and labels results conditional. | SD §10.4, EX-6 |
 
 ## 9. Launch & Go-to-Market Strategy
@@ -496,7 +508,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 
 ## Sources
 
-- `project-context/1.define/mrd.md`: evidence note (internal tool, no external market).
+- `project-context/1.define/mrd.md`: evidence note (internal tool, no external market). Its evidence is
+  an illustrative scenario for a fictional firm (SRC-ILLUS) plus public regulation.
 - `project-context/1.define/system-description.md`: requirements, buckets, acceptance criteria.
 - `project-context/1.define/mock-data/`: sources, fund profile, answer key (KEY).
 - **SRC-BRIEF**: operator brief for this capstone.
@@ -508,6 +521,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - **Operator decisions, 2026-11-08**: extensibility as an architecture quality goal; product
   direction; two architecture-only walkthroughs; P-1 before marketing; client-policy changes;
   client-data separation deferred (SD §10, OQ-10 to OQ-13).
+- **Operator decisions, 2026-11-09** (UX and business reviews): recorded with reasons and the documents
+  they changed in `project-context/1.define/decision-log.md` (DL-01 to DL-12).
 
 ## Assumptions
 
@@ -527,7 +542,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   reads and has no decisions to make.
 - **A-6**: The MVP handles one pipeline run at a time. This follows from one operator, one fund and one
   framework (SD A-1). It is not a measured limit.
-- **A-7**: **Needs are inferred from the brief and internal documents. No interviews were conducted.**
+- **A-7**: **Needs are inferred from the brief and an illustrative scenario (MRD SRC-ILLUS). No
+  interviews were conducted.**
   The user needs in §2 are hypotheses. The demo is the first test of them. The same applies to the
   persona descriptions in §2 (for example, that GPs are often less familiar with Luxembourg rules and
   that filing parties do most of the filings) and to GPs as the expected future buyer (§1, A-1). These
@@ -548,6 +564,9 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   Deliver? **Not yet shown.** Operator decision: keep the full scope until the architect estimates it
   after the SAD. A possible cut line (a core demo path vs hardening stories) was proposed in Define and
   **not** adopted. *2026-11-09: re-running a failed step (§6) is new scope and goes into the estimate.*
+  *2026-11-09 (business review): the budget is about 40–50 operator hours. `@system.arch` estimates the
+  Must scope in hours against it, including the recovery paths (SD FR-022 to FR-025) and the full gate
+  logic, and a cut line is agreed with the operator before Build (§8 risks).*
 - **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
   *Before first publication only. After publication, see SD FR-025 (SD OQ-7 resolved).*
 - **OQ-7**: Business-day rules for `OBL-04` and `OBL-05`, and whether the AED subscription tax follows
@@ -560,6 +579,14 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   for reuse; GPs are the expected future buyers; market research is revisited before commercialising.
   P-1 before marketing, client-policy changes and client-data separation are recorded in SD OQ-11 to
   OQ-13. *(SD OQ-10, §10.)*
+- **OQ-10**: **Programme submission requirements.** What the capstone programme requires for
+  submission is not yet recorded. To be confirmed by the operator before the SAD estimate.
+- **OQ-11**: **Reused prototype front end.** Its origin and the clean-up it needs are not yet
+  recorded. To be confirmed before Build. If it was built for or at an employer, it is treated like
+  employer documents (§5) and not reused.
+- **OQ-12**: **Manual-effort estimate.** The operator provides a labelled estimate of how long the five
+  demo obligations would take to interpret by hand, before the demo (§7). It is an estimate, not a
+  measurement.
 
 ## Audit
 
@@ -618,3 +645,12 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   permission; §6 run status, failure handling with re-run of the failed step (new scope, OQ-5) and
   voice; persona claims and expected buyer labelled unvalidated (§1, §2, A-1, A-7, SD A-10); operator
   decisions
+- 2026-11-09 · persona `product-mgr` · action `update` (business review) · evidence reworded to the
+  fictional firm's illustrative scenario (§1 Impact, §2 evidence note, A-7, Sources; MRD SRC-ILLUS);
+  §5 no employer documents; §7 missed-target handling; §8 hours-budget risk and OQ-5 (40–50 hours, cut
+  line before Build); new OQ-10 (programme submission) and OQ-11 (prototype front end); operator
+  decisions
+- 2026-11-09 · persona `product-mgr` · action `update` (business review, second pass) · "not legal
+  advice" note made Must and moved from P1 to F8 (SD FR-020), combined with the unverified
+  date-conventions note (SD A-7) as one calendar-level GP note; G3 note for the specialist (F7); §7
+  manual-effort baseline row and OQ-12; operator decisions
