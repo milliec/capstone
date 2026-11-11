@@ -67,6 +67,12 @@ rule, so that only rules I trust enter the obligation library.
     (criterion 12), and the code has no built-in default for it. The note does not block approval. In
     the demo the specialist sets "no roll" (answer key §5). The matching mark at G3 is US-010
     criterion 12. (Decision log DL-20, SAD CR-027, SD AC-032.)
+18. **Given** a row has changed since the specialist's screen loaded (for example it was edited or
+    re-verified), **when** they submit an approve, reject or reopen decision made on the old version,
+    **then** the decision is refused and not recorded, and a plain message says the item changed and
+    shows its current version. **Given** the same decision is submitted twice (for example a double
+    click), **then** one decision is recorded and the second request is refused with the same message.
+    The message follows the voice rule in PRD §6: facts, without reassurance or alarm. (SAD CR-009.)
 
 ## 4. Scope Notes
 
@@ -81,6 +87,7 @@ rule, so that only rules I trust enter the obligation library.
 - **PRD Anchors**: F3 · §2 step 4 · UN-S4, UN-S7 · AB-1, AB-4
 - **System description**: FR-005, FR-023, FR-029 · MD-004 · MN-003, MN-004, MN-006 · AC-006, AC-028, AC-032 · NFR-010
 - **Decision log**: DL-16 (criteria 14–16), DL-20 (criterion 17)
+- **SAD controls**: CR-009 (criterion 18)
 - **Answer key**: §5 (business-day rules)
 - **Related SFS**: none yet
 
@@ -117,3 +124,5 @@ rule, so that only rules I trust enter the obligation library.
   `OBL-02`'s rule depends on the open AED tax question (PRD OQ-7); no criterion changed
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · the G1 note is now criterion 17 and is
   traced to SD AC-032; operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009) · criterion 18: a decision made on an
+  out-of-date screen, or submitted twice, is refused with a plain message showing the current version

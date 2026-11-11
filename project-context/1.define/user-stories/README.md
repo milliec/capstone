@@ -152,3 +152,4 @@ at each gate. The stories assume these demo decisions:
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-18) · US-015 criteria 14–15 (release of a failed source document to manual entry), US-016 criterion 11; AC-031 added to the coverage table
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · US-010 criterion 12 (OBL-02 open-question mark at G3) and a US-004 G1 note; SD OQ-4 and KEY OQ-D3 kept open
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-18, DL-20) · US-004 criterion 17, US-010 criterion 12, US-013 criterion 9, US-011 assumption; AC-031 and AC-032 in the coverage table; PRD F3 line for released documents
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009, CR-023, CR-017) · new criteria for out-of-date and double-submitted decisions (US-004 c18, US-007 c12, US-010 c13) and for the active-run rule, cost-cap stop and service-outage message (US-015 c16–18); OQ-US015-4 raised
