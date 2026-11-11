@@ -71,13 +71,15 @@ and hoping.
 
 ## Assumptions
 
-- The system assigns the new row's ID. The ID format is for the architect and must not collide with
-  the answer key's `OBL-01` to `OBL-06`.
+- The system assigns the new row's ID, with the same scheme as for extracted rows (SAD §4). The
+  person never types an ID.
 
 ## Open Questions
 
-- **OQ-US016-1**: Which ID format do human-created rows get, and how does the evaluation tell them
-  apart from extracted rows? (For `@system.arch` and `@qa.eng`; the origin label is the rule.)
+- **OQ-US016-1**: *Resolved by the SAD (§4; SOQ-11).* One row-ID scheme for all rows, whatever their
+  origin: the ID is a run-wide sequence number assigned by the backend (test T-ID-1: rows extracted
+  and created by hand from one paragraph get distinct IDs). The `origin` field (model / human) is what
+  tells them apart, and the evaluation filters on it (US-013 criterion 8).
 - **OQ-US016-2**: *Resolved* (operator decision, 2026-11-11). PRD F3 mentions manual row creation for
   both cases: a missed row at G1 (SD FR-027, this story's criteria 1–10) and the rows for a released
   document (US-015 criterion 14, this story's criterion 11). In both, the row needs a source quote,
@@ -90,3 +92,4 @@ and hoping.
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-18, SAD SOQ-9) · criterion 11 and scope note: rows created by hand for a source document released to manual entry (US-015 criteria 14–15); OQ-US016-2 now covers the release too
 - 2026-11-11 · persona `product-mgr` · action `update` · OQ-US016-2 resolved (operator decision): PRD F3 mentions manual row creation only for a released document; PRD anchor wording updated; no criterion changed
 - 2026-11-11 · persona `product-mgr` · action `update` · OQ-US016-2 resolution corrected (operator confirmed the earlier wording only described the PRD): PRD F3 lists manual row creation for both a missed row at G1 and a released document; PRD anchor wording updated; no criterion changed, DL-15 and FR-027 unchanged
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-11) · OQ-US016-1 resolved: one row-ID scheme for all rows, `origin` tells them apart; assumption reworded; no criterion changed

@@ -78,8 +78,11 @@ have already made.
 - **Not included**: releasing a verification or applicability unit, releasing several documents at
   once, or releasing before the re-run limit. A release is never a shortcut.
 - **Deferred**: automatic re-runs of a failed step or unit; resuming a run after the application
-  restarts, unless the SAD shows it comes free with the chosen storage. (The SAD allows one automatic
-  retry of a single failed call; the specialist sees only the outcome.)
+  restarts. (The SAD allows one automatic retry of a single failed call; the specialist sees only the
+  outcome.)
+- **Restart (SAD §2)**: a restart does not resume a run. On start-up, every unit that was still
+  running is marked failed and re-runnable, so the recorded decisions and the last safe state survive.
+  That is the "comes free" part; a full resume stays deferred.
 
 ## 5. Traceability
 
@@ -133,3 +136,4 @@ have already made.
   release of a failed source document to manual entry (criteria 14–15, criterion 10 exception, scope
   notes); new OQ-US015-3 for verifier and judge units (SAD SOQ-10); NFR-004 and AC-031 in the SD
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-023, CR-017, Production Shape) · criteria 16–18: a second run is refused and names the active run; run status shows the US$2 warning and the cost-cap stop; one "model service not responding" message instead of one per unit; new OQ-US015-4 (how a stuck run ends, since a new run is refused while one is active)
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD §2) · scope note: a restart does not resume a run, but running units are marked failed and re-runnable so decisions survive; full resume stays deferred; no criterion changed
