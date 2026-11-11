@@ -324,6 +324,45 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Changed**: SAD §2 (adapter table, D1–D6 summary and detail), Production Shape (spike measures
   first-pass success), tests T-D4-1. No Define requirement changes.
 
+### DL-22 · The MVP is the thin slice; the rest moves to future scope
+
+- **Decision**: the MVP is **one complete happy path**: mock paragraphs in → extractor → code quote
+  check → verifier → G1 (approve, approve over a flag with a reason, reject with a reason; coverage
+  view) → applicability → G2 (confirm, override with a reason, decide "unsure" as precautionary) →
+  code-generated calendar → G3 (publish, or decline with a reason) → a basic GP view with the
+  calendar-level note → an audit log of every decision → the evaluation report against the answer
+  key, with its trace export. The hybrid runtime is unchanged (DL-17).
+- **Moved to future scope** (written down, designed in the SAD, not deleted, not built): edit and
+  re-verify (FR-006 edit part, FR-007); reopen a rejected row (FR-023); reopen a verdict (FR-024); the
+  GP review notice (FR-025); re-running a failed step (US-015 criteria 4–6, **superseding DL-02 for
+  the MVP**); manual row creation (FR-027, DL-15); duplicate groups and the completion confirmation
+  (FR-029, DL-16); releasing a failed document (DL-18); the verifier and judge dead-end handling (SAD
+  SOQ-10); the impact report (F10, unchanged as stretch); the extra CI checks (contract drift,
+  release-rule PR check); circuit breaker and restart sweep.
+- **Why**: the six-week timebox (DL-08). The SAD estimated all Must scope at about 52 focused days and
+  the slice at about 42.5 (32–60). The slice keeps every control that stops an unapproved or wrong
+  output reaching a GP, and the evaluation that proves the output; what moves out is used only after a
+  mistake or a fault.
+- **Considered**: (a) the architect's first proposal: a core of about 46 days that also kept manual row
+  creation, edit and re-verify, duplicate groups, and re-running a failed step, with seven recovery and
+  hardening items below the line (never committed; this entry is its record). The operator chose the
+  narrower slice. (b) Dropping the evaluation report: rejected, it is the proof the system works (SD
+  §1, PRD §7). (c) Keeping re-run of a failed step: not chosen; a failed step means a new run.
+- **Consequences for the demo**: no edits at G1 (the demo decisions need none); nothing changes after
+  G3 except a new run and a new publish; a failed step, a stubborn document or a missed row means a
+  new run.
+- **Capacity** (SAD SOQ-12, answered the same day): the operator commits the time the slice needs,
+  without a number. It is a commitment, not a measured fit; the re-estimate after Build week 1 is the
+  check (Tier 2 cuts go to the operator if the first packages take more than 1.3× their estimate).
+- **Changed**: SAD "Six-week estimate and agreed scope", scope keys in Work Ownership and the Control
+  Register, feasibility note, SOQ-1, implementation guidance · **still to do by `@product-mgr`**: mark
+  the future-scope requirements, acceptance criteria and story criteria as deferred (starting list:
+  FR-006 edit part, FR-007, FR-023 to FR-025, FR-027, FR-029, AC-005, AC-022 to AC-024, AC-027,
+  AC-028, AC-031, US-005, US-016, US-015 criteria 4–6 and the release criteria, US-004 reopen and
+  group-confirmation criteria, US-007 reopen criteria, US-011 review-notice criteria, US-013 criteria
+  8–9); record PRD OQ-5 as decided (scope) with capacity still open; note that DL-02's re-run is
+  superseded for the MVP.
+
 ---
 
 ## Audit
@@ -352,3 +391,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-11 · persona `product-mgr` · action `update` · US-004 criterion 17 (DL-20 G1), US-013 criterion 9 (release counts as an extraction failure, DL-18), AC-032 and US-011 assumption (DL-20); OQ-US016-2 resolved: PRD F3 line for released documents only. DL-15 to DL-20 follow-ups for `@product-mgr` are complete
 - 2026-11-11 · persona `product-mgr` · action `update` · PRD F3 corrected to list manual row creation for both a missed row at G1 and a released document (operator confirmed the earlier wording only described the PRD); DL-15 unchanged; OQ-US016-2 closed on that basis
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-21 (CrewAI adapter deviations D1–D5 and interpretation D6 accepted, with conditions on D4 and D5); operator decision
+- 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-22 (the MVP is the thin slice; recovery, reopen, release, dead-end handling, impact report and extra CI checks move to future scope); operator decision. Follow-ups listed for `@product-mgr`
