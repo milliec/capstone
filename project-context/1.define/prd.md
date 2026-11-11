@@ -576,9 +576,9 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   until the specialist sets one at G1; code never infers one. Both rows stay "not confirmed" in the
   demo (SD OQ-2, KEY OQ-D1). **Still open:** whether the AED subscription tax follows the "tax does not
   roll" rule (SD OQ-4, KEY OQ-D3; DL-20).
-- **OQ-8**: **Frontend framework, for the SAD.** The operator intends to use Next.js. This is a stated
-  intent, **not a requirement**: A-4 still says only "web" and leaves the framework to the SAD.
-  `@system.arch` to confirm or propose otherwise. *(Approval map OD-12, conflict K-4.)*
+- **OQ-8**: *Resolved by the SAD (§1, §3; SOQ-4).* The frontend framework is **Next.js (App Router)
+  with TypeScript**, confirming the operator's intent. It is an architecture choice, not a product
+  requirement: A-4 still says only "web". *(Approval map OD-12, conflict K-4.)*
 - **OQ-9**: *Resolved* (operator decision, 2026-11-08). The shared-product direction does not change the
   MVP or require market research to complete it. The capstone stays an internal specialist tool designed
   for reuse; GPs are the expected future buyers; market research is revisited before commercialising.
@@ -664,3 +664,4 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-19) · OQ-7 part resolved: business-day rules for `OBL-04` and `OBL-05` are never guessed; the AED subscription-tax part stays open (DL-20); operator decision
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-18) · F3: one criterion for manual entry of rows after a source document is released (source quote, code quote check, labelled manual, audited); closes US-016 OQ-US016-2; operator decision
 - 2026-11-11 · persona `product-mgr` · action `update` · F3 corrected: separate criteria for a missed row at G1 (FR-027, AC-027) and for a released document (FR-027, NFR-004, AC-031); replaces the earlier released-document-only line; operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-4) · OQ-8 resolved: Next.js (App Router) with TypeScript; no requirement changed
