@@ -166,6 +166,72 @@ The operator reviewed the PRD from a business point of view.
 - **Buyer stated too firmly** (PRD A-1): already handled by DL-06.
 - **Four-eyes review**: already recorded as PRD OQ-1; timing still undecided.
 
+## 2026-11-11 · Architecture (SAD) decisions
+
+Decisions taken by the operator while `@system.arch` filled the SAD decision headings. Each changes
+or adds to a Define document, so it is logged here as DL-13 requires.
+
+### DL-14 · The quote check is deterministic code; the verifier keeps the conflict checks
+
+- **Decision**: the quote check (does the quote appear word for word in the cited paragraph?) is
+  ordinary code and is the authority that blocks G1. The verifier agent does the internal and
+  cross-source conflict checks, which need judgement. Normalisation rule QN-1: trim, collapse
+  whitespace runs (including line breaks) to one space, compare case-sensitively, normalise nothing
+  else.
+- **Why**: a word-for-word match is a string comparison, not an opinion, and MN-006 ("a failed quote
+  check cannot be approved") must not depend on a model saying "pass". Closes approval map OD-8.
+- **Considered**: a model quote check with code as a backstop. Rejected: two answers to one factual
+  question, and the model one adds nothing.
+- **Changed**: SAD W-04, QN-1, tests T-W04-1 to T-W04-6 · SD vocabulary, MD-003, FR-003 (operator
+  edit) · approval map A4, §7, §8, Open Questions (operator edit) · US-002 criterion 8, scope note,
+  assumption.
+
+### DL-15 · Manual row creation is in MVP scope, smallest form
+
+- **Decision**: at G1 the specialist can add a missed row by opening the edit form on an empty row.
+  The row is marked **human-created** and then takes the normal path: code quote check (QN-1),
+  verifier conflict checks, and its own G1 decision. **No "re-extract" button.** In the evaluation
+  report, human-created rows are counted separately from model-extracted rows.
+- **Why**: the SAD adds a G1 coverage view (W-03b) that shows paragraphs no row cites, so a missed
+  row, the costliest error under P-1, becomes visible at run time. Without a way to add a row, the
+  only fix would be re-running extraction and hoping. The smallest form reuses the edit path (W-08)
+  and adds no model path for the costliest error.
+- **Considered**: (a) a model "re-extract this paragraph" action: rejected, it puts a probabilistic
+  step on the path for the error that matters most; (b) out of scope for the MVP: rejected, the
+  coverage view would then show a problem the specialist cannot fix.
+- **Scope note**: new Must scope. Goes into the architect's estimate (PRD OQ-5, SAD SOQ-1).
+- **Changed**: SAD W-07a (Work Ownership), SOQ-7 resolved, Control Register CR-020 · **still to do by
+  `@product-mgr`**: a system-description requirement (proposed FR-027) and a story (proposed US-016);
+  US-013 criterion for counting human-created rows separately.
+
+### DL-16 · Possible duplicate rows: warn per group, confirm once at G1 completion
+
+- **Decision**: duplicate groups (SAD W-03a) stay non-blocking per row. Each group shows a plain
+  warning at G1. If a group still has two or more approved rows when the specialist completes G1,
+  the server requires one confirmation with a written reason, logged in the audit trail.
+- **Why**: two rows for one obligation can be legitimate (for example two authorities), so a hard
+  block would be wrong; an accidental double approval would produce double calendar entries, so it
+  must be impossible to miss. One confirmation at completion catches the accident without adding a
+  decision per row.
+- **Considered**: (a) hard block on any multi-approved group: rejected, too strict; (b) nothing beyond
+  the per-row decisions: rejected, an accident would be silent until the calendar.
+- **Changed**: SAD SA-9, CR-022, tests T-W03a-1 and T-W03a-2 · **still to do by `@product-mgr`**:
+  US-004 criterion for the completion confirmation (with US-016 / FR-027 from DL-15).
+
+### DL-17 · Runtime shape: a CrewAI Flow per stage, the backend owns the gates
+
+- **Decision**: the backend is the single owner of gate state. A short CrewAI Flow runs each stage
+  (A extract and verify, B judge, C generate), starts only when the backend triggers it, and ends at
+  its gate. Flows never decide or remember gate status. Model steps keep a runtime-neutral function
+  interface inside the Flows.
+- **Why**: a Flow suits "run these steps in order and hand back results"; a human gate is persisted
+  state that must survive restarts and refuse bypass, which belongs in one place. Keeping the
+  interfaces neutral keeps model swaps and model-free tests cheap (SD NFR-011).
+- **Considered**: plain function calls with no Flow (the SAD's earlier provisional choice). Replaced:
+  the operator prefers the runtime's own orchestration within a stage, with the same gate ownership.
+- **Changed**: SAD §2, W-09, CR-001, Model and Context Strategy (entry point). No Define document
+  changes.
+
 ---
 
 ## Audit
@@ -176,3 +242,9 @@ The operator reviewed the PRD from a business point of view.
   40–50 hour budget; operator decision
 - 2026-11-09 · persona `product-mgr` · action `approve-handover` · DL-13 added: handover to
   `@system.arch` approved; operator decision
+- 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-14 (quote
+  check is code, OD-8) and DL-15 (manual row creation, SAD SOQ-7) added; operator decisions. SD and
+  story updates for DL-15 are listed as still to do by `@product-mgr`
+- 2026-11-11 · persona `system-arch` · action `update` · DL-16 (duplicate groups: warn, confirm once
+  at G1 completion) and DL-17 (runtime shape: Flow per stage, backend owns gates) added; operator
+  decisions from the Control Register review
