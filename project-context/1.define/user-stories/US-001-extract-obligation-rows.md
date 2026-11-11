@@ -26,17 +26,33 @@ quote their source paragraph, so that I check rules instead of writing them by h
 5. **Then** every row's business-day rule is "not confirmed", because no source states one.
 6. **Then** no row contains a calculated due date.
 7. **Given** extraction output that is missing a required field, **when** the run checks it, **then**
-   the run stops, nothing is passed to review, and the failure is recorded in the audit log.
+   the run stops, nothing is passed to review, and the failure is recorded in the audit log. Rows from
+   the other documents are kept, and only the failed document is re-run (US-015 criteria 9–11).
+8. **Given** the 13 loaded source paragraphs and the 6 extracted rows, **when** G1 opens, **then** the
+   coverage view lists every paragraph that no non-rejected row cites, each with its text: here the 7
+   paragraphs named in criterion 4 (4 listed by ID, plus the 3 `SRC-PRACT` paragraphs). It lists none
+   of the 6 paragraphs the rows cite. It is computed from the loaded paragraph IDs and the rows' cited IDs only:
+   the answer key is not used, and the view does not say which uncited paragraphs contain an
+   obligation. It does not block G1.
+9. **Given** the coverage view lists a paragraph, **when** the specialist creates a row that cites it
+   (US-016), **then** the paragraph no longer appears in the view.
+10. **Given** a paragraph whose only row is rejected at G1 (US-004), **then** the paragraph appears in
+    the coverage view again. If the row is reopened (US-004 criterion 9), the paragraph leaves the view.
+    (Tested with a rejected copy of a row, not by changing the mock sources.)
 
 ## 4. Scope Notes
 
 - **In Scope for MVP**: mock text sources only; one framework (Luxembourg UCI Part II).
+- **Coverage view**: it makes a gap visible (a missed row is the costliest error, P-1); fixing a real
+  gap is done with US-016. Only a row that is not rejected counts as citing a paragraph, so a rejected
+  row never hides its paragraph (operator decision, 2026-11-11).
+- **Not included**: any way to mark a paragraph as "reviewed, no obligation" (see OQ-US001-2).
 - **Deferred**: reading real documents (e.g. PDF), other frameworks, re-extraction when a law changes.
 
 ## 5. Traceability
 
 - **PRD Anchors**: F1 · §2 steps 1–2 · UN-S1, UN-S2 · AB-1
-- **System description**: FR-001, FR-002 · MD-001 · MN-005, MN-006 · NFR-004 · AC-001, AC-002
+- **System description**: FR-001, FR-002, FR-028 · MD-001 · MN-005, MN-006 · NFR-004 · AC-001, AC-002, AC-029
 - **Answer key**: §1
 - **Related SFS**: none yet
 
@@ -54,7 +70,19 @@ quote their source paragraph, so that I check rules instead of writing them by h
 
 - **OQ-US001-1**: How close must the obligation name be to the answer key to pass? To be settled in the
   evaluation design (`@qa.eng`).
+- **OQ-US001-2**: Nothing records that a paragraph was read and holds no obligation (for example
+  `SRC-UCILAW-P1`, a definition). So the 7 demo paragraphs stay in the coverage view on every run, and
+  the specialist cannot clear them. Is that acceptable for the MVP, or does a later version need a way
+  to mark a paragraph as reviewed? No feature is added now. (For the operator, with `@ux.designer`.)
 
 ## Audit
 
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criteria 8–9 and a scope note: G1
+  coverage view of uncited paragraphs (FR-028); 7 uncited paragraphs in the demo set; operator decision
+  DL-15 context
+- 2026-11-11 · persona `product-mgr` · action `update` · only non-rejected rows count as citing a
+  paragraph (criteria 8 and 10, scope note); OQ-US001-2 (no way to mark a paragraph as having no
+  obligation); operator decision. AC-001 and AC-002 unaffected
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criterion 7 clarified: valid rows from
+  other documents are kept and only the failed document is re-run (US-015, NFR-004)

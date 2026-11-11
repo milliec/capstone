@@ -202,7 +202,8 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Scope note**: new Must scope. Goes into the architect's estimate (PRD OQ-5, SAD SOQ-1).
 - **Changed**: SAD W-07a (Work Ownership), SOQ-7 resolved, Control Register CR-020 · **still to do by
   `@product-mgr`**: a system-description requirement (proposed FR-027) and a story (proposed US-016);
-  US-013 criterion for counting human-created rows separately.
+  US-013 criterion for counting human-created rows separately. **Done 2026-11-11 by `@product-mgr`:**
+  SD FR-027 and AC-027, NFR-010, story US-016, US-013 criterion 8, US-005 scope note.
 
 ### DL-16 · Possible duplicate rows: warn per group, confirm once at G1 completion
 
@@ -216,7 +217,8 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Considered**: (a) hard block on any multi-approved group: rejected, too strict; (b) nothing beyond
   the per-row decisions: rejected, an accident would be silent until the calendar.
 - **Changed**: SAD SA-9, CR-022, tests T-W03a-1 and T-W03a-2 · **still to do by `@product-mgr`**:
-  US-004 criterion for the completion confirmation (with US-016 / FR-027 from DL-15).
+  US-004 criterion for the completion confirmation (with US-016 / FR-027 from DL-15). **Done
+  2026-11-11 by `@product-mgr`:** SD FR-029 and AC-028, US-004 criteria 14–16.
 
 ### DL-17 · Runtime shape: a CrewAI Flow per stage, the backend owns the gates
 
@@ -231,6 +233,76 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   the operator prefers the runtime's own orchestration within a stage, with the same gate ownership.
 - **Changed**: SAD §2, W-09, CR-001, Model and Context Strategy (entry point). No Define document
   changes.
+
+### DL-18 · A document that cannot be extracted can be released to manual entry
+
+- **Decision**: when one extraction unit (a source document) has failed the re-run limit, the
+  specialist may release that one document to manual entry with a written reason. Every other unit
+  must still be valid before G1 opens. The specialist then adds any missing rows by hand: they are
+  labelled manual, need a source paragraph and quote, and go through the code quote check and the
+  verifier conflict checks like any row. The release is audited and counted as an **extraction
+  failure** in the evaluation report.
+- **Why**: without it, the SAD named manual row creation as the way out, but manual rows are added at
+  G1, which a failed unit keeps closed. One document the model cannot extract would block the run for
+  good (raised by `@product-mgr` as OQ-US015-2, SAD SOQ-9).
+- **Considered**: (B) a new run as the only way out: rejected, a document that fails systematically
+  would block the demo. Releasing several documents at once, or before the re-run limit: rejected,
+  per document and only after the limit, so a release is never a shortcut.
+- **Not decided here**: the same dead end for verifier and judge units (SAD SOQ-10), decided
+  separately. Whether PRD F3 should mention manual row creation and this release (OQ-US016-2) is
+  still open for the operator.
+- **Changed**: SAD CR-010, W-19, SOQ-9, SOQ-10, tests T-REL-1 and T-REL-2 · **still to do by
+  `@product-mgr`**: close OQ-US015-2; reflect the release in US-015 and US-016 (and in SD NFR-004 or
+  FR-027 if a requirement line is needed). **Done 2026-11-11 by `@product-mgr`:** OQ-US015-2 closed;
+  US-015 criteria 14–15 and scope notes; US-016 criterion 11; SD NFR-004 and AC-031. New OQ-US015-3
+  records the verifier and judge dead end (SAD SOQ-10). The evaluation-report count of the release as
+  an extraction failure is stated in AC-031 and US-015 criterion 15 and, since the follow-up below, as
+  US-013 criterion 9. **OQ-US016-2 resolved (operator, 2026-11-11):** PRD F3 lists manual row
+  creation for both a missed row at G1 (DL-15) and a released document (this entry).
+
+### DL-19 · Business-day rules are never guessed
+
+- **Decision**: if a source paragraph does not state a business-day rule, the row's rule stays
+  "not confirmed" until the specialist sets one at G1. Code never infers or defaults one. This
+  decides PRD OQ-7 for the demo: `OBL-04` (CNMV) and `OBL-05` (Luxembourg Business Registers) stay
+  "not confirmed", so their weekend dates keep the earlier day and are marked (`D-6`).
+- **Why**: this is how the extraction spec already treats a silent source (SD FR-002), and P-1:
+  filing early is safe, filing late is not. A guessed rule would be an interpretation nobody approved.
+- **Considered**: looking up a rule from the authority (for example "Luxembourg registers roll
+  forward"): rejected, that is legal interpretation hidden in code.
+- **Effect on expected results**: none. The answer key (KEY §5) already has both rows as "not
+  confirmed", and the 22 expected entries do not change.
+- **Changed**: SAD W-13, SOQ-6 · **still to do by `@product-mgr`**: mark PRD OQ-7, SD OQ-2, KEY
+  OQ-D1 and the story questions (US-008 OQ-US008-1 for CNMV, US-009 OQ-US009-1) resolved. The AED
+  subscription-tax part of PRD OQ-7 (SD OQ-4, KEY OQ-D3) is a separate question and is not decided
+  here (confirmed by the operator; see DL-20). **Done 2026-11-11 by `@product-mgr`:** SD OQ-2 and
+  KEY OQ-D1 resolved; US-009 OQ-US009-1 resolved. PRD OQ-7 and US-008 OQ-US008-1 are marked resolved
+  for `OBL-04` and `OBL-05` only; their AED subscription-tax part stays open.
+
+### DL-20 · An open convention is marked, never silently resolved
+
+- **Decision**: the AED subscription-tax question (does the stated "tax deadlines do not roll"
+  convention cover `OBL-02`? PRD OQ-7, SD OQ-4, KEY OQ-D3) **stays open**. It is for the specialist to
+  decide, or to ask a tax specialist; the code must not assume an answer. Until it is decided, the
+  date code applies whatever rule the specialist set at G1, has no built-in default for `OBL-02`, and
+  marks every `OBL-02` entry as depending on OQ-7. The mark is shown at G1 (when setting the rule) and
+  at G3 (before publishing).
+- **Why**: DL-19 covers rules the sources do not state at all. This is different: the convention is
+  stated, and the open point is whether it applies. Picking either behaviour in code would be an
+  interpretation nobody approved; making the dependency visible keeps the decision with a person.
+- **Effect on expected results**: none. In 2027 none of `OBL-02`'s four due dates (20 January, 20
+  April, 20 July, 20 October) falls on a weekend or a mock holiday, so both answers give the same
+  dates. The 22 expected entries do not change.
+- **Considered**: setting `OBL-02` to "not confirmed" until decided: not chosen, it would change the
+  answer key's business-day table and US-008 criterion 3 for no difference in dates. Showing the mark
+  to GPs: not chosen, per-entry rule marks are specialist-only (US-011 assumptions); the calendar-level
+  "conventions not yet checked" note (FR-020) already covers GPs.
+- **Changed**: SAD W-13, CR-027, tests T-W13-1 and T-W13-2, SOQ-6 · **still to do by `@product-mgr`**:
+  a G3 criterion in US-010 (the OQ-7 mark is shown on `OBL-02` entries and does not block publishing)
+  and a G1 note in US-004; keep PRD OQ-7's tax part, SD OQ-4 and KEY OQ-D3 open. **Done 2026-11-11 by
+  `@product-mgr`:** US-010 criterion 12, US-004 G1 scope note; PRD OQ-7 (tax part), SD OQ-4 and KEY OQ-D3
+  kept open with a pointer to this entry. Later the same day: the G1 note became US-004 criterion 17, and AC-032 plus a US-011
+  assumption cover the `OBL-02` mark.
 
 ---
 
@@ -248,3 +320,14 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-11 · persona `system-arch` · action `update` · DL-16 (duplicate groups: warn, confirm once
   at G1 completion) and DL-17 (runtime shape: Flow per stage, backend owns gates) added; operator
   decisions from the Control Register review
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · DL-15 follow-up done: FR-027, AC-027, US-016, US-013 criterion 8 (step 1 of 4; DL-16, coverage view and per-unit failure rule still to do)
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · DL-16 follow-up done: FR-029, AC-028, US-004 criteria 14–16 (step 2 of 4; coverage view and per-unit failure rule still to do)
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · coverage view (SAD W-03b) added to Define: FR-028, AC-029, US-001 criteria 8–9 (step 3 of 4; per-unit failure rule still to do)
+- 2026-11-11 · persona `product-mgr` · action `update` · coverage view: only non-rejected rows count as citing a paragraph (FR-028, AC-029, US-001 criteria 8 and 10); OQ-US001-2 added; operator decision. SAD W-03b wording ("no row cites") and its count of 5 uncited paragraphs (7 in the demo set) are for `@system.arch`
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · per-unit failure rule added to Define: NFR-004 amended, AC-030, US-015 criteria 9–13, clarifications in US-001 c7 and US-006 c7 (step 4 of 4). All four SOQ-8 items are now in the Define documents; raised for `@system.arch` and the operator: SAD W-03b wording and count, SOQ-8 text (add DL-16, mark resolved), extraction dead end (OQ-US015-2)
+- 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-18 (release a failed extraction document to manual entry; SAD SOQ-9) and DL-19 (business-day rules never guessed; PRD OQ-7 for `OBL-04`, `OBL-05`) added; operator decisions. Follow-ups listed in each entry for `@product-mgr`
+- 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-20 (AED subscription-tax question stays open; dependent entries marked at G1 and G3, no code default); DL-19 note that it excludes the tax question; operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` · DL-18 follow-up done (OQ-US015-2 closed; US-015 criteria 14–15, US-016 criterion 11, SD NFR-004, AC-031; new OQ-US015-3) and DL-19 follow-up done (SD OQ-2, KEY OQ-D1, US-009 OQ-US009-1 resolved; PRD OQ-7 and OQ-US008-1 resolved for OBL-04 and OBL-05, AED tax part open). Still to do by `@product-mgr` from DL-20: a G3 criterion in US-010 and a G1 note in US-004
+- 2026-11-11 · persona `product-mgr` · action `update` · DL-20 follow-up done: US-010 criterion 12 (mark shown at G3, does not block, specialist-only) and US-004 G1 scope note; PRD OQ-7 tax part, SD OQ-4 and KEY OQ-D3 kept open. No `@product-mgr` follow-ups from DL-15 to DL-20 remain except OQ-US016-2 (operator) and the optional US-013 criterion for counting a release (DL-18)
+- 2026-11-11 · persona `product-mgr` · action `update` · US-004 criterion 17 (DL-20 G1), US-013 criterion 9 (release counts as an extraction failure, DL-18), AC-032 and US-011 assumption (DL-20); OQ-US016-2 resolved: PRD F3 line for released documents only. DL-15 to DL-20 follow-ups for `@product-mgr` are complete
+- 2026-11-11 · persona `product-mgr` · action `update` · PRD F3 corrected to list manual row creation for both a missed row at G1 and a released document (operator confirmed the earlier wording only described the PRD); DL-15 unchanged; OQ-US016-2 closed on that basis

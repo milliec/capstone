@@ -62,6 +62,10 @@ miss a filing and don't have to read legal text.
 
 - The "roll rule unconfirmed" mark is for the specialist only. The GP sees the date without it.
   Operator-confirmed.
+- The `OBL-02` open-question mark (the rule depends on the unresolved AED tax question, PRD OQ-7) is
+  also for the specialist only. The GP sees the date without it, as US-010 criterion 12 requires. The
+  calendar-level note (criterion 11) already tells GPs that date conventions are unchecked.
+  (Decision log DL-20, SD AC-032.)
 - Display wording above is an example. Exact wording and layout are for `@ux.designer`.
 
 ## Open Questions
@@ -82,3 +86,4 @@ miss a filing and don't have to read legal text.
   calendar-level "not legal advice" and unverified date-conventions note (SD FR-020 now Must, A-7);
   operator decision
 - 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 5: shows "precautionary" and its reason; no implied registration or marketing permission (PRD F8); decision log DL-01
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · assumption: the OBL-02 open-question mark is specialist-only, matching US-010 criterion 12; no criterion changed

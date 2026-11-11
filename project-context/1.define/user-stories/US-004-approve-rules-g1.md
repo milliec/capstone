@@ -46,16 +46,41 @@ rule, so that only rules I trust enter the obligation library.
 13. **Given** undecided rows, **when** the specialist closes the screen, the session times out, or
     nothing is done, **then** those rows stay **pending** and G1 is not complete. Rows already decided
     keep their recorded decisions.
+14. **Given** rows that may describe one obligation, **when** G1 opens, **then** code groups them and
+    shows each group as "possible duplicates" with a plain warning, every row's quote and source
+    visible. A group forms when rows (a) cite the same paragraph ID, (b) match exactly on recipient,
+    anchor and offset, or (c) match on recipient and frequency where one cites a primary source and the
+    other a secondary summary (`SRC-PRACT-*`). No model merges rows, and a group does not block any
+    single row: each row still needs its own decision (criterion 12). Groups are logged when computed.
+    If the groups cannot be computed, G1 does not open and the failure is shown (US-015).
+15. **Given** a group with two or more **approved** rows, **when** the specialist completes G1, **then**
+    completion is refused until they give one confirmation with a written reason, naming the rows. With
+    the reason, G1 completes, and the audit log records the confirmation with the reason and the rows'
+    IDs and versions. A group with one or no approved rows needs no confirmation. (Decision log DL-16.)
+16. **Example:** a copy of `OBL-02` is added so two rows cite `SRC-UCILAW-P2`: one group is shown with
+    a warning. The specialist approves both and tries to complete G1 without a reason: refused. With a
+    reason: G1 completes and the audit entry shows the reason and both rows. (Tested with a copy of a
+    row, as in US-013 criterion 4.)
+17. **Given** the open question on the AED subscription tax (PRD OQ-7, SD OQ-4), **when** the
+    specialist sets the business-day rule for `OBL-02`, **then** the form shows that the rule depends on
+    that open question. The row has no preselected rule beyond the proposed safe value "not confirmed"
+    (criterion 12), and the code has no built-in default for it. The note does not block approval. In
+    the demo the specialist sets "no roll" (answer key §5). The matching mark at G3 is US-010
+    criterion 12. (Decision log DL-20, SAD CR-027, SD AC-032.)
 
 ## 4. Scope Notes
 
 - **In Scope for MVP**: one specialist; one decision per row.
+- **Demo set**: the six answer-key rows form no group (different paragraphs, recipients and offsets;
+  none cites `SRC-PRACT`), so criterion 15 does not apply to the demo path in criterion 8.
+- **Open-question note (G1)**: now criterion 17; the mark at G3 is US-010 criterion 12.
 - **Deferred**: four-eyes review (a second specialist confirms), pending decision on timing.
 
 ## 5. Traceability
 
 - **PRD Anchors**: F3 · §2 step 4 · UN-S4, UN-S7 · AB-1, AB-4
-- **System description**: FR-005, FR-023 · MD-004 · MN-003, MN-006 · AC-006 · NFR-010
+- **System description**: FR-005, FR-023, FR-029 · MD-004 · MN-003, MN-004, MN-006 · AC-006, AC-028, AC-032 · NFR-010
+- **Decision log**: DL-16 (criteria 14–16), DL-20 (criterion 17)
 - **Answer key**: §5 (business-day rules)
 - **Related SFS**: none yet
 
@@ -86,3 +111,9 @@ rule, so that only rules I trust enter the obligation library.
   reopened); criterion 10 links the GP review notice; operator decision
 - 2026-11-07 · persona `product-mgr` · action `update` · criteria 12 and 13 (no bulk or preselected
   decisions; silence leaves rows pending; PRD §6), operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criteria 14–16: possible-duplicate
+  groups at G1 and one confirmation with a reason at G1 completion (FR-029, DL-16); operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · scope note: the G1 form shows that
+  `OBL-02`'s rule depends on the open AED tax question (PRD OQ-7); no criterion changed
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · the G1 note is now criterion 17 and is
+  traced to SD AC-032; operator decision

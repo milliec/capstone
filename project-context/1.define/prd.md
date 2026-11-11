@@ -240,6 +240,8 @@ trust enter the library.*
 | A row with a remaining flag cannot be approved without a written reason. With a reason, it is approved and the reason is logged. | SD AC-006 |
 | Editing an approved row returns it to pending and marks its calendar entries out of date. | SD AC-005, FR-007 |
 | A rejected row can be reopened with a reason, before or after publication. It returns to pending and goes through G1 and G2 again. | SD FR-023, AC-022 |
+| At G1 the specialist can add a missed row by hand, using the edit form on an empty row. No model is involved. The row needs a source paragraph and a verbatim quote, passes the code quote check, is labelled as manual, gets its own G1 decision, and is audited. | SD FR-027, AC-027 |
+| After a source document is released to manual entry (it failed its re-runs), the specialist adds that document's rows by hand in the same way: a source paragraph and verbatim quote, the code quote check, labelled as manual, audited. | SD FR-027, NFR-004, AC-031 |
 
 #### F4. Applicability verdicts
 **Why:** UN-S5 · MRD §1 (each framework means interpreting obligations again), MRD §3
@@ -569,8 +571,11 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   logic, and a cut line is agreed with the operator before Build (§8 risks).*
 - **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
   *Before first publication only. After publication, see SD FR-025 (SD OQ-7 resolved).*
-- **OQ-7**: Business-day rules for `OBL-04` and `OBL-05`, and whether the AED subscription tax follows
-  the "tax does not roll" rule. (SD OQ-2, OQ-4; KEY OQ-D1, OQ-D3)
+- **OQ-7**: *Part resolved.* Business-day rules for `OBL-04` and `OBL-05`: *resolved* (operator
+  decision, 2026-11-11, decision log DL-19). A rule the sources do not state stays "not confirmed"
+  until the specialist sets one at G1; code never infers one. Both rows stay "not confirmed" in the
+  demo (SD OQ-2, KEY OQ-D1). **Still open:** whether the AED subscription tax follows the "tax does not
+  roll" rule (SD OQ-4, KEY OQ-D3; DL-20).
 - **OQ-8**: **Frontend framework, for the SAD.** The operator intends to use Next.js. This is a stated
   intent, **not a requirement**: A-4 still says only "web" and leaves the framework to the SAD.
   `@system.arch` to confirm or propose otherwise. *(Approval map OD-12, conflict K-4.)*
@@ -656,3 +661,6 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   manual-effort baseline row and OQ-12; operator decisions
 - 2026-11-09 · persona `product-mgr` · action `update` · §8 risk row and OQ-5: the 40–50 hour budget
   replaced by the six-week timebox (decision log DL-08, revised); operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-19) · OQ-7 part resolved: business-day rules for `OBL-04` and `OBL-05` are never guessed; the AED subscription-tax part stays open (DL-20); operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-18) · F3: one criterion for manual entry of rows after a source document is released (source quote, code quote check, labelled manual, audited); closes US-016 OQ-US016-2; operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` · F3 corrected: separate criteria for a missed row at G1 (FR-027, AC-027) and for a released document (FR-027, NFR-004, AC-031); replaces the earlier released-document-only line; operator decision

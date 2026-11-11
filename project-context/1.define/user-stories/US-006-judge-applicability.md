@@ -25,7 +25,8 @@ its reasoning, so that I confirm decisions instead of making each one from scrat
    not CNMV registration).
 6. **Given** a rejected row, **then** it gets no verdict.
 7. **Given** applicability output with a missing verdict or fact ID, **then** the run stops, nothing
-   goes to G2, and the failure is recorded.
+   goes to G2, and the failure is recorded. Verdicts for the other rows are kept, and only the failed
+   row is re-run (US-015 criteria 9–12).
 
 ## 4. Scope Notes
 
@@ -55,3 +56,5 @@ its reasoning, so that I confirm decisions instead of making each one from scrat
 ## Audit
 
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criterion 7 clarified: a failed row
+  keeps the other verdicts and is re-run alone (US-015, NFR-004); no behaviour removed

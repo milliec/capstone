@@ -43,6 +43,7 @@ architecture step (`@system.arch`) in a later sprint.
 |---|---|
 | **Source paragraph** | One numbered paragraph of regulatory text, with a stable ID (e.g. `SRC-UCILAW-P3`). |
 | **Obligation row** | One obligation in a fixed schema: what, recipient, who files, frequency, anchor, offset, applicability rule, business-day rule, source paragraph ID, verbatim quote. |
+| **Human-created row** | An obligation row the specialist adds by hand at G1 because extraction missed it (FR-027). It is marked as human-created for good, and takes the same checks and its own G1 decision as any row. |
 | **Obligation library** | All approved obligation rows for one regulatory framework. |
 | **Applicability verdict** | For one fund and one row: **applies**, **does not apply** or **unsure**, with reasoning that cites fund facts. |
 | **Anchor** | The reference date a deadline is calculated from: month-end, quarter-end, financial year-end, a fixed date, or an event's awareness date. |
@@ -165,6 +166,9 @@ error this system can make. Naming the principle stops the same choice being mad
 | FR-024 | Reopen a confirmed verdict: the specialist can reopen a confirmed or overridden G2 verdict, before or after publication, to correct a judgement while the rule and the relevant fund facts are unchanged. A reason is required. The original decision and the agent's reasoning stay in the audit log. The rule keeps its G1 approval, and the applicability agent is not re-run. The verdict returns to pending G2, its calendar entries are marked out of date, and publishing a new version is refused until G2 is complete and the dates are regenerated. GPs keep seeing the last published version. The specialist must finish with "applies" or "does not apply", and an override still needs a reason. If the rule has changed, the edit path applies instead (MD-005). Fund facts are static in the MVP, so reassessment after a fact change is not defined (OQ-9). *New scope decision (operator, 2026-11-07).* | Must | MD-004, MD-009, FR-022, P-1 |
 | FR-025 | Published-calendar review notice: when a change calls the currently published calendar's accuracy or completeness into question, the GP view shows a neutral, calendar-level review notice. Triggers: an edit to an approved row the published version used (MD-005); reopening a verdict the published version used, including a "does not apply" decision that excluded an obligation (FR-024); reopening a rejected row for the published calendar's fund and regulatory scope (FR-023); and, only if the stretch is built, an impact flag on a published item (MD-011). Unrelated draft work does not trigger it. The last published entries stay visible with their publication date. No draft content, flag detail or specialist reasoning is shown. The notice clears only when a replacement calendar is successfully published; a declined (FR-022) or failed publication does not clear it. Exact wording is set at the UX step. *Limit: the notice warns of uncertainty; it does not by itself prevent reliance on an incorrect date.* *New scope decision (operator, 2026-11-07).* | Must | MN-007, FR-015, P-1 |
 | FR-026 | **Stretch:** impact-report acceptance. Whenever change monitoring is built, every impact report needs specialist acceptance or a documented manual review, including reports with flags and "no impact" reports. This is a separate review step, not a replacement for G1 to G3. Acceptance confirms the assessment only. It does not approve or apply any regulatory change, clear flags, restore invalidated approvals or clear the GP review notice, and flagged items still need their own G1 or G2 review. Instead of accepting, the specialist can send the amendment for manual review with a logged reason. It stays open until the specialist explicitly completes it with a completion note that records the conclusion and references any resulting corrections, or explains why none were needed. Corrections use existing paths (MD-005, FR-023, FR-024). Neither sending for nor completing a manual review clears flags, restores approvals or bypasses G1 to G3, and sending for manual review does not resolve the amendment. The specialist sees a visible queue of amendments not yet accepted or completed. Acceptance, sending for manual review and completing a manual review each record the actor, the time, the exact report version and the exact source amendment version decided on, plus the required reason (sending) or completion note (completing); identifier design is for the SAD (approval map OD-11). A decision covers only the report and amendment versions it names: if either is revised, the earlier decision does not carry over, the amendment returns to unreviewed and needs a fresh acceptance or manual review, and the earlier decision stays in the audit log. If either is revised while a manual review is still open, that review is marked superseded and keeps its notes and version references; the amendment stays unresolved in the specialist's queue, linked to the new report and amendment versions; the specialist can consult the earlier notes, but must make an explicit completion decision for the current versions, and completion against a superseded version is refused. Once an amendment has been referred for manual review, accepting a revised report does not close it: the new report is evidence for the review, and the amendment closes only when the specialist completes the manual review with a completion note against the current versions. Superseding a review does not clear impact flags or the GP review notice, restore approvals or bypass G1 to G3. The GP review notice stays tied to concrete impact flags (FR-025). *Limit: an unaccepted amendment may contain an undiscovered impact, so the absence of a notice does not mean the calendar has been checked against it. Human sign-off reduces the risk of a silent miss; it does not guarantee completeness.* *Operator decision, 2026-11-07.* | Could | MD-011, FR-025, P-1 |
+| FR-027 | Create a missed row by hand: at G1 the specialist can open the edit form on an empty row and enter a paragraph ID, a quote and the other fields. No model is involved and there is no "re-extract" action. The row is stored as human-created, with the creator's identity; the marking cannot be changed. The quote check cannot be skipped: a row with no paragraph ID, or a quote not found word for word in the cited paragraph, cannot be approved (MN-006). The conflict checks run on it (FR-004) and it needs its own G1 decision (FR-005, AC-026). The evaluation report counts human-created rows on a separate line, so they neither inflate nor hide the extractor's result (FR-018). *New scope decision (operator, DL-15, 2026-11-11).* | Must | MD-005, MD-009, MN-006, P-1 |
+| FR-028 | Coverage view at G1: G1 lists every loaded source paragraph that no non-rejected row cites, each with its text. It is a set difference between the loaded paragraph IDs and the IDs that non-rejected rows cite (human-created rows count, FR-027; a paragraph whose only row was rejected is listed again, so the specialist sees it, and it leaves the list if the row is reopened under FR-023). It does not use the answer key at run time and makes no claim about which uncited paragraphs contain an obligation; it only makes a possible gap visible, because a missed row is the costliest error (P-1). It does not block G1. A real gap is fixed by creating a row (FR-027). *Raised with the SAD (W-03b); operator context DL-15, 2026-11-11.* | Must | MD-001, MD-004, P-1 |
+| FR-029 | Possible-duplicate groups at G1: code (never a model) groups rows that may describe one obligation, across documents or between a primary source and a secondary summary, and G1 shows each group with a plain warning and every row's quote and source. Grouping does not block any single row; each row keeps its own explicit decision (AC-026). If a group still has two or more approved rows when the specialist completes G1, completion needs one confirmation with a written reason, logged with the rows' IDs and versions. If groups cannot be computed, G1 does not open. Grouping rules: SAD W-03a. *Operator decision (DL-16, 2026-11-11).* | Must | MD-004, MN-004, P-1 |
 
 ## 5. Non-Functional Requirements
 
@@ -173,13 +177,13 @@ error this system can make. Naming the principle stops the same choice being mad
 | NFR-001 | Determinism | Due-date code gives identical output for identical approved inputs. No model calls in date calculation. | MP-007, MN-005 |
 | NFR-002 | Traceability | Every row, verdict and calendar entry links to its source paragraph and the approvals behind it. | MP-005 |
 | NFR-003 | Auditability | The audit log can be added to but not edited or deleted. | MP-008 |
-| NFR-004 | Safety on failure | If an agent fails or returns invalid output, nothing moves forward and the failure is logged. A partial calendar is never published. | MN-003 |
+| NFR-004 | Safety on failure | If an agent fails or returns invalid output, nothing moves forward and the failure is logged. A partial calendar is never published. Work is done per unit (a source document at extraction, a row at verification and applicability). A failed unit does not discard the valid output of other units; it is marked re-runnable, and the gate after its step stays closed until every unit has valid output. A re-run replaces only that unit's output and leaves finished units and recorded gate decisions untouched. The specialist can re-run a unit up to 3 times for the same input, then it is marked "needs attention". A source document in that state can be released to manual entry by the specialist, with a written reason, one document at a time: it then no longer holds G1 closed, every other unit must still be valid, the release is audited, and the evaluation report counts it as an extraction failure. A row unit (verification, applicability) has no release. *Operator decision (DL-18, 2026-11-11).* | MN-003 |
 | NFR-005 | Explainability | Verdict reasoning and GP "why" text are readable by a non-lawyer. | MD-008 |
 | NFR-006 | Performance | See MC-001. | MC-001 |
 | NFR-007 | Cost | See MC-002. | MC-002 |
 | NFR-008 | Usability | See MC-003. | MC-003 |
 | NFR-009 | Security and privacy | No secrets or real data in the repository. API keys come from local environment settings that git ignores. | MN-001 |
-| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, reject, override, reopen (FR-023, FR-024), publish or decline (FR-022), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
+| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, create a row by hand (FR-027), reject, override, reopen (FR-023, FR-024), publish or decline (FR-022), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
 | NFR-011 | Testability | Tests for gates, due-date calculation and the audit log run without calling a language model. Only agent evaluations need the live model. | MP-006, MP-007, MP-008 |
 | NFR-012 | Extensibility (architecture quality goal) | The MVP is built as the **first validated configuration of a shared product**, not a bespoke implementation (§10). The SAD (a) names the shared capabilities, the configuration and the defined extension points; (b) walks through scenarios S-1 and S-2 (§10.4) separately and shows, for each, what would be configuration, what would need an extension point and what would stay unchanged, with no client-specific copy of a shared capability; and (c) shows how the extension rules EX-1 to EX-6 (§10.3) would be checked. The MVP builds only the Luxembourg UCI Part II configuration. No extension, extra configuration or configuration screen is in the MVP. *Operator decision, 2026-11-08.* | §10, MP-001 to MP-008 |
 
@@ -285,6 +289,44 @@ outcome; the linked story criteria hold the detail.*
   be shown as proposed values. G3 remains one explicit decision for the whole calendar, never
   preselected and never triggered by a timeout or by closing the screen. *Detail: US-004 criteria
   12–13, US-007 criteria 10–11, US-010 criterion 10; stretch: US-014 criterion 15.*
+- **AC-027** (FR-027, MN-006): Given the G1 screen and an empty row, when the specialist enters a quote
+  that does not appear word for word in the cited paragraph, or no paragraph ID, then the row cannot be
+  approved. With a valid paragraph ID and a passing quote, the row is saved as human-created, the
+  conflict checks run, it needs its own G1 decision, and its audit entry shows the origin "human". No
+  model is called to create it. The evaluation report lists human-created rows on a separate line.
+  *Detail: US-016, US-013 criterion 8.*
+- **AC-028** (FR-029, MD-004): Given two rows that cite the same source paragraph, when G1 opens, then
+  they are shown as one "possible duplicates" group with a warning, and each still needs its own
+  decision. When both are approved and the specialist completes G1 without a reason, completion is
+  refused; with a reason, G1 completes and the audit log records the reason and both rows' IDs and
+  versions. A group with one or no approved rows needs no confirmation. *Detail: US-004 criteria
+  14–16.*
+- **AC-029** (FR-028, MD-001): Given the 13 mock source paragraphs and the 6 extracted rows, when G1
+  opens, then the coverage view lists the 7 paragraphs that no non-rejected row cites, with their text,
+  and none of the 6 that rows cite. When the specialist creates a row citing one of the 7, it leaves the list. If
+  the only row citing a paragraph is rejected, the paragraph appears in the list again. The
+  view does not use the answer key, says nothing about which paragraphs hold obligations, and does not
+  block G1. *Detail: US-001 criteria 8–10.*
+- **AC-030** (NFR-004, MN-003): Given applicability output that is invalid for `OBL-04` only, when the
+  step finishes, then the other five verdicts are kept, G2 does not open, and run status names
+  `OBL-04` as failed. When only `OBL-04` is re-run and succeeds, G2 opens with six verdicts and no
+  duplicates, and earlier gate decisions are unchanged. A unit that fails 3 re-runs for the same input
+  is marked "needs attention". *Detail: US-015 criteria 9–13, US-001 criterion 7, US-006 criterion 7.*
+- **AC-031** (NFR-004, DL-18): Given one source document whose extraction has failed 3 re-runs, when
+  the specialist tries to release it without a reason, or before the limit, then the release is
+  refused. With a reason, while another unit is still invalid, G1 stays closed. Once every other unit
+  is valid, G1 opens; the released document's paragraphs appear in the coverage view; the audit log
+  records the release; and the evaluation report counts one extraction failure. A verification or
+  applicability unit at the limit offers no release. *Detail: US-015 criteria 14–15, US-016
+  criterion 11, US-013 criterion 9.*
+- **AC-032** (PRD OQ-7, DL-20): Given the AED subscription-tax question is open (SD OQ-4), when the
+  demo calendar is generated, then at G1 the form for `OBL-02`'s business-day rule shows that the rule
+  depends on that question, and at G3 all four `OBL-02` entries carry a mark saying so, shown with the
+  other safe-default marks. No other entry carries it. The mark does not block publishing, the GP view
+  shows no such mark, and the four dates (20 January, 20 April, 20 July, 20 October 2027) are the same
+  under "no roll" and "roll forward". The date code has no built-in rule for `OBL-02`: a row whose
+  rule is unset stays "not confirmed". *Traces to SAD CR-027, tests T-W13-1 and T-W13-2. Detail:
+  US-004 criterion 17, US-010 criterion 12, US-011 assumptions.*
 
 *Stretch goal (FR-021, FR-026). Not part of the Week 6 definition of done.*
 
@@ -491,11 +533,16 @@ investors in Singapore.
 - **OQ-1**: Should the GP view show a neutral note such as "1 possible obligation is under review by
   compliance"? **Decide before the UX step (`@ux.designer`).** Until then, nothing under review is
   shown. *Before first publication only. After publication, see FR-025.*
-- **OQ-2**: Business-day rules for Luxembourg Business Registers (`OBL-05`) and CNMV (`OBL-04`) filings.
-  See answer key `OQ-D1`.
+- **OQ-2**: *Resolved* (operator decision, 2026-11-11, decision log DL-19). Business-day rules for
+  Luxembourg Business Registers (`OBL-05`) and CNMV (`OBL-04`) filings: a rule the sources do not state
+  stays "not confirmed" until the specialist sets one at G1. Code never infers or defaults one, so both
+  rows stay "not confirmed" in the demo and their weekend dates keep the earlier day and are marked
+  (`D-6`). See answer key `OQ-D1`. *The AED subscription-tax question is separate and stays open (OQ-4).*
 - **OQ-3**: *Resolved.* MC-001 to MC-003 confirmed by the operator.
-- **OQ-4**: Does the AED subscription tax follow the "tax deadlines do not roll" rule? See answer key
-  `OQ-D3`.
+- **OQ-4**: **Open** (kept open by the operator, decision log DL-20). Does the AED subscription tax
+  follow the "tax deadlines do not roll" rule? See answer key `OQ-D3`. The code assumes no answer: every
+  `OBL-02` entry is marked as depending on this question at G1 and G3 (US-004 note, US-010 criterion 12),
+  and the dates are the same either way.
 - **OQ-5**: The operator wants **four-eyes review** (a second, different specialist confirms before
   publish). **Timing is undecided:** MVP or a later version. Until decided, the MVP happy path has one
   specialist, and every approval records who made it (MD-009) so a second approver can be added.
@@ -614,3 +661,20 @@ investors in Singapore.
   conflict checks (FR-004 unchanged). Decides approval map OD-8; see SAD W-04 and QN-1. No requirement
   added or removed. Same day, `@system.arch` added the QN-1 reference to the vocabulary entry and this
   audit line, at the operator's instruction
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · new FR-027 (create a missed row by
+  hand; DL-15) with AC-027 and a vocabulary entry; NFR-010 lists row creation as a specialist-only
+  action; story US-016. Operator decision; no other requirement changed
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · new FR-029 and AC-028 (possible
+  duplicate groups; one confirmation with a reason at G1 completion; DL-16); US-004 criteria 14–16.
+  Operator decision; no other requirement changed
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · new FR-028 and AC-029 (G1 coverage
+  view of uncited paragraphs; SAD W-03b); US-001 criteria 8–9. Demo set: 7 uncited paragraphs (the SAD
+  says 5; raised for `@system.arch`). No other requirement changed
+- 2026-11-11 · persona `product-mgr` · action `update` · FR-028 and AC-029: only non-rejected rows count
+  as citing a paragraph, so a paragraph whose only row was rejected reappears in the coverage view;
+  operator decision. AC-001 and AC-002 checked and unaffected (they test extraction output)
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · NFR-004 amended with the per-unit failure rule (valid units kept, failed unit re-runnable, gate closed until all valid, 3 manual re-runs); new AC-030; US-015 criteria 9–13. Operator-approved SAD decisions (SOQ-2, CR-010); no other requirement changed
+- 2026-11-11 · persona `product-mgr` · action `update` · wording only: FR-028 and AC-029 now say "no non-rejected row cites" from their first line, matching SAD W-03b; no requirement changed
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-18, DL-19) · NFR-004 extended with the release of a failed source document to manual entry; new AC-031; OQ-2 resolved (business-day rules never guessed). OQ-4 (AED subscription tax) stays open. Operator decisions; no other requirement changed
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · OQ-4 kept open and pointed at the G1 note and G3 mark (US-004, US-010 criterion 12); no requirement changed
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · new AC-032 (OBL-02 open-question mark at G1 and G3; SAD CR-027, T-W13-1, T-W13-2); AC-031 detail points to US-013 criterion 9. Operator decision; no requirement changed

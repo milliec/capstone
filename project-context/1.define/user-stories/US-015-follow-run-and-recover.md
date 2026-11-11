@@ -27,17 +27,50 @@ have already made.
 6. **Then** a re-run step replaces its own failed output. It does not add duplicate rows or verdicts.
 7. **Then** every failure and every re-run is recorded in the audit log with who, when and which step.
 8. **Then** the messages follow the voice rule in PRD §6: they state facts without reassurance or alarm.
+9. **Given** a step made of one call per unit (extraction: one per source document; verification and
+   applicability: one per row), **when** one unit fails or returns invalid output, **then** the valid
+   output of every other unit is kept, the failed unit is marked **re-runnable**, and run status shows
+   in plain words which units are valid and which failed, and why.
+10. **Then** the gate after that step does not open until every unit has valid output. This is what
+    "nothing is passed to review" means in US-001 criterion 7 and US-006 criterion 7. The one exception
+    is a source document released to manual entry (criterion 14).
+11. **When** the specialist re-runs a failed unit, **then** only that unit runs again. Its new output
+    replaces its own earlier output for the same input, valid units and recorded gate decisions stay as
+    they were, no duplicate rows or verdicts appear, and the audit log names the unit.
+12. **Example:** applicability output for `OBL-04` is invalid. The other five verdicts are kept and G2
+    does not open. The specialist re-runs `OBL-04` only, and G2 then opens with all six verdicts.
+13. **Given** a unit that has been re-run 3 times for the same input without valid output, **then** it
+    is marked **needs attention**, the specialist is told this is likely a systematic failure and not a
+    one-off, and no further re-run is offered for that input. The specialist can start a new run. For a
+    source document, criterion 14 also applies. (SAD CR-010; an input changes when a row or document
+    changes.)
+14. **Given** a source document whose extraction is **needs attention**, **when** the specialist
+    releases it to manual entry with a written reason, **then** that one document stops holding G1
+    closed. Release is refused without a reason, refused before the document has reached the re-run
+    limit, and applies to one document at a time. Every other unit must still be valid before G1 opens.
+    The release is recorded in the audit log with who, when, the document and the reason.
+15. **Given** a released document, **when** G1 opens, **then** its paragraphs appear in the coverage view
+    (US-001 criterion 8) because no row cites them, and the specialist adds any missing rows by hand
+    (US-016). The evaluation report counts the release as one **extraction failure** (SD AC-031).
+    A row unit (verification or applicability) that reaches "needs attention" has no release: a new run
+    is the only way through (OQ-US015-3).
 
 ## 4. Scope Notes
 
-- **In Scope for MVP**: one run at a time; re-running only the step that failed.
-- **Deferred**: automatic retries; resuming a run after the application restarts, unless the SAD shows
-  it comes free with the chosen storage.
+- **In Scope for MVP**: one run at a time; re-running only the unit that failed (a document or a row),
+  by the specialist, up to 3 times per unit and input; releasing one failed source document to manual
+  entry after that limit (decision log DL-18).
+- **Not included**: releasing a verification or applicability unit, releasing several documents at
+  once, or releasing before the re-run limit. A release is never a shortcut.
+- **Deferred**: automatic re-runs of a failed step or unit; resuming a run after the application
+  restarts, unless the SAD shows it comes free with the chosen storage. (The SAD allows one automatic
+  retry of a single failed call; the specialist sees only the outcome.)
 
 ## 5. Traceability
 
 - **PRD Anchors**: §6 (run status, failures, voice) · OQ-5
-- **System description**: NFR-004 · MC-001 · MD-009
+- **System description**: NFR-004 · MC-001 · MD-009 · AC-030, AC-031
+- **Decision log**: DL-18 (criteria 14–15)
 - **Related SFS**: none yet
 
 ## Sources
@@ -54,11 +87,24 @@ have already made.
 
 ## Open Questions
 
-- **OQ-US015-1**: How many times can a step be re-run before the specialist must start a new run?
-  (Approval map OD-7, retry limits.) For the SAD.
+- **OQ-US015-1**: *Resolved by the SAD (SOQ-2, CR-010).* 3 manual re-runs per unit per input; then
+  "needs attention" (criterion 13). *(Approval map OD-7.)*
+- **OQ-US015-2**: *Resolved* (operator decision, 2026-11-11, decision log DL-18, SAD SOQ-9). A source
+  document that reaches "needs attention" can be released to manual entry with a written reason, one
+  document at a time and only after the re-run limit. Then G1 opens and the specialist adds missing
+  rows by hand (US-016). See criteria 14–15.
+- **OQ-US015-3**: A verification or applicability unit (a row) that reaches "needs attention" holds G1
+  or G2 closed with no release; a new run is the only way through. Is that acceptable? (SAD SOQ-10, for
+  the operator; nothing is decided here.)
 
 ## Audit
 
 - 2026-11-09 · persona `product-mgr` · action `create-stories` · new story for PRD §6 run status and
   failure recovery (UX review, operator decision); re-running is new scope, estimated under OQ-5;
   decision log DL-02
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criteria 9–13 and scope notes: failure
+  and re-run are per unit (SAD partial-failure rule, CR-003, CR-010); OQ-US015-1 resolved; new
+  OQ-US015-2 (extraction dead end); NFR-004 amended, AC-030; operator-approved SAD decisions
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-18, SAD SOQ-9) · OQ-US015-2 resolved:
+  release of a failed source document to manual entry (criteria 14–15, criterion 10 exception, scope
+  notes); new OQ-US015-3 for verifier and judge units (SAD SOQ-10); NFR-004 and AC-031 in the SD
