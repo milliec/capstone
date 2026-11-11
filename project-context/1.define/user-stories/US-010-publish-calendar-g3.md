@@ -44,6 +44,12 @@ so that GPs never see unfinished work.
     shows no such mark (US-011 assumptions). The four dates (20 January, 20 April, 20 July and
     20 October 2027) are the same whether the rule is "no roll" or "roll forward", so the 22 entries
     and their dates do not change. (Decision log DL-20, SAD CR-027, test T-W13-1, SD AC-032.)
+13. **Given** the calendar has changed since the specialist's screen loaded (for example it was
+    regenerated, or an entry was marked out of date), **when** they submit a publish or decline made on
+    the old version, **then** it is refused and not recorded, and a plain message says the calendar
+    changed and shows its current version. **Given** the same publish is submitted twice (for example a
+    double click), **then** one version is published and the second request is refused with the same
+    message. The message follows the voice rule in PRD §6. (SAD CR-009.)
 
 ## 4. Scope Notes
 
@@ -60,6 +66,7 @@ so that GPs never see unfinished work.
 - **PRD Anchors**: F7 · §2 step 8 · UN-S4, UN-G4 · AB-5
 - **System description**: FR-014, FR-022 · MD-004 · MN-003, MN-007 · AC-013, AC-032 · MP-006 · A-6
 - **Decision log**: DL-20 (criterion 12)
+- **SAD controls**: CR-009 (criterion 13)
 - **Related SFS**: none yet
 
 ## Sources
@@ -107,3 +114,6 @@ so that GPs never see unfinished work.
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · criterion 12 and a scope note: `OBL-02`
   entries carry a mark that their rule depends on the open AED tax question (PRD OQ-7); it does not
   block publishing and is specialist-only; operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009) · criterion 13: a publish or decline
+  made on an out-of-date calendar screen, or a publish submitted twice, is refused with a plain message
+  showing the current version

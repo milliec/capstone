@@ -42,6 +42,13 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
 11. **Given** undecided verdicts, **when** the specialist closes the screen, the session times out, or
     nothing is done, **then** those verdicts stay **pending** and G2 is not complete. Verdicts already
     decided keep their recorded decisions.
+12. **Given** a verdict has changed since the specialist's screen loaded (for example it was
+    regenerated, or its row was edited and re-approved), **when** they submit a confirm, override or
+    reopen decision made on the old version, **then** the decision is refused and not recorded, and a
+    plain message says the item changed and shows its current version. **Given** the same decision is
+    submitted twice (for example a double click), **then** one decision is recorded and the second
+    request is refused with the same message. The message follows the voice rule in PRD §6.
+    (SAD CR-009.)
 
 ## 4. Scope Notes
 
@@ -52,6 +59,7 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
 
 - **PRD Anchors**: F5 · §2 step 6 · UN-S4, UN-S5, UN-S7 · AB-4
 - **System description**: FR-010, FR-024 · MD-004 · MD-009 · AC-008
+- **SAD controls**: CR-009 (criterion 12)
 - **Related SFS**: none yet
 
 ## Sources
@@ -84,3 +92,5 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
 - 2026-11-07 · persona `product-mgr` · action `update` · criteria 10 and 11 (no bulk or preselected
   decisions; silence leaves verdicts pending; PRD §6), operator decision
 - 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 1: cited fund facts can be opened, read-only (PRD F5); decision log DL-04
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009) · criterion 12: a decision made on an
+  out-of-date screen, or submitted twice, is refused with a plain message showing the current version

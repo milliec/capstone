@@ -148,6 +148,32 @@ output with the same label replaces the old one instead of piling up. That is al
 ("three goes, then stop") was decided together with the key: without the key, a limit only caps how
 many duplicates you get.
 
+**A library's helpful defaults can quietly undo a design decision.** CrewAI can automatically re-ask
+the model when its answer fails a check, and its house rules suggest at least two automatic retries.
+Both sound safe. But the design had already decided that a bad answer is shown to the specialist
+rather than retried, because silent retries hide systematic failures and spend budget. Following the
+default would have rebuilt the "let the model fix itself" loop the design rejected. The fix was to
+switch those defaults off and write down why, so the next person doesn't helpfully switch them back.
+
+**The six CrewAI adapter deviations, and what each one protects** (SAD §2, decision log DL-21). The
+project's CrewAI rule file gives sensible defaults for crews that *write documents*. This system's
+crews return *data* that people check, so six rules needed a different answer:
+
+| # | The rule said | We did instead | Because otherwise… |
+|---|---|---|---|
+| D1 | Retry a failed agent at least twice | Retry once, and only for network-type errors | …repeated failures would be hidden from the specialist and quietly cost money |
+| D2 | Pass each task's output into the next task's prompt | Build every prompt from stored data | …the verifier would read the extractor's work and tend to agree with it, which is the very bias a separate checker exists to avoid |
+| D3 | Describe the expected output as headings and a file path | Describe it as a typed data schema | …the rule fits documents, not data a program validates |
+| D4 | Write each task's output to a file | Store it in the database; export traces after every evaluation run | …a file would be a second copy outside the rules that stop duplicates and edits. The export is required, and a test fails the run if it's missing, so the evidence trail isn't lost |
+| D5 | (library default) Re-ask the model when its answer fails a check | Never re-ask; show the failure | …that is the "let the model fix itself" loop the design rejected. The cost is a lower first-try success rate, so the week-1 spike measures it |
+| D6 | Put a human review step inside the task | The three gates in the backend are the review | …gate status would live inside the workflow engine, a second place that has to agree with the backend |
+
+**How they were recorded matters too.** I first wrote the deviations straight into the architecture
+document, then said there were two when there were really five plus one interpretation. The operator
+stopped it: nothing gets recorded until each one is reviewed, with the rule quoted word for word, its
+line number, the decisions it clashes with, the justification and the risk. Checking line by line is
+what found the other four. A deviation is a decision, so it needs the same review as any other.
+
 ## 3. Testing and evaluation
 
 **An answer key is how you prove the agents work.** QA runs the agents on the mock sources and compares
@@ -273,4 +299,8 @@ question to answer.
 - 2026-11-11 · added three notes from the architect's work-ownership, pattern and controls sessions
   (decide owners before shape; three named agents are still a workflow; retry needs an idempotency
   key)
+- 2026-11-11 · added one note from `*create-sad` pass (a) (library defaults can undo a design
+  decision)
+- 2026-11-11 · added the six CrewAI adapter deviations (D1–D6) with what each protects, and how
+  they came to be reviewed before recording
 - 2026-11-11 · added one note from the Define follow-up session (recount any number a document hands you before writing it into a test)
