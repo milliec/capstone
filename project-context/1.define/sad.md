@@ -5,8 +5,8 @@
 mock data, mocked roles.
 **Status**: **In progress.** The five decision headings are filled: Work Ownership, Pattern Decision,
 Reference Architecture, Model and Context Strategy, Control Register (plus Production Shape).
-`*create-sad` pass (a) filled sections 1–4. Sections 5–8 and 10, the extensibility walkthroughs
-(pass b) and the six-week estimate with a cut line (pass c) are still to come; section 9's criteria
+`*create-sad` pass (a) filled sections 1–4 and pass (b) sections 5–8, 10 and the extensibility
+walkthroughs. The six-week estimate with a cut line (pass c) is still to come; section 9's criteria
 table is `*define-eval-criteria`. A heading marked *pending* has not been decided and must not be
 read as a decision.
 
@@ -658,15 +658,23 @@ completion. This also absorbs double submits.
 **Data architecture.** Persistence is required (PRD §3), so this section is not deferred. One SQLite
 file; the main tables:
 
+**Every business table carries `fund_id`**, even though the MVP has one fund (`FND-DEMO-01`): runs,
+units, rows and row versions, flags and quote checks, duplicate groups and coverage, verdicts and
+verdict versions, calendar versions and entries, publications, releases, and the audit log and
+trace. Foreign keys include it, so a row cannot point at another fund's run and an entry cannot
+belong to another fund's calendar. Adding a second fund (S-1) is then data and a fund selector, not
+a schema migration. The `fund_id` is set by the backend from the run, never taken from a request
+body on a decision endpoint.
+
 | Table | Holds | Write rule |
 |---|---|---|
-| `runs`, `units` | Run and per-unit status, attempt counts, release records | Updated by the backend |
+| `runs`, `units` | Run (with `fund_id`) and per-unit status, attempt counts, release records | Updated by the backend |
 | `paragraphs` | Loaded source paragraphs with IDs and a content hash | Loaded from mock files per run |
-| `rows`, `row_versions` | Current row and every version of it (fields, quote, origin, status) | `row_versions` append-only |
+| `rows`, `row_versions` | Current row and every version of it (`fund_id`, fields, quote, origin, status) | `row_versions` append-only |
 | `flags`, `quote_checks` | Verification results per row version | Append per row version |
 | `duplicate_groups`, `coverage` | W-03a groups and W-03b list per run | Recomputed by code; computations logged |
-| `verdicts`, `verdict_versions` | Current verdict and every version | `verdict_versions` append-only |
-| `calendar_versions`, `calendar_entries` | Each generated calendar version and its entries | Append-only per version (CR-011) |
+| `verdicts`, `verdict_versions` | Current verdict and every version (`fund_id`, row ID and row version judged) | `verdict_versions` append-only |
+| `calendar_versions`, `calendar_entries` | Each generated calendar version and its entries (`fund_id` on both) | Append-only per version (CR-011) |
 | `publications` | The published calendar version per fund, and the review-notice state | One atomic pointer switch per publish |
 | `current_outputs` | One model output per idempotency key | Replaced on re-run (CR-010) |
 | `trace` | Every model call attempt | **Append-only** (CR-013, CR-018) |
@@ -716,20 +724,170 @@ request. This is a demo mechanism, not access control (AM §3).
 
 ### 5. DevOps & Deployment Architecture
 
-*Pending: filled by `*create-sad`.* Local demo; no hosting target (PRD §3 Infrastructure).
+**Hosting**: **local only** (PRD §3 Infrastructure, §5 Availability N/A). The demo runs on the
+operator's machine: the FastAPI backend and the Next.js frontend as two local processes, started by
+one documented command (for example `make dev`), with the SQLite file under a git-ignored `data/`
+folder. No cloud target, no container registry, no domain. `GET /health` returns 200 once the
+database is reachable and the configuration files have loaded; the start command waits on it.
+
+**CI (minimal, on every pull request, GitHub Actions):**
+
+| Step | What it checks | Never does |
+|---|---|---|
+| Lint and format | Python (ruff), TypeScript (eslint, prettier) | |
+| Type check | Python (mypy or pyright, strict on `backend/`), TypeScript (`tsc --noEmit`, strict) | |
+| Backend tests | Gate, date, audit, access, ID, version and control tests (CR-001 to CR-027 tests, T-W04-*, T-ID-*, T-REL-*, T-W13-*) with the Flows and model steps **stubbed** | Call a language model (SD NFR-011); CI holds no model API key |
+| Contract drift | Regenerates OpenAPI, TypeScript types and fixtures; fails if committed copies differ (§3) | |
+| Frontend build and tests | `next build`; component tests against the generated fixtures | |
+| Prompt and fixture check | No prompt template or run-time fixture references the answer key (CR-016) | |
+
+**Not in CI, and why:**
+
+- **The real-name scan** cannot run in CI: its identifier list lives in the git-ignored
+  `reference/` folder and must never reach GitHub. It runs locally instead, as below.
+- **Evaluation runs** (US-013) need the live model and a key. They run locally, by the operator or
+  `@qa.eng`, on demand and before the demo; each produces a saved report and the required trace
+  export (D4, T-D4-1).
+
+**Release rule for model-facing changes** (because evaluations are not in CI): a pull request that
+changes any **prompt** (`agents.yaml`, `tasks.yaml`), the **model or sampling settings**
+(`LLM_MODEL`, temperature, `max_tokens`), or any **step schema** (Row, Flag, Verdict, guardrails)
+must link the saved report of a local evaluation run made **on that branch's final commit**, and the
+report must meet the swap-as-release criteria (Model and Context Strategy): exact match on MP-001 to
+MP-004, within MC-001 and MC-002. No report, or a stale or failing one, means no merge. A CI step
+helps enforce it: if the PR touches those files, the PR description must contain a report link, or
+the check fails. The reviewer confirms the report's commit matches the PR head.
+
+**Real-name scan as a local git hook** (project `CLAUDE.md`):
+
+- A **pre-commit hook** runs the scan on the staged files, and a **pre-push hook** runs it on the
+  whole tree. The hook script is committed (`scripts/real-name-scan.sh`, installed by
+  `make install-hooks`); it contains no identifiers and reads them from
+  `reference/real-identifiers.txt` at run time.
+- **Fail closed**: a match blocks the commit or push. If the identifier file is missing (for
+  example in a fresh clone without `reference/`), the hook **refuses** the commit or push instead of
+  passing silently.
+- **If it is bypassed** (`git commit --no-verify`, hooks not installed, or a commit made elsewhere):
+  git cannot prevent this, so the rule is procedural. (1) The project rules still require the scan
+  before every commit and push, and the pre-push hook is a second chance. (2) If a match is found
+  in a commit that has **not** been pushed, the commit is rewritten locally before pushing. (3) If
+  a match has **already been pushed**, the repository is public, so treat it as **exposed**: stop
+  pushing, remove it in a new commit at once, and take the history question (rewrite history or
+  make the repository private) to the operator, which is the same open decision as DL-07.
+  `@security.eng` checks that the hooks are installed and that no bypass has left a match in
+  history.
+
+**IaC, multi-region, advanced monitoring**: Future Work (no hosting target exists).
+
+**Observability** (two separate designs, as the template requires):
+
+| Kind | Design | Where |
+|---|---|---|
+| Per request | One trace record per model-call attempt (CR-018) plus audit entries for every decision and refusal, all sharing the run ID; together they reconstruct any row, verdict or entry | `trace`, `audit_log` tables; exported per evaluation run to `project-context/2.build/logs/<run_id>/` |
+| Aggregate | The evaluation report per run: accuracy against the answer key, cost, time, review time, human-created rows, extraction failures, first-pass success | Saved per run ID, never overwritten (US-013 c5) |
+| Process logs | Structured backend logs (start-up, stage start/end, refusals) at INFO; no prompt text or secrets at INFO | Console and a git-ignored log file |
 
 ### 6. Data Flow & Integration Architecture
 
-*Pending: filled by `*create-sad`.*
+**Request and response path for the happy path** (each arrow is an HTTP call from the frontend or a
+backend call; "→ Flow" means the backend starts a stage Flow as a background task):
+
+| # | Actor action | Path | What is stored | What the specialist sees next |
+|---|---|---|---|---|
+| 1 | Start run | UI → `POST /runs` → gate service (CR-023) → **Flow A** | run, units (`pending`) | Run status, polled |
+| 2 | (Flow A) | load paragraphs → `extract_rows` per document (model) → grouping, coverage, quote check (code) → `check_conflicts` per row (model) | `current_outputs`, `trace`, rows v1, flags, groups, coverage; units `valid` / `failed` | Units turning finished or failed; G1 opens when all units are valid or released |
+| 3 | Review at G1 | UI → `GET g1`; decisions → `POST /rows/...` (with versions) | `row_versions`, `audit_log` | Row status, flags, groups, coverage |
+| 4 | Complete G1 | UI → `POST g1/complete` → gate service → **Flow B** | gate event in `audit_log` | Run status for stage B |
+| 5 | (Flow B) | `judge_applicability` per approved row (model) | `current_outputs`, `trace`, verdicts v1 | G2 opens when all units are valid |
+| 6 | Review and complete G2 | UI → verdict decisions → `POST g2/complete` → gate service → **Flow C** | `verdict_versions`, `audit_log` | Stage C status |
+| 7 | (Flow C) | date generation, out-of-date marks (code) | one `calendar_versions` row and its entries, or nothing | G3 |
+| 8 | Publish at G3 | UI → `POST /calendars/{id}/publish` | `publications` pointer switch, `audit_log` | Confirmation |
+| 9 | GP views | GP UI → `GET /calendar` | nothing | Published entries, calendar note, review notice if active |
+
+Edits, reopenings and re-runs use the same path at a smaller scale: an edit re-runs the verifier on
+one row (W-08) through the same `check_conflicts` function, outside a stage Flow, triggered by the
+row service.
+
+**External integrations in the MVP**: one only, the **language-model provider**, called from inside
+the three step functions (Model and Context Strategy, entry point). Every business-side system is
+replaced by a versioned file under `config/` or `mock-data/` (PRD §3 Integration Requirements).
+
+**Error propagation and user-visible feedback**:
+
+| Where it fails | What happens | What the specialist sees |
+|---|---|---|
+| A model call (transport) | One automatic retry (D1); then the unit is failed | The unit marked failed with "the model service did not respond"; re-run option |
+| A model output (schema) | Guardrail fails, no re-ask (D5); unit failed | The unit marked failed with the validation message, in plain words |
+| Several calls in a stage | Circuit breaker stops new calls (Production Shape) | One message: "the model service is not responding; nothing moved forward" |
+| The cost cap | No further calls in the run (CR-017) | The stop reason and cost so far |
+| A decision request | Refused with an error code (§4) and logged | The backend's plain message (§3 error states) |
+| Calendar generation | All-or-nothing; nothing stored on failure (CR-011) | Stage C failed; G3 not offered |
+| The backend process | Restart marks running units failed (§2) | Units marked failed and re-runnable after restart |
 
 ### 7. Performance & Scalability Specifications
 
-*Pending: filled by `*create-sad`.*
+**Targets at expected volume** (one specialist, one fund, one run at a time, PRD A-6):
+
+| Target | Value | Source | Measured by |
+|---|---|---|---|
+| Agent output for a full run | **Under 5 minutes**, including re-runs and re-verifications attributable to the run, excluding time waiting for the specialist | SD MC-001 | Evaluation report (US-013 c3) |
+| Model cost per run | **Under US$2**, same scope; hard cap at US$4 as a runaway guard (CR-017) | SD MC-002 | Evaluation report; a run over US$2 fails |
+| Specialist review | **Under 30 minutes**, G1 opened → G3 published, from audit timestamps. **Depends on the G1 and G2 review design by `@ux.designer`**: the architecture fixes what must be shown and decided per item (explicit decisions, no bulk actions, AC-026), but how quickly a specialist can read a row's evidence and decide is a UX outcome. `ux.md` should treat this target as a design constraint | SD MC-003 | Evaluation report |
+| Concurrency | One active run (CR-023); one specialist and any number of GP readers of a static published version | PRD A-6 | Test for CR-023 |
+| Interactive response (design budget, not a requirement) | Page data and decision requests answer in under 1 second on the demo machine; stage C under 5 seconds | SA-14 | Observed in the demo rehearsal; not a pass/fail target |
+
+**Scaling path, deferred with reasons**: the MVP is one fund, one framework, local (SD A-1, §9). The
+known steps if that changes, none built: SQLite → a server database (the data layer uses SQLAlchemy,
+so the change is configuration plus migrations); background task → a job queue with one worker per
+run; one active run → one active run *per fund*; per-client isolation (§8). The per-unit design (W-19)
+already parallelises within a stage, which is the part that grows with document count.
+
+**Token and cost controls at the runtime layer**: fixed `max_tokens` per step; bounded inputs (one
+document, or one row plus the source set); `max_rpm: 30`; one transport retry, no re-ask (D1, D5);
+three manual re-runs per unit (CR-010); the per-run cost cap (CR-017); cost per call in every trace
+record (CR-018). The week-1 spike replaces the estimates (SA-6, SA-13).
 
 ### 8. Security & Compliance Architecture
 
-*Pending: filled by `*create-sad`.* Names the future client-isolation boundary (SD §10.5, OQ-13)
-without validating it.
+**AuthN and AuthZ for the MVP**: authentication is **mocked** (SD A-5): a signed session cookie
+holding a mocked identity and role (§4). Authorisation is real code: every write endpoint checks the
+role server-side, GP endpoints are read-only and serve published data only (CR-004, CR-012). This is
+enough to demonstrate the role rules; it is not an access-control claim (AM §3).
+
+**Baselines**:
+
+| Area | Baseline | Control |
+|---|---|---|
+| Input validation | Pydantic on every request, unknown fields rejected; versions required on decisions | §4, CR-009 |
+| Model input | Human-written text placed as delimited data, never as instruction | CR-014 |
+| Model output | Schema-validated before storage; rendered as escaped text, never as HTML or markdown with active content | CR-003, CR-015 |
+| Secrets | Environment variables only; `.env` git-ignored; `.env.example` lists names | CR-021, §4 |
+| Data at rest | Local SQLite file in a git-ignored folder. No encryption at rest: mock data only, no personal or client data (SD MN-001) | Future work if real data is ever used |
+| Data in transit | Localhost only; no TLS in the local demo. The only external call, to the model provider, uses the provider's HTTPS endpoint | |
+| Record integrity | Append-only audit and trace tables enforced by triggers (CR-013). Not tamper-evident (no hashing chain): deferred (US-012 scope) | CR-013 |
+| Dependencies | Versions pinned in lock files; dependency audit in `@security.eng`'s assessment | |
+
+**The Control Register is the application-layer safety design.** `@security.eng` verifies it against
+the code before Deliver (`security.require_security_assessment`, aamad-core), including the D1–D6
+adapter deviations and the D6 interpretation.
+
+**Compliance**: the output is a specialist-approved interpretation, **not legal advice** (SD MN-009):
+a fixed calendar-level note on the GP view (FR-020) and the conventions note at G3. No personal data is
+processed. The repository is public, so no real identifiers are committed (MN-001). The real-name scan runs as local pre-commit and pre-push hooks that fail closed, with a defined response if they are bypassed (§5).
+
+**Future client-isolation boundary** (SD §10.5, OQ-13; **named only, not built or validated**):
+
+- **Boundary**: one **client** = one isolated data store (its own database, or its own schema in a
+  shared server database) plus its own namespace of configuration (`config/fund/<client>/…`,
+  `config/policy/<client>.yaml`). Regulation configuration is shared across clients (it is the
+  regulation, not the client's), which is what EX-1 asks for.
+- **Access-control assumptions this boundary relies on**: real authentication with per-user
+  identity; every identity bound to exactly one client; the client is resolved server-side from the
+  identity, never from a request parameter; the backend opens only that client's store for the
+  request; the audit log and the trace are per client; the evaluation fixtures stay outside client
+  stores.
+- **Not claimed**: that the MVP's mocked roles, single SQLite file or single configuration namespace
+  provide any of this. The walkthroughs do not validate multi-client security (SD §10.5).
 
 ### 9. Testing & Quality Assurance Specifications
 
@@ -737,12 +895,126 @@ without validating it.
 
 ### 10. MVP Launch & Feedback Strategy
 
-*Pending: filled by `*create-sad`.*
+**Launch**: there is no market launch (PRD §9, N/A). The "launch" is the **capstone demo**: one
+specialist completes the happy path end to end, a GP opens the published calendar, and the
+evaluation report for that run is shown.
+
+**Demo readiness criteria** (all must hold before the demo):
+
+1. The happy path runs end to end on the demo set (PRD §7 user-experience metric).
+2. The latest evaluation report shows each technical target from PRD §7 at its exact value, or
+   states the miss (DL-10). A miss is reported, never hidden.
+3. Model cost under US$2 and agent time under 5 minutes for that run (MC-001, MC-002).
+4. Review time from audit timestamps is reported against 30 minutes (MC-003), next to the
+   operator's labelled manual-effort estimate (PRD OQ-12, DL-11); no ROI is claimed.
+5. The trace export for that run exists (D4).
+6. The copy review of agent and system text is done (DL-05, CR-019).
+7. `@security.eng`'s assessment is complete (aamad-core).
+
+**Success metrics tied to PRD KPIs**: the PRD §7 operational and technical tables, measured by the
+evaluation report (US-013) exactly as listed there. The SAD adds two diagnostic measures that are
+**not** pass/fail targets: first-pass success per role (D5) and the count of extraction failures and
+human-created rows (US-013 c8, c9).
+
+**Feedback**: the demo specialist's comments and the evaluation report are the feedback for the next
+iteration. No in-product feedback feature is built. The no-edit approval rate is deliberately not
+measured in the MVP (PRD OQ-2).
+
+**Outcome document fields for Deliver** (`@devops.eng`):
+
+| Field | Value or source |
+|---|---|
+| Before metric | The operator's **labelled estimate** of manual effort for the five demo obligations (PRD OQ-12). Not a measurement |
+| After metric | Measured specialist review time for G1 → G3 (MC-003), from audit timestamps |
+| Control | The answer key: the same run's accuracy against it (MP-001 to MP-004), so a faster review is only reported alongside correct output |
+| Measurement owner | `@qa.eng` (evaluation report); the operator (manual-effort estimate) |
+| Caveat to print with the result | One fund, mock data, scripted demo decisions, unvalidated user needs (PRD A-7); no time saving or ROI is claimed |
 
 ### Extensibility walkthroughs (SD §10.4)
 
-*Pending: filled by `*create-sad`.* S-1 (fictional Luxembourg RAIF) and S-2 (`FND-DEMO-01`
-considering Singapore marketing), separately, architecture-only, no coverage promise.
+> **Architecture only.** Nothing here is built, no mock data is added, and nothing here is a claim of
+> regulatory coverage (SD EX-6). Every regulatory difference named below is a **question for a
+> specialist**, not a finding. S-1 and S-2 each start from the MVP baseline and are not combined
+> (SD §10.4).
+
+**NFR-012 (a): shared capabilities, configuration and extension points.**
+
+*Shared capabilities* (one implementation, used by every configuration; never copied per client,
+EX-1): source loading and paragraph IDs (W-02); extraction, verification and applicability step
+functions and their prompts (W-03, W-05/W-06, W-11); the code quote check (W-04, QN-1); duplicate
+grouping and coverage (W-03a, W-03b); manual row creation and release (W-07a, DL-18); the gate state
+machine and versions (W-09, CR-009); date generation (W-13); the audit log and trace (W-18, CR-018);
+the evaluation runner (W-20); both UI surfaces. **Design rule for the prompts:** no regime,
+jurisdiction or fund name is written into a prompt template; they arrive as data from configuration,
+so a new regime does not need a new prompt (EX-1).
+
+*Configuration* (versioned files; their content hash is part of every dependent step's input
+version, so a change invalidates outputs the same way an edit does, §4):
+
+| Kind (SD §10.2) | File | MVP content |
+|---|---|---|
+| Regulation | `config/regulation/<regime>.yaml` | Source document list; authority codes; conventions `D-1` to `D-7`; business-day calendar reference per jurisdiction; open conventions (CR-027) |
+| Fund terms | `config/fund/<fund>.yaml` | Fact IDs and values, event log, marketing states per jurisdiction, appointed filing parties |
+| Client policy | `config/policy/<client>.yaml` | Default for unconfirmed roll rules (`D-6`), precautionary treatment (P-1), internal lead times (not used in MVP), notice wording |
+
+*Defined extension points* (code seams that exist in the MVP design but have one implementation
+each; a new one is added only when a walkthrough shows a need, PRD §8 risk row):
+
+| ID | Extension point | MVP implementation |
+|---|---|---|
+| E1 | Source loader (file format → paragraphs with IDs) | Mock markdown files |
+| E2 | Business-day calendar provider (per jurisdiction) | Mock Luxembourg 2027 holiday list |
+| E3 | Anchor types in the date code (month-end, quarter-end, year-end, fixed date, event awareness) | The anchor types in SD §2 vocabulary: month-end, quarter-end, financial year-end, fixed date, event awareness date |
+| E4 | Fund-fact schema (fact types and allowed states) | Facts `FACT-01` to `FACT-07` and the event log |
+| E5 | **Verdict qualifier** (a verdict may carry a condition, for example "if marketed in X on basis Y") | **Future Work, not in the MVP.** The MVP verdict schema has exactly three values (applies / does not apply / unsure) and **no** condition field (CR-003). E5 names where a condition would be added, not something that exists |
+
+*Client-policy changes* (SD §10.2, OQ-12; future requirement; the SAD proposes the mechanism, nothing
+is built): a policy change is an edit to the client's policy file through a reviewed change (pull
+request) with a recorded decision and reason. Its new content hash invalidates every dependent output,
+which then goes out of date and back through G1 or G2 (the impact assessment). **Policy cannot weaken
+mandatory controls by construction**: the policy schema has no field for any EX-3 control (there is no
+setting to turn off a gate, the verifier, the quote check or the audit log), and a schema check
+refuses any policy value that is less strict than the regulation default (for example "roll forward"
+as the default for unconfirmed rules).
+
+**NFR-012 (c): how EX-1 to EX-6 would be checked for any extension**:
+
+| Rule | Check |
+|---|---|
+| EX-1 Shared first | A pull request that copies a shared capability module or prompt for one regime or client is rejected in review; the extension adds configuration or an E1–E5 implementation. Any exception is recorded in this SAD with its reason |
+| EX-2 Validated behaviour preserved | The Part II demo evaluation is re-run on the extended system and must match the answer key exactly (6 rows, 6 verdicts, expected flags, 22 entries); it is a required check before merge |
+| EX-3 Controls preserved | The full control test suite (CR-001 to CR-027, CI) passes unchanged; the policy schema check refuses weakening values |
+| EX-4 Specialist validation | A recorded validation by a specialist qualified for the regime or jurisdiction, referenced from the configuration file's header, before the configuration is used |
+| EX-5 Its own tests | The extension's own mock sources, fund facts, answer key and evaluation, covering MP-001 to MP-008 or a recorded "not applicable" per kind |
+| EX-6 No coverage promise | Configuration headers and any user-facing text state the scope; no extension is described as coverage of a regime |
+
+#### S-1: a fictional Luxembourg RAIF
+
+| Question (SD §10.4) | Answer |
+|---|---|
+| **Shared and unchanged** | Every shared capability above; the gate state machine; the date code (if the RAIF's anchors are among E3's existing types); both surfaces. Prompts unchanged (regime name arrives as data) |
+| **Configuration, by kind** | *Regulation:* a new `config/regulation/lu-raif.yaml` with its own sources, authorities, conventions and open conventions. *Fund terms:* a new `config/fund/FND-RAIF-01.yaml` (own fact IDs). *Client policy:* reuse the existing policy file or add one; either is configuration |
+| **Extension points needed** | Possibly **E3**, if a RAIF obligation uses an anchor type the MVP lacks (to be found by the specialist). **E2** unchanged (Luxembourg). No new extension point is assumed |
+| **Other architectural changes** | **Fund selection**: the MVP has one fund, so runs and routes do not choose one. A second fund needs a fund selector on the runs page and the fund ID on `POST /runs` (every business table already carries `fund_id`, and entry IDs include it, §4). One active run *per fund* (CR-023 scope change) |
+| **EX-1 to EX-6** | EX-1: no copied module; RAIF is configuration plus a fund selector. EX-2: Part II evaluation re-run unchanged. EX-3: control suite unchanged. EX-4: a RAIF specialist validates the regulation file. EX-5: tests below. EX-6: scope stated in the file header |
+| **Tests EX-5 would need** | MP-001: RAIF mock sources plus an answer key for extraction, including a non-obligation paragraph · MP-002: RAIF fund facts and expected verdicts, including one "unsure" · MP-003: at least one planted cross-source conflict and one internal-conflict case in RAIF sources · MP-004: the RAIF expected calendar with at least one rolled and one unrolled weekend date · MP-005: traceability check on RAIF entries (same test, new data) · MP-006: gate bypass tests re-run with two funds present, including that publishing one fund's calendar cannot publish the other's · MP-007: determinism re-run on RAIF inputs · MP-008: audit completeness on a RAIF run |
+| **What a specialist must validate** (questions, not findings) | Governing law and supervision route (for example through the authorised AIFM rather than direct product authorisation); which authorities receive filings; which Part II rows do not apply and which new obligations exist; deadlines and tax treatment; business-day rules for each authority |
+
+#### S-2: `FND-DEMO-01` considering marketing to institutional investors in Singapore
+
+| Question (SD §10.4) | Answer |
+|---|---|
+| **Shared and unchanged** | Every shared capability; the Part II regulation file and its validated results; gates; audit |
+| **Configuration, by kind** | *Regulation:* a new `config/regulation/sg-marketing.yaml` (sources, authority, obligations tied to a marketing basis, business-day calendar reference). *Fund terms:* add to `FND-DEMO-01`'s fund file a marketing state for Singapore: `considered` (not `active`, not `registered`), investor type `institutional`, basis `unspecified`. *Client policy:* whether a conditional calendar may be prepared before a marketing decision (a policy value; default: no) |
+| **Extension points needed** | **E2**: a Singapore business-day calendar. **E4**: the marketing-state values `considered` / `active` / `registered` per jurisdiction (the MVP's Spain facts distinguish "marketed" from "registered", `FACT-03`, `FACT-04`, so the state idea exists; the per-jurisdiction schema is new). **E5**: the **verdict qualifier**, so a verdict can be "applies **if** marketed to institutional investors in Singapore on basis X". **Future Work:** adding it changes the verdict schema and CR-003, so it is a schema change released under the swap rule, with its own evaluation; the MVP schema stays at three values |
+| **Conditional assessment (how the architecture keeps P-1 and OQ-11)** | *All of this is Future Work (E5); none of it is in the MVP.* The judge would receive the hypothetical as data and returns a verdict with a **condition**. Code never turns a conditional verdict into an unconditional "applies". At G2 a conditional verdict is labelled **conditional** and cannot be confirmed as unconditional. Uncertainty goes to "unsure", which only a specialist resolves. **Marketing permission is not a verdict and not a fact the system sets**: no field, label or GP text says marketing is permitted. Entries from conditional verdicts belong to a separate **conditional calendar scope**: never published to the GP view unless client policy allows a conditional calendar *and* the specialist publishes it at G3 with the conditional label on every entry |
+| **EX-1 to EX-6** | EX-1: configuration plus E2, E4, E5. EX-2: the Part II calendar must still be exactly the 22 entries; conditional entries are excluded from it by scope, which the Part II evaluation re-run checks. EX-3: control suite unchanged; plus the new rule that a conditional verdict cannot be confirmed as unconditional. EX-4: a specialist for Singapore marketing validates the regulation file. EX-5: tests below. EX-6: scope stated; conditional results are labelled conditional everywhere |
+| **Tests EX-5 would need** | MP-001: Singapore mock sources and an extraction answer key · MP-002: expected **conditional** verdicts, including that none is ever unconditional "applies" while the state is `considered`, and one "unsure" · MP-003: a planted conflict between a Singapore source and a summary · MP-004: a conditional calendar using the Singapore business-day calendar, with a rolled date · MP-005: traceability includes the condition text · MP-006: conditional entries cannot reach the GP view without the policy value and an explicit G3; the Part II publication is unaffected · MP-007: determinism · MP-008: audit records the hypothetical each conditional verdict was made under |
+| **What a specialist must validate** (questions, not findings) | Whether and on what basis the fund may be offered to institutional investors in Singapore; which obligations attach to that basis; the authority; deadlines; the Singapore business-day calendar; whether a conditional calendar is useful or misleading for this client |
+
+**Not validated by either walkthrough**: multi-client security (§8 names the boundary only), legal
+content of any regime, and whether the extension points above are sufficient (they are the ones these
+two scenarios show a need for, no more).
 
 ## Implementation Guidance for AI Development Agents
 
@@ -823,6 +1095,12 @@ considering Singapore marketing), separately, architecture-only, no coverage pro
 - **SA-12** (PRD OQ-11): The reused prototype front end is **not** assumed. §3 is written for a new
   Next.js frontend. If OQ-11 shows the prototype is the operator's own work and fits §3, the Frontend
   epic may reuse it; if it was built for or at an employer, it is not reused (PRD OQ-11, DL-07).
+- **SA-14**: The interactive response budget in §7 (under 1 second for page data and decisions,
+  under 5 seconds for stage C) is a design budget for a local demo, not a requirement; the PRD sets no
+  response-time target beyond MC-001.
+- **SA-15**: CI never calls a language model and holds no model key; evaluation runs are local and
+  manual (§5). The real-name scan stays local because its identifier list must never leave
+  `reference/`.
 - **SA-13**: The CrewAI settings in §2 (`max_iter: 2`, `max_rpm: 30`, timeouts) are starting values.
   The week-1 spike confirms or replaces them, and any change is recorded in the Audit.
 
@@ -999,3 +1277,21 @@ considering Singapore marketing), separately, architecture-only, no coverage pro
   §4 cross-check table for the round-2 controls; `run_version` on re-run, release and gate completion,
   row versions on G1 group confirmations; OpenAPI schema stated as the single contract, with types,
   client and fixtures generated from it and a CI drift check (§3, §4).
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass b: §5–§8, §10, walkthroughs) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · §5 local hosting, health check, CI steps (no model, no key; contract
+  drift; answer-key check), what stays out of CI and why, observability split; §6 happy-path data flow,
+  the one external integration, error propagation table; §7 targets at expected volume (MC-001 to
+  MC-003, one run), deferred scaling path, token and cost controls; §8 mocked AuthN with real
+  server-side AuthZ, security baselines, compliance, named future client-isolation boundary and its
+  access-control assumptions (not validated); §10 demo readiness criteria, metrics, outcome document
+  fields; walkthroughs: shared capabilities, configuration by kind, extension points E1–E5, proposed
+  client-policy change mechanism (SD OQ-12), EX-1 to EX-6 checks, S-1 and S-2 with tests and
+  specialist questions. SA-14, SA-15. Prompt Trace not captured: no model call made.
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass b, review fixes 1–5) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · §5 release rule: prompt, model or schema changes need a linked local
+  evaluation report on the PR's final commit, with a CI check for the link; §5/§8 real-name scan as
+  committed pre-commit and pre-push hooks that fail closed (including a missing identifier file), and
+  the response if bypassed (unpushed: rewrite; pushed: treat as exposed, history decision to the
+  operator, DL-07); §4 every business table carries `fund_id` (corrects an S-1 claim that it already
+  did); S-2 and E5: conditional verdicts marked Future Work, MVP verdict schema stays at three
+  values (CR-003); §7 the 30-minute review target depends on the G1/G2 UX design.
