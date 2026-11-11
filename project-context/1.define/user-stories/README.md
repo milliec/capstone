@@ -1,7 +1,7 @@
 # User Stories — Index
 
 MVP stories derived from `prd.md` (features F1–F9) and `system-description.md`. One story per file.
-US-001 to US-013 and US-015 are **Must** priority. **US-014 is a stretch goal (Could)**, built only after the Must
+US-001 to US-013, US-015 and US-016 are **Must** priority. **US-014 is a stretch goal (Could)**, built only after the Must
 stories pass. It depends on US-005 and is not part of the Week 6 definition of done. P1 features from the PRD are listed at the end but **not written**
 (MVP only).
 
@@ -9,11 +9,12 @@ stories pass. It depends on US-005 and is not part of the Week 6 definition of d
 
 | Step | Story | Title | Persona | PRD feature | SD requirements |
 |---|---|---|---|---|---|
-| 1–2 | [US-001](US-001-extract-obligation-rows.md) | Extract source-linked obligation rows | Specialist | F1 | FR-001, FR-002 |
+| 1–2 | [US-001](US-001-extract-obligation-rows.md) | Extract source-linked obligation rows | Specialist | F1 | FR-001, FR-002, FR-028 |
 | 3 | [US-002](US-002-verify-quotes.md) | Verify quotes | Specialist | F2 | FR-003 |
 | 3 | [US-003](US-003-check-source-conflicts.md) | Check conflicts (internal and between sources) | Specialist | F2 | FR-004 |
-| 4 | [US-004](US-004-approve-rules-g1.md) | Approve or reject rules (G1) | Specialist | F3 | FR-005, FR-023 |
+| 4 | [US-004](US-004-approve-rules-g1.md) | Approve or reject rules (G1) | Specialist | F3 | FR-005, FR-023, FR-029 |
 | 4 | [US-005](US-005-edit-rule-and-reverify.md) | Edit a rule and re-verify it | Specialist | F3 | FR-006, FR-007 |
+| 4 | [US-016](US-016-create-missed-rule-by-hand.md) | Add a missed rule by hand | Specialist | F3 (new scope, DL-15) | FR-027 |
 | 5 | [US-006](US-006-judge-applicability.md) | Judge applicability for the fund | Specialist | F4 | FR-008, FR-009 |
 | 6 | [US-007](US-007-approve-verdicts-g2.md) | Confirm or override verdicts (G2) | Specialist | F5 | FR-010, FR-024 |
 | 7 | [US-008](US-008-generate-scheduled-calendar.md) | Generate calendar dates for scheduled obligations | Specialist | F6 | FR-011, FR-012, FR-016 |
@@ -42,6 +43,8 @@ Every Must requirement in `system-description.md` §4 is covered by at least one
 | FR-009 | US-006 | FR-018 | US-013 |
 | FR-022 | US-010 | FR-024 | US-007 |
 | FR-023 | US-004, US-005 | FR-025 | US-011 (also linked from US-004, US-010, US-014) |
+| FR-027 | US-016 (separate count: US-013) | FR-029 | US-004 |
+| FR-028 | US-001 (fix: US-016) | | |
 
 **Not written (P1, after MVP):** FR-019 full trail view.
 
@@ -69,7 +72,10 @@ Every acceptance criterion in `system-description.md` §8 is tested by at least 
 | AC-009 | US-008 | AC-017 | US-003, US-005 |
 | AC-021 | US-010 | AC-023 | US-007 |
 | AC-022 | US-004, US-005 | AC-024 | US-011 |
-| AC-026 | US-004, US-007, US-010 (stretch: US-014) | | |
+| AC-026 | US-004, US-007, US-010 (stretch: US-014) | AC-027 | US-016, US-013 |
+| AC-028 | US-004 | AC-029 | US-001 |
+| AC-030 | US-015 (also US-001 c7, US-006 c7) | AC-031 | US-015, US-016, US-013 |
+| AC-032 | US-010, US-004 (assumptions: US-011) | | |
 
 Stretch: AC-018, AC-019, AC-020 and AC-025 are covered by US-014.
 
@@ -136,3 +142,13 @@ at each gate. The stories assume these demo decisions:
   business reviews of the PRD: new US-015 (run status and failed-step re-run, Must); criteria added to
   US-002, US-003, US-007, US-010, US-011, US-013; FR-020 now Must (US-011); two system-wide rules
   (no employer documents, voice). See `../decision-log.md` DL-01 to DL-12
+- 2026-11-11 · persona `product-mgr` · action `create-stories` (SAD SOQ-8) · new US-016 (add a missed rule
+  by hand, DL-15) with FR-027 and AC-027 in the coverage tables; US-013 criterion 8
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · US-004 criteria 14–16 (possible
+  duplicates, DL-16) with FR-029 and AC-028 in the coverage tables
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · US-001 criteria 8–10 (G1 coverage
+  view) with FR-028 and AC-029 in the coverage tables
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · only non-rejected rows count in the coverage view (US-001 c8, c10; operator decision) and the per-unit failure rule: US-015 criteria 9–13, clarifications in US-001 c7 and US-006 c7, NFR-004 amended, AC-030
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-18) · US-015 criteria 14–15 (release of a failed source document to manual entry), US-016 criterion 11; AC-031 added to the coverage table
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · US-010 criterion 12 (OBL-02 open-question mark at G3) and a US-004 G1 note; SD OQ-4 and KEY OQ-D3 kept open
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-18, DL-20) · US-004 criterion 17, US-010 criterion 12, US-013 criterion 9, US-011 assumption; AC-031 and AC-032 in the coverage table; PRD F3 line for released documents

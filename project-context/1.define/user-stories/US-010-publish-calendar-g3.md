@@ -37,10 +37,20 @@ so that GPs never see unfinished work.
     publishing, the calendar stays unpublished.
 11. **When** the specialist opens G3, **then** they see a note that the date conventions have not yet
     been checked against the legal texts (SD A-7). The note does not block publishing.
+12. **Given** the open question on the AED subscription tax (PRD OQ-7, SD OQ-4), **when** the specialist
+    opens G3, **then** each of the four `OBL-02` entries carries a mark saying its rule depends on that
+    open question, shown next to the "roll rule unconfirmed" and "precautionary" marks. No other entry
+    carries it. **Then** the mark does **not** block publishing (like criterion 4), and the GP view
+    shows no such mark (US-011 assumptions). The four dates (20 January, 20 April, 20 July and
+    20 October 2027) are the same whether the rule is "no roll" or "roll forward", so the 22 entries
+    and their dates do not change. (Decision log DL-20, SAD CR-027, test T-W13-1, SD AC-032.)
 
 ## 4. Scope Notes
 
 - **In Scope for MVP**: one specialist publishes one fund's calendar.
+- **Open-question mark**: nothing in the MVP clears the criterion 12 mark. It goes only when the answer
+  to the open question is recorded as a regulation change, outside this story. Wording and layout are
+  for `@ux.designer`.
 - **Deferred**: four-eyes review, scheduled publishing, publishing single entries, withdrawing or
   unpublishing a calendar (deliberately deferred for the demonstration; revisit before real-world use,
   SD §9).
@@ -48,7 +58,8 @@ so that GPs never see unfinished work.
 ## 5. Traceability
 
 - **PRD Anchors**: F7 · §2 step 8 · UN-S4, UN-G4 · AB-5
-- **System description**: FR-014, FR-022 · MD-004 · MN-003, MN-007 · AC-013 · MP-006 · A-6
+- **System description**: FR-014, FR-022 · MD-004 · MN-003, MN-007 · AC-013, AC-032 · MP-006 · A-6
+- **Decision log**: DL-20 (criterion 12)
 - **Related SFS**: none yet
 
 ## Sources
@@ -93,3 +104,6 @@ so that GPs never see unfinished work.
   Assumptions cross-reference the review notice (SD FR-025); no new decision
 - 2026-11-09 · persona `product-mgr` · action `update` (business review) · criterion 11: G3 note that
   date conventions are unverified (SD A-7, PRD F7); operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · criterion 12 and a scope note: `OBL-02`
+  entries carry a mark that their rule depends on the open AED tax question (PRD OQ-7); it does not
+  block publishing and is specialist-only; operator decision

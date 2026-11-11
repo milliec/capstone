@@ -32,6 +32,15 @@ can prove the system works and see exactly where it doesn't.
    report never leaves a miss out. (PRD §7)
 7. **Then** the report shows the operator's manual-effort estimate next to the measured review time,
    labelled as an **estimate**. It claims no time saving or ROI. (PRD §7, OQ-12)
+8. **Given** the specialist created rows by hand at G1 (US-016), **then** the report counts them on
+   their own line, separate from the extractor's result. They are left out of the "rows found out of 6"
+   and "extra rows" figures, so they can neither inflate nor hide the extractor's result. With no
+   human-created rows, the line shows 0. (SD FR-027, decision log DL-15)
+9. **Given** a source document was released to manual entry after failing its re-runs (US-015
+   criterion 14), **then** the report counts the release as one **extraction failure**, names the
+   document, and does not count it as a pass. The rows the specialist then creates by hand for it are
+   counted on the human-created line (criterion 8), not as extracted rows. With no release, the
+   extraction-failure count shows 0. (SD AC-031, decision log DL-18, SAD test T-REL-1)
 
 ## 4. Scope Notes
 
@@ -41,7 +50,7 @@ can prove the system works and see exactly where it doesn't.
 ## 5. Traceability
 
 - **PRD Anchors**: F9 · §7 technical metrics
-- **System description**: FR-018 · MP-001 to MP-004 · MC-001, MC-002, MC-003
+- **System description**: FR-018, FR-027 · MP-001 to MP-004 · MC-001, MC-002, MC-003 · AC-027, AC-031
 - **Answer key**: §1 to §4
 - **Related SFS**: none yet
 
@@ -66,3 +75,7 @@ can prove the system works and see exactly where it doesn't.
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · added internal-conflict test `I-1`
 - 2026-11-06 · persona `product-mgr` · action `update` · review time reported from audit-log timestamps
 - 2026-11-09 · persona `product-mgr` · action `update` (business review) · criterion 6 (exact-value pass, misses reported) and criterion 7 (labelled manual-effort estimate, no ROI claim) (PRD §7); decision log DL-10, DL-11
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criterion 8 (human-created rows counted
+  on a separate line); decision log DL-15; operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-18) · criterion 9: a release to manual entry
+  is counted as one extraction failure (SD AC-031); operator decision

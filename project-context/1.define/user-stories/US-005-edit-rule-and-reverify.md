@@ -35,6 +35,8 @@ so that a human edit is never the one change nobody checked.
 - **In Scope for MVP**: edits during G1, and edits to already-approved rows.
 - **Not editable**: rejected rows. They are read-only until reopened with a reason (US-004 criteria 9
   and 11, SD FR-023). After reopening, they are edited as pending rows under this story.
+- **Creating a row**: the same edit form, opened on an empty row, is how a missed row is added by hand
+  (US-016, SD FR-027). From its first save it is a pending row, and the criteria above apply to it.
 - **Deferred**: bulk edits; edit history comparison views.
 
 ## 5. Traceability
@@ -63,3 +65,5 @@ so that a human edit is never the one change nobody checked.
   added criterion 5 (edited rows re-enter G2)
 - 2026-11-07 · persona `product-mgr` · action `update` · scope note: rejected rows are not editable
   until reopened (SD FR-023), operator decision
+- 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · scope note: the edit form on an empty
+  row creates a missed row (US-016, FR-027, DL-15); no criterion changed

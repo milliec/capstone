@@ -58,8 +58,10 @@ date is correct and comes out the same each time.
 
 ## Open Questions
 
-- **OQ-US008-1**: Business-day rules for CNMV (`OBL-04`) and the AED subscription tax (`OBL-02`). (PRD
-  OQ-7)
+- **OQ-US008-1**: *Part resolved.* CNMV (`OBL-04`): *resolved* (decision log DL-19). The rule stays
+  "not confirmed" until the specialist sets one at G1, so weekend dates keep the earlier day and are
+  marked (`D-6`). **Still open:** the business-day rule for the AED subscription tax (`OBL-02`). (PRD
+  OQ-7, SD OQ-4; DL-20)
 
 ## Audit
 
@@ -67,3 +69,4 @@ date is correct and comes out the same each time.
 - 2026-11-06 · persona `product-mgr` · action `update` · 17 → 21 scheduled entries (`OBL-04` included)
 - 2026-11-06 · persona `product-mgr` · action `quality-pass` · removed the ID-building method (left to
   the SAD); Spain note renamed
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-19) · OQ-US008-1 part resolved (CNMV `OBL-04`); AED subscription-tax part stays open (DL-20); no criterion changed

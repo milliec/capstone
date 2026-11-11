@@ -170,6 +170,17 @@ turns it into something anyone can check from the evaluation report later.
 are decided in advance, so a "rows approved without edits" rate would measure the script, not the
 agents. A metric like that only means something with real users on material nobody prepared.
 
+**Recount any number a document hands you before you write it into a test.** The architecture document
+said the G1 coverage view would list five paragraphs that no row cites in the demo set. Writing the
+acceptance criterion meant counting them: 13 paragraphs are loaded, the 6 rows cite 6 of them, so 7 are
+uncited, not 5. The "five" probably came from a list of four named paragraphs plus a general remark about
+the secondary source, which is three more. Nobody was careless. A number written in prose is a summary
+of a calculation, and the calculation is what a test needs. If QA had copied "five", the first test run
+would have failed on correct behaviour, and someone would have spent time suspecting the code. The habit:
+when a story states an expected count, derive it from the data and show the sum (13 − 6 = 7), so the
+next reader can check it without trusting you, and report any mismatch to the owner of the source
+document instead of silently fixing it.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -262,3 +273,4 @@ question to answer.
 - 2026-11-11 · added three notes from the architect's work-ownership, pattern and controls sessions
   (decide owners before shape; three named agents are still a workflow; retry needs an idempotency
   key)
+- 2026-11-11 · added one note from the Define follow-up session (recount any number a document hands you before writing it into a test)

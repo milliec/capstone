@@ -190,11 +190,14 @@ failure.
 ## Open Questions
 
 - **OQ-D2**: *Resolved.* "2 months after 30 June" is 31 August (operator-confirmed, now `D-2`).
-- **OQ-D1**: What is the business-day rule for Luxembourg Business Registers filings (`OBL-05`) and for
-  CNMV filings (`OBL-04`)? Until confirmed, `D-6` applies.
+- **OQ-D1**: *Resolved* (operator decision, 2026-11-11, decision log DL-19). The business-day rule for
+  Luxembourg Business Registers filings (`OBL-05`) and CNMV filings (`OBL-04`) is never guessed: it
+  stays "not confirmed" until the specialist sets one at G1, and `D-6` applies. The expected entries do
+  not change.
 - **OQ-D3**: Is the subscription tax return (`OBL-02`, AED) covered by the "tax deadlines do not roll"
-  rule? The guidance named the ACD. The AED is a different authority. Assumed **no roll** for now
-  (the safe choice).
+  rule? The guidance named the ACD. The AED is a different authority. **Open** (kept open by the
+  operator, decision log DL-20). The table above uses **no roll** (the safe choice) as the specialist's
+  demo decision at G1, not as a built-in rule; the four `OBL-02` dates are the same under "roll forward".
 
 ## Audit
 
@@ -210,3 +213,5 @@ failure.
   `I-1`; renamed the Spain note to "precautionary: registration unconfirmed"
 - 2026-11-06 · persona `product-mgr` · action `update` · added section 6 (stretch: expected impact of
   amendments AMD-01 to AMD-03)
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-19) · OQ-D1 resolved: business-day rules for `OBL-04` and `OBL-05` are never guessed; expected results unchanged. OQ-D3 stays open (DL-20)
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · OQ-D3 kept open; the no-roll table is the specialist's demo decision at G1, not a built-in rule; expected results unchanged

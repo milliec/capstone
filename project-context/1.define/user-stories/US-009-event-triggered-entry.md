@@ -48,8 +48,11 @@ of the event, so that the deadline follows what the law actually says.
 
 ## Open Questions
 
-- **OQ-US009-1**: Business-day rule for Luxembourg Business Registers filings. (PRD OQ-7)
+- **OQ-US009-1**: *Resolved* (operator decision, 2026-11-11, decision log DL-19). The Luxembourg
+  Business Registers rule (`OBL-05`) stays "not confirmed" until the specialist sets one at G1. Code
+  never guesses one, so a weekend date keeps the earlier day and is marked (`D-6`). (PRD OQ-7)
 
 ## Audit
 
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
+- 2026-11-11 · persona `product-mgr` · action `update` (DL-19) · OQ-US009-1 resolved: `OBL-05` rule stays "not confirmed" until set at G1; no criterion changed
