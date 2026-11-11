@@ -6,8 +6,10 @@ mock data, mocked roles.
 **Status**: **In progress.** The five decision headings are filled: Work Ownership, Pattern Decision,
 Reference Architecture, Model and Context Strategy, Control Register (plus Production Shape).
 `*create-sad` pass (a) filled sections 1–4 and pass (b) sections 5–8, 10 and the extensibility
-walkthroughs. The six-week estimate with a cut line (pass c) is still to come; section 9's criteria
-table is `*define-eval-criteria`. A heading marked *pending* has not been decided and must not be
+walkthroughs, and pass (c) section 9, the requirement map, the six-week estimate and the
+implementation guidance. **Scope agreed (DL-22): the MVP is the thin slice.** Items marked *future
+scope* in "Six-week estimate and agreed scope" are designed in this SAD but not built. Section 9's criteria table is
+`*define-eval-criteria`. A heading marked *pending* has not been decided and must not be
 read as a decision.
 
 > **How to read the Trace column.** `SD` = `system-description.md` · `PRD` = `prd.md` · `US` =
@@ -35,6 +37,10 @@ system** means deterministic application code (there is no legacy system; the "e
 is the code this project writes, which owns rules and records). **Human** means the compliance
 specialist, acting through the review surface. **Collaborative** means draft-and-decide: a model or
 code drafts, a human decides, and the decision is the record.
+
+> **Thin-slice scope key (DL-22).** Rows W-03a, W-07a and W-08, the re-run part of W-19, and the
+> stretch row W-22 are **future scope**: designed here, not built in the MVP. W-03b's fix for a
+> real miss is a new run in the MVP. See "Six-week estimate and agreed scope".
 
 **The lens.** The four behaviour properties of a language model decide what it may own:
 
@@ -138,9 +144,13 @@ or the audit log beyond appending its own output as a logged proposal.
 The Must scope is 14 stories including three recovery paths (SD FR-022 to FR-025), the failed-step
 re-run (US-015) and the full gate logic with versioned approvals. The work-ownership split above is
 feasible as designed: the model steps are small, bounded and reviewable, and everything consequential
-is code. What is not yet shown is that all of it fits six weeks for one operator. `*create-sad` carries
-the estimate and proposes the cut line between the core demo path (steps 1–9) and hardening, to be
-agreed with the operator before Build.
+is code. What is not yet shown is that all of it fits six weeks for one operator. *Update
+(`*create-sad` pass c):* the Must scope is estimated at about **52 focused days** (39–73), of which the
+core demo path is about **46** (34–64). The verdict depends on the focused days remaining (SOQ-12); see
+"Six-week estimate and proposed cut line". *Update (DL-22):* the operator agreed the **thin slice**, estimated at
+about **42.5 focused days** (32–60). The verdict stays `feasible with constraints`; the constraint is
+now the slice against the operator's capacity, which the operator has committed without a number
+(SOQ-12); the week-1 re-estimate checks it.
 
 Two further constraints, named so they are not mistaken for guarantees:
 
@@ -316,6 +326,10 @@ decision.
   The model never receives it and could not act on it if it did (no tools).
 
 ### Control Register
+
+> **Thin-slice scope key (DL-22).** CR-020 and CR-022, the re-run and release parts of CR-010, the
+> review-notice part of CR-012, the circuit breaker (Production Shape) and the stretch controls
+> CR-024 to CR-026 are **future scope**. All other controls apply to the MVP.
 
 What training already reduces (fluent text, following a schema most of the time, refusing obvious
 harm) is not relied on for anything consequential. Everything below is enforced by the application.
@@ -891,7 +905,25 @@ processed. The repository is public, so no real identifiers are committed (MN-00
 
 ### 9. Testing & Quality Assurance Specifications
 
-*Pending: filled by `*create-sad`; Evaluation Criteria table by `*define-eval-criteria`.*
+**Test layers** (all except the last run in CI with the model stubbed, SD NFR-011):
+
+| Layer | What it covers | Examples (test IDs in this SAD and AM §7) |
+|---|---|---|
+| Unit (backend) | Deterministic modules in isolation | Date engine: the 22 expected entries, rolls, unconfirmed marks, event awareness, OQ-7 mark (US-008, US-009, T-W13-1/2) · quote check under QN-1 (T-W04-1 to 6) · ID schemes (T-ID-1/2) · grouping and coverage (T-W03a-1, AC-029) |
+| Control tests (integration, stubbed model) | Every Control Register entry through the API, with the database | CR-001 to CR-027 evidence tests · AM T-01 to T-23 · T-REL-1/2 · T-W03a-2 · version and double-submit refusals (CR-009) · one active run (CR-023) |
+| Runtime checks | The CrewAI configuration behaves as recorded | No agent has a tool (T-07) · every task has `Task.id` and `output_pydantic` · a guardrail failure fails the unit with **no re-ask** (D5) · one transport retry only (D1) · one trace record per attempt (CR-018) · trace export present (T-D4-1) |
+| Contract | Frontend and backend agree | OpenAPI regenerated; types and fixtures match (drift check, §3) · request validation rejects unknown fields |
+| Frontend | Pages render every state from generated fixtures | Component tests per route; automated accessibility checks plus a manual WCAG 2.2 AA review of both surfaces (PRD §6) |
+| Smoke / acceptance | The happy path end to end | In CI with stubbed model outputs equal to the answer key (deterministic); locally with the live model before the demo |
+| Evaluation (local, live model) | Agent quality against the answer key | US-013 report; pass/fail per the criteria table below; required for every prompt, model or schema change (§5 release rule) |
+
+**Verification before Deliver**: `@qa.eng` `*verify-change` on the final branch; the security
+assessment by `@security.eng` is **required** (aamad-core 1.0 default; `aamad.config.yml` does not
+switch it off), and verifies the Control Register, D1–D6 and the git hooks (§5).
+
+**Evaluation Criteria**: *pending `*define-eval-criteria`* (the next architect step). The table will
+take its thresholds from PRD §7, SD MC-001 to MC-003 and the answer key, and will ask the operator for
+any threshold the inputs do not give.
 
 ### 10. MVP Launch & Feedback Strategy
 
@@ -1016,13 +1048,164 @@ as the default for unconfirmed rules).
 content of any regime, and whether the extension points above are sufficient (they are the ones these
 two scenarios show a need for, no more).
 
+### Requirement-to-component map
+
+| PRD feature | Work Ownership | Controls | Backend (§4) | Route (§3) | Stories |
+|---|---|---|---|---|---|
+| F1 Source-linked extraction | W-02, W-03, W-03a, W-03b, W-07a | CR-002, CR-003, CR-020, CR-022 | Stage A Flow; `rows`; `/runs`, `/g1`, `/rows` | run status, G1 | US-001, US-016 |
+| F2 Independent verification | W-04, W-05, W-06, W-08 | CR-005, CR-006, CR-014 | quote check, `check_conflicts`; `flags`, `quote_checks` | G1 | US-002, US-003 |
+| F3 Gate G1 | W-07, W-08, W-09 | CR-001, CR-007, CR-009, CR-022 | row decision, edit, reopen, G1 complete | G1 | US-004, US-005, US-016 |
+| F4 Applicability | W-10, W-11 | CR-003, CR-016 | Stage B Flow; `verdicts` | run status, G2 | US-006 |
+| F5 Gate G2 | W-12, W-17 | CR-007, CR-009, CR-019 | verdict decision, reopen, G2 complete | G2 | US-007 |
+| F6 Deterministic calendar | W-13, W-14 | CR-008, CR-011, CR-027 | Stage C; `calendar_versions`, `calendar_entries` | G3 | US-008, US-009 |
+| F7 Gate G3 | W-15 | CR-001, CR-011 | publish, decline; `publications` | G3 | US-010 |
+| F8 GP calendar | W-16, W-17 | CR-004, CR-012, CR-019 | `GET /calendar` | `/calendar` | US-011 |
+| F9 Audit and evaluation | W-18, W-20 | CR-013, CR-018, D4 | `audit_log`, `trace`, evaluation runner | none (report file) | US-012, US-013 |
+| PRD §6 run status and recovery | W-19 | CR-010, CR-017, CR-023 | `/runs/{id}`, re-run, release | run status | US-015 |
+| F10 *(stretch)* | W-22 | CR-024 to CR-026 | not specified beyond §2 interface | not specified | US-014 |
+
+### Six-week estimate and agreed scope: the thin slice (PRD OQ-5, DL-08, SOQ-1)
+
+> **Status: scope agreed by the operator, 2026-11-11 (DL-22).** The MVP is the **thin slice**: one
+> complete happy path, start to finish. Everything else that Define lists as Must is moved to
+> **future scope**: written down, designed in this SAD, **not deleted and not built** in the MVP.
+> Capacity (SOQ-12): the operator commits the time the slice needs; no number is recorded, so the
+> week-1 re-estimate is the check.
+
+**The thin slice (in the MVP)**:
+
+1. Mock regulation paragraphs are loaded (W-02).
+2. The **extractor** agent pulls out obligation rows (W-03).
+3. The **quote check**, plain code, blocks any row whose quote does not match its source (W-04, QN-1).
+4. The **verifier** agent checks for internal and cross-source conflicts (W-05, W-06).
+5. **G1**: the specialist approves each row (with a written reason over a flag) or rejects it with a
+   reason. The **coverage view** shows paragraphs no row cites (W-03b); a real miss means a new run.
+6. The **applicability** agent judges each approved row (W-11).
+7. **G2**: the specialist confirms, overrides with a reason, or decides "unsure" (`OBL-04` as
+   precautionary) (W-12).
+8. Due dates are calculated by plain code and the calendar is generated, with its marks (W-13).
+9. **G3**: the specialist publishes the whole calendar, or declines with a reason (W-15).
+10. A **basic GP view** of the published calendar with the calendar-level "not legal advice /
+    conventions not yet checked" note (W-16, FR-020), and the **audit log** of every decision (W-18).
+11. The **evaluation report** against the answer key, with the required trace export (W-20, US-013, D4).
+
+**Unchanged by the slice**: the hybrid runtime (the backend owns the gates; a short CrewAI Flow per
+stage stops at each gate, DL-17), D1–D6, and the controls that protect the slice: gate enforcement
+(CR-001), no tools (CR-002), schema validation (CR-003), role checks (CR-004), the quote check
+(CR-005), the verifier never edits (CR-006), reasons and no bulk decisions (CR-007), no model dates
+(CR-008), version checks (CR-009), all-or-nothing calendar (CR-011), published-only GP view (CR-012),
+append-only records (CR-013), injection handling (CR-014, CR-015), no answer key in prompts (CR-016),
+the cost cap (CR-017), traces (CR-018), GP text (CR-019), secrets (CR-021), one active run (CR-023)
+and the OQ-7 mark (CR-027). Run status still shows which step failed, in plain words (US-015 c1–c3).
+
+**Future scope** (designed in this SAD; not built in the MVP; each is a Define Must or a SAD addition
+that `@product-mgr` records as deferred):
+
+| Future item | Where it is designed | Consequence for the MVP and the demo |
+|---|---|---|
+| Edit a row and re-verify (FR-006 edit part, FR-007, US-005) | W-08 | A wrong field cannot be corrected; reject the row and, if needed, start a new run. The demo decisions need no edits |
+| Reopen a rejected row (FR-023) | W-07, H4a | A wrong rejection means a new run |
+| Reopen a confirmed verdict (FR-024) | W-12, H6a | A wrongly confirmed verdict means a new run |
+| GP review notice (FR-025) | W-16, CR-012 | Nothing can change after G3 in the MVP except a new run and a new publish, so no notice is needed; GPs see the last published version |
+| Re-run a failed step (US-015 c4–c6, DL-02) | W-19, CR-010 re-run part | A failed step means a new run; earlier gate decisions are repeated. The run stops at the last safe state and says which step failed |
+| Manual row creation (FR-027, DL-15) | W-07a, CR-020 | A missed row is visible in the coverage view; the fix is a new run |
+| Duplicate groups and the completion confirmation (FR-029, DL-16) | W-03a, CR-022 | No duplicate warnings. A true duplicate still fails calendar generation closed (§4 entry IDs) |
+| Release a failed document to manual entry (DL-18) | CR-010 release part | A document that keeps failing means a new run |
+| Verifier and judge dead-end handling (SOQ-10) | SOQ-10 | Undecided; a new run is the only route |
+| Impact report and change monitoring (F10, FR-021, FR-026) | W-22, CR-024 to CR-026 | Stretch, unchanged: not in the six weeks |
+| Extra CI checks: contract drift, release-rule PR check | §3, §5 | Replaced by a reviewer checklist |
+| Robustness: circuit breaker, restart sweep | Production Shape, §2 | One failure message per unit; a restart mid-stage needs a new run |
+
+**Estimate for the slice.** Unit: a **focused day** of the operator's attention, with the AAMAD
+personas doing most of the writing (SA-16). "Likely" is the planning figure; the range is roughly
+−25% / +40%.
+
+| WP | Work | Likely (days) |
+|---|---|---|
+| WP-00 | Week-1 spike: cost, latency and first-pass success per role | 1 |
+| WP-01 | UX design, `ux.md` (`@ux.designer`) | 2 |
+| WP-02 | Evaluation criteria (`*define-eval-criteria`) | 0.5 |
+| WP-03 | Setup: repository, FastAPI, Next.js, SQLite and migrations, configuration loading, CI basics, git hooks | 2 |
+| WP-04 | Data layer: tables with `fund_id`, versions, append-only triggers, audit writer | 2 |
+| WP-05 | Gate state machine, role checks, version checks, one active run, error envelope | 2.5 |
+| WP-06 | Stage A: loader, extract and verify step functions, quote check, Flow A, per-unit status, trace | 4 |
+| WP-07 | Stage B: judge step function, Flow B, fund profile | 1.5 |
+| WP-08 | Stage C: date engine, entry IDs, marks including OQ-7 | 3 |
+| WP-09 | G1: approve, approve over a flag with reason, reject with reason, coverage view, completion | 1.25 |
+| WP-11 | G2: confirm, override with reason, decide "unsure" (precautionary), fact view, completion | 1.5 |
+| WP-12 | G3: atomic publish, decline with reason, GP endpoint (published only), calendar-level note | 1.5 |
+| WP-13 | Frontend shell, mock sign-in, generated client and fixtures, run status page | 2 |
+| WP-14 | Frontend G1 page | 2.25 |
+| WP-15 | Frontend G2 and G3 pages | 2.5 |
+| WP-16 | Frontend GP calendar (WCAG 2.2 AA) | 1.5 |
+| WP-17 | Integration (fixtures → live backend) | 2 |
+| WP-18 | Evaluation runner, report, trace export | 2 |
+| WP-19 | Prompt tuning to reach the answer key; **highest uncertainty: 1 to 6 days** | 3 |
+| WP-20 | QA acceptance pass, accessibility review, copy review | 2 |
+| WP-21 | Security assessment | 1 |
+| WP-22 | Deliver: run instructions, user guide, outcome document, demo rehearsal | 1.5 |
+| | **Thin slice** | **≈ 42.5 (32–60)** |
+| | *Future scope above, for comparison (excluding F10 and SOQ-10)* | *≈ 10* |
+| | *Stretch F10* | *≈ 6* |
+
+(WP-10, manual row creation, is now future scope, so the numbering skips it.)
+
+**Fit verdict**: the operator has committed the time (SOQ-12) without giving a number, so the table
+below is kept as the reference for the week-1 re-estimate rather than as a verdict:
+
+| Focused days remaining for Build and Deliver | Verdict |
+|---|---|
+| ≥ 43 | The slice fits on the likely figure |
+| 32–43 | Fits only if the week goes to the low end of the range; agree Tier 2 cuts in advance |
+| < 32 | Does not fit as estimated; Tier 2 cuts needed from the start |
+
+**Tier 2 cuts** (available, **not** pre-approved): (a) time-box prompt tuning (WP-19) to 1 day and
+report any miss (PRD §7, DL-10); (b) build the frontend directly against the backend, skipping
+generated fixtures and merging WP-17 into WP-13 to WP-16 (about 2 days); (c) one plain review page per
+gate, keeping WCAG AA (about 2 days; affects review time); (d) drop the week-1 spike (1 day).
+
+**Recommendation**: re-estimate at the end of Build week 1 from actual progress on WP-00, WP-03,
+WP-04 and WP-05. If they took more than 1.3× their likely figure, bring Tier 2 cuts to the operator
+straight away.
+
+**Routes and endpoints in the slice**:
+
+| In the MVP | Future scope |
+|---|---|
+| Routes: all seven (§3). The G1 page has approve, reject and the coverage view only (no edit form, no manual row, no duplicate groups, no reopen); the G2 page has no reopen; the run status page has no re-run or release; the GP page has no review notice | — |
+| Endpoints: `POST /runs`, `GET /runs/{id}`, `GET .../g1`, `POST /rows/{id}/decision`, `POST .../g1/complete` (without `group_confirmations`), `GET .../g2`, `POST /verdicts/{id}/decision`, `POST .../g2/complete`, `GET .../g3`, `POST /calendars/{id}/publish`, `POST /calendars/{id}/decline`, `GET /calendar` (without the review notice), `GET /health` | `POST .../units/{unit}/rerun`, `POST .../units/{unit}/release`, `POST .../rows` (manual row), `PATCH /rows/{id}`, `POST /rows/{id}/reopen`, `POST /verdicts/{id}/reopen`, `group_confirmations`, the review-notice part of `GET /calendar` |
+
+*Record:* the first proposal (an "above the line" core of about 46 days and seven items below it) was
+replaced by this slice on the operator's decision. That proposal was never committed; its outline is
+recorded in decision log DL-22.
+
 ## Implementation Guidance for AI Development Agents
 
-*Pending: filled by `*create-sad`.*
+Order follows the epics index and the work packages above. **Build the thin slice only**; future-scope items are designed here but not built.
+
+1. **Setup** (`@project.mgr`, `setup.md`): WP-03 and the week-1 spike WP-00. Install the git hooks
+   first (§5). Record the resolved `AAMAD_TARGET_RUNTIME` and the CrewAI settings in `setup.md`.
+2. **UX** (`@ux.designer`, `ux.md`): the two surfaces in §3, with MC-003 as a design constraint (§7),
+   the voice rule (DL-05), no bulk or preselected decisions (AC-026), and every mark and notice in §3.
+3. **Frontend** (`@frontend.eng`): WP-13 to WP-16 against **generated fixtures only**; no backend
+   wiring; no future-work placeholders.
+4. **Backend** (`@backend.eng`): WP-04 to WP-12 and WP-18. Build in this order: data layer, gate state
+   machine and controls, then stages A, B, C. Every model step behind its §2 interface; agents with
+   **no tools**; the D1–D6 settings exactly; nothing writes gate state except the gate service.
+5. **Integration** (`@integration.eng`): WP-17; the contract-drift check passes before wiring.
+6. **QA** (`@qa.eng`): §9 layers; `*run-evals` against the criteria table; WP-19 and WP-20; the
+   evaluation report and trace export for the demo run; `*verify-change`.
+7. **Security** (`@security.eng`): WP-21, verifying the Control Register, D1–D6 and the hooks.
+8. **Deliver** (`@devops.eng`): WP-22, including the outcome document fields in §10.
+
+**Rules every Build persona follows**: a change to a prompt, model or step schema follows the §5
+release rule; a new tool, memory, automatic retry or re-ask is a SAD change, not a code change; the
+answer key never enters a prompt or run-time fixture (CR-016); a future-scope item is built
+only after the operator moves it into scope.
 
 ## Architecture Validation Checklist
 
-- [ ] PRD requirements mapped to architectural components (`*create-sad`)
+- [x] PRD requirements mapped to architectural components (requirement-to-component map)
 - [x] Work Ownership complete, with feasibility verdict and load-bearing constraint
 - [x] Pattern Decision and Reference Architecture complete
 - [x] Model and Context Strategy, Control Register and Production Shape complete
@@ -1101,15 +1284,21 @@ two scenarios show a need for, no more).
 - **SA-15**: CI never calls a language model and holds no model key; evaluation runs are local and
   manual (§5). The real-name scan stays local because its identifier list must never leave
   `reference/`.
+- **SA-16**: Estimates are in focused days of operator attention, with the AAMAD personas doing
+  most of the writing. They are the architect's judgement, not measurements, and are re-estimated
+  after Build week 1. Prompt tuning (WP-19) carries the widest range.
 - **SA-13**: The CrewAI settings in §2 (`max_iter: 2`, `max_rpm: 30`, timeouts) are starting values.
   The week-1 spike confirms or replaces them, and any change is recorded in the Audit.
 
 ## Open Questions
 
-- **SOQ-1** (from PRD OQ-5, DL-08): Does the Must scope fit six weeks? **Not yet shown.** Estimated
-  under `*create-sad`, with a proposed cut line for the operator to agree before Build. The week-1
-  measurement spike (Production Shape) replaces the cost and latency estimates in that estimate with
-  measured figures.
+- **SOQ-1** (from PRD OQ-5, DL-08): Does the MVP fit six weeks? **Scope agreed (DL-22): the thin
+  slice, about 42.5 focused days (32–60).** The fit verdict waits for SOQ-12. Re-estimated after Build
+  week 1.
+- **SOQ-12**: *Answered 2026-11-11 (operator).* The operator will dedicate the time the thin slice
+  needs. No number of focused days is recorded, so the fit is a **commitment, not a measured fit**.
+  The control is the week-1 re-estimate: if WP-00, WP-03, WP-04 and WP-05 take more than 1.3× their
+  likely figure, the Tier 2 cuts go to the operator straight away.
 - **SOQ-2**: *Resolved (`*define-controls`, CR-010, Production Shape).* One automatic transport
   retry per call; manual re-run up to 3 times per unit per input version; then "needs attention".
   Closes AM OD-7 and US-015 OQ-US015-1.
@@ -1295,3 +1484,24 @@ two scenarios show a need for, no more).
   operator, DL-07); §4 every business table carries `fund_id` (corrects an S-1 claim that it already
   did); S-2 and E5: conditional verdicts marked Future Work, MVP verdict schema stays at three
   values (CR-003); §7 the 30-minute review target depends on the G1/G2 UX design.
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass c) · `AAMAD_TARGET_RUNTIME=crewai` ·
+  §9 test layers, runtime checks, verification and security assessment before Deliver (criteria
+  table left for `*define-eval-criteria`); requirement-to-component map (F1–F10); six-week estimate
+  in focused days (≈ 52 Must, ≈ 46 core) with a **proposed** cut line (WP-23 to WP-29 below), the
+  consequences of each item below the line, a provisional fit verdict by remaining capacity, Tier 2
+  cuts and a week-1 re-estimate trigger, routes and endpoints by line; implementation guidance by
+  epic. SOQ-1 updated; new SOQ-12 (remaining capacity, operator); SA-16; checklist: requirement map
+  ticked. Cut line not agreed: it is a scope decision for the operator, then `@product-mgr`.
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass c, scope agreed) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · operator agreed the **thin slice** (DL-22) with four answers: keep
+  the evaluation report; keep G1 reject, G2 override and G3 decline with reasons; keep the coverage
+  view only; re-run of a failed step to future scope. Estimate section rewritten as "Six-week estimate
+  and agreed scope" (≈ 42.5 focused days, 32–60; future scope ≈ 10; Tier 2 cuts available, not
+  pre-approved; routes and endpoints by scope); thin-slice scope keys added to Work Ownership and the
+  Control Register; feasibility note and SOQ-1 updated; implementation guidance builds the slice only.
+  SOQ-12 (remaining capacity) still open. Note: the pass (c) edits were stashed automatically by
+  GitHub Desktop during a branch switch and restored from `stash@{0}` before this change.
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass c, SOQ-12) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · SOQ-12 answered: the operator commits the time the thin slice needs,
+  without a number; recorded as a commitment, not a measured fit; the week-1 re-estimate (1.3×
+  trigger) is the check. Feasibility note, scope status and fit table wording updated.
