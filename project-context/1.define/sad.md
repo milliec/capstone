@@ -4,9 +4,11 @@
 **Scope**: MVP only (six-week capstone). One fictional Luxembourg UCI Part II fund (`FND-DEMO-01`),
 mock data, mocked roles.
 **Status**: **In progress.** The five decision headings are filled: Work Ownership, Pattern Decision,
-Reference Architecture, Model and Context Strategy, Control Register (plus Production Shape). The
-numbered sections 1–10, the extensibility walkthroughs and the six-week estimate are filled by
-`*create-sad`. A heading marked *pending* has not been decided and must not be read as a decision.
+Reference Architecture, Model and Context Strategy, Control Register (plus Production Shape).
+`*create-sad` pass (a) filled sections 1–4. Sections 5–8 and 10, the extensibility walkthroughs
+(pass b) and the six-week estimate with a cut line (pass c) are still to come; section 9's criteria
+table is `*define-eval-criteria`. A heading marked *pending* has not been decided and must not be
+read as a decision.
 
 > **How to read the Trace column.** `SD` = `system-description.md` · `PRD` = `prd.md` · `US` =
 > `user-stories/` · `AM` = `approval-map.md` · `DL` = `decision-log.md` · `KEY` =
@@ -21,8 +23,8 @@ numbered sections 1–10, the extensibility walkthroughs and the six-week estima
 **Approval map and decision log**: `approval-map.md` (draft, proposals only), `decision-log.md`
 **MVP Scope**: the one happy path in PRD §2, plus the Must recovery paths (SD FR-022 to FR-025) and
 run recovery (US-015). Stretch F10 (US-014) is estimated separately and is not in the definition of done.
-**Selected Runtime**: `crewai` (resolved from `AAMAD_TARGET_RUNTIME`; `aamad.config.yml` leaves
-`runtime.target` unset)
+**Selected Runtime**: `crewai` (resolved from `AAMAD_TARGET_RUNTIME`; matches `runtime.target` in
+`aamad.config.yml`, which was unset when this SAD was started and now reads `crewai`)
 
 ## System Architecture Specification
 
@@ -379,7 +381,9 @@ include them; detailed when the stretch is scheduled.
   The run-level cost cap (CR-017) is the second breaker.
 - **Week-1 measurement spike** (Build, before the estimate is final): run each role's call (extractor
   on one document, verifier on one row, judge on one row) on the demo inputs at least 5 times each and
-  record tokens in and out, cost and latency per role, plus one full clean run end to end. The
+  record tokens in and out, cost and latency per role, and **first-pass success with no re-ask** per
+  role (the share of calls whose output passes the guardrail on the first attempt, with
+  `guardrail_max_retries: 0`; D5), plus one full clean run end to end. The
   measured figures replace the estimates in SA-6, feed the six-week estimate and cut line (SOQ-1), and
   give `*define-eval-criteria` real numbers for the cost and latency thresholds. Output: a short
   table in `project-context/2.build/` (file named by `@project.mgr`), referenced from this SAD's
@@ -401,12 +405,40 @@ include them; detailed when the stretch is scheduled.
 
 ### 1. MVP Architecture Philosophy & Principles
 
-*Pending: filled by `*create-sad`.*
+**MVP design principles** (each traced to the decision it comes from):
+
+| Principle | What it means here | Source |
+|---|---|---|
+| Specialist feedback first | The demo's question is whether a specialist can *check* rather than *author* rules in under 30 minutes. Every design choice that adds review friction is measured against that (MC-003). | PRD §1, §7 · SD MC-003 |
+| Simplest orchestration that delivers the value | A gated workflow: three stages, a CrewAI Flow per stage, three bounded model steps with no tools. No agent, no orchestrator, no memory. | Pattern Decision · DL-17 |
+| Code owns state, models draft | Gates, dates, versions, IDs and the audit log are deterministic code in the backend; every model output is a validated proposal. | Work Ownership · CR-001, CR-002 |
+| Fail closed, stay visible | Anything with a side effect refuses on doubt; anything uncertain is shown, not resolved (flags, "unsure", coverage gaps, open conventions). | Control Register · P-1 |
+| Observable by default | Every model call has an append-only trace record; every decision has an audit entry with the version it was made on; run status is per unit. | CR-013, CR-018 · US-015 |
+| Testable without a model | Gate, date, audit and access tests run with the Flows stubbed. | SD NFR-011 |
+| Build for reuse, build only Part II | Regulation, fund terms and client policy live in configuration files, not in code; only the Luxembourg Part II configuration exists. | SD NFR-012, §10 |
+
+**Core vs Future**:
+
+| In the MVP (Must) | Stretch (Could, after the Must stories pass) | Future work (not built) |
+|---|---|---|
+| F1–F9 happy path; recovery paths (FR-022 to FR-025); manual row creation and release (FR-027, DL-18); coverage view (FR-028); duplicate groups (FR-029); per-unit failure and re-run (US-015); evaluation report (US-013) | F10 change monitoring (US-014; FR-021, FR-026; W-22; CR-024 to CR-026) | Filing status; notifications to filing parties; multiple funds and frameworks; official holiday source; fund-fact editing; configuration screens; client-data separation; unpublish/withdraw; four-eyes review (timing open, PRD OQ-1); full trail view (FR-019, P1); live dashboards; real authentication |
+
+**Explicit exclusions** (from SD §9, kept visible because each is a tempting addition): no live
+externals except the model provider; no task tool as the record; no PDF parsing; no real data; no
+GP-facing change notifications (the review notice is not one, FR-025).
+
+**Technical architecture decisions**:
+
+| Decision | Choice | Why | Trace |
+|---|---|---|---|
+| Frontend framework | **Next.js (App Router) with TypeScript** | Operator intent (PRD OQ-8) and a sound fit: two route-based surfaces, server rendering for the read-only GP view, typed contracts with the backend. Resolves SOQ-4. | PRD A-4, OQ-8 · AM OD-12 |
+| Backend language and framework | **Python 3.12, FastAPI, Pydantic v2** | CrewAI is a Python library, so the Flows run in Python; keeping gates, dates and audit in the same process avoids a second service that must agree on state. FastAPI gives typed request/response schemas and an OpenAPI contract the frontend can generate its client from. Pydantic models are shared by the API and by the CrewAI tasks' structured outputs. | `AAMAD_TARGET_RUNTIME=crewai` · CR-001, CR-003 |
+| Storage | **SQLite** (one file, local), via SQLAlchemy 2 | PRD §3 requires persistence between sessions; one run at a time (A-6) and a local demo need no server database. Append-only is enforced at the storage boundary with database triggers (CR-013). | PRD §3 Storage · SD MD-009, NFR-003 |
+| UI approach | Two surfaces, both route-based: a **specialist review surface** (runs, G1, G2, G3) and a **GP read-only calendar**. Not a chat, not a dashboard. Layout, components and visual design belong to `ux.md`. | PRD §6 names exactly these two surfaces. | PRD §6 · SD §1 |
+| Runtime communication | The backend runs each stage's Flow as a **background task**; the frontend reads progress by **polling** the run-status endpoint. | Runs last minutes, not seconds; one user, one run. Polling is enough to show which units are finished, running or failed (US-015 c1) and needs no connection management. | US-015 · PRD A-6 |
+| Streaming | **None.** No model output is shown while it is being generated; every model output is shown only after schema validation (CR-003). | Showing partial model text before validation would display unvalidated content. | SD NFR-004 |
 
 ### 2. Application Runtime Specification
-
-*Mostly pending: filled by `*create-sad`.* One decision is recorded now because the Pattern Decision
-depends on it (review finding 7):
 
 **Runtime shape (operator decision, 2026-11-11).** The backend is the single owner of gate state. A
 **short CrewAI Flow runs each stage** (A, B, C): it starts only when the backend triggers it, runs
@@ -439,18 +471,248 @@ model steps.* `AAMAD_TARGET_RUNTIME=crewai` constrains Build conventions only (P
 swap-as-release rule (Model and Context Strategy) is cheap to honour when a model change is confined
 to the inside of one function, and SD NFR-011 is met because gate, date and audit tests call the
 backend with the Flows stubbed out: no CrewAI object and no model are needed to run them. CrewAI's
-agent, task and YAML conventions apply **inside** the Flows and are specified when this section is
-completed.
+agent, task and YAML conventions apply **inside** the Flows, as below.
+
+**Runtime roles** (the only three; no others are added):
+
+| Role (CrewAI agent) | Goal | Tools | Memory | Used in |
+|---|---|---|---|---|
+| `extractor` | Turn one source document into fixed-schema obligation rows, each citing one paragraph ID with a verbatim quote, with no dates and no business-day rule unless the source states one | **None** | None | Stage A, W-03 |
+| `verifier` | Report internal and cross-source conflicts for one row, with evidence; never change the row, never choose a source | **None** | None | Stage A, W-05/W-06; re-verification W-08 |
+| `judge` | Give one applicability verdict for one approved row, citing fact IDs; answer "unsure" rather than guess when a fact is missing | **None** | None | Stage B, W-11 |
+
+Each role is used as a **one-agent, one-task crew** inside a function that implements the
+runtime-neutral interface above. `allow_delegation=false`, `memory=False`, `tools=[]`, no manager
+agent, `process=sequential` (trivially, with one task).
+
+**Task and turn orchestration**:
+
+| Stage Flow | Steps in order | Parallel part | Output to the backend | Budget (estimates; replaced by the week-1 spike) |
+|---|---|---|---|---|
+| A | load paragraphs (code) → `extract_rows` per document → duplicate grouping W-03a and coverage W-03b (code) → quote check W-04 (code) → `check_conflicts` per row | extraction per document; verification per row | rows, flags, quote-check results, groups, coverage list, per-unit status | `max_execution_time` 90 s per extraction task, 60 s per verification task; stage ≤ 3 min |
+| B | load fund profile (code) → `judge_applicability` per approved row | per row | verdicts, per-unit status | 60 s per task; stage ≤ 90 s |
+| C | date generation W-13, out-of-date marks W-14 (code only) | none | one complete calendar version, or nothing (CR-011) | < 5 s |
+
+- **Context passing** between steps is through stored data, never through task context or agent
+  memory: each task's input is built by code from the stored row, sources and profile (Model and
+  Context Strategy). `Task.context` chaining is therefore **not used**; the dependency order is the
+  Flow's step order, which is deterministic (adapter deviation D2).
+- **Parallel units** run with `kickoff_for_each` (or its async form). The **deterministic merge key
+  is the idempotency key** `run_id · step · unit_id · input_version` (CR-010), which the adapter
+  requires for batch kickoffs.
+- **Expected outputs**: every task sets `output_pydantic` to the step's schema (Row list, Flag list,
+  Verdict) and a `guardrail` that validates the schema rules in CR-003 (paragraph ID exists, no date
+  fields, verdict in the allowed set, fact IDs exist). Every task has a `Task.id` equal to the step
+  name.
+- **Error handling**: a guardrail failure or a timeout marks that unit failed and re-runnable (W-19);
+  it is never retried automatically (Production Shape; `guardrail_max_retries: 0`, D5). Transport errors get one automatic retry.
+- **Cancellation and timeouts**: there is no user cancel in the MVP (not in the requirements). A
+  task that exceeds `max_execution_time` fails its unit. If the backend process stops mid-stage, on
+  start-up every unit still marked "running" is marked failed and re-runnable, so the last safe state
+  (W-19) survives a restart without a resume feature (US-015 deferred "unless it comes free"; this
+  much does).
+- **Sampling**: temperature 0, per-step `max_tokens` from configuration; model from `LLM_MODEL`.
+
+**Runtime-conditional configuration (crewai)**, per `.cursor/rules/adapter-crewai.mdc`:
+
+| Adapter rule | Setting here | Note |
+|---|---|---|
+| Agents and tasks in YAML | `backend/config/agents.yaml`, `backend/config/tasks.yaml` (three agents, three tasks) | Prompts live in these files and are content-hashed for the trace (CR-018) |
+| Entry point | `backend/runtime/flows.py` (three stage Flows) instead of `crew.py` | "or equivalent runtime entrypoint" |
+| `allow_delegation=false` | Yes, all agents | |
+| Sequential process | Yes | Hierarchical not used |
+| `max_iter <= 12` | `max_iter: 2` | No tools, so one reasoning step plus a final answer |
+| `max_execution_time` per epic | As in the table above | Tuned after the spike |
+| `max_rpm` at crew level | 30 | Bounds bursts from parallel units |
+| Tools: minimum set | Empty for every agent | CR-002 |
+| `memory=False` | Yes | No `CREWAI_STORAGE_DIR` needed |
+| `Task.guardrail` for high-risk outputs | Yes, on all three tasks | Retry setting: D5 |
+| `max_retry_limit`, `Task.context`, `expected_output`, output path, human review gate | See D1–D4 and D6 below | |
+
+**Adapter deviations and interpretation (D1–D6).** *Accepted by operator decision, 2026-11-11
+(DL-21).* Source: `.cursor/rules/adapter-crewai.mdc`. Build follows these instead of the adapter text
+they name.
+
+*Summary:*
+
+- **D1**: `max_retry_limit` is 1, not ≥ 2: one automatic retry, transport errors only.
+- **D2**: `Task.context` chaining is not used: every input is built by code from stored data.
+- **D3**: `expected_output` describes a typed schema, not headings and artifact paths.
+- **D4**: no per-task output path: outputs go to the database; every evaluation run must export its trace.
+- **D5**: `guardrail_max_retries` is 0: a failed check is shown to the specialist, never re-asked.
+- **D6** (interpretation): the human review gate is G1–G3 in the backend, not `human_input=true`.
+
+*Detail:*
+
+| # | Adapter rule, verbatim (line) | Conflicts with | Setting and justification | Accepted risk and mitigation |
+|---|---|---|---|---|
+| D1 | "`max_retry_limit >= 2`." (34) | Production Shape (retries) · CR-010 · CR-017 | `max_retry_limit: 1`. A second automatic attempt hides a systematic failure from the specialist and spends budget unseen. | More manual re-runs after two transient errors in a row; costs review time (MC-003), not correctness. |
+| D2 | "Use explicit task context chaining (`Task.context`) for deterministic dependency flow." (24) | Model and Context Strategy · W-05 · DL-17 | Not used. `Task.context` would pass the extractor's output and reasoning into the verifier's prompt, breaking W-05. Order stays deterministic: it is the Flow's step order; inputs come from stored data. | Low; developers used to CrewAI may expect it. §2 states where every input comes from. |
+| D3 | "Define `expected_output` with required headings and target artifact paths." (25) | CR-003 · CR-010 | `expected_output` describes the step's typed schema; `output_pydantic` enforces it. The adapter rule is written for document-producing crews; these tasks return data. | Low; a reviewer comparing against the adapter text sees a mismatch, so it is recorded here. |
+| D4 | "Require `Task.id` and explicit output path for traceability." (54) | CR-010 · CR-013 · CR-018 | `Task.id` kept (equal to the step name); **no output path**. Outputs are stored in the database under their idempotency key; a file would be a second store outside the replace and append-only rules. Traceability is the trace store plus a **required export**: every evaluation run writes its trace records and lifecycle events to `project-context/2.build/logs/<run_id>/`, secrets redacted (adapter line 48). **The export is part of the evaluation run's definition of done**: an evaluation run without its export is reported as failed. Test **T-D4-1**: run the evaluation with the export step disabled or its output deleted → the evaluation run is marked failed and says why; with the export present → it passes the check and the export contains one record per model call attempt (matching the trace store count). | Medium-low before the test; low with T-D4-1 in place. |
+| D5 | *Library default, not an adapter rule:* CrewAI re-asks the model when a guardrail fails (`guardrail_max_retries`). The adapter rule followed is "Use `Task.guardrail` for high-risk outputs" (53). | Pattern Decision (evaluator-optimizer rejected) · Production Shape (no retry on schema-invalid) · CR-003 | `guardrail_max_retries: 0`. Re-asking the model with its own failure is the self-correcting loop the design rejects; the failed unit is marked re-runnable for the specialist. | First-pass success may be lower (small formatting slips are not fixed by a re-ask). **The week-1 spike records first-pass success with no re-ask, per role** (Production Shape). If it is too low, the fix is a better prompt or schema, released under the swap rule, never a re-ask. |
+| D6 | "For high-risk outputs, require a human review gate (`human_input=true` or explicit review task)." (56) | DL-17 (backend owns gate state) | *Recorded interpretation, not a deviation.* G1, G2 and G3 in the backend are the explicit review; `human_input=true` would put gate state inside a Flow. | Low; if `@security.eng` reads the rule literally, this is re-raised as a deviation. |
 
 ### 3. Frontend Architecture Specification
 
-*Pending: filled by `*create-sad`.* Framework choice answers PRD OQ-8 (Next.js is operator intent, not
-a requirement).
+**Technology stack**:
+
+| Concern | Choice | Note |
+|---|---|---|
+| Framework | Next.js (App Router), TypeScript in strict mode | §1 |
+| UI library and styling | **Proposed default:** Tailwind CSS with accessible headless primitives (for example Radix UI). **Not mandatory**; `ux.md` may replace it | The SAD does not fix a vendor UI library (template rule). The constraint is WCAG 2.2 AA (PRD §6) and the voice rule (DL-05) |
+| Type safety at the boundary | **The FastAPI OpenAPI schema is the single contract.** TypeScript types, the API client and the frontend fixtures are all generated from it; none is written by hand | One source of truth for request and response shapes; a schema change regenerates all three, so they cannot drift (§4) |
+| State management | Server data fetched per page; no global client store. Local form state only. The server is the source of truth for every status and version | The frontend never computes gate state, dates, flags or versions |
+| Data freshness | Run status polled every 2 s while a stage is running; review pages re-fetch after each decision | §1 |
+
+**Application structure** (route boundaries; screens and layout belong to `ux.md`):
+
+| Route | Role | Purpose | Trace |
+|---|---|---|---|
+| `/` | any | Mock sign-in: choose specialist or GP (mocked identity) | SD A-5 |
+| `/specialist/runs` | specialist | Start a run (refused while one is active, CR-023); list runs | US-015 |
+| `/specialist/runs/[runId]` | specialist | Run status per stage and per unit; re-run a failed unit; release a failed extraction document | US-015, DL-18 |
+| `/specialist/runs/[runId]/g1` | specialist | Rows with quote, quote-check result and flags; duplicate groups with warnings; coverage view; edit, approve, reject, reopen; add a row by hand; complete G1 (with group confirmation when required) | US-001 to US-005, US-016 · FR-027 to FR-029 |
+| `/specialist/runs/[runId]/g2` | specialist | Verdicts with reasoning and openable fact values; confirm, override, decide "unsure", reopen; GP-visible reason field | US-007 · W-17 |
+| `/specialist/runs/[runId]/g3` | specialist | Full calendar version with roll, unconfirmed, precautionary and OQ-7 marks; "conventions not yet checked" note; publish or decline | US-010 · CR-027 |
+| `/calendar` | GP (and specialist, read-only) | Published calendar only; calendar-level note; review notice when active; empty state before first publication | US-011 |
+
+- **API client boundary**: all calls go through one generated client module. During the Frontend epic
+  the client is backed by **fixtures generated from the OpenAPI schema** (examples on the Pydantic
+  models, so each fixture is a valid response by construction; no backend wiring in the FE epic). The
+  Integration epic swaps the fixtures for the live backend. A check in CI regenerates the types and
+  fixtures from the current schema and fails if the committed copies differ.
+- **Component architecture**: shared building blocks for the recurring evidence patterns: a row card
+  (fields, quote, check result, flags), a flag (type plus evidence, DL-03), a decision control
+  (separate explicit actions, nothing preselected, reason field when required, AC-026), a mark badge
+  (roll, unconfirmed, precautionary, OQ-7). Exact components are `ux.md`'s.
+- **Accessibility and responsiveness**: WCAG 2.2 AA on both surfaces (PRD §6). The specialist surface
+  is designed for desktop review; the GP calendar must also work on a phone-width screen.
+
+**Interface requirements**:
+
+- **Primary interaction surface**: the specialist review pages above (PRD §6), not a chat.
+- **Loading states**: per unit during a run (running, finished, failed with reason); per page while
+  data loads.
+- **Error states**: every refusal from the backend is shown as the plain message the backend returns,
+  naming what was refused and why, in the voice of DL-05: gate incomplete, version changed since the
+  page was loaded (CR-009), run already active (CR-023), re-run limit reached (CR-010), cost cap
+  reached (CR-017), model service not responding (circuit breaker).
+- **Placeholders for future work**: **none.** No disabled buttons or "coming soon" items for future
+  features, on either surface. A placeholder can imply functionality the system does not have, which
+  matters most on the GP view (MN-007, DL-01).
 
 ### 4. Backend Architecture Specification
 
-*Pending: filled by `*create-sad`.* Includes the version scheme for approval records (AM OD-11) and the
-stable entry-ID scheme (US-008 assumption).
+**API architecture.** FastAPI, JSON over HTTP, all request and response bodies as Pydantic models
+published in the OpenAPI schema. **That schema is the single contract** between frontend and backend
+(§3): TypeScript types, the client and the fixtures are generated from it. Every write endpoint
+checks the mocked role server-side (CR-004). **Every decision or state-changing request carries the
+version the specialist saw**, and the server refuses it with `VERSION_MISMATCH` if that version is no
+longer current (CR-009): the entity version for row, verdict and calendar decisions, and the **run
+state version** (an integer on the run, +1 on every unit or gate change) for re-run, release and gate
+completion. This also absorbs double submits.
+
+**How the round-2 controls appear in this section** (cross-check):
+
+| Control | Where in §4 |
+|---|---|
+| CR-010, CR-013: replaceable current outputs vs append-only records | `current_outputs` table (replaced per idempotency key) vs `trace`, `audit_log` and the `*_versions` tables (append-only, enforced by triggers) |
+| CR-017: cost cap aligned to MC-002 | `RUN_COST_CAP_USD` (default 4) stops model calls at the cap; the evaluation report fails any run over **US$2** (MC-002); `COST_CAP` refusal code |
+| CR-023: one active run | `POST /runs` refuses with `RUN_ACTIVE` while a run is active |
+| CR-009: version on every decision | Every decision and state-changing request below carries `version` or `run_version` |
+
+| Endpoint (shape) | Role | Purpose | Controls |
+|---|---|---|---|
+| `POST /runs` | specialist | Start a run for `FND-DEMO-01`; backend triggers stage A | CR-023 |
+| `GET /runs/{run_id}` | specialist | Run status: stages, units, failures, cost so far | US-015 |
+| `POST /runs/{run_id}/units/{unit_id}/rerun` `{run_version}` | specialist | Re-run one failed unit | CR-009, CR-010 |
+| `POST /runs/{run_id}/units/{unit_id}/release` `{run_version, reason}` | specialist | Release a failed extraction document to manual entry | CR-009, CR-010, DL-18 |
+| `GET /runs/{run_id}/g1` | specialist | Rows, flags, quote checks, duplicate groups, coverage list | W-03a, W-03b |
+| `POST /runs/{run_id}/rows` `{paragraph_id, quote, fields}` | specialist | Create a row by hand | CR-020 |
+| `PATCH /rows/{row_id}` `{version, fields}` | specialist | Edit a pending or approved row; triggers re-verification | CR-005, CR-009, W-08 |
+| `POST /rows/{row_id}/decision` `{version, decision, business_day_rule, reason?}` | specialist | Approve or reject one row | CR-005, CR-007, CR-009 |
+| `POST /rows/{row_id}/reopen` `{version, reason}` | specialist | Reopen a rejected row | FR-023 |
+| `POST /runs/{run_id}/g1/complete` `{run_version, group_confirmations?: [{group_id, row_versions: {row_id: version}, reason}]}` | specialist | Complete G1; backend triggers stage B. A group confirmation is refused if any confirmed row's version has changed | CR-001, CR-009, CR-022 |
+| `GET /runs/{run_id}/g2` | specialist | Verdicts with reasoning and fact values | W-12 |
+| `POST /verdicts/{verdict_id}/decision` `{version, decision, value?, reason?}` | specialist | Confirm, override or decide "unsure" | CR-007, CR-009 |
+| `POST /verdicts/{verdict_id}/reopen` `{version, reason}` | specialist | Reopen a confirmed verdict | FR-024 |
+| `POST /runs/{run_id}/g2/complete` `{run_version}` | specialist | Complete G2; backend triggers stage C | CR-001, CR-009 |
+| `GET /runs/{run_id}/g3` | specialist | Calendar version with marks | CR-027 |
+| `POST /calendars/{calendar_id}/publish` `{version}` | specialist | Publish the whole version | CR-001, CR-011 |
+| `POST /calendars/{calendar_id}/decline` `{version, reason, next_step}` | specialist | Decline at G3 | FR-022 |
+| `GET /calendar` | GP, specialist | Published version only, review notice, calendar-level note | CR-012 |
+| `GET /health` | none | Liveness for local start-up checks | §5 |
+
+- **Validation**: Pydantic on every request; unknown fields rejected.
+- **Rate limiting**: none at the HTTP layer (one local user). Model-call limits are `max_rpm` and the
+  cost cap (CR-017).
+- **Error envelope** (every non-2xx response):
+  `{"error": {"code": "VERSION_MISMATCH", "message": "<plain sentence for the specialist>", "details": {...}}}`.
+  Codes: `FORBIDDEN` (403), `VALIDATION` (422), `VERSION_MISMATCH` (409), `GATE_INCOMPLETE` (409),
+  `RUN_ACTIVE` (409), `RERUN_LIMIT` (409), `QUOTE_CHECK_FAILED` (409), `REASON_REQUIRED` (422),
+  `COST_CAP` (409), `MODEL_UNAVAILABLE` (503). Every refusal is also written to the audit log
+  (CR-001).
+- **Streaming or event envelope**: none (§1).
+
+**Data architecture.** Persistence is required (PRD §3), so this section is not deferred. One SQLite
+file; the main tables:
+
+| Table | Holds | Write rule |
+|---|---|---|
+| `runs`, `units` | Run and per-unit status, attempt counts, release records | Updated by the backend |
+| `paragraphs` | Loaded source paragraphs with IDs and a content hash | Loaded from mock files per run |
+| `rows`, `row_versions` | Current row and every version of it (fields, quote, origin, status) | `row_versions` append-only |
+| `flags`, `quote_checks` | Verification results per row version | Append per row version |
+| `duplicate_groups`, `coverage` | W-03a groups and W-03b list per run | Recomputed by code; computations logged |
+| `verdicts`, `verdict_versions` | Current verdict and every version | `verdict_versions` append-only |
+| `calendar_versions`, `calendar_entries` | Each generated calendar version and its entries | Append-only per version (CR-011) |
+| `publications` | The published calendar version per fund, and the review-notice state | One atomic pointer switch per publish |
+| `current_outputs` | One model output per idempotency key | Replaced on re-run (CR-010) |
+| `trace` | Every model call attempt | **Append-only** (CR-013, CR-018) |
+| `audit_log` | Every human decision, agent output reference, gate event, refusal and system event | **Append-only** (CR-013) |
+
+Append-only tables have database triggers that raise an error on `UPDATE` or `DELETE`, so the rule
+holds even if application code tries (CR-013).
+
+**Identifier and version schemes** (resolves the remainder of SOQ-3; answers OQ-US016-1):
+
+| Identifier | Scheme | Why |
+|---|---|---|
+| Run | `RUN-<yyyymmdd>-<n>` | Readable in reports and logs |
+| Row | `ROW-<run>-<n>`, where `<n>` is a **run-wide sequence assigned by the backend** when the row is stored (never by a model, never per paragraph). The same scheme for model-extracted and human-created rows; **origin is a separate field** (`model` / `human`) | Unique by construction: a human-created and an extracted row citing the same paragraph, or two rows extracted from one paragraph, get different `<n>`. The origin label is the rule (US-016); meaning is not encoded in the ID. The evaluation filters by origin to count human-created rows separately (US-013 c8). Test **T-ID-1**: extract two rows from one paragraph and create a third by hand citing it → three distinct row IDs; a unique constraint on `rows.id` refuses any duplicate insert |
+| Versions | Integer per row, verdict and calendar, starting at 1, +1 on every change | CR-009 |
+| Stable calendar entry ID | `ENT-<fund>-<paragraph_id>-<recipient>-q<quote_pos>-<period>`, where `<recipient>` is the authority code (for example `CSSF`, `AED`), `<quote_pos>` is the character position where the row's quote starts in its normalised paragraph (QN-1), and `<period>` is the anchor period (for example `2027-03` for a monthly or quarterly obligation, `FY2026` for an annual one) or the event ID for an event-triggered entry (`EVT-01`). Example: `ENT-FND-DEMO-01-SRC-CSSF15627-P2-CSSF-q0-2026-12` | Same occurrence, same ID, across regenerations and runs (US-008 c7, FR-016), and independent of the due date, so editing an offset moves the date without changing the ID a future filing record would reference. The recipient separates rows from one paragraph that go to different authorities (SA-9); the quote position separates two obligations in one paragraph to the **same** authority, because their quotes start at different places. The quote position is used rather than a sequence number because a sequence would shift when a row is added, rejected or reopened; the position changes only if the quote itself is edited, which is a new occurrence. If two approved rows would still produce the same entry ID (same paragraph, authority, quote and period: a true duplicate), generation fails closed and names both rows. Test **T-ID-2**: two approved rows citing one paragraph, same authority, different quotes → distinct entry IDs; regenerate → same IDs; edit one row's offset → its dates move, its IDs do not; two rows with the same quote → generation refused naming both |
+| Idempotency key | `run_id · step · unit_id · input_version`; trace adds `· attempt_n` | CR-010 |
+
+**Runtime integration layer.** The API layer calls services; services own gate transitions, versions
+and audit writes. When a gate completes, the gate service records the transition and **then** starts
+the next stage's Flow as a background task with only the run ID. The Flow calls back into service
+functions to store each unit's output; it cannot call the gate service. Configuration for the
+pattern is in versioned files: `backend/config/agents.yaml` and `tasks.yaml` (runtime),
+`config/regulation/lu-part2.yaml` (conventions `D-1` to `D-7`, mock holiday list, open conventions
+for CR-027, source file list), `config/fund/FND-DEMO-01.yaml` (fund profile), and
+`config/policy/default.yaml` (client policy: unconfirmed-roll default, P-1 treatment). Each file's
+content hash is part of the input version of the steps that read it, so a configuration change
+invalidates outputs the same way an edit does (SD §10.2). Logging and trace hooks: CR-018 records per
+call; the audit log per decision.
+
+**Authentication and secrets** (names only; values never committed; `.env.example` created in
+Build setup):
+
+| Variable | Purpose |
+|---|---|
+| `AAMAD_TARGET_RUNTIME` | `crewai` (development crew setting, recorded in Audit) |
+| `LLM_MODEL`, `LLM_API_KEY` | Model provider |
+| `LLM_MAX_TOKENS_EXTRACT`, `LLM_MAX_TOKENS_VERIFY`, `LLM_MAX_TOKENS_JUDGE` | Per-step output limits |
+| `RUN_COST_CAP_USD`, `UNIT_RERUN_LIMIT` | CR-017, CR-010 |
+| `SESSION_SECRET` | Signs the mocked-identity session cookie |
+| `DATABASE_PATH` | SQLite file location |
+| `NEXT_PUBLIC_API_BASE_URL` | Frontend → backend base URL |
+
+Authentication is mocked (SD A-5): the sign-in page sets a signed session cookie holding a mocked
+identity and role (`specialist-1` / `gp-1`); the backend reads the role from the cookie on every
+request. This is a demo mechanism, not access control (AM §3).
 
 ### 5. DevOps & Deployment Architecture
 
@@ -494,10 +756,10 @@ considering Singapore marketing), separately, architecture-only, no coverage pro
 - [x] Model and Context Strategy, Control Register and Production Shape complete
 - [x] Runtime roles exist only when the Pattern Decision requires them (three bounded model steps,
       one per role; no default crew; §2 runtime shape recorded)
-- [ ] Frontend and backend contracts agree on schemas / streaming (`*create-sad` §3–§4)
-- [x] Secrets via env vars only (CR-021; names in Production Shape; `.env.example` in Build setup)
-- [ ] MVP vs Future Work boundaries explicit (`*create-sad` §1; the stretch and deferred items are
-      already marked throughout)
+- [x] Frontend and backend contracts agree on schemas / streaming (one OpenAPI schema from the
+      backend's Pydantic models; generated frontend client; no streaming on either side, §1, §3, §4)
+- [x] Secrets via env vars only (CR-021; full name list in §4; `.env.example` in Build setup)
+- [x] MVP vs Future Work boundaries explicit (§1 table)
 - [x] Resolved `AAMAD_TARGET_RUNTIME` recorded in Audit
 
 ## Sources
@@ -550,6 +812,19 @@ considering Singapore marketing), separately, architecture-only, no coverage pro
   approved rows needs one confirmation with a written reason, logged (CR-022, test T-W03a-2). This
   keeps a deliberate "two rows for one obligation" possible (for example two authorities) while
   making an accidental one impossible to miss.
+- **SA-10** (stack defaults chosen where the PRD is silent; template rule "list them explicitly"):
+  Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 with SQLite on the backend; Next.js App Router with
+  TypeScript on the frontend; Tailwind CSS with headless accessible primitives as a replaceable UI
+  default; polling instead of streaming; a signed cookie for the mocked identity. Each is justified in
+  §1, §3 or §4 and can be changed by a SAD update before Build.
+- **SA-11**: Each run produces its own rows, verdicts and calendar versions. A new run never changes
+  the published calendar; only a publish does. Entry IDs are stable across runs (§4), so a
+  republished calendar from a later run keeps the IDs of unchanged occurrences.
+- **SA-12** (PRD OQ-11): The reused prototype front end is **not** assumed. §3 is written for a new
+  Next.js frontend. If OQ-11 shows the prototype is the operator's own work and fits §3, the Frontend
+  epic may reuse it; if it was built for or at an employer, it is not reused (PRD OQ-11, DL-07).
+- **SA-13**: The CrewAI settings in §2 (`max_iter: 2`, `max_rpm: 30`, timeouts) are starting values.
+  The week-1 spike confirms or replaces them, and any change is recorded in the Audit.
 
 ## Open Questions
 
@@ -608,8 +883,11 @@ considering Singapore marketing), separately, architecture-only, no coverage pro
   G1 or G2 closed with no release (T-REL-2). The fixes differ from extraction: a row with no conflict
   check, or a row with no agent verdict. To be decided separately; until then, a new run is the only
   way through.
-- **SOQ-4** (PRD OQ-8, AM OD-12): Frontend framework. Next.js is operator intent; confirmed or
-  replaced under `*create-sad` §3.
+- **SOQ-4**: *Resolved (`*create-sad` §1, §3).* Next.js (App Router) with TypeScript, confirming
+  the operator's intent (PRD OQ-8, AM OD-12). `@product-mgr` may mark PRD OQ-8 resolved.
+- **SOQ-11** (for `@product-mgr` and `@qa.eng`, not blocking): OQ-US016-1 is answered in §4. Rows
+  use one ID scheme whatever their origin; the `origin` field (`model` / `human`) is what tells them
+  apart, and the evaluation filters on it. `@product-mgr` may mark OQ-US016-1 resolved.
 - **SOQ-5**: *Resolved 2026-11-11 (operator decision).* The quote check is deterministic code and
   the authority that blocks G1; the verifier agent keeps the model-based conflict checks. AM OD-8
   closed with a reference to W-04 and QN-1.
@@ -694,3 +972,30 @@ considering Singapore marketing), separately, architecture-only, no coverage pro
   `AAMAD_TARGET_RUNTIME=crewai` · SOQ-9: OQ-US016-2 recorded as resolved (PRD F3 covers a missed row
   and the rows of a released document); removed the stale "still the operator's" wording and the
   follow-up note, which `@product-mgr` has completed (US-015 c14, US-016 c11, US-013 c9).
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass a: §1–§4) ·
+  `AAMAD_TARGET_RUNTIME=crewai` (now also `runtime.target` in `aamad.config.yml`) · §1 principles,
+  core vs stretch vs future, technical decisions (Next.js + TypeScript, Python FastAPI + Pydantic,
+  SQLite with append-only triggers, polling, no streaming); §2 three runtime roles as one-agent
+  one-task crews inside per-stage Flows, orchestration table, cancellation and restart behaviour, and
+  the crewai adapter mapping with three recorded deviations (`max_retry_limit: 1`,
+  `guardrail_max_retries: 0`, no per-task output path) and `max_iter: 2`, `max_rpm: 30`, temperature 0;
+  §3 routes, client boundary with fixtures, components, accessibility, error states, no future
+  placeholders; §4 endpoints, error envelope, data tables, ID and version schemes (stable entry ID
+  includes the recipient), integration layer, configuration files, env var names, mocked identity.
+  SOQ-4 resolved; new SOQ-11 (OQ-US016-1 answered); SA-10 to SA-13; checklist updated. Prompt Trace
+  not captured: no model call made.
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass a, correction) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · the adapter deviations written in §2 were recorded before operator
+  review; marked as proposals pending review. On checking the adapter text line by line there are four
+  deviations from adapter wording (lines 24, 25, 34, 54), one library-default override
+  (`guardrail_max_retries`) and one interpretation (line 56), not the two stated in chat.
+- 2026-11-11 · persona `system-arch` · action `create-sad` (pass a, review) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · operator accepted adapter deviations D1–D5 and interpretation D6
+  (DL-21); pending note removed; §2 now has a one-line summary and a detail table (verbatim rule and
+  line, conflicts, justification, risk). D4: trace export required for every evaluation run, test
+  T-D4-1. D5: week-1 spike records first-pass success with no re-ask. Pass (a) review fixes: row IDs
+  use a backend-assigned run-wide sequence, test T-ID-1; entry ID adds the quote position
+  (`q<quote_pos>`) so two obligations in one paragraph to one authority stay distinct, test T-ID-2;
+  §4 cross-check table for the round-2 controls; `run_version` on re-run, release and gate completion,
+  row versions on G1 group confirmations; OpenAPI schema stated as the single contract, with types,
+  client and fixtures generated from it and a CI drift check (§3, §4).

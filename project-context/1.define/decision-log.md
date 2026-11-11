@@ -304,6 +304,26 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   kept open with a pointer to this entry. Later the same day: the G1 note became US-004 criterion 17, and AC-032 plus a US-011
   assumption cover the `OBL-02` mark.
 
+### DL-21 · Five CrewAI adapter deviations and one interpretation are accepted
+
+- **Decision**: the operator reviewed and accepted D1–D5 as justified deviations and D6 as a recorded
+  interpretation of `.cursor/rules/adapter-crewai.mdc`: D1 `max_retry_limit: 1`; D2 no `Task.context`
+  chaining; D3 `expected_output` as a typed schema; D4 no per-task output path; D5
+  `guardrail_max_retries: 0` (a library default, not an adapter rule); D6 the backend gates count as
+  the human review gate. Two conditions: **D4** makes the trace export a required step of every
+  evaluation run, with test T-D4-1 failing a run whose export is missing; **D5** requires the week-1
+  spike to record first-pass success per role with no re-ask.
+- **Why**: each adapter rule, followed literally, would undo an earlier decision: automatic retries
+  and guardrail re-asks rebuild the rejected self-correcting loop and hide failures (Pattern
+  Decision, Production Shape); `Task.context` would show the verifier the extractor's output (W-05);
+  output files would be a second store outside the idempotency and append-only rules (CR-010,
+  CR-013).
+- **Process note**: the deviations were first written into the SAD before review, then marked as
+  pending and reviewed one by one, with the verbatim rule, its line, the conflicting decisions, the
+  justification and the risk. Only then were they recorded.
+- **Changed**: SAD §2 (adapter table, D1–D6 summary and detail), Production Shape (spike measures
+  first-pass success), tests T-D4-1. No Define requirement changes.
+
 ---
 
 ## Audit
@@ -331,3 +351,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-11 · persona `product-mgr` · action `update` · DL-20 follow-up done: US-010 criterion 12 (mark shown at G3, does not block, specialist-only) and US-004 G1 scope note; PRD OQ-7 tax part, SD OQ-4 and KEY OQ-D3 kept open. No `@product-mgr` follow-ups from DL-15 to DL-20 remain except OQ-US016-2 (operator) and the optional US-013 criterion for counting a release (DL-18)
 - 2026-11-11 · persona `product-mgr` · action `update` · US-004 criterion 17 (DL-20 G1), US-013 criterion 9 (release counts as an extraction failure, DL-18), AC-032 and US-011 assumption (DL-20); OQ-US016-2 resolved: PRD F3 line for released documents only. DL-15 to DL-20 follow-ups for `@product-mgr` are complete
 - 2026-11-11 · persona `product-mgr` · action `update` · PRD F3 corrected to list manual row creation for both a missed row at G1 and a released document (operator confirmed the earlier wording only described the PRD); DL-15 unchanged; OQ-US016-2 closed on that basis
+- 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-21 (CrewAI adapter deviations D1–D5 and interpretation D6 accepted, with conditions on D4 and D5); operator decision
