@@ -49,7 +49,7 @@ architecture step (`@system.arch`) in a later sprint.
 | **Offset** | The time added to the anchor, e.g. "+10 calendar days" or "+6 months". |
 | **Business-day rule** | Per obligation: **roll forward** to the next Luxembourg business day, **no roll**, or **not confirmed**. |
 | **Calendar entry** | One dated occurrence of an applicable, approved obligation for the fund. It has a stable ID. |
-| **Quote check** | The verifier confirms that a row's quote appears word for word in its cited paragraph. |
+| **Quote check** | The verifier step confirms, in deterministic code, that a row's quote appears word for word in its cited paragraph (normalisation rule: SAD QN-1). |
 | **Conflict check** | The verifier flags two kinds of disagreement. **Internal**: the row's fields (e.g. offset, anchor) do not match what its own quote says. **Cross-source**: the row disagrees with another source. |
 | **Gate** | A point where a compliance specialist must approve before anything moves on (G1, G2, G3; see MD-004). |
 
@@ -88,7 +88,7 @@ error this system can make. Naming the principle stops the same choice being mad
 |----|------|------|---------------------|
 | MD-001 | Extract obligations from source text into fixed-schema rows | requirement | Each row cites exactly one source paragraph ID and a verbatim quote from it. Paragraphs with no obligation produce no row. |
 | MD-002 | Judge whether each approved row applies to the fund | requirement | Each verdict is one of applies / does not apply / unsure, with reasoning that cites at least one fund fact ID. |
-| MD-003 | Verify rows with a **separate** verifier agent | requirement | The verifier is not the agent that extracted the row. It runs a quote check and a conflict check (internal and cross-source) on every row and reports flags. |
+| MD-003 | Verify rows with a **separate** verifier agent | requirement | The verifier is not the agent that extracted the row. The verifier step runs a code-based quote check and a conflict check (internal and cross-source) on every row and reports flags. |
 | MD-004 | Require specialist approval at three gates | requirement | **G1** rule approval (per row, after verification) · **G2** applicability approval (per verdict; "unsure" cannot pass without a human decision) · **G3** calendar publish (per fund). G1 and G2 offer approve / edit / reject for each item. G3 offers publish or decline (FR-022). |
 | MD-005 | Re-verify after any edit | requirement | Editing a row re-runs the verifier on that row. A remaining flag can only be overridden with a written reason. Editing an approved row returns it to pending, sends its verdict back through G2 once it is re-approved, and marks dependent calendar entries out of date. |
 | MD-006 | Calculate due dates with deterministic code | requirement | Dates come from approved rows only, using anchor + offset and conventions `D-1` to `D-7`. Each row's own business-day rule is applied. An unconfirmed rule keeps the earlier, unrolled date and marks it. |
@@ -141,7 +141,7 @@ error this system can make. Naming the principle stops the same choice being mad
 |----|-------------|----------|------------------|
 | FR-001 | Load mock source documents, split into identified paragraphs. | Must | MD-001 |
 | FR-002 | Extraction agent produces fixed-schema rows, each with one paragraph ID and a verbatim quote. Business-day rule defaults to "not confirmed" unless the source states it. | Must | MD-001 |
-| FR-003 | Verifier agent runs a quote check on every row. | Must | MD-003, MN-006 |
+| FR-003 | The verifier step runs a code-based quote check on every row. | Must | MD-003, MN-006 |
 | FR-004 | Verifier agent runs a conflict check on each row: internal (fields vs its own quote) and cross-source (against all other sources, primary and secondary). | Must | MD-003, MN-004 |
 | FR-005 | G1: the specialist approves, edits or rejects each verified row and sets its business-day rule. | Must | MD-004 |
 | FR-006 | Editing a row re-runs the verifier on that row. An override of a remaining flag requires a written reason. | Must | MD-005 |
@@ -609,3 +609,8 @@ investors in Singapore.
 - 2026-11-09 · persona `product-mgr` · action `update` (business review) · FR-020 raised from Should to
   Must (now consistent with MN-009) and extended with the unverified date-conventions note (A-7);
   operator decision
+- 2026-11-11 · operator (direct edit) · action `update` · wording only: the quote check is
+  deterministic code within a separate verifier step (MD-003, FR-003); the verifier agent keeps the
+  conflict checks (FR-004 unchanged). Decides approval map OD-8; see SAD W-04 and QN-1. No requirement
+  added or removed. Same day, `@system.arch` added the QN-1 reference to the vocabulary entry and this
+  audit line, at the operator's instruction

@@ -27,12 +27,18 @@ in the law.
 6. **Then** every result is recorded in the audit log.
 7. **Given** a failed quote check, **then** the flag states its type ("quote check") and shows the
    text that does not match, next to the source paragraph it was checked against. (PRD F2)
+8. **Normalisation boundary (SAD QN-1).** **Given** a correct quote whose line break is replaced by
+   two spaces and which has a trailing space, **when** verification runs, **then** it passes. **Given**
+   the same quote with one letter's case changed, or one straight quote mark changed to a typographic
+   one, **then** it fails and the row is blocked from approval. The check is code and runs without a
+   language model.
 
 ## 4. Scope Notes
 
-- **In Scope for MVP**: exact, word-for-word matching on mock text.
-- **Deferred**: tolerant matching (e.g. ignoring line breaks or typographic quotes) if real documents
-  are added later.
+- **In Scope for MVP**: exact, word-for-word matching on mock text, in deterministic code, with
+  whitespace runs (including line breaks) treated as one space (SAD QN-1).
+- **Deferred**: tolerant matching beyond whitespace (e.g. typographic quotes, case, Unicode forms) if
+  real documents are added later.
 
 ## 5. Traceability
 
@@ -46,7 +52,8 @@ in the law.
 
 ## Assumptions
 
-- "Word for word" means an exact text match after trimming spaces at the start and end.
+- "Word for word" means an exact, case-sensitive text match after trimming and collapsing whitespace
+  (SAD rule QN-1). Nothing else is normalised.
 
 ## Open Questions
 
@@ -56,3 +63,4 @@ in the law.
 
 - 2026-11-06 · persona `product-mgr` · action `create-stories`
 - 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 7: quote-check flag states its type and shows the mismatched text (PRD F2); decision log DL-03
+- 2026-11-11 · operator session (`@system.arch`, at the operator's instruction) · action `update` · criterion 8 (normalisation boundary), scope note and assumption aligned with SAD QN-1; quote check is deterministic code (approval map OD-8 resolved); operator decision

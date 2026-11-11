@@ -121,6 +121,33 @@ editing that rule had also sent it back for review, it would have been a second 
 asked for. The fix was to make rejected rules read-only until they are reopened. And a warning notice
 reduces harm without preventing it, so the requirement says so.
 
+**Decide who owns each step before deciding the shape of the system.** The architect's first move was
+not "how many agents?" but a table: for every step a user sees, is the owner a model, plain code or a
+person, and how bad and how reversible is a mistake there? Four facts about language models decide it.
+They are probabilistic, so they may draft but never record. They have a knowledge cutoff, so they are
+never asked what the law says from memory. They have limited working memory, so each call gets only
+what that step needs. And they are steerable by their inputs, so nothing they say changes state. Once
+the table existed, the "agent" wording in one requirement resolved itself: a word-for-word quote check
+is a string comparison, so it belongs to code even though the requirement called the whole
+verification step an agent. The verifier is still separate from the extractor; part of it is just not
+a model. The note went to the operator as an open question, because an architect may reinterpret a
+requirement's wording but must say so.
+
+**Three named agents do not make an agent system.** The extractor, verifier and applicability judge
+are three model roles, but the order they run in is written in code and a person sits between them.
+That is a workflow. It would only become an "agent" if a model chose which role runs next. One pattern
+was rejected for a reason worth remembering: evaluator-optimizer, where the checker's flags go straight
+back to the maker, who revises until the checker is happy. It sounds efficient, but it would let a
+model change a rule in response to a flag, and the whole point of the design is that only the
+specialist does that. When a human is supposed to close a loop, don't automate the loop.
+
+**"Try again" is only safe if the system knows what "again" means.** Re-running a failed step sounds
+harmless until the second attempt adds six new rows next to the six from the first. The fix is a
+label on every output, the idempotency key: run + step + which row + which version of the input. An
+output with the same label replaces the old one instead of piling up. That is also why a retry limit
+("three goes, then stop") was decided together with the key: without the key, a limit only caps how
+many duplicates you get.
+
 ## 3. Testing and evaluation
 
 **An answer key is how you prove the agents work.** QA runs the agents on the mock sources and compares
@@ -232,3 +259,6 @@ question to answer.
 - 2026-11-08 · added one note from the extensibility session (extensible needs scenarios)
 - 2026-11-09 · added two notes from the project README session (moved files break relative links; a
   README links rather than copies)
+- 2026-11-11 · added three notes from the architect's work-ownership, pattern and controls sessions
+  (decide owners before shape; three named agents are still a workflow; retry needs an idempotency
+  key)

@@ -126,7 +126,7 @@ identity. That is enough for the demo. It is not an access-control claim.
 | A1 | **Load** mock source documents and split them into paragraph IDs (code) | No | No | No | No | **Alone** | Existing · SD FR-001 |
 | A2 | **Read** mock sources and the mock fund profile (agents) | No | No | No | No | **Alone** | Existing · PRD §3 tool boundaries |
 | A3 | **Draft** obligation rows with paragraph ID and verbatim quote; business-day rule "not confirmed" unless stated | No (draft) | No (draft state only) | No | No | **Alone** | Existing · SD FR-002. Output must pass schema validation first (SD NFR-004). |
-| A4 | **Check** each row's quote word for word against its paragraph | No | No | No | No | **Alone** | Existing · SD FR-003. Whether this is model or code is Open (OD-8). |
+| A4 | **Check** each row's quote word for word against its paragraph | No | No | No | No | **Alone** | Existing · SD FR-003. Model or code: closed, it is code (OD-8, SAD W-04). |
 | A5 | **Flag** internal and cross-source conflicts on each row | No | No (adds flags, changes no field) | No | No | **Alone** | Existing · SD FR-004, AC-003, AC-017 |
 | A6 | **Change** or resolve a row (verifier) | — | Yes | — | Yes | **Never** | Existing · SD MN-004. The capability must not exist, not just be hidden. |
 | A7 | **Re-run** the verifier on an edited row only | No | No | No | No (specified) | **Alone** | Existing · SD MD-005, US-005 AC1 |
@@ -307,7 +307,7 @@ Prompts, this map and the skill are guidance only. Enforcement must live in code
 | Approve, reject, override, reopen, publish, decline (and, in the stretch, report acceptance) accept only the specialist role | Backend endpoints; hiding UI buttons is not enforcement | SD NFR-010 |
 | GP endpoints are read-only and return published entries only, plus the neutral review notice when one is active | Backend | SD MN-007, NFR-010, FR-025 |
 | Agent output is schema-validated before a gate sees it | Backend, between agent and storage | SD NFR-004 |
-| Failed quote check blocks approval regardless of model output | Deterministic verbatim match in code (OD-8) | SD MN-006 |
+| Failed quote check blocks approval regardless of model output | Deterministic verbatim match in code (OD-8 closed, SAD W-04) | SD MN-006 |
 | Dates have no model call path | Due-date module; tested without a model | SD MN-005, NFR-011 |
 | Audit log rejects update and delete | Storage layer | SD NFR-003 |
 
@@ -437,7 +437,8 @@ in the Define documents; the rows above are kept as the original record.
 | PR-6 | No bulk or preselected approval decisions; silence leaves items pending | PRD §6 · US-004 (12–13), US-007 (10–11), US-010 (10), US-014 (15) |
 | OD-10 | Not duplicated; still open | PRD OQ-1, SD OQ-5 |
 | OD-12, K-4 | Recorded as operator intent for the SAD, not a requirement | PRD OQ-8 |
-| OD-7, OD-8, OD-11, PR-4 | Left for `@system.arch`, except the PR-4/OD-11 requirement: every G1–G3 decision records the version it was made on (operator decision, later on 2026-11-07). The version scheme stays with the SAD | (SAD) · SD MD-009, AC-016 · US-012 AC2 |
+| OD-8 | **Closed.** The quote check is deterministic code, not a model. See SAD **W-04** (and assumption SA-2) | SAD W-04 · SD MN-006 |
+| OD-7, OD-11, PR-4 | Left for `@system.arch`, except the PR-4/OD-11 requirement: every G1–G3 decision records the version it was made on (operator decision, later on 2026-11-07). The version scheme stays with the SAD | (SAD) · SD MD-009, AC-016 · US-012 AC2 |
 
 ---
 
@@ -477,8 +478,9 @@ current state.
 ## Open Questions
 
 - See §8 (OD-1 to OD-12) and conflicts K-1 to K-4. Most are resolved (§8, "Resolved in Define").
-  Still open: OD-10 (four-eyes review, PRD OQ-1), OD-12 (Next.js, PRD OQ-8, for the SAD), and OD-7,
-  OD-8 and the OD-11 version scheme for `@system.arch` (the PR-4 requirement itself is applied, §9).
+  Still open: OD-10 (four-eyes review, PRD OQ-1), OD-12 (Next.js, PRD OQ-8, for the SAD), and OD-7
+  and the OD-11 version scheme for `@system.arch` (the PR-4 requirement itself is applied, §9).
+  OD-8 is closed: the quote check is code (SAD W-04).
 ## Audit
 
 - 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `create-approval-map` · draft
@@ -513,3 +515,6 @@ current state.
   audit, SD MD-009); T-24 extended; operator decisions
 - 2026-11-09 · persona `product-mgr` · action `update` · §1 handover status: approved (decision log
   DL-13); map content unchanged
+- 2026-11-11 · operator (direct edit) · action `update` · OD-8 closed with a reference to SAD W-04
+  (A4 row, §7 enforcement, §8 resolved table, Open Questions); operator decision. This audit line
+  added by `@system.arch` at the operator's instruction
