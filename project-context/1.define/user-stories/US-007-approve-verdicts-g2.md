@@ -53,7 +53,7 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
 ## 4. Scope Notes
 
 - **In Scope for MVP**: one specialist; one decision per verdict.
-- **Deferred**: four-eyes review, pending decision on timing.
+- **Deferred**: four-eyes review, which is future scope (PRD OQ-1, DL-37).
 
 ## 5. Traceability
 
@@ -75,7 +75,7 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
 
 ## Open Questions
 
-- **OQ-US007-1**: Four-eyes review: in the MVP or later? (PRD OQ-1)
+- **OQ-US007-1**: *Resolved* (operator decision, 2026-11-12, DL-37). Four-eyes review is future scope; one specialist decides at G2. (PRD OQ-1)
 - **OQ-US007-2**: *Resolved* (operator decision, 2026-11-07). Yes, with a reason, before or after
   publication. See criteria 8 and 9, SD FR-024. *(Approval map OD-3.)*
 

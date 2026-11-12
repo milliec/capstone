@@ -27,7 +27,9 @@ quote their source paragraph, so that I check rules instead of writing them by h
 6. **Then** no row contains a calculated due date.
 7. **Given** extraction output that is missing a required field, **when** the run checks it, **then**
    the run stops, nothing is passed to review, and the failure is recorded in the audit log. Rows from
-   the other documents are kept, and only the failed document is re-run (US-015 criteria 9–11).
+   the other documents are kept in the run's record, the failed document is named, and the run ends
+   as failed. A new run is the only way through; re-running just the failed document is deferred
+   (DL-22, US-015 criteria 9–10).
 8. **Given** the 13 loaded source paragraphs and the 6 extracted rows, **when** G1 opens, **then** the
    coverage view lists every paragraph that no non-rejected row cites, each with its text: here the 7
    paragraphs named in criterion 4 (4 listed by ID, plus the 3 `SRC-PRACT` paragraphs). It lists none
@@ -92,3 +94,4 @@ quote their source paragraph, so that I check rules instead of writing them by h
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 9 (a row created by hand removes the paragraph from the view) deferred; the reopening clause of criterion 10 deferred; the coverage view itself stays
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · OQ-US001-1 resolved: the name is graded by the specialist, the date and routing fields by exact match; assumption points to US-013 criterion 11
 - 2026-11-12 · persona `product-mgr` · action `update` · OQ-US001-2 resolved: accepted as a known MVP limitation, the mark is future scope; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22, SAD SOQ-20 d, g) · re-running only the failed unit is deferred; the failed unit is named and the run ends as failed, a new run is the only way through

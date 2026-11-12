@@ -29,8 +29,9 @@ have already made.
 8. **Then** the messages follow the voice rule in PRD §6: they state facts without reassurance or alarm.
 9. **Given** a step made of one call per unit (extraction: one per source document; verification and
    applicability: one per row), **when** one unit fails or returns invalid output, **then** the valid
-   output of every other unit is kept, the failed unit is marked **re-runnable**, and run status shows
-   in plain words which units are valid and which failed, and why.
+   output of every other unit is kept in the run's record, **the failed unit is named, and the run ends
+   as failed**. Run status shows in plain words which units are valid and which failed, and why. A
+   failed unit is not re-runnable in the MVP (DL-22): a new run is the only way through.
 10. **Then** the gate after that step does not open until every unit has valid output. This is what
     "nothing is passed to review" means in US-001 criterion 7 and US-006 criterion 7. The one exception
     is a source document released to manual entry (criterion 14).
@@ -61,7 +62,7 @@ have already made.
     and 20). One run at a time is a rule the
     system enforces, not a convention. (SAD CR-023, PRD A-6, SAD run state model.)
 17. **Given** a run's model cost passes US$2, **then** run status shows a warning. **Given** it reaches
-    the run's cost cap (a hard stop of US$4, fixed in configuration), **then** no further model calls are made
+    the run's cost cap (a hard stop of US$2.50, set in configuration), **then** no further model calls are made
     in that run, the valid units are kept, and run status states in plain words that the cost cap was
     reached and nothing further moved forward. The cost counts every call, including retries, re-runs
     and re-verifications. The specialist decides whether to start a new run. (SAD CR-017, SD MC-002;
@@ -181,3 +182,4 @@ have already made.
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 4–6 (re-run from the last safe state), 11–13 (unit re-run, example, "needs attention"), 14–15 (release) and 18 (circuit breaker) marked deferred, with the restart note; criteria 1–3, 7–10, 16–17 and 19–21 stay; DL-02's re-run is superseded for the MVP
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 16 lists a declined run as not active; OQ-US015-4 notes the operator's confirmation of SA-18; traced to SD AC-033 to AC-036
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-29) · criterion 20: abandon only while a run waits at a gate, refused while a stage runs; criterion 19: stage time limit and start-up rule ("service restarted"); restart scope note rewritten (the DL-28 known limitation is superseded); new scope note on abandon at a gate; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22, SAD SOQ-20 d, g) · re-running only the failed unit is deferred; the failed unit is named and the run ends as failed, a new run is the only way through
