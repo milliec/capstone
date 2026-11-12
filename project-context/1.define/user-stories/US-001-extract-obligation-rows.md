@@ -64,12 +64,14 @@ quote their source paragraph, so that I check rules instead of writing them by h
 ## Assumptions
 
 - "Matching the answer key" allows small wording differences in the obligation name. Field values such
-  as anchor, offset and paragraph ID must match exactly.
+  as anchor, offset and paragraph ID must match exactly. Whether a name is the "same obligation" is the
+  specialist's call (DL-23, US-013 criterion 11).
 
 ## Open Questions
 
-- **OQ-US001-1**: How close must the obligation name be to the answer key to pass? To be settled in the
-  evaluation design (`@qa.eng`).
+- **OQ-US001-1**: *Resolved* (operator decision, decision log DL-23, SAD EC-002). The obligation name is
+  graded by the specialist's judgement, recorded per row in the evaluation report; the fields that
+  drive dates and routing must match exactly (US-013 criterion 11).
 - **OQ-US001-2**: Nothing records that a paragraph was read and holds no obligation (for example
   `SRC-UCILAW-P1`, a definition). So the 7 demo paragraphs stay in the coverage view on every run, and
   the specialist cannot clear them. Is that acceptable for the MVP, or does a later version need a way
@@ -87,3 +89,4 @@ quote their source paragraph, so that I check rules instead of writing them by h
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criterion 7 clarified: valid rows from
   other documents are kept and only the failed document is re-run (US-015, NFR-004)
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 9 (a row created by hand removes the paragraph from the view) deferred; the reopening clause of criterion 10 deferred; the coverage view itself stays
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · OQ-US001-1 resolved: the name is graded by the specialist, the date and routing fields by exact match; assumption points to US-013 criterion 11

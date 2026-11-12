@@ -41,6 +41,17 @@ can prove the system works and see exactly where it doesn't.
    document, and does not count it as a pass. The rows the specialist then creates by hand for it are
    counted on the human-created line (criterion 8), not as extracted rows. With no release, the
    extraction-failure count shows 0. (SD AC-031, decision log DL-18, SAD test T-REL-1)
+10. **Given** the evaluation criteria that depend on the live model (SAD §9: EC-001 to EC-007, EC-010,
+    EC-012 and EC-021), **then** they count as passed only when they pass on **3 of 3 consecutive
+    evaluation runs on the same commit**. This applies before a merge that changes a prompt, a model or
+    a schema, and before the demo. One passing run is not enough, because the agents are probabilistic
+    even at temperature 0. The report records which runs and which commit the three passes belong to.
+    (Decision log DL-23, SAD EC-R1.)
+11. **Given** an extracted obligation name, **then** it is graded by the specialist's judgement ("same
+    obligation" or not) and the verdict is recorded per row in the report. The fields that drive dates
+    and routing (paragraph ID, quote, frequency, anchor, offset, recipient, responsible role and
+    applicability rule) are graded by exact match against the answer key. No model grades the name.
+    (Decision log DL-23, SAD EC-002.)
 
 ## 4. Scope Notes
 
@@ -51,6 +62,7 @@ can prove the system works and see exactly where it doesn't.
 
 - **PRD Anchors**: F9 · §7 technical metrics
 - **System description**: FR-018, FR-027 · MP-001 to MP-004 · MC-001, MC-002, MC-003 · AC-027, AC-031
+- **Decision log**: DL-23 (criteria 10–11)
 - **Answer key**: §1 to §4
 - **Related SFS**: none yet
 
@@ -66,7 +78,9 @@ can prove the system works and see exactly where it doesn't.
 
 ## Open Questions
 
-- **OQ-US013-1**: How close must an extracted obligation name be to pass? (Shared with OQ-US001-1.)
+- **OQ-US013-1**: *Resolved* (operator decision, decision log DL-23, SAD EC-002). The name is graded by
+  the specialist's judgement, recorded per row; the fields that drive dates and routing are graded by
+  exact match (criterion 11). *(Shared with OQ-US001-1.)*
 
 ## Audit
 
@@ -80,3 +94,4 @@ can prove the system works and see exactly where it doesn't.
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-18) · criterion 9: a release to manual entry
   is counted as one extraction failure (SD AC-031); operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 8–9 (human-created rows; release counted as an extraction failure) marked deferred; nothing deleted
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · criterion 10 (model-dependent criteria must pass 3 of 3 consecutive runs on one commit) and criterion 11 (names graded by the specialist, date and routing fields by exact match); OQ-US013-1 resolved; operator decision. DL-23 and SAD EC-R1, EC-002 are on the architect's branch and not yet on main
