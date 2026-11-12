@@ -17,8 +17,16 @@ quote their source paragraph, so that I check rules instead of writing them by h
 1. **Given** the 6 mock source documents, **when** a run starts, **then** every paragraph is loaded with
    its paragraph ID (e.g. `SRC-UCILAW-P3`).
 2. **Given** the loaded paragraphs, **when** extraction runs, **then** exactly 6 rows are produced,
-   `OBL-01` to `OBL-06`, matching answer key §1 for obligation, pattern, frequency, anchor, offset,
-   recipient, responsible role and applicability rule.
+   `OBL-01` to `OBL-06`, matching answer key §1 for obligation, frequency, anchor, offset, recipient,
+   responsible role and applicability rule. The extractor reports "responsible role" in the
+   source's own words, and the evaluation maps those words to the fund profile's party name by a fixed
+   lookup before matching (US-013 criterion 11). The expected values are `OBL-01` "Fund administrator"
+   (the source says "the fund administrator") and `OBL-04` "Local reporting agent (Spain)" (the source
+   says "a local reporting agent"). For `OBL-02`, `OBL-03`,
+   `OBL-05` and `OBL-06` the sources do not say who files, so the expected value is "not stated in
+   source"; the extractor never guesses it, and the specialist sets it at G1 (US-004 criterion 20).
+   "Pattern" is not an extracted field: code derives it from frequency and anchor for the
+   evaluation report only. (Decision log DL-39, SAD SOQ-24.)
 3. **Then** every row has exactly one paragraph ID and a quote that appears word for word in that
    paragraph (answer key §1 quotes).
 4. **Then** no row cites `SRC-UCILAW-P1`, `SRC-CSSF15627-P1`, `SRC-CSSF15627-P3`, `SRC-CNMV-P2` or any
@@ -55,7 +63,7 @@ quote their source paragraph, so that I check rules instead of writing them by h
 
 - **PRD Anchors**: F1 · §2 steps 1–2 · UN-S1, UN-S2 · AB-1
 - **System description**: FR-001, FR-002, FR-028 · MD-001 · MN-005, MN-006 · NFR-004 · AC-001, AC-002, AC-029
-- **Answer key**: §1
+- **Answer key**: §1 (responsible role as the profile's party name, after the fixed lookup), §5 (who files, set at G1)
 - **Related SFS**: none yet
 
 ## Sources
@@ -95,3 +103,6 @@ quote their source paragraph, so that I check rules instead of writing them by h
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · OQ-US001-1 resolved: the name is graded by the specialist, the date and routing fields by exact match; assumption points to US-013 criterion 11
 - 2026-11-12 · persona `product-mgr` · action `update` · OQ-US001-2 resolved: accepted as a known MVP limitation, the mark is future scope; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22, SAD SOQ-20 d, g) · re-running only the failed unit is deferred; the failed unit is named and the run ends as failed, a new run is the only way through
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-39, SAD SOQ-24 a) · criterion 2: responsible role matched as the source states it ("not stated in source" for OBL-02, OBL-03, OBL-05, OBL-06); pattern is no longer an extracted field; traceability points to answer key §5
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26, operator decision on naming) · criterion 2: the `OBL-04` responsible role is written "Local reporting agent (Spain)", the one name used in the profile, the key and the G1 list
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · criterion 2: the extractor reports responsible role in the source's own words; the evaluation maps it to the profile's party name before matching (US-013 criterion 11); expected values unchanged

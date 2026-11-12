@@ -34,14 +34,18 @@ decides.
 
 ## Parties (roles only)
 
-| Role | Notes |
-|---|---|
-| Compliance specialist | Owns the obligation calendar. Approves, edits or rejects every agent output. |
-| GP | Read-only view of the calendar. |
-| AIFM | Files RBE updates. |
-| Fund administrator | Files U1.1 and the subscription tax return. |
-| Auditor | Audits the annual report. |
-| Local reporting agent (Spain) | Would file A01 if it applies. |
+| Role | Filing party | Notes |
+|---|---|---|
+| Compliance specialist | No | Owns the obligation calendar. Approves, edits or rejects every agent output. |
+| GP | No | Read-only view of the calendar. |
+| AIFM | Yes | Files RBE updates. |
+| Fund administrator | Yes | Files U1.1 and the subscription tax return. |
+| Auditor | Yes | Audits the annual report. |
+| Local reporting agent (Spain) | Yes | Would file A01 if it applies. |
+| Tax advisor | Yes | Would file the annual VAT return if the fund were registered for VAT (`FACT-05`: it is not). |
+
+Only the roles marked **Yes** under "Filing party" are offered in the G1 "who files" list, plus "not
+known". The compliance specialist and the GP are never offered.
 
 ## Event log (for event-triggered obligations)
 
@@ -81,3 +85,5 @@ The demo calendar covers obligations whose **due date falls between 2027-01-01 a
   required sections
 - 2026-11-06 · persona `product-mgr` · action `update` · added `FACT-07` (redemption frequency) for the
   change-monitoring stretch goal
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-24 b, operator decision on OQ-D4) · added a fictional "Tax advisor" role to the parties table, so the G1 "who files" choice list can offer it for `OBL-06`; no fact, event or role note changed
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26 c) · parties table: new "Filing party" column (Yes for AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor; No for the compliance specialist and the GP), because the G1 list is built from that mark; no fact, event or role note changed

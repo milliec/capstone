@@ -19,14 +19,30 @@ Six rows are expected: five calendar obligations plus one decoy. **No row** shou
 `SRC-UCILAW-P1` (a definition), `SRC-CSSF15627-P1`/`P3`, `SRC-CNMV-P2` (supporting detail) or any
 `SRC-PRACT` paragraph (secondary sources are checked by the verifier, not extracted).
 
-| Code | Obligation | Pattern | Frequency | Anchor | Offset | Recipient | Responsible role | Applicability rule | Source paragraph |
+| Code | Obligation | Pattern *(derived by code, not extracted)* | Frequency | Anchor | Offset | Recipient | Responsible role *(the profile's party name, after the evaluation's fixed lookup)* | Applicability rule | Source paragraph |
 |---|---|---|---|---|---|---|---|---|---|
 | `OBL-01` | Monthly financial report U1.1 | Monthly | Monthly | Month-end | +10 calendar days | CSSF | Fund administrator | Fund is subject to Part II of the Law of 17 December 2010 | `SRC-CSSF15627-P2` |
-| `OBL-02` | Subscription tax return and payment (taxe d'abonnement) | Quarterly | Quarterly | Calendar quarter-end | +20 calendar days | AED | Fund administrator | Fund is established in Luxembourg | `SRC-UCILAW-P2` |
-| `OBL-03` | Audited annual report | Year-end | Annually | Financial year-end | +6 months | CSSF | Fund administrator, with AIFM and auditor | Fund is subject to Part II of the Law of 17 December 2010 | `SRC-UCILAW-P3` |
-| `OBL-04` | Statistical report A01 (Spain) | Conditional | Quarterly | Calendar quarter-end | +2 months | CNMV | Local reporting agent | Fund is registered with the CNMV for marketing in Spain | `SRC-CNMV-P1` |
-| `OBL-05` | Beneficial-owner information update (RBE) | Event-triggered | On occurrence | Date the entity became aware of the event | +1 month | Luxembourg Business Registers | AIFM | Fund is a registered entity | `SRC-RBELAW-P1` |
-| `OBL-06` | Annual VAT return *(decoy)* | Year-end (fixed date) | Annually | Financial year-end | 31 October of the following year | AED | Tax advisor | Fund is registered for VAT in Luxembourg | `SRC-VATLAW-P1` |
+| `OBL-02` | Subscription tax return and payment (taxe d'abonnement) | Quarterly | Quarterly | Calendar quarter-end | +20 calendar days | AED | not stated in source | Fund is established in Luxembourg | `SRC-UCILAW-P2` |
+| `OBL-03` | Audited annual report | Year-end | Annually | Financial year-end | +6 months | CSSF | not stated in source | Fund is subject to Part II of the Law of 17 December 2010 | `SRC-UCILAW-P3` |
+| `OBL-04` | Statistical report A01 (Spain) | Conditional | Quarterly | Calendar quarter-end | +2 months | CNMV | Local reporting agent (Spain) | Fund is registered with the CNMV for marketing in Spain | `SRC-CNMV-P1` |
+| `OBL-05` | Beneficial-owner information update (RBE) | Event-triggered | On occurrence | Date the entity became aware of the event | +1 month | Luxembourg Business Registers | not stated in source | Fund is a registered entity | `SRC-RBELAW-P1` |
+| `OBL-06` | Annual VAT return *(decoy)* | Year-end (fixed date) | Annually | Financial year-end | 31 October of the following year | AED | not stated in source | Fund is registered for VAT in Luxembourg | `SRC-VATLAW-P1` |
+
+**Responsible role.** The extraction agent reports who files **only when the source says so**, and
+otherwise "not stated in source" (decision log DL-39). Two sources say: `OBL-01` (the administrator may
+transmit the report, `SRC-CSSF15627-P3`) and `OBL-04` (a local reporting agent may submit it,
+`SRC-CNMV-P2`). The other four are silent. The specialist then sets "who files" at G1; the expected
+settings are in section 5.
+
+The extraction agent writes the party in the source's own words (for example "a local reporting
+agent"). The evaluation maps that text to the **profile's party name** shown in the table ("Local
+reporting agent (Spain)") with a fixed lookup, then matches exactly. Text that does not map is a miss
+(decision log DL-41, SAD EC-R11).
+
+**Pattern.** The extraction agent does not output a pattern. Code derives it from frequency and anchor
+for the evaluation report, so it is not graded. `OBL-04` is the exception to note: "Conditional"
+cannot be derived from its frequency (quarterly) and anchor (calendar quarter-end). The condition (CNMV
+registration) is shown by the applicability verdict instead (section 2: **Unsure**).
 
 Each row also carries a **business-day rule**. The sources do not state one, so the extraction agent
 should output "not confirmed" for every row. The specialist's expected settings are in section 5.
@@ -148,6 +164,24 @@ extra entry is harmless. A missed filing is not.
 > **not confirmed**, and the specialist sets the rule when approving the row. The values above are the
 > **specialist's expected settings** for the demo.
 
+**Who files per obligation** *(the specialist's expected settings at G1; DL-39)*
+
+| Code | The source says | Set at G1? | Expected value (one party, the filer) | Row text |
+|---|---|---|---|---|
+| `OBL-01` | "the fund administrator" | No, the extracted value stands | Fund administrator | |
+| `OBL-02` | Not stated | Yes | Fund administrator | |
+| `OBL-03` | Not stated | Yes | Fund administrator | The AIFM and the auditor contribute to the annual report. They are not the filer, so they are not part of the G1 field. |
+| `OBL-04` | "a local reporting agent" | No, the extracted value stands | Local reporting agent (Spain) | |
+| `OBL-05` | Not stated | Yes | AIFM | |
+| `OBL-06` | Not stated | Yes | Tax advisor | |
+
+> G1 takes **one** party, the filer, chosen from the **filing parties** in `mock-fund-profile.md` (the
+> roles marked "Yes" under "Filing party": AIFM, Fund administrator, Auditor, Local reporting agent
+> (Spain), Tax advisor) or "not known", with nothing preselected. The compliance specialist and the
+> GP are never offered. Other parties that contribute are mentioned in the row text, not
+> in the G1 field. The values above are the **specialist's expected settings** for the demo, not what
+> the extraction agent outputs.
+
 **Mock Luxembourg public holidays, 2027** (a stand-in for an official holiday calendar)
 
 1 Jan (New Year) · 29 Mar (Easter Monday) · 1 May (Labour Day) · 6 May (Ascension Day) · 9 May (Europe
@@ -198,6 +232,13 @@ failure.
   rule? The guidance named the ACD. The AED is a different authority. **Open** (kept open by the
   operator, decision log DL-20). The table above uses **no roll** (the safe choice) as the specialist's
   demo decision at G1, not as a built-in rule; the four `OBL-02` dates are the same under "roll forward".
+- **OQ-D4**: *Resolved* (operator decision, 2026-11-12). A fictional "Tax advisor" role was added to
+  the parties table in `mock-fund-profile.md`, so the G1 choice list can offer it. The expected G1
+  setting for `OBL-06` (the VAT decoy) is "Tax advisor". The key was rechecked after the profile change
+  (see the Audit entry): no fact, event, verdict, flag or date changed.
+- **OQ-D5**: *Resolved* (operator decision, 2026-11-12). G1 takes **one** party, the filer. For
+  `OBL-03` that is "Fund administrator"; the AIFM and the auditor are mentioned as contributors in the
+  row text of the §5 table, not in the G1 field.
 
 ## Audit
 
@@ -215,3 +256,7 @@ failure.
   amendments AMD-01 to AMD-03)
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-19) · OQ-D1 resolved: business-day rules for `OBL-04` and `OBL-05` are never guessed; expected results unchanged. OQ-D3 stays open (DL-20)
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · OQ-D3 kept open; the no-roll table is the specialist's demo decision at G1, not a built-in rule; expected results unchanged
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-39, SAD SOQ-24 b, c) · §1: responsible role is "not stated in source" for `OBL-02`, `OBL-03`, `OBL-05` and `OBL-06` (the sources do not say who files); the pattern column is derived by code and not graded, with a note on `OBL-04`'s "Conditional"; §5: new table of the specialist's expected "who files" settings at G1; OQ-D4 (tax advisor not in the profile) and OQ-D5 (more than one party for `OBL-03`) opened. Expected dates, verdicts and flags are unchanged
+- 2026-11-12 · persona `product-mgr` · action `update` (operator decision on OQ-D4, OQ-D5) · answer key rechecked after the profile change: it depends on the parties table only through the §5 who-files table, so no fact, event, verdict, flag or date changed. §5: `OBL-06` is "Tax advisor"; `OBL-03` is "Fund administrator" (one party, the filer), with the AIFM and auditor named as contributors in the row text. OQ-D4 and OQ-D5 resolved
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26 b, operator decision on naming) · §1 and §5: "Local reporting agent (Spain)" is the one name for that party; the §5 note says the G1 list is the filing parties only. Answer key rechecked: no expected date, verdict or flag changed
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · §1 column heading now says the value is the profile's party name after the evaluation's fixed lookup; responsible-role note explains the mapping; §5 "The source says" column quotes the sources' own words ("the fund administrator", "a local reporting agent") and corrects my earlier wording. No expected date, verdict or flag changed

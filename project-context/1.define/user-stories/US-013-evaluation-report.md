@@ -51,8 +51,14 @@ can prove the system works and see exactly where it doesn't.
 11. **Given** an extracted obligation name, **then** it is graded by the specialist's judgement ("same
     obligation" or not) and the verdict is recorded per row in the report. The fields that drive dates
     and routing (paragraph ID, quote, frequency, anchor, offset, recipient, responsible role and
-    applicability rule) are graded by exact match against the answer key. No model grades the name.
-    (Decision log DL-23, SAD EC-002.)
+    applicability rule) are graded by exact match against the answer key. **Responsible role is first
+    mapped, then matched:** the extracted text (for example "a local reporting agent") is looked up in
+    a fixed table that gives the fund profile's party name ("Local reporting agent (Spain)") or "not
+    stated in source", and that name is then matched exactly. Text that does not map counts as a miss;
+    the report shows the extracted text, "no match" and the expected value. No model and no judgement
+    is used to stretch a match, and the table is fixed before the first evaluation run. No model grades
+    the name.
+    (Decision log DL-23, DL-41, SAD EC-002, EC-R11, test T-MAP-1.)
 12. **Given** a run ends `FAILED` only because of a model-service failure (a provider call timed out,
     was rate-limited or returned a server error after its one automatic retry, or a time limit passed
     while waiting for the provider), **then** it is **voided** and re-run once on the same commit. The
@@ -73,7 +79,7 @@ can prove the system works and see exactly where it doesn't.
 
 - **PRD Anchors**: F9 · §7 technical metrics
 - **System description**: FR-018, FR-027 · MP-001 to MP-004 · MC-001, MC-002, MC-003 · AC-027, AC-031
-- **Decision log**: DL-23 (criteria 10–11)
+- **Decision log**: DL-23 (criteria 10–11), DL-41 (criterion 11)
 - **Answer key**: §1 to §4
 - **Related SFS**: none yet
 
@@ -107,3 +113,4 @@ can prove the system works and see exactly where it doesn't.
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 8–9 (human-created rows; release counted as an extraction failure) marked deferred; nothing deleted
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · criterion 10 (model-dependent criteria must pass 3 of 3 consecutive runs on one commit) and criterion 11 (names graded by the specialist, date and routing fields by exact match); OQ-US013-1 resolved; operator decision. DL-23 and SAD EC-R1, EC-002 are on the architect's branch and not yet on main
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-34, SAD SOQ-20 c) · criterion 10 reworded: measured on 3 runs, a pass means 3 of 3, a miss is reported and does not block a merge or the demo, all three runs shown; new criterion 12: void rule, tuning cap (half a focused day or 60 real calls) and the non-model checks that stay blocking; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · criterion 11: responsible role is mapped to the profile's party name by a fixed lookup (fixed before the first evaluation run), then matched exactly; text that does not map is a miss, with no model or judgement; traceability adds DL-41

@@ -28,7 +28,7 @@ rule, so that only rules I trust enter the obligation library.
 7. **Then** every approval, rejection, reason and business-day rule is recorded in the audit log with
    who and when.
 8. **Given** the demo decisions in the story index, **then** all 6 rows end G1 approved, with business-day
-   rules as in answer key §5.
+   rules and "who files" settings as in answer key §5.
 9. *Deferred (DL-22).* **Given** a rejected row, before or after publication, **when** the specialist reopens it without a
    reason, **then** reopening is refused. **With** a reason, the row returns to **pending** and is
    re-verified. The original rejection stays in the audit log.
@@ -79,6 +79,16 @@ rule, so that only rules I trust enter the obligation library.
     extracted rows are decided as in criterion 8. With the switch off (the default), no demo row
     appears. (SD FR-031, AC-038; decision log DL-31; SAD CR-029.)
 
+20. **Given** a row whose "who files" is "not stated in source" (the extractor never guesses it, US-001
+    criterion 2), **when** the specialist approves it, **then** they must choose who files from the
+    fund's filing parties (AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax
+    advisor), or "not known". The compliance specialist and the GP are never offered, and any other
+    value is refused. Nothing is preselected. Approving without a choice is refused with a
+    plain message and logged; the row stays pending. The choice is recorded with the decision. A row
+    whose source states who files shows that value and needs no choice. **Example:** `OBL-05` is
+    approved with "AIFM", and `OBL-06` with "Tax advisor" (answer key §5). "Not known" is a valid
+    choice but no demo row uses it. (Decision log DL-39, SAD CR-007.)
+
 ## 4. Scope Notes
 
 - **In Scope for MVP**: one specialist; one decision per row.
@@ -91,9 +101,9 @@ rule, so that only rules I trust enter the obligation library.
 
 - **PRD Anchors**: F3 · §2 step 4 · UN-S4, UN-S7 · AB-1, AB-4
 - **System description**: FR-005, FR-023, FR-029, FR-031 · MD-004 · MN-003, MN-004, MN-006 · AC-006, AC-028, AC-032, AC-038 · NFR-010
-- **Decision log**: DL-16 (criteria 14–16), DL-20 (criterion 17), DL-31 (criterion 19)
-- **SAD controls**: CR-009 (criterion 18), CR-029 (criterion 19)
-- **Answer key**: §5 (business-day rules)
+- **Decision log**: DL-16 (criteria 14–16), DL-20 (criterion 17), DL-31 (criterion 19), DL-39 (criterion 20; list narrowed to filing parties, SAD SOQ-26)
+- **SAD controls**: CR-009 (criterion 18), CR-029 (criterion 19), CR-007 (criterion 20)
+- **Answer key**: §5 (business-day rules, who files)
 - **Related SFS**: none yet
 
 ## Sources
@@ -133,3 +143,6 @@ rule, so that only rules I trust enter the obligation library.
   out-of-date screen, or submitted twice, is refused with a plain message showing the current version
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 9–11 (reopen a rejected row; rejected rows read-only) and 14–16 (possible duplicates and the completion confirmation) marked deferred; nothing deleted
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-31) · new criterion 19: a demo row (switch on) can only be rejected with a reason; approval refused and logged; no demo row with the switch off; traceability updated; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-39, SAD SOQ-24 d) · new criterion 20: the specialist chooses who files (or "not known") when the source is silent, nothing preselected; criterion 8 and traceability updated
+- 2026-11-12 · persona `product-mgr` · action `update` (operator decision on OQ-D4, OQ-D5) · criterion 20 example: `OBL-06` is approved with "Tax advisor"; "not known" stays a valid choice that no demo row uses
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26 a, DL-39 item 2) · criterion 20: the G1 "who files" list is the filing parties only (AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor) plus "not known"; the compliance specialist and the GP are never offered; any other value is refused
