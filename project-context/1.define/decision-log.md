@@ -424,6 +424,48 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Changed**: SAD §7 (development spend cap), §9 EC-R6, SOQ-13 resolved. No Define requirement
   changes.
 
+### DL-25 · OpenAI on prepaid credits, with a model chosen per role
+
+- **Decision**: the application's model provider is the **OpenAI API**, paid with **prepaid
+  credits**: **US$25 loaded to start**, **US$50 ceiling**. Models per role: a **cheaper default**
+  model for the extractor; a **reasoning** model for the applicability judge; the verifier on a model
+  **different from the extractor's** (family still to choose, SAD SOQ-15). The current model IDs are
+  confirmed against the provider's list **before the week-1 spike** and recorded here. The spike
+  records first-pass success, cost, time and run-to-run consistency per role, against the US$50 cap.
+  **Claude Code is the build tool only**, not a runtime provider.
+- **Why**: one provider keeps a single live external service (SD MN-002, PRD A-3 unchanged). A cheaper
+  extractor is backed by the code quote check and the verifier. A different verifier model reduces
+  shared blind spots between maker and checker (SD MD-003). The judge does the judgement-heavy step
+  where a wrong "does not apply" is the costliest error (P-1). Prepaid credits make the US$25
+  checkpoint (DL-24) a hard stop in practice: topping up to US$50 is a deliberate step after review.
+- **Considered**: one balanced model for all roles (the SAD's earlier default); a second provider for
+  the verifier (rejected for now: it would add a second live service and need PRD A-3 changed).
+- **Note**: the operator's wording "extraction and generation" is recorded as the extractor only;
+  no other step uses a model (calendar generation is code, MN-005; GP text is confirmed at G2, W-17).
+  Reasoning models may not accept a temperature setting, so the judge's stability across runs is
+  measured by the spike and tested by EC-R1.
+- **Changed**: SAD Model and Context Strategy, §2 sampling, §4 and Production Shape variables
+  (`OPENAI_API_KEY`, `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE`), §5 release rule,
+  CR-021, §7 enforcement, SOQ-14 resolved, new SOQ-15. No Define requirement changes.
+
+### DL-26 · Verifier: a mid-tier model by default, with a measured switch rule
+
+- **Decision**: the verifier defaults to a **cheaper mid-tier model, different from both the
+  extractor's and the judge's**. In the week-1 spike, **both** candidates (the mid-tier model and the
+  judge's reasoning model) run on the planted conflicts `C-1`, `C-2` and `I-1`, at least 5 times each.
+  **If the mid-tier model misses any planted conflict in any run, the verifier switches to the
+  reasoning model.** Cost per full run is recorded for both options.
+- **Why**: the verifier runs once per row, so its model drives a large share of run cost; a mid-tier
+  model is cheaper, and a third model keeps maker and checker independent. The switch rule is tied
+  to the thing the verifier exists for (catching planted conflicts, SD MP-003), so cost is only saved
+  where it does not cost recall.
+- **Interpretation recorded**: "misses any planted conflict" is read as **any miss in any spike run**,
+  matching the no-best-of rule (SAD EC-R1a). False alarms on correct rows are measured and reported,
+  but are not part of the switch rule; if the mid-tier model catches every conflict but raises false
+  alarms (EC-006), that is brought to the operator as a separate decision.
+- **Changed**: SAD Model and Context Strategy (verifier row), Production Shape (week-1 spike),
+  SOQ-15 resolved. The chosen verifier model and its ID are added to this entry after the spike.
+
 ---
 
 ## Audit
@@ -458,3 +500,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-23 follow-up marked done: US-013 criteria 10–11, OQ-US001-1 and OQ-US013-1 resolved (on branch `define-defer-future-scope`, not yet merged)
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-22 updated with the operator's answer to OQ-US015-4: failed step → terminal FAILED run, step time limits, specialist abandon run with a reason (not a general cancel); estimate +2 days (slice ≈ 44.5, 33.5–63); SAD run state model, US-015 criteria 19–21
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-22 follow-up done: future-scope requirements, acceptance criteria, story criteria and PRD rows marked deferred (nothing deleted); PRD OQ-5 recorded as decided on scope, capacity open; DL-02 re-run superseded for the MVP
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-25 (OpenAI API on prepaid credits, US$25 to start and US$50 ceiling; model per role; IDs confirmed before the spike; Claude Code is the build tool only); operator decision
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-26 (verifier: mid-tier model by default, switch to the reasoning model if any planted conflict is missed in the spike; cost per run recorded for both); operator decision
