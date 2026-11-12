@@ -466,6 +466,27 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Changed**: SAD Model and Context Strategy (verifier row), Production Shape (week-1 spike),
   SOQ-15 resolved. The chosen verifier model and its ID are added to this entry after the spike.
 
+### DL-27 · Before the first publication, GPs see a read-only "being prepared" message
+
+- **Decision**: answers PRD OQ-6 (SD OQ-1, US-011 OQ-US011-1): **yes**. Before the first G3
+  publication, the GP view shows a read-only empty state with this message:
+  *"Your obligations calendar is being prepared and checked by a specialist. Nothing has been
+  published yet."* No notifications are sent. It is in the thin slice.
+- **Why**: a blank calendar could be read as "this fund has no obligations", which is the costliest
+  misreading (P-1). The message states only that work is in progress; it shows no entry, count,
+  status or draft content, so it stays within SD MN-007.
+- **Not the review notice**: the post-publication review notice (SD FR-025, shown when a change
+  questions a published calendar) stays **future scope** (DL-22). The two are separate: this one is
+  shown only before anything has been published.
+- **Wording**: the operator's text is the agreed message. It goes through the copy review (DL-05)
+  like all GP text; any change to it is recorded here.
+- **Changed**: SAD W-16, §3 `/calendar`, CR-012, EC-014 · **still to do by `@product-mgr`**: mark
+  PRD OQ-6, SD OQ-1 and US-011 OQ-US011-1 resolved; update US-011 criterion 7 (the empty state shows
+  this message, read-only, no notifications) and SD AC-013 if its wording needs it. **Done 2026-11-12
+  by `@product-mgr`** (branch `define-gp-pre-publication-message`, not yet merged): PRD OQ-6, SD OQ-1 and
+  OQ-US011-1 resolved; US-011 criterion 7 and SD AC-013 now name the message; US-010 criterion 6 points
+  to it.
+
 ---
 
 ## Audit
@@ -502,3 +523,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-22 follow-up done: future-scope requirements, acceptance criteria, story criteria and PRD rows marked deferred (nothing deleted); PRD OQ-5 recorded as decided on scope, capacity open; DL-02 re-run superseded for the MVP
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-25 (OpenAI API on prepaid credits, US$25 to start and US$50 ceiling; model per role; IDs confirmed before the spike; Claude Code is the build tool only); operator decision
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-26 (verifier: mid-tier model by default, switch to the reasoning model if any planted conflict is missed in the spike; cost per run recorded for both); operator decision
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-27 (PRD OQ-6: before the first publication, a read-only empty state with a fixed message; no notifications); operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-27 follow-up marked done: PRD OQ-6, SD OQ-1 and OQ-US011-1 resolved; US-011 criterion 7 and SD AC-013 name the message (on branch `define-gp-pre-publication-message`, not yet merged)
