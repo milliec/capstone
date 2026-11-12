@@ -7,9 +7,10 @@ One fictional Luxembourg UCI Part II fund (`FND-DEMO-01`), mock data, mocked rol
 MVP scope, the decisions in force, the evaluation run rules and release rule (DL-34), the five-day
 estimate, the known limitations, Future Work and the open questions. **Pass 2 of 4 is done:** Work Ownership
 (with the quote-check rule and the run state model), the Delegation Map with its four diagrams,
-Pattern Decision, Reference Architecture and §1. **Pass 3 is part done:** Model and Context
-Strategy, the Control Register and Production Shape. Still to come in pass 3: §2, §4 and §6. A
-heading marked *pending*
+Pattern Decision, Reference Architecture and §1. **Pass 3 of 4 is done:** Model and Context
+Strategy, the Control Register, Production Shape, §2 (runtime), §4 (backend) and §6 (data flow).
+Pass 4 remains: §3, §5, §7 to §10, the requirement map, the implementation guidance and the
+validation checklist. A heading marked *pending*
 has not been rewritten yet. **Nothing is built from a pending heading**; passes 2 to 4 fill them.
 
 > **This document replaces the full design.** The earlier SAD (1,960 lines) described the MVP and
@@ -521,7 +522,7 @@ document. *Retired from the MVP:* CR-010, CR-020, CR-022 and CR-024 to CR-026 (F
 | CR-006 | The verifier changes a row (SD MN-004) | The verifier returns flags only and has no way to write row fields. A test compares each row before and after verification | output | Fail closed: any difference fails the test and the build | Build crew | AM T-08 | Not applicable |
 | CR-007 | Approval over a flag, or a gate completed with something undecided (SD AC-006, AC-008) | A remaining flag → approval needs a written reason, stored with the decision. An undecided "unsure" → G2 cannot complete. Any undecided row or verdict → the gate is incomplete. No bulk action, no preselected decision, no decision on a timeout or on closing a page (SD AC-026) | tool-call | Fail closed | Build crew | AM T-03, T-05, T-23 | Flagged rows and "unsure" verdicts look different from the rest and are shown with both texts (flags) or the cited facts (verdicts) |
 | CR-008 | A model computes a date (SD MN-005) | The date module does not depend on any model client. The row and verdict schemas have no date fields (CR-003 refuses any). The calendar is generated only after G2 is complete, from approved rows that apply | tool-call | Fail closed | Build crew · `@qa.eng` | The date tests run with no model (US-008 c8, US-009 c6); AM T-12 | Not applicable |
-| CR-009 | A decision made twice, or on a stale page (SD MD-009) | **Decide once, and record the version.** Each row, verdict and calendar has an integer version. Nothing changes a row or a verdict after it is created, so its version stays at 1; it is still stored with every decision, so the scheme extends to edits later without a change of record format. **A row or verdict that already has a decision refuses another** (`ALREADY_DECIDED`). The run has a version that goes up at every gate event; every run-level request (complete a gate, publish, decline, abandon) carries the run version the specialist saw and is refused if it no longer matches (`VERSION_MISMATCH`). Together these cover a stale page and a double submit: one decision is recorded | tool-call | Fail closed | Build crew | AM T-15, T-32; a test that submits the same decision twice → one recorded, the second refused | The refusal tells the specialist that the item was already decided, or that the run has moved on, and shows the current state |
+| CR-009 | A decision made twice, or on a stale page (SD MD-009) | **Decide once, and record the version.** Each row, verdict and calendar has an integer version. Nothing changes a row or a verdict after it is created, so its version stays at 1; it is still stored with every decision, so the scheme extends to edits later without a change of record format. **A row or verdict that already has a decision refuses another** (`ALREADY_DECIDED`). The service checks this first, and the database enforces it again with a unique constraint. **If the database is the one that refuses, the service still answers `ALREADY_DECIDED` and writes the refusal to the audit log**, in a separate write, like every other gate refusal. The run has a version that goes up at every gate event; every run-level request (complete a gate, publish, decline, abandon) carries the run version the specialist saw and is refused if it no longer matches (`VERSION_MISMATCH`). Together these cover a stale page and a double submit: one decision is recorded | tool-call | Fail closed | Build crew | AM T-15, T-32; a test that submits the same decision twice → one recorded, the second refused and logged. **T-DEC-1**: two decisions on one row sent at the same moment, so that the second passes the service check and is stopped by the database → one decision stored, the second answered with `ALREADY_DECIDED`, and one audit entry for the refusal | The refusal tells the specialist that the item was already decided, or that the run has moved on, and shows the current state |
 | CR-011 | A partial calendar reaches G3 or GPs (SD NFR-004) | Calendar generation is all or nothing inside one database transaction: every entry of the version is written, or none. G3 offers only a complete version. Publishing is one indivisible switch of the fund's published version. Two approved rows that give the same entry ID stop generation, and both rows are named (DL-35) | tool-call | Fail closed | Build crew | AM T-12, T-13; T-ID-2 (§4): two rows that collide → no calendar, both rows named | The specialist sees which rows collided; a new run follows |
 | CR-012 | Working content shown to GPs (SD MN-007) | The GP view is built only from the published version; draft, flag, reasoning and audit data are never read for it. **Before the first publication it returns one fixed message** (DL-27), defined in code, with no count, no run or gate status and no draft content, so a blank page is never read as "no obligations" (P-1) | output (what leaves the server for a GP) | Fail closed: on an error the GP sees a plain error message, never working content | Build crew | AM T-01, T-31; US-011 c4 | Not applicable |
 | CR-013 | Audit tampering (SD NFR-003) | The **audit log** and the **trace store** accept inserts only. The data layer offers no update or delete for them, and database triggers refuse both at the storage boundary. The audit entry for a decision points at the trace record of the output it decided on | tool-call | Fail closed | Build crew · `@security.eng` | AM T-14, on both tables; the trigger definitions | Not applicable |
@@ -622,7 +623,106 @@ external service except the model provider; no PDF parsing; no real data; no not
 
 ### 2. Application Runtime Specification
 
-*Pending: pass 3.*
+**Runtime shape (DL-17 as reworded, DL-35).** The backend is the single owner of gate state. Each
+stage (A, B, C) is run by **one plain Python function, the stage function**. The backend starts it
+as a background task with the run ID; it runs that stage's steps in a fixed order, with the
+per-unit model calls in parallel; and it **ends at its gate**. As each unit finishes, the stage
+function passes its output to a backend service function, which validates and stores it (CR-003).
+When the stage function returns, the backend records that the gate is open and waits for the
+specialist. The next stage function is started only by the backend, and only after the
+backend's own state machine says the gate is complete (W-09, CR-001). **A stage function never
+decides or remembers gate status**, and it cannot start another stage. Stage C contains no model
+call.
+
+**In one sentence: CrewAI runs the three agents; the backend owns the order of steps and the
+gates, because approvals and the audit trail must stay under its control.** (The stage functions
+are part of the backend application, which is why the order of steps is the backend's.)
+
+**The three agents are CrewAI agents.** Each model step is one CrewAI agent with one task, run as
+a one-agent crew, behind a plain function with a typed input and a typed output:
+
+| Step | Function (shape, not final names) | Inside |
+|---|---|---|
+| W-03 | `extract_rows(document) -> list[Row]` | The `extractor` agent and its task |
+| W-05, W-06 | `check_conflicts(row, quote_check_result, sources) -> list[Flag]` | The `verifier` agent and its task |
+| W-11 | `judge_applicability(row, fund_profile) -> Verdict` | The `judge` agent and its task |
+
+*Why the backend owns the gates, and why the agents sit behind functions.* A gate is stored state
+that must survive a restart and refuse a bypass (CR-001). If anything that runs a stage also held
+gate state, there would be two records of where the run is, and they would have to agree. So the
+split is: **a stage function owns the order of steps inside its stage; the backend owns
+everything between stages.** The function wrappers keep a model or prompt change inside one
+function, and they let the gate, date and audit tests run with the three functions replaced by
+stubs: no CrewAI object and no model are needed (SD NFR-011).
+
+**Agents** (three; no others are added):
+
+| CrewAI agent | Goal | Tools | Memory | Used in |
+|---|---|---|---|---|
+| `extractor` | Turn one source document into fixed-schema obligation rows, each citing one paragraph ID with a word-for-word quote, with no dates and no business-day rule unless the source states one | **None** | None | Stage A, W-03 |
+| `verifier` | Report internal and cross-source conflicts for one row, with evidence; never change the row, never choose a source | **None** | None | Stage A, W-05 and W-06 |
+| `judge` | Give one applicability verdict for one approved row, citing fact IDs; answer "unsure" when a fact is missing | **None** | None | Stage B, W-11 |
+
+Settings for all three: `allow_delegation=false`, `memory=False`, `tools=[]`, no manager agent,
+`process=sequential` (with one task, there is nothing to order).
+
+**What each stage function does**:
+
+| Stage | Steps in order | In parallel | Handed to the backend | Starting time limits (replaced after the spike) |
+|---|---|---|---|---|
+| A | Load the paragraphs (code) → `extract_rows` per document → add the planted row if the switch is on (code, CR-029) → quote check W-04 per row (code) → `check_conflicts` per row | Extraction per document; verification per row | Rows, quote-check results, flags, and the status of each unit | 90 s per extraction task, 60 s per verification task; `STAGE_TIME_LIMIT_A` 180 s |
+| B | Load the fund profile (code) → `judge_applicability` per approved row | Per row | Verdicts, and the status of each unit | 60 s per task; `STAGE_TIME_LIMIT_B` 90 s |
+| C | Generate the dates and the calendar W-13 (code only) | Nothing | One complete calendar version, or nothing (CR-011) | `STAGE_TIME_LIMIT_C` 30 s |
+
+The coverage view (W-03b) is not a step: the backend works it out from the stored rows each time
+the G1 or G3 page is shown.
+
+- **Passing data between steps**: through stored data only, never through task context or agent
+  memory. Code builds each task's input from the stored row, sources and profile. `Task.context`
+  chaining is **not used** (D2).
+- **Parallel units**: the calls of one step run with `kickoff_for_each` or its async form. Each
+  output is matched to its unit by the key `run_id · step · unit_id`, never by position.
+- **Outputs**: every task sets `output_pydantic` to its schema (Row list, Flag list or Verdict)
+  and a `guardrail` that applies the rules in CR-003. Every task has a `Task.id` equal to its step
+  name.
+- **Errors**: a guardrail failure or a timeout fails its unit, and the run ends as `FAILED`. The
+  model is never asked again (`guardrail_max_retries: 0`, D5). A transport or provider error gets
+  one automatic retry (D1).
+- **Time limits and stopping**: there is **no cancel**. Every task has `max_execution_time`, so a
+  call that hangs becomes a failed unit. The backend also enforces the stage time limit around the
+  stage function. When a run has ended, the backend **ignores any output that arrives late**: it
+  is written to the trace only, and nothing is stored as a row or a verdict. The start-up rule
+  fails a run that was interrupted mid-stage (run state rule 7). The one human way to close a run
+  is abandon, at a gate (W-19a).
+- **Sampling**: per role, as in Model and Context Strategy.
+
+**CrewAI settings** (per `.cursor/rules/adapter-crewai.mdc`):
+
+| Adapter rule | Setting here | Note |
+|---|---|---|
+| Agents and tasks in YAML | `backend/config/agents.yaml` and `backend/config/tasks.yaml`: three agents, three tasks | The prompts live in these files; a hash of each is stored in the trace (CR-018) |
+| Entry point | `backend/runtime/stages.py`: three stage functions, in place of `crew.py` | "or equivalent runtime entrypoint" |
+| `allow_delegation=false` | Yes, all agents | |
+| Sequential process | Yes | Hierarchical is not used |
+| `max_iter <= 12` | `max_iter: 2` | No tools, so one reasoning step and a final answer |
+| `max_execution_time` | As in the table above | Replaced by measured values after the spike |
+| `max_rpm` at crew level | 30 | Limits bursts from the parallel units |
+| Tools: the minimum set | Empty for every agent | CR-002 |
+| `memory=False` | Yes | No `CREWAI_STORAGE_DIR` needed |
+| `Task.guardrail` for high-risk outputs | Yes, on all three tasks | Retry setting: D5 |
+| `max_retry_limit`, `Task.context`, `expected_output`, output path, human review gate | See D1 to D6 below | |
+
+**Adapter deviations and interpretation (D1 to D6).** Accepted by operator decision (DL-21). Build
+follows these in place of the adapter text they name.
+
+| # | Adapter rule, word for word (line) | Setting and why | Accepted risk |
+|---|---|---|---|
+| D1 | "`max_retry_limit >= 2`." (34) | `max_retry_limit: 1`: one automatic retry, for transport and provider errors only. A second automatic attempt hides a repeated failure and spends budget unseen | Two transient errors in a row end the run. The cost is a new run, not a wrong result; EC-R8 covers this case in evaluation runs |
+| D2 | "Use explicit task context chaining (`Task.context`) for deterministic dependency flow." (24) | Not used. It would pass the extractor's output and reasoning into the verifier's prompt, which W-05 forbids. The order is still fixed: it is the step order of the stage function, and inputs come from stored data | Low. A developer used to CrewAI may expect it; this section says where every input comes from |
+| D3 | "Define `expected_output` with required headings and target artifact paths." (25) | `expected_output` describes the step's typed schema, and `output_pydantic` enforces it. The adapter rule is written for crews that produce documents; these tasks return data | Low. Recorded so a reviewer comparing against the adapter text sees why they differ |
+| D4 | "Require `Task.id` and explicit output path for traceability." (54) | `Task.id` is kept. **There is no output path**: outputs go to the database, and a file would be a second store outside the append-only rule. In its place, **every evaluation run must export its trace** to `project-context/2.build/logs/<run_id>/`, with secrets removed. An evaluation run without its export is reported as failed. **T-D4-1**: with the export switched off or deleted → the evaluation run is marked failed and says why; with it present → it holds one record per model call attempt, matching the trace store | Low, with T-D4-1 in place |
+| D5 | *A library default, not an adapter rule:* CrewAI asks the model again when a guardrail fails (`guardrail_max_retries`). The adapter rule followed is "Use `Task.guardrail` for high-risk outputs" (53) | `guardrail_max_retries: 0`. Asking the model again with its own failure is the self-correcting loop the design rejects (Pattern Decision) | First-pass success may be lower, because a small formatting slip is not repaired. **The spike records first-pass success per role.** If it is too low, the fix is a better prompt or schema, released under the release rule, never a re-ask |
+| D6 | "For high-risk outputs, require a human review gate (`human_input=true` or explicit review task)." (56) | *An interpretation, not a deviation.* G1, G2 and G3 in the backend are the explicit review. `human_input=true` would put gate state inside the agent runtime (DL-17) | Low. If `@security.eng` reads the rule literally, it is raised again as a deviation |
 
 ### 3. Frontend Architecture Specification
 
@@ -630,7 +730,145 @@ external service except the model provider; no PDF parsing; no real data; no not
 
 ### 4. Backend Architecture Specification
 
-*Pending: pass 3.*
+**Shape.** One FastAPI application serves the pages and holds all the rules. It has three layers:
+
+| Layer | Holds | Rule |
+|---|---|---|
+| **Page handlers** (`backend/web/`) | The routes below, the HTML templates and the stylesheet | **Thin.** A handler reads the request, calls one service function and renders a template or redirects. It contains no check and no rule (DL-33) |
+| **Services** (`backend/services/`) | Runs, the gate service, decisions, the calendar, publishing, the audit log | **Every check lives here**: role, gate, decide-once, version, reason, acknowledgement. A JSON API added later would call these same functions |
+| **Runtime and domain** (`backend/runtime/`, `backend/domain/`) | The stage functions and the three agents; the quote check, the date engine and the coverage view | The runtime stores outputs through service functions and cannot call the gate service. The domain code has no model client |
+
+Folder names show the shape; Build may adjust them.
+
+**Routes.** A `GET` returns a page. A `POST` is an HTML form submission: on success the server
+redirects to the page that shows the result; on a refusal it shows the same page again with the
+refusal message. Every `POST` under `/specialist/` needs the `specialist` role (CR-004).
+
+| Route | Role | Purpose | Controls |
+|---|---|---|---|
+| `GET /sign-in` · `POST /sign-in` · `POST /sign-out` | none | Mock sign-in: choose the specialist or the GP identity | CR-004 |
+| `GET /specialist/runs` | specialist | The run list, and the form that starts a run, with the planted-row switch (off, never preselected) | CR-029 |
+| `POST /specialist/runs` `{demo_planted_row}` | specialist | Start a run for `FND-DEMO-01`; the backend starts stage A. Turning the switch on is recorded in the audit log | CR-023, CR-029 |
+| `GET /specialist/runs/{run_id}` | specialist | Run status: state, stage, units, cost so far, and for a failed run the step, the unit and the reason | W-19 · US-015 |
+| `POST /specialist/runs/{run_id}/abandon` `{run_version, reason}` | specialist | Abandon a run waiting at a gate; refused while a stage runs | W-19a · CR-009, CR-023 |
+| `GET /specialist/runs/{run_id}/g1` | specialist | Rows with quotes, quote-check results and flags; the coverage view | W-07, W-03b |
+| `POST /specialist/rows/{row_id}/decision` `{version, decision, business_day_rule?, reason?}` | specialist | Approve or reject one row | CR-005, CR-007, CR-009, CR-029 |
+| `POST /specialist/runs/{run_id}/g1/complete` `{run_version}` | specialist | Complete G1; the backend starts stage B | CR-001, CR-009 |
+| `GET /specialist/runs/{run_id}/g2` | specialist | Verdicts with reasoning and the cited fact values | W-12 |
+| `POST /specialist/verdicts/{verdict_id}/decision` `{version, decision, value?, reason?}` | specialist | Confirm, override or decide an "unsure" | CR-007, CR-009 |
+| `POST /specialist/runs/{run_id}/g2/complete` `{run_version}` | specialist | Complete G2; the backend starts stage C | CR-001, CR-009 |
+| `GET /specialist/runs/{run_id}/g3` | specialist | The calendar with its marks; the rejected rows and uncited paragraphs to acknowledge | CR-027, CR-028 |
+| `POST /specialist/calendars/{calendar_id}/publish` `{run_version, acknowledged, rejected_row_ids, uncited_paragraph_ids}` | specialist | Publish the whole calendar. The two lists are the ones the page showed; the server compares them with its own | CR-001, CR-009, CR-011, CR-028 |
+| `POST /specialist/calendars/{calendar_id}/decline` `{run_version, reason}` | specialist | Decline at G3; the run ends as `DECLINED` | SD FR-022 |
+| `GET /calendar` | GP, specialist | The published calendar and the calendar-level note, or the "being prepared" message | CR-012 |
+| `GET /health` | none | Tells a start-up check that the application is running | §5 |
+
+- **Validation**: Pydantic on every form; unknown fields are refused.
+- **Rate limiting**: none on the routes (one local user). Model calls are limited by `max_rpm` and
+  the cost cap (CR-017).
+- **Refusals.** A service function refuses a request by returning a **refusal code** and one plain
+  sentence for the specialist. The page shows the sentence; the tests and the audit log use the
+  code. **Every refusal is written to the audit log** (CR-001).
+
+  | Code | Meaning | HTTP status |
+  |---|---|---|
+  | `FORBIDDEN` | The role may not do this | 403 |
+  | `VALIDATION` | The form is malformed | 422 |
+  | `REASON_REQUIRED` | A written reason is missing | 422 |
+  | `ALREADY_DECIDED` | The row or verdict already has a decision | 409 |
+  | `VERSION_MISMATCH` | The run has moved on since the page was shown | 409 |
+  | `GATE_INCOMPLETE` | Something at this gate is still undecided | 409 |
+  | `QUOTE_CHECK_FAILED` | The row failed the quote check and cannot be approved | 409 |
+  | `DEMO_ROW_NOT_APPROVABLE` | The planted demo row cannot be approved | 409 |
+  | `ACK_REQUIRED` | The publish acknowledgement is missing or does not match | 409 |
+  | `RUN_ACTIVE` | A run is already active for the fund | 409 |
+  | `RUN_NOT_ACTIVE` | The run has ended | 409 |
+  | `RUN_STAGE_RUNNING` | A stage is running, so the run cannot be abandoned yet | 409 |
+
+- **Failure reasons.** A failed run stores one reason per failed unit, from this fixed list of
+  **seven**, so that run status can name it and the void rule (EC-R8) can be applied without
+  judgement:
+
+  | # | Reason | When | Model-service failure under EC-R8? |
+  |---|---|---|---|
+  | 1 | `model service` | The provider call timed out, was rate-limited or returned a server error, after its one retry | **Yes** |
+  | 2 | `task time limit` | A model task passed `max_execution_time` | **Yes** |
+  | 3 | `stage time limit` | The stage passed its `STAGE_TIME_LIMIT` | **Yes** |
+  | 4 | `invalid output` | The output failed its schema or guardrail | No |
+  | 5 | `cost cap` | The run reached `RUN_COST_CAP_USD` | No |
+  | 6 | `service restarted` | The backend restarted while the stage was running | **No** |
+  | 7 | `calendar generation` | Stage C could not produce a complete calendar, including an entry ID collision | No |
+
+  **A restart cannot void an evaluation run.** `service restarted` is a failure of the machine the
+  run was on, not of the model service, so the run counts as it ended.
+
+- **Streaming**: none (§1).
+
+**Data.** One SQLite file. **Every business table carries `fund_id`**, although the MVP has one
+fund, and foreign keys include it, so a row cannot point at another fund's run. The backend sets
+`fund_id` from the run; it is never taken from a form.
+
+| Table | Holds | Write rule |
+|---|---|---|
+| `runs` | State, stage, run version, the planted-row switch, cost so far | Updated by the backend only |
+| `units` | One line per unit of a stage: status, attempts, failure reason | Updated by the backend only |
+| `paragraphs` | The loaded source paragraphs with their IDs | Loaded from the mock files when a run starts |
+| `rows` | Each row: fields, quote, cited paragraph, origin (`model` or `demo`), version | Written once; never changed |
+| `quote_checks`, `flags` | The quote-check result and the verifier's flags for each row | Written once per row |
+| `row_decisions` | The G1 decision on a row: approve or reject, business-day rule, reason, the row version, who and when | **One per row**, enforced by a unique constraint (CR-009); never changed. A refusal by the constraint is written to the audit log |
+| `verdicts` | The judge's verdict for a row: value, reasoning, cited fact IDs, version | Written once; never changed |
+| `verdict_decisions` | The G2 decision: confirm, override or decide; the final value; reason; the verdict version; who and when | **One per verdict**, enforced by a unique constraint; never changed. A refusal by the constraint is written to the audit log |
+| `calendar_versions`, `calendar_entries` | The generated calendar and its entries, with their marks | Written in one transaction (CR-011); never changed |
+| `publications` | Which calendar version is published for the fund, with the acknowledged lists | One indivisible switch per publish |
+| `trace` | Every model call attempt | **Append-only** (CR-013, CR-018) |
+| `audit_log` | Every human decision, agent output reference, gate event, refusal and system event | **Append-only** (CR-013) |
+
+The append-only tables have database triggers that raise an error on `UPDATE` or `DELETE`, so the
+rule holds even if application code tries.
+
+**Identifiers and versions**:
+
+| Identifier | Scheme | Why |
+|---|---|---|
+| Run | `RUN-<yyyymmdd>-<n>` | Readable in reports and logs |
+| Row | `ROW-<run>-<n>`, where `<n>` is a sequence for the run, given by the backend when the row is stored, never by a model. **Origin is a separate field** (`model`, or `demo` for the planted row) | Unique by construction. **T-ID-1**: two rows extracted from one paragraph → two different row IDs; a unique constraint refuses a duplicate insert |
+| Versions | An integer on each row, verdict, calendar and run. A row or verdict stays at 1. The run version goes up at every gate event | CR-009 |
+| Calendar entry | `ENT-<fund>-<paragraph_id>-<recipient>-<period>`. `<recipient>` is the authority code (for example `CSSF`, `AED`). `<period>` is the anchor period (`2027-03` for a monthly or quarterly obligation, `FY2026` for an annual one) or the event ID for an event-triggered entry (`EVT-01`). Example: `ENT-FND-DEMO-01-SRC-CSSF15627-P2-CSSF-2026-12` | The same occurrence gets the same ID in every run (SD FR-016, US-008 c7), and the ID does not depend on the due date. Two approved rows that give the same ID stop generation, and both are named (DL-35). **T-ID-2**: generate twice from the same inputs → the same IDs; two approved rows with the same paragraph, recipient and period → generation refused, naming both |
+| Trace record | `run_id · step · unit_id · attempt_n` | CR-018 |
+
+**How the layers connect.** When a gate is completed, the gate service records the transition and
+**then** starts the next stage function as a background task, passing only the run ID. The stage
+function stores each unit's output through service functions. The pattern's configuration is in
+versioned files:
+
+- `backend/config/agents.yaml` and `backend/config/tasks.yaml`: the three agents and their tasks.
+- `config/regulation/lu-part2.yaml`: conventions `D-1` to `D-7`, the mock holiday list, the open
+  conventions for CR-027, and the list of source files.
+- `config/fund/FND-DEMO-01.yaml`: the fund profile.
+- `config/policy/default.yaml`: client policy (the default for an unconfirmed roll rule, and the
+  P-1 treatment).
+- `config/demo/planted-row.yaml`: the planted demo row (CR-029). The evaluation runner never
+  reads it.
+
+A run reads its configuration once, when it starts. A change to a configuration file takes effect
+on the next run.
+
+**Sign-in and secrets** (names only; values are never committed):
+
+| Variable | Purpose |
+|---|---|
+| `AAMAD_TARGET_RUNTIME` | `crewai` (a setting for the development crew, recorded in Audit) |
+| `OPENAI_API_KEY` | The OpenAI API key, under the provider's standard name, which CrewAI reads directly (DL-25) |
+| `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE` | The model for each role |
+| `LLM_MAX_TOKENS_EXTRACT`, `LLM_MAX_TOKENS_VERIFY`, `LLM_MAX_TOKENS_JUDGE` | The output limit for each step |
+| `RUN_COST_CAP_USD` | The hard stop on a run's model cost (CR-017) |
+| `STAGE_TIME_LIMIT_A`, `STAGE_TIME_LIMIT_B`, `STAGE_TIME_LIMIT_C` | The time limit for each stage |
+| `SESSION_SECRET` | Signs the session cookie that holds the mocked identity |
+| `DATABASE_PATH` | Where the SQLite file is |
+
+Sign-in is mocked (SD A-5): the sign-in page sets a signed session cookie holding a mocked
+identity and role (`specialist-1` or `gp-1`), and the backend reads the role from the cookie on
+every request. This is a demo mechanism, not access control (AM §3).
 
 ### 5. DevOps & Deployment Architecture
 
@@ -652,7 +890,39 @@ external service except the model provider; no PDF parsing; no real data; no not
 
 ### 6. Data Flow & Integration Architecture
 
-*Pending: pass 3.*
+**The happy path, step by step.** "Starts stage A" means the backend starts that stage function as
+a background task.
+
+| # | Who acts | Path | What is stored | What the specialist sees next |
+|---|---|---|---|---|
+| 1 | The specialist starts a run | Run list page → `POST /specialist/runs` → run service (CR-023) → **starts stage A** | The run and its units; an audit entry (and one for the switch, if on) | The run status page, which reloads itself |
+| 2 | Stage A | Load paragraphs → `extract_rows` per document (model) → planted row if the switch is on (code) → quote check (code) → `check_conflicts` per row (model) | `paragraphs`, `rows`, `quote_checks`, `flags`, `trace`; each unit's status | Units finishing; then "waiting at G1" |
+| 3 | The specialist reviews at G1 | G1 page → one `POST` per row decision | `row_decisions`, `audit_log` | The row's status; the coverage view |
+| 4 | The specialist completes G1 | `POST …/g1/complete` → gate service → **starts stage B** | A gate event in `audit_log`; the run version goes up | The run status page for stage B |
+| 5 | Stage B | Load the fund profile → `judge_applicability` per approved row (model) | `verdicts`, `trace` | "Waiting at G2" |
+| 6 | The specialist reviews and completes G2 | G2 page → one `POST` per verdict decision → `POST …/g2/complete` → gate service → **starts stage C** | `verdict_decisions`, `audit_log` | The run status page for stage C |
+| 7 | Stage C | Date engine (code) | One calendar version and its entries, or nothing | "Waiting at G3" |
+| 8 | The specialist publishes at G3 | G3 page → `POST …/publish` with the acknowledgement | `publications` switched; `audit_log`; the run is `COMPLETED` | A confirmation |
+| 9 | A GP opens the calendar | `GET /calendar` | Nothing | The published entries and the calendar-level note |
+
+**External integrations**: one only, the **model provider**, called by the three agents. Every
+business-side system is replaced by a versioned file under `config/` or `mock-data/` (PRD §3).
+
+**What happens when something fails, and what the specialist sees**:
+
+| Where it fails | What happens | What the specialist sees |
+|---|---|---|
+| A model call (the service) | One automatic retry (D1). If it fails again, the run ends as `FAILED` | Run status: `FAILED`, the step, the unit and "the model service did not respond". A new run can be started |
+| A model output (its schema) | The guardrail fails; the model is not asked again (D5); the run ends as `FAILED` | Run status: `FAILED`, the step, the unit and what was wrong, in plain words |
+| A task or stage time limit | The stage ends; the run ends as `FAILED`; late output goes to the trace only | Run status: `FAILED` and which limit passed |
+| The cost cap | No further calls; the run ends as `FAILED` (CR-017) | The reason and the cost so far |
+| Calendar generation | All or nothing; nothing is stored (CR-011); the run ends as `FAILED` | Run status: `FAILED`; if two rows collided, both are named. G3 is not offered |
+| A decision or gate request | Refused with a code (§4) and written to the audit log | The same page again, with the plain sentence |
+| The backend stops mid-stage | On start-up the run becomes `FAILED` with "service restarted" (run state rule 7) | Run status: `FAILED` and the reason. A run that was waiting at a gate is unchanged |
+| The specialist abandons a run | The run becomes `ABANDONED`; nothing is undone; audited (W-19a) | Run status: `ABANDONED` with the reason. A new run can be started |
+
+In every failure the next step is the same: **start a new run.** Nothing reaches a GP from a run
+that did not finish.
 
 ### 7. Performance & Scalability Specifications
 
@@ -695,8 +965,9 @@ EC-R7 are unchanged and are restated with the criteria table in pass 4.
      model-service failure: the provider call timed out, was rate-limited or returned a server error
      after its one automatic retry, or a task or stage time limit passed while waiting for the
      provider.
-  2. A run is **never** voided for schema-invalid output, a wrong result, a missed criterion or the
-     cost cap. Those are findings.
+  2. A run is **never** voided for schema-invalid output, a wrong result, a missed criterion, the
+     cost cap, a failed calendar generation or a backend restart. Those are findings. The seven
+     failure reasons, and which of them count as model-service failures, are listed in §4.
   3. A voided run is **re-run once** on the same commit. If the replacement also fails for a
      model-service reason, it counts as a **miss** with the reason "model service" and is not re-run
      again.
@@ -998,3 +1269,27 @@ Two belong to this pass:*
   **Production Shape** (no re-run, no fallback, no circuit breaker; the measurement spike and the
   verifier bake-off in block B3). §2, §4 and §6 remain pending. Prompt Trace not captured: no
   model call was made by the application.
+- 2026-11-12 · persona `system-arch` · action `create-sad --mvp` (pass 3, second part) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · sources: §2, §4 and §6 of the full design at tag
+  `sad-full-design`; `.cursor/rules/adapter-crewai.mdc` (D1 to D6, as accepted in DL-21);
+  `decision-log.md` DL-17, DL-29, DL-31, DL-33, DL-35 · rewrote **§2** (three stage functions in
+  `backend/runtime/stages.py` in place of Flows; the three CrewAI agents as one-agent crews behind
+  typed functions; starting time limits; late output goes to the trace only; D1 to D6 reworded
+  for no re-run), **§4** (page handlers, services, runtime and domain; page routes with form
+  posts in place of a JSON API; refusal codes including the new `ALREADY_DECIDED`; a fixed list
+  of failure reasons that makes the void rule EC-R8 mechanical; tables without row versions, the
+  replaceable output store or duplicate groups, and with one decision per row and per verdict
+  enforced by a unique constraint; entry ID without the quote position; tests T-ID-1 and T-ID-2
+  narrowed to the MVP) and **§6** (happy path and failure table, where every failure ends in a
+  new run). Pass 4 remains. Prompt Trace not captured: no model call was made by the application.
+- 2026-11-12 · persona `system-arch` · action `create-sad --mvp` (pass 3, operator review) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · operator decisions: the four pass 3 choices accepted (fixed
+  failure reasons, late output to the trace only, one decision per row enforced by the database,
+  starting time limits). Changes asked for: (1) §4 lists the seven failure reasons with a yes or
+  no for EC-R8 on each; `service restarted` is not a model-service failure, so a restart cannot
+  void an evaluation run, and EC-R8 point 2 now says so. (2) A second decision refused by the
+  database constraint is answered `ALREADY_DECIDED` and written to the audit log (CR-009, new
+  test T-DEC-1). (3) §2 "Runtime shape" carries the operator's one-sentence statement of the
+  design. The operator confirmed the runtime as written (CrewAI agents, plain stage functions,
+  backend-owned gates) and that the Flow per stage stays Future Work F-11 with no change to the
+  estimate.
