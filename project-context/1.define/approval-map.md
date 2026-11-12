@@ -166,7 +166,7 @@ The system may never complete them for the specialist.
 | H8 | **Decide** an "unsure" verdict (G2) | As H6 | Yes | Not until G3 | No | **Ask**, blocking | Existing · SD AC-008, US-007 AC4–AC6, P-1 |
 | H9 | **Complete** G2 while any verdict is "unsure" | — | Yes | Yes | Yes | **Never** | Existing · SD AC-008 |
 | H10 | **Publish** the whole fund calendar (G3) | **Yes** (GP reliance; unpublish deliberately deferred) | Yes | **Yes** (GPs) | No | **Ask** | Existing · SD FR-014, A-6, US-010 |
-| H10a | **Decline** to publish (G3), with a written reason and a chosen next step | No (draft and history kept) | No (nothing published; no approval cancelled) | No (any previous published version stays visible) | No | **Ask**, reason required | Existing · SD FR-022, US-010 AC8–AC9 |
+| H10a | **Decline** to publish (G3), with a written reason *(the chosen next step is deferred, DL-22: in the MVP a decline ends the run as declined)* | No (draft and history kept) | No (nothing published; no approval cancelled) | No (any previous published version stays visible) | No | **Ask**, reason required | Existing · SD FR-022, US-010 AC8–AC9 |
 | H11 | **Publish** while G1 or G2 is incomplete or any entry is out of date | Yes | Yes | Yes | Yes | **Never** | Existing · SD MP-006, US-010 AC2–AC3 |
 | H12 | **Approve** as a second specialist (four-eyes) | — | — | — | — | **Not in this map** | Existing: timing undecided · SD OQ-5, PRD OQ-1 |
 
@@ -244,7 +244,7 @@ SAD, OD-11).
 | **2. Why now?** | The calendar was generated from current G1 and G2 approvals, and no entry is out of date. |
 | **3. What changes if approved?** | Every GP sees this calendar. Before G3 they saw nothing (or the previous published version). · SD AC-013, US-010 assumption |
 | **4. How is it undone?** | **No unpublish or withdraw exists.** It is deliberately deferred for the demonstration and must be revisited before real-world use (SD §9). Recovery: GPs see a neutral review notice while a correction questions the published calendar (FR-025); correct through G1/G2 (FR-023, FR-024, MD-005), regenerate, publish again. GPs keep the old version until then · US-010 assumption. The notice warns but does not undo GP reliance on the old version. |
-| **5. Edit or decline?** | Decline with a **required** reason and a chosen next step: a rule needs correcting (G1), a verdict needs review (G2, by reopening it), or keep unpublished for later. Nothing new is published, the draft and history are kept, and no earlier approval is cancelled · SD FR-022, US-010 AC8–AC9 |
+| **5. Edit or decline?** | Decline with a **required** reason. *Deferred (DL-22): the chosen next step, a rule needs correcting (G1) or a verdict needs review (G2, by reopening it). In the MVP a decline ends the run as declined, and correcting means a new run.* Nothing new is published, the draft and history are kept, and no earlier approval is cancelled · SD FR-022, US-010 AC8–AC9 |
 
 ### Card S3 *(stretch; required for every report if built)*: accept an impact report
 
@@ -380,7 +380,7 @@ report (US-013). A passing test is bounded evidence, not a safety claim.
 | T-15 | Full demo run | Read the log | Every decision with who, when, what, reason where required, and the version each approval decision was made on | Deterministic | Existing · SD AC-016, US-012 AC2 |
 | T-16 | Mock data | Run extraction, verifier, applicability | Matches answer key | Model evaluation | Existing · SD MP-001 to MP-003 |
 | T-17 *(stretch)* | `AMD-01`/`02`/`03` | Assess impact | Flags match KEY §6; nothing changed by the system | Model evaluation + deterministic check | Existing · SD AC-018 to AC-020 |
-| T-18 | Generated calendar | Decline without, then with, a reason and next step | As US-010 AC8–AC9 | Deterministic | Existing · SD AC-021 |
+| T-18 | Generated calendar | Decline without, then with, a reason *(next step deferred, DL-22)* | As US-010 AC8–AC9 | Deterministic | Existing · SD AC-021 |
 | T-19 | Rejected row, before and after publication | Edit it directly; reopen without, then with, a reason; try to publish | As US-004 AC9–AC11 | Deterministic | Existing · SD AC-022 |
 | T-20 | Confirmed verdict, before and after publication | Reopen without, then with, a reason; try to publish | As US-007 AC8–AC9 | Deterministic | Existing · SD AC-023 |
 | T-21 | Published calendar | Fire each FR-025 trigger in turn; separately, do draft work that does not affect it | As US-011 AC9 (stretch trigger: US-014 AC10) | Deterministic | Existing · SD AC-024 |
@@ -518,3 +518,4 @@ current state.
 - 2026-11-11 · operator (direct edit) · action `update` · OD-8 closed with a reference to SAD W-04
   (A4 row, §7 enforcement, §8 resolved table, Open Questions); operator decision. This audit line
   added by `@system.arch` at the operator's instruction
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · H10a, decision 5 and T-18: the next step after a G3 decline is deferred; a decline ends the run as declined; operator decision

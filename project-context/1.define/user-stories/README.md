@@ -75,7 +75,9 @@ Every acceptance criterion in `system-description.md` §8 is tested by at least 
 | AC-026 | US-004, US-007, US-010 (stretch: US-014) | AC-027 | US-016, US-013 |
 | AC-028 | US-004 | AC-029 | US-001 |
 | AC-030 | US-015 (also US-001 c7, US-006 c7) | AC-031 | US-015, US-016, US-013 |
-| AC-032 | US-010, US-004 (assumptions: US-011) | | |
+| AC-032 | US-010, US-004 (assumptions: US-011) | AC-033 | US-015 |
+| AC-034 | US-015 | AC-035 | US-015 |
+| AC-036 | US-015, US-010 | | |
 
 Stretch: AC-018, AC-019, AC-020 and AC-025 are covered by US-014.
 
@@ -90,6 +92,7 @@ built; they are marked *Deferred (DL-22)* where they appear. Nothing was deleted
 | US-001 | criterion 9; the reopening clause of criterion 10 |
 | US-004 | criteria 9–11 (reopen a rejected row), 14–16 (possible duplicates, completion confirmation) |
 | US-007 | criteria 8–9 (reopen a verdict) |
+| US-010 | the next-step choices after a G3 decline (back to G1 or G2); criteria 8–9 are reworded: a decline ends the run as declined |
 | US-011 | criteria 9–10 (GP review notice) |
 | US-013 | criteria 8–9 (human-created rows, release counted) |
 | US-015 | criteria 4–6, 11–13, 14–15, 18; the restart note. Criteria 19–21 (failed run, abandon) stay |
@@ -177,3 +180,4 @@ at each gate. The stories assume these demo decisions:
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope stories and criteria marked deferred; new "Scope status (DL-22)" table; nothing deleted
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · US-013 criteria 10–11 (3 of 3 consecutive runs on one commit; names graded by the specialist); OQ-US001-1 and OQ-US013-1 resolved
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · US-011 criterion 7 and SD AC-013 name the GP "being prepared" message; PRD OQ-6, SD OQ-1 and OQ-US011-1 resolved
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · AC-033 to AC-036 in the coverage table; US-010 criteria 8–9 reworded (a decline ends the run as declined); OQ-US001-2 accepted as a known limitation

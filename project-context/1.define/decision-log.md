@@ -369,6 +369,14 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   **44.5 (33.5–63)**, and the fit table moves by 2. That is the product manager's figure for the
   architect to confirm at the week-1 re-estimate. Recorded in the SAD (Run state model, W-19a, CR-023,
   tests T-RUN-0 to T-RUN-4, SA-18) and in US-015 criteria 19–21.
+- **Update 2026-11-12 (operator, second answer set).** (1) A G3 decline needs a written reason, is audited,
+  and ends the run as a terminal `DECLINED` state; correcting means a new run. The next-step choices after
+  a decline (back to G1 or G2) and reopen stay future scope. (2) SA-18 is **confirmed** and reworded:
+  a run is complete once G3 is decided; publishing gives `COMPLETED`, a decline gives `DECLINED`.
+  (3) The WP-12a estimate is **confirmed** at 2 focused days (1.5–3). (4) OQ-US001-2 is accepted as a
+  known MVP limitation: there is no "no obligation" mark, the coverage view shows the paragraph as
+  uncovered (a warning), and the mark is future scope. SD AC-033 to AC-036 now cover the failed step, the
+  timeout, abandon and a new run after a closed run; the PRD (F8) lists the pre-publication message.
 - **Changed**: SAD "Six-week estimate and agreed scope", scope keys in Work Ownership and the Control
   Register, feasibility note, SOQ-1, implementation guidance · **still to do by `@product-mgr`**: mark
   the future-scope requirements, acceptance criteria and story criteria as deferred (starting list:
@@ -525,3 +533,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-26 (verifier: mid-tier model by default, switch to the reasoning model if any planted conflict is missed in the spike; cost per run recorded for both); operator decision
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-27 (PRD OQ-6: before the first publication, a read-only empty state with a fixed message; no notifications); operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-27 follow-up marked done: PRD OQ-6, SD OQ-1 and OQ-US011-1 resolved; US-011 criterion 7 and SD AC-013 name the message (on branch `define-gp-pre-publication-message`, not yet merged)
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-22 second update: G3 decline ends the run as DECLINED (terminal), SA-18 and the WP-12a estimate confirmed, OQ-US001-2 accepted as a known limitation; SD AC-033 to AC-036, US-010 criteria 8–9, PRD F8 line
