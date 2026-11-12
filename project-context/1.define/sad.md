@@ -225,7 +225,31 @@ monitoring and impact reports (AM S1 to S5).
 
 **Diagrams.** The structural views the architect owns (system context, containers, the agent
 pipeline, the gate and approval view) are drawn with `draw-diagram` under
-`project-context/diagrams/system-arch/` (next step). The behaviour views are owned by other personas
+`project-context/diagrams/system-arch/`, one at a time.
+
+*View 1: system context.* Who and what the running system touches: the specialist runs it and
+decides at G1 to G3, the GP only reads what is published, the system reads the mock data and
+configuration files, and the OpenAI API is its only live external service (SD MN-002, DL-25).
+Filing parties (no role in the MVP), Claude Code (the build tool, not part of the running system,
+DL-25) and the answer key (evaluation only) are deliberately left out.
+
+![Regulatory Intelligence: system context](../diagrams/system-arch/context.svg)
+
+The editable source is `project-context/diagrams/system-arch/context.html`.
+
+*View 2: containers.* Inside the system: the web app calls the backend API, which owns gate state,
+approvals and versions and starts one CrewAI Flow per stage. Each Flow ends at its gate, returns
+its outputs to the backend, and never decides or remembers gate status (DL-17). The diagram
+separates the **model steps** (extractor, verifier, judge, the only parts that call the OpenAI API)
+from the **code steps** (quote check, dates and the other deterministic modules). Both stores sit in
+one SQLite file, drawn as two boxes because they follow different rules: business data is replaced
+per idempotency key (CR-010), while the audit log and trace are append-only, enforced by triggers
+(CR-013). The people (view 1), the evaluation runner and answer key (QA tooling), future-scope
+parts and the internals of each agent (view 3) are left out.
+
+![Regulatory Intelligence: containers](../diagrams/system-arch/containers.svg)
+
+The editable source is `project-context/diagrams/system-arch/containers.html`. The behaviour views are owned by other personas
 under `.cursor/skills/draw-diagram/reference.md`, and the SAD already holds their content as text:
 
 | Diagram | Owner | Source in this SAD |
@@ -1824,3 +1848,15 @@ only after the operator moves it into scope.
   operator decision DL-28: a run interrupted by a backend restart is ended by the specialist with
   abandon and a reason; the start-up auto-fail rule is future scope, recorded as a known limitation
   in the future-scope table and the Delegation Map.
+- 2026-11-12 · persona `system-arch` · action `draw-diagram` · `AAMAD_TARGET_RUNTIME=crewai` · view 1
+  of 4, system context: type `architecture`, default style (operator choice), system fonts, files
+  `project-context/diagrams/system-arch/context.html` and `context.svg`, `diagram-design` commit
+  `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`; `self_check.py --offline` printed OK. Linked from the
+  Delegation Map's Diagrams note. Five nodes, four arrows; every node and arrow traced to the SAD.
+- 2026-11-12 · persona `system-arch` · action `draw-diagram` · `AAMAD_TARGET_RUNTIME=crewai` · view 2
+  of 4, containers: type `architecture` with two zones (backend process; one SQLite file), size
+  `doc-wide`, default style, system fonts, files `project-context/diagrams/system-arch/containers.html`
+  and `containers.svg`, `diagram-design` commit `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`;
+  `self_check.py --offline` printed OK. Nine nodes (operator choice: model steps separate from the
+  Flows; business data and audit/trace separate inside one SQLite zone), nine arrows, one callout
+  (DL-17); every node and arrow traced to §1, §2, §4, CR-010 and CR-013.

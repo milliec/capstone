@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Regulatory Intelligence: containers</title>
+  <!-- Font source: system (AAMAD draw-diagram skill). No web font link. -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1360px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Containers · Diagram Design</p>
+    <h1>Regulatory Intelligence: containers</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="containers-title containers-desc">
+        <title id="containers-title">Regulatory Intelligence: containers</title>
+        <desc id="containers-desc">Inside the system, the web app calls the backend API, which owns gate state and starts a CrewAI stage Flow per stage; each Flow runs model steps that call the OpenAI API and code steps, and returns its outputs to the backend, which writes business data and an append-only audit log and trace in one SQLite file.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- Zones first: backend process, then the SQLite file -->
+        <rect x="296" y="120" width="704" height="328" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <rect x="368" y="124" width="96" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="416" y="133" fill="#5a6580" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">BACKEND · PYTHON</text>
+
+        <rect x="136" y="488" width="528" height="112" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <rect x="552" y="492" width="96" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="600" y="501" fill="#5a6580" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">SQLITE · ONE FILE</text>
+
+        <!-- Arrows (behind boxes) -->
+        <!-- Config and mock files -> backend API (load): right, then down into the API's top edge -->
+        <path d="M 216,152 H 424 Q 432,152 432,160 V 176" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- Web app -> backend API: JSON over HTTP, contract = OpenAPI -->
+        <line x1="216" y1="280" x2="328" y2="280" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <!-- Backend API -> stage Flows: starts a stage -->
+        <line x1="536" y1="192" x2="616" y2="192" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- Stage Flows -> backend API: returns outputs (dashed return) -->
+        <line x1="616" y1="208" x2="536" y2="208" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <!-- Stage Flows -> model steps -->
+        <line x1="700" y1="224" x2="700" y2="320" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- Stage Flows -> code steps -->
+        <line x1="884" y1="224" x2="884" y2="320" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- Model steps -> OpenAI API: down, then right into the API's left edge -->
+        <path d="M 740,384 V 424 Q 740,432 748,432 H 1056" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <!-- Backend API -> business data: read and write -->
+        <line x1="352" y1="352" x2="352" y2="520" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- Backend API -> audit log and trace: append only -->
+        <line x1="512" y1="352" x2="512" y2="520" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Arrow labels (opaque masks, 8px from their lines, clear of every node) -->
+        <rect x="240" y="132" width="32" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="256" y="141" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LOAD</text>
+
+        <rect x="228" y="260" width="88" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="272" y="269" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">JSON · OPENAPI</text>
+
+        <rect x="540" y="172" width="72" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="576" y="181" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">START STAGE</text>
+
+        <rect x="552" y="216" width="48" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="576" y="225" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">OUTPUTS</text>
+
+        <rect x="708" y="266" width="40" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="728" y="275" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">MODEL</text>
+
+        <rect x="892" y="266" width="32" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="908" y="275" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CODE</text>
+
+        <rect x="864" y="412" width="72" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="900" y="421" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">MODEL CALLS</text>
+
+        <rect x="360" y="428" width="76" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="398" y="437" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">READ · WRITE</text>
+
+        <rect x="520" y="428" width="48" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="544" y="437" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">APPEND</text>
+
+        <!-- Node: Config and mock files (store / files) -->
+        <rect x="40" y="120" width="176" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="40" y="120" width="176" height="64" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="48" y="128" width="32" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+        <text x="64" y="137" fill="#4f5d75" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">FILES</text>
+        <text x="128" y="156" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Config and mock files</text>
+        <text x="128" y="172" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">YAML · mock data</text>
+
+        <!-- Node: Web app (component) -->
+        <rect x="40" y="248" width="176" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="40" y="248" width="176" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="48" y="256" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="62" y="265" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">WEB</text>
+        <text x="128" y="284" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Web app</text>
+        <text x="128" y="300" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Next.js · 2 surfaces</text>
+
+        <!-- Node: Backend API and gate service (focal) -->
+        <rect x="328" y="176" width="208" height="176" rx="6" fill="#f5f5f5"/>
+        <rect x="328" y="176" width="208" height="176" rx="6" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <rect x="336" y="184" width="28" height="12" rx="2" fill="transparent" stroke="rgba(191,69,32,0.50)" stroke-width="0.8"/>
+        <text x="350" y="193" fill="#bf4520" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+        <text x="432" y="252" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Backend API</text>
+        <text x="432" y="270" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">FastAPI · gate service</text>
+        <text x="432" y="284" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">gates · approvals</text>
+        <text x="432" y="298" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">versions · audit</text>
+
+        <!-- Node: Stage Flows (component) -->
+        <rect x="616" y="160" width="352" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="616" y="160" width="352" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="624" y="168" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="640" y="177" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">FLOW</text>
+        <text x="792" y="192" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Stage Flows A · B · C</text>
+        <text x="792" y="208" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">CrewAI · each ends at its gate</text>
+
+        <!-- Node: Model steps (component) -->
+        <rect x="616" y="320" width="168" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="616" y="320" width="168" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="624" y="328" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="638" y="337" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LLM</text>
+        <text x="700" y="356" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Model steps</text>
+        <text x="700" y="372" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">extract · verify · judge</text>
+
+        <!-- Node: Code steps (component) -->
+        <rect x="800" y="320" width="168" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="800" y="320" width="168" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="808" y="328" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="824" y="337" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CODE</text>
+        <text x="884" y="356" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Code steps</text>
+        <text x="884" y="372" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">quote check · dates</text>
+
+        <!-- Node: OpenAI API (external service) -->
+        <rect x="1056" y="400" width="176" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="1056" y="400" width="176" height="64" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+        <rect x="1064" y="408" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.22)" stroke-width="0.8"/>
+        <text x="1078" y="417" fill="#5a6580" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">EXT</text>
+        <text x="1144" y="436" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">OpenAI API</text>
+        <text x="1144" y="452" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">a model per role</text>
+
+        <!-- Node: Business data (store) -->
+        <rect x="168" y="520" width="208" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="168" y="520" width="208" height="64" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="176" y="528" width="28" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+        <text x="190" y="537" fill="#4f5d75" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
+        <text x="272" y="556" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Business data</text>
+        <text x="272" y="572" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">replace per key</text>
+
+        <!-- Node: Audit log and trace (store) -->
+        <rect x="424" y="520" width="208" height="64" rx="6" fill="#f5f5f5"/>
+        <rect x="424" y="520" width="208" height="64" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="432" y="528" width="28" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+        <text x="446" y="537" fill="#4f5d75" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LOG</text>
+        <text x="528" y="556" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Audit log and trace</text>
+        <text x="528" y="572" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">append-only · triggers</text>
+
+        <!-- Callout: the one structural rule this view exists to show -->
+        <text x="968" y="148" fill="#4f5d75" font-size="13" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="end">Flows never decide or remember gate status (DL-17)</text>
+
+        <!-- Legend strip -->
+        <line x1="40" y1="640" x2="1240" y2="640" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="40" y="656" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGEND</text>
+
+        <rect x="40" y="672" width="14" height="10" rx="2" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <text x="60" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Owns gate state</text>
+
+        <rect x="184" y="672" width="14" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="204" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Component</text>
+
+        <rect x="300" y="672" width="14" height="10" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <text x="320" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Store or files</text>
+
+        <rect x="428" y="672" width="14" height="10" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+        <text x="448" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">External service</text>
+
+        <rect x="572" y="672" width="14" height="10" rx="2" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="592" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Process or file boundary</text>
+
+        <line x1="764" y1="678" x2="792" y2="678" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="800" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">HTTP / API call</text>
+
+        <line x1="920" y1="678" x2="948" y2="678" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="956" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Call, read or write</text>
+
+        <line x1="1088" y1="678" x2="1116" y2="678" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <text x="1124" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Return</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
