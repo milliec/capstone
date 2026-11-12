@@ -562,10 +562,10 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - **A-8**: Rule amendments create the same manual re-reading burden as new frameworks. This is inferred
   from the brief and the MRD, not observed directly. It is the basis for the F10 stretch goal.
 - **A-9**: **Manual effort today (an assumption, not a measurement).** Interpreting the rules for one
-  fund by hand takes about **[X hours/days] per fund per year**. *The operator has not yet given the
-  figure, so it stays a placeholder.* It is used only to put the specialist's review time (§7) in
+  fund by hand takes **about [N hours] per fund per year**. *The operator has not yet given the
+  figure, so N stays a placeholder.* It is used only to put the specialist's review time (§7) in
   context for the demo, and is always labelled an estimate. No ROI or time saving is claimed from it.
-  (OQ-12, operator decision, 2026-11-12)
+  (OQ-12, operator decision, 2026-11-12; same wording as SAD SOQ-6)
 
 ## Open Questions
 
@@ -702,3 +702,4 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-12 · persona `product-mgr` · action `update` (spot-check of SAD SOQ-20) · OQ-5 now opens with its answer (five focused days, DL-32) instead of "Not yet shown"; no decision changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-39, SAD SOQ-24 d) · F3: "who files" is set at G1 when the source does not state it
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26 a) · F3: "who files" is chosen from the fund's filing parties
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-6, DL-46 handoff) · A-9 wording changed from "[X hours/days]" to "about [N hours] per fund per year" so the PRD and SAD use one phrase; the figure is still the operator's placeholder; no requirement changed

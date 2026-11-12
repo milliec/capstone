@@ -3,11 +3,11 @@
 **Product**: Regulatory Intelligence for fund compliance calendars
 **Scope**: **MVP only**, cut to fit the operator's five focused days of Build and Deliver (DL-32).
 One fictional Luxembourg UCI Part II fund (`FND-DEMO-01`), mock data, mocked roles.
-**Status**: **Complete for the MVP** (`*create-sad --mvp`, four passes, 2026-11-12). No heading is
-pending. Build starts from "Implementation Guidance". The handoff list for `@product-mgr`
-(SOQ-20) is done. One item is open under "Open Questions": the manual-effort figure (PRD A-9).
-**Stretch goal added (DL-38):** a hosted portfolio demo, described once under "Stretch goal: hosted
-portfolio demo". It is outside the five-day plan and is not built until its start conditions are met.
+**Status**: **Complete for the MVP** (`*create-sad --mvp`, four passes, 2026-11-12; final review
+the same day, DL-42 to DL-46). No heading is pending. Build starts from "Implementation Guidance",
+which opens with a one-page **build card**. The open items are listed under "Open Questions".
+**Hosted demo parked (DL-38, DL-42):** the hosted portfolio demo is Future Work (F-18). Its design is
+kept in Appendix A for later and is not built in this plan.
 
 > **This document replaces the full design.** The earlier SAD (1,960 lines) described the MVP and
 > every deferred feature in one text, so a reader could not tell what to build. That version is kept
@@ -32,7 +32,7 @@ portfolio demo". It is outside the five-day plan and is not built until its star
 **User Stories**: `project-context/1.define/user-stories/` (US-001 to US-016; US-005, US-014 and
 US-016 are not in the MVP)
 **Approval map and decision log**: `approval-map.md` (not a requirement in itself; re-checked
-against this version on 2026-11-12), `decision-log.md` (DL-01 to DL-41; DL-40 reserved)
+against this version on 2026-11-12), `decision-log.md` (DL-01 to DL-46; DL-40 reserved)
 **MVP Scope**: the single statement of scope is "MVP scope: the five-day slice" below. No other
 section restates it.
 **Selected Runtime**: `crewai` (resolved from `AAMAD_TARGET_RUNTIME`; matches `runtime.target` in
@@ -59,7 +59,7 @@ in the MVP.
 | 10 | **G3.** The specialist sees the calendar, the rejected rows and the uncited paragraphs, gives one explicit acknowledgement and publishes; or declines with a written reason | Human · backend | W-15, CR-028 |
 | 11 | The **GP view** shows the published calendar and the calendar-level note. Before the first publication it shows the fixed "being prepared" message | Backend (read-only) | W-16, CR-012 |
 | 12 | The **audit log** records every agent output, human decision, refusal and gate event | Backend | W-18, CR-013 |
-| 13 | **Run states.** A run is `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED` or `COMPLETED`. A failed step, a time limit or a restart mid-stage ends the run as `FAILED`. The specialist can abandon a run only while it waits at a gate, with a written reason | Backend · human | W-19a, DM-17, DM-18 |
+| 13 | **Run states.** A run is `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED` or `COMPLETED`. An `ACTIVE` run also has a **phase**: a stage running (`A_RUNNING`, `B_RUNNING`, `C_RUNNING`) or waiting at a gate (`AT_G1`, `AT_G2`, `AT_G3`) (DL-46). A failed step, a time limit or a restart mid-stage ends the run as `FAILED`. The specialist can abandon a run only in an `AT_G*` phase, with a written reason | Backend · human | W-19a, DM-17, DM-18 |
 | 14 | The **evaluation report** compares three runs with the answer key and is exported with its trace. It reports; it does not block | Code | W-20, EC-R1, D4 |
 
 **Three CrewAI agents in a gated workflow (DL-17 as reworded, DL-35).** The system stays visibly
@@ -90,14 +90,19 @@ already failed), starts again and repeats the gate decisions. See "Known limitat
 | DL-29 | Abandon only at a gate; a stage time limit; a start-up rule that fails a run interrupted mid-stage |
 | DL-30 | Publishing needs one explicit acknowledgement of the rejected rows and uncited paragraphs |
 | DL-31 | A demo switch, off by default, adds one planted row that can only be rejected. Evaluation runs refuse to start with it on |
-| **DL-32** | **Capacity is five focused days.** Anything beyond that is the operator's buffer, not scope |
+| **DL-32** | **Capacity is five focused days.** Anything beyond that is the operator's buffer, not scope. *Refined by DL-42: 5 days planned, 8 days hard stop* |
 | **DL-33** | **Plain server-rendered HTML pages** served by the backend, with one small shared stylesheet (type, spacing, status colours) and **no JavaScript framework**. Page handlers stay thin: they call the same service functions a JSON API would call, so an API can be added later without rework. **Next.js is post-course Future Work** |
 | **DL-34** | **Evaluations report; they do not block** (replaces DL-23's gate). Three runs; a pass means 3 of 3; a miss is stated in the report and the demo goes ahead. Tuning is capped at half a day. A run that fails only because of a model-service timeout or outage is voided and re-run once. **The checks that use no model stay blocking** |
 | **DL-35** | This MVP rewrite, and three simplifications **accepted by the operator**: (a) a plain stage function in place of a Flow wrapper, on the condition that the three agents stay CrewAI agents; (b) no "out of date" machinery, because each row and verdict is decided once, with the version still recorded on every decision; (c) entry IDs without the quote start position |
 | **DL-36** | **Model spend: a target of about US$15 in total.** The per-run hard stop is US$2.50. Building uses stand-in agents, which call no model. Real model calls are allowed only for the spike, a capped number of tuning calls, one evaluation cycle of three runs, one rehearsal run and the demo run |
-| **DL-38** | **A hosted portfolio demo is a stretch goal, outside the five days.** It starts only after the local demo works end to end, runs the stand-in agents only with no model key, and is public by design. It is the first thing dropped. See "Stretch goal: hosted portfolio demo". The core plan is unchanged |
+| **DL-38** | *Parked by DL-42.* A hosted portfolio demo was a stretch goal outside the five days. It is now **Future Work (F-18)**; its design is kept in Appendix A and is not built in this plan |
 | **DL-39** | **Agent cards** (in §2). The loader strips the mock files' answers before any prompt (T-LEAK-1). The extractor sees only the primary documents and reports "who files" only when the source states it; otherwise the specialist sets it at G1. No `pattern` field; code derives it for the report. The judge's general rule is worded generally. Each card's worked example is its one-shot example, drawn from text in no demo row, planted row or evaluation case and mirroring no demo trap (T-EXAMPLE-1 and a review table). The exact model IDs are held until the operator checks them (SOQ-25) |
 | **DL-41** | **Responsible role is graded through a fixed lookup** (EC-R11), written before the first evaluation run: code maps the extractor's free text to a profile party name, then matches exactly; text that does not map is a miss (T-MAP-1). No parties list in the extractor's prompt (DL-39 stands). DL-40 is reserved for the model IDs (SOQ-25) |
+| **DL-42** | **Capacity: 5 days planned, 8 days hard stop.** The estimate now counts the hours that were noted but not added (stand-in mode and harness, the "who files" choice, the loader tests): about 6 days likely. **Tests in two tiers**: Tier 1 blocks the build, Tier 2 is done if time allows. **Day-3 tripwire**: no real Stage A rows by the end of day 3 → drop B6 and Tier 2. The hosted demo (DL-38) is parked as Future Work F-18. At least US$5 stays for the rehearsal and the demo (EC-R10 point 4). See "Estimate" |
+| **DL-43** | **One timeout rule everywhere.** Each model call has its own timeout, with the HTTP client timeout slightly below it; a timed-out call is retried once, and only a second timeout is a final failure (`model service`, voidable under EC-R8). Each stage limit is the sum of its calls with one retry each, plus about 25%: A ≈ 375 s, B ≈ 150 s, C 30 s. **The backend stage timer is the real bound**; CrewAI `max_execution_time` does not cancel a call in flight. Late results after a stage fails are discarded but count towards cost. Starting values, replaced after the spike |
+| **DL-44** | **The planted demo row keeps its Approve button.** Clicking it is refused by the server (`DEMO_ROW_NOT_APPROVABLE`), audited and shown as a plain message; the specialist then rejects the row. Replaces "offers reject only" (DL-31, SOQ-18) |
+| **DL-45** | **The evaluation's copy cases are separate harness calls** (the quote check for the altered quote, `check_conflicts` for `I-1`, `extract_rows` for the EC-021 injection), outside the run's `rows` table, labelled in the trace and scored separately. So EC-001's "0 extra rows" and EC-007's "22 entries" stay true |
+| **DL-46** | **Runs carry a `phase`** (`A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`) next to their status. Every run-state rule and guard, including `RUN_STAGE_RUNNING` and abandon-at-a-gate-only, is written against the phase |
 
 ### Work Ownership
 
@@ -143,8 +148,8 @@ stable IDs, gate state, decision versions and the audit log.
 | W-17 | **GP-facing "why" text** per entry: plain-English reason, citation and quote | **Collaborative**: the judge drafts the reasoning (W-11) · the specialist confirms, overrides or decides at G2 · code renders it | Low inside the run (as W-12) | High: a GP reads it as the explanation; it must not imply permission (DL-01) | Specialist (content) · `@ux.designer` (voice, DL-05) | **The GP sees the reasoning of whoever made the final decision.** Confirm → the model's reasoning as confirmed. Override → the specialist's written reason; the model's text stays in the audit log only. Decide "unsure" → the specialist's written reason, plus the code-generated "precautionary" label and note. "Does not apply" → no entry, so no text. **So a G2 reason must be readable by a GP**, and the G2 page says so next to the field (SA-8). G1 reasons are specialist-only. No model runs on the GP path. SD MD-008, NFR-005, P-1 · US-007 c3, c5–c6 · US-011 c2–c5 |
 | W-18 | **Audit log**: every agent output, human decision (who, when, what, reason, version decided on), refusal and gate event; update and delete refused | Existing system | Not applicable (append-only by design) | High: the evidence for SD MP-008 and for the review-time measurement (MC-003) | Build crew · `@security.eng` (verifies append-only) | Bookkeeping with no decision in it. Append-only is enforced at the storage boundary (CR-013). SD MD-009, FR-017, NFR-003, AC-016 · US-012 · AM A16, A17 |
 | W-19 | **Run status**: the run's state and stage; for a failed run, the step, the unit and the reason in plain words | Existing system | Not applicable (a view) | Medium: the specialist needs it to know that a new run is the next step | Build crew | A view of the run state model below. **There is no re-run**; the status never offers one. SD NFR-004 · US-015 c1–c3, c19 |
-| W-19a | **Abandon a run** that is waiting at G1, G2 or G3, with a written reason | **Human** decides · existing system closes the run and refuses further decisions on it | High: nothing is undone or deleted, and a new run can start | Low to medium: abandoning the wrong run wastes review work; no published calendar, decision or audit entry changes | Build crew | **Not a general cancel.** It does not cancel a model call, undo a decision or delete a draft. It is the only way out of a run that waits at a gate and is not wanted, for example after a wrong rejection. Refused without a reason (`REASON_REQUIRED`), on a run that is not active (`RUN_NOT_ACTIVE`), and while a stage is running (`RUN_STAGE_RUNNING`). Audited with who, when, reason and stage. SD MN-003, NFR-004, MD-009, AC-035 · US-015 c20–c21 · DL-29 · AM H13, H13a |
-| W-20 | **Evaluation report** against the answer key: rows, flags, verdicts, calendar; run time, model cost, review time from audit timestamps; misses stated, never hidden | Existing system (comparison and report) · reads model outputs as data | High | Medium: the report is the proof (PRD §7); a hidden miss would be the harm | `@qa.eng` | Scoring is a deterministic comparison with KEY §1–§4. Three runs; **the report states the result and does not block** (DL-34, EC-R1). The altered-quote and `I-1` cases run on copies of rows, not on the mock sources. An evaluation run refuses to start with the planted-row switch on (EC-R7). SD FR-018, MP-001 to MP-004 · US-013 · DL-10, DL-11 |
+| W-19a | **Abandon a run** that is waiting at G1, G2 or G3, with a written reason | **Human** decides · existing system closes the run and refuses further decisions on it | High: nothing is undone or deleted, and a new run can start | Low to medium: abandoning the wrong run wastes review work; no published calendar, decision or audit entry changes | Build crew | **Not a general cancel.** It does not cancel a model call, undo a decision or delete a draft. It is the only way out of a run that waits at a gate and is not wanted, for example after a wrong rejection. Refused without a reason (`REASON_REQUIRED`), on a run that is not active (`RUN_NOT_ACTIVE`), and in a running phase, `A_RUNNING`, `B_RUNNING` or `C_RUNNING` (`RUN_STAGE_RUNNING`, DL-46). Audited with who, when, reason and phase. SD MN-003, NFR-004, MD-009, AC-035 · US-015 c20–c21 · DL-29 · AM H13, H13a |
+| W-20 | **Evaluation report** against the answer key: rows, flags, verdicts, calendar; run time, model cost, review time from audit timestamps; misses stated, never hidden | Existing system (comparison and report) · reads model outputs as data | High | Medium: the report is the proof (PRD §7); a hidden miss would be the harm | `@qa.eng` | Scoring is a deterministic comparison with KEY §1–§4. Three runs; **the report states the result and does not block** (DL-34, EC-R1). The altered-quote, `I-1` and injection cases are **separate harness calls on copies**, outside the run's `rows` table, labelled in the trace and scored separately (DL-45, §9 "Copy cases"). An evaluation run refuses to start with the planted-row switch on (EC-R7). SD FR-018, MP-001 to MP-004 · US-013 · DL-10, DL-11 |
 | W-21 | **Mocked identity** (specialist or GP), attached to every decision and checked on every write | Existing system | Not applicable | Medium for the demo; **not an access-control claim** (AM §3) | Build crew | Enforced on the server: identity lives in code, not in a prompt (CR-004). Real authentication is out of scope (SD A-5). SD NFR-010 |
 
 *Not in this table:* `W-03a`, `W-07a`, `W-08`, `W-14`, `W-22` and the re-run part of `W-19` are
@@ -158,8 +163,11 @@ row** (operator decision, SOQ-22), so the planted row follows the same path as t
 is special-cased; a flag, if the verifier raises one, is shown at G1 as usual. **The demo does not
 depend on whether the verifier flags it:** the specialist rejects the row at G1 either way, and
 approving it is refused either way. The row is marked `origin: demo` and labelled
-"demo" everywhere it appears. The backend refuses to approve it (`DEMO_ROW_NOT_APPROVABLE`), so its
-only decision is reject with a reason, and it can never reach a calendar. SD FR-031 · AM A26, H3a.
+"demo" everywhere it appears. **Its Approve button stays visible, like every other row's (DL-44).**
+Clicking it sends the request; the backend refuses it (`DEMO_ROW_NOT_APPROVABLE`), writes the
+refusal to the audit log, and the page shows a plain message. The specialist then rejects the row
+with a reason. Reject is the only decision that can be recorded on it, so it can never reach a
+calendar. SD FR-031 · AM A26, H3a.
 
 **Quote-check rule (QN-1), for W-04.** The row's quote and the cited paragraph are normalised the
 same way; the quote must then occur as one unbroken piece of the paragraph.
@@ -186,20 +194,32 @@ A failed check blocks approval of that row. No reason unlocks it (AM H3).
 
 **Failure inside a stage.** Stages A and B are made of one model call per unit: one per source
 document for extraction, one per row for the verifier and for the judge. A call that fails on a
-transport or provider error gets **one** automatic retry (D1). If a unit still fails, or its output
-fails schema validation, the stage ends and the run becomes `FAILED`. Valid outputs from the other
+transport or provider error, **including its own call timeout**, gets **one** automatic retry (D1,
+DL-43). If a unit still fails, or its output fails schema validation, the stage ends and the run
+becomes `FAILED`. Valid outputs from the other
 units stay in the trace as a record. **No gate opens on a failed stage**, and nothing is re-run: a
 new run follows. Every call, including the retry, counts towards the run's cost and time (SD
 MC-001, MC-002).
 
-**Run state model (DL-22, DL-29).** A run is in exactly one state. Only `ACTIVE` blocks a new run.
-A **terminal** state is an end state: the run is over and its state never changes again.
+**Run state model (DL-22, DL-29, DL-46).** A run has a **status**, one of five, and, while it is
+`ACTIVE`, a **phase**, one of six. Only `ACTIVE` blocks a new run. A **terminal** status is an end
+state: the run is over and its status never changes again. The `runs` table stores both fields
+(§4). On a terminal run the phase keeps its last value, so it records where the run ended.
 
-| State | Meaning | Ends when |
+| Phase (`ACTIVE` only) | Meaning |
+|---|---|
+| `A_RUNNING` | Stage A (extract and verify) is running |
+| `AT_G1` | Stage A finished; G1 is waiting for the specialist |
+| `B_RUNNING` | Stage B (applicability) is running |
+| `AT_G2` | Stage B finished; G2 is waiting for the specialist |
+| `C_RUNNING` | Stage C (dates and calendar, code only) is running |
+| `AT_G3` | Stage C finished; G3 is waiting for the specialist |
+
+| Status | Meaning | Ends when |
 |---|---|---|
-| `ACTIVE` | A stage is running, or a gate is waiting for the specialist | A stage fails (`FAILED`), the specialist abandons it while it waits at a gate (`ABANDONED`), or G3 is decided (`COMPLETED` if published, `DECLINED` if declined) |
-| `FAILED` (terminal) | A unit returned invalid output, a call failed after its one retry, a task or the whole stage passed its time limit, the cost cap stopped the run (CR-017), or the backend restarted while a stage was running. Run status names the step, the unit and the reason | Never; a new run follows |
-| `ABANDONED` (terminal) | The specialist closed a run waiting at G1, G2 or G3, with a written reason (W-19a) | Never; a new run follows |
+| `ACTIVE` | The run is in one of the six phases above | A stage fails (`FAILED`), the specialist abandons it in an `AT_G*` phase (`ABANDONED`), or G3 is decided (`COMPLETED` if published, `DECLINED` if declined) |
+| `FAILED` (terminal) | A unit returned invalid output, a call failed after its one retry (a second timeout included, DL-43), the stage passed its time limit, the cost cap stopped the run (CR-017), or the backend restarted while a stage was running. Run status names the step, the unit and the reason | Never; a new run follows |
+| `ABANDONED` (terminal) | The specialist closed a run in phase `AT_G1`, `AT_G2` or `AT_G3`, with a written reason (W-19a) | Never; a new run follows |
 | `COMPLETED` (terminal) | G3 was decided by publishing the calendar | Never |
 | `DECLINED` (terminal) | The specialist declined G3 with a written reason. Nothing new was published; GPs keep any earlier published version | Never; a new run follows |
 
@@ -212,14 +232,47 @@ Rules:
 4. A decision on a run that is not `ACTIVE` is refused (`RUN_NOT_ACTIVE`), and no model call is
    started for it.
 5. A new run is refused only while a run is `ACTIVE` (CR-023).
-6. **Every running stage ends by itself.** Each model task has a time limit, and the backend also
-   enforces a time limit per stage (`STAGE_TIME_LIMIT_A`, `_B`, `_C`). The starting values are set
-   in §2 and confirmed by the measurement spike in estimate block B3.
-7. **Start-up rule.** When the backend starts, an `ACTIVE` run whose stage was running becomes
-   `FAILED` with the reason "service restarted", logged as a system event. A run waiting at a gate
-   is unaffected.
-8. **Abandon only at a gate.** Abandon is refused while a stage is running (`RUN_STAGE_RUNNING`);
-   the stage ends by itself under rule 6, so no model call is left running for output nobody uses.
+6. **Every running stage ends by itself.** Each model call has its own timeout and one retry, and
+   the backend enforces a time limit per stage (`STAGE_TIME_LIMIT_A`, `_B`, `_C`) that covers every
+   call of the stage with its retry (DL-43). **The backend stage timer is the bound that ends a
+   stage**; CrewAI's `max_execution_time` does not cancel a call in flight and is not relied on.
+   The starting values are in §2 and are replaced by measured ones after the spike (block B3).
+7. **Start-up rule.** When the backend starts, an `ACTIVE` run in phase `A_RUNNING`, `B_RUNNING` or
+   `C_RUNNING` becomes `FAILED` with the reason "service restarted", logged as a system event. A
+   run in an `AT_G*` phase is unaffected.
+8. **Abandon only at a gate.** Abandon is accepted only in phase `AT_G1`, `AT_G2` or `AT_G3`. In a
+   `*_RUNNING` phase it is refused (`RUN_STAGE_RUNNING`); the stage ends by itself under rule 6, so
+   no model call is left running for output nobody uses.
+9. **Every store call checks the run (DL-43, DL-46).** A stage function stores each unit's output
+   through a service function, which first checks that the run is `ACTIVE` and in that stage's
+   `*_RUNNING` phase. If not (the stage has already failed, or the run has ended), the output is
+   **discarded**: it is written to the trace only, never stored as a row, flag or verdict. Its
+   cost still counts towards the run's cost (CR-017).
+
+**Transitions and guards** (all in the backend; every refused request is written to the audit log).
+This table is the content of the run-state diagram (see "Diagrams"):
+
+| From | Event | Guard (checked by the backend) | To | Refused with |
+|---|---|---|---|---|
+| (none) | Specialist starts a run | No run is `ACTIVE`; role `specialist` | `ACTIVE` · `A_RUNNING` | `RUN_ACTIVE`, `FORBIDDEN` |
+| `A_RUNNING` | Stage A returns with every unit valid | Run still `ACTIVE` and `A_RUNNING` | `AT_G1` | — |
+| `AT_G1` | Specialist decides a row | Phase is `AT_G1`; the row is undecided; the row rules of CR-005, CR-007, CR-029 | `AT_G1` (row decided) | `RUN_STAGE_RUNNING`, `ALREADY_DECIDED`, `QUOTE_CHECK_FAILED`, `REASON_REQUIRED`, `WHO_FILES_REQUIRED`, `DEMO_ROW_NOT_APPROVABLE` |
+| `AT_G1` | Specialist completes G1 | Phase is `AT_G1`; every row decided; run version matches | `B_RUNNING` | `GATE_INCOMPLETE`, `VERSION_MISMATCH` |
+| `B_RUNNING` | Stage B returns with every unit valid | Run still `ACTIVE` and `B_RUNNING` | `AT_G2` | — |
+| `AT_G2` | Specialist decides a verdict | Phase is `AT_G2`; the verdict is undecided | `AT_G2` | `RUN_STAGE_RUNNING`, `ALREADY_DECIDED`, `REASON_REQUIRED` |
+| `AT_G2` | Specialist completes G2 | Phase is `AT_G2`; every verdict decided, no "unsure" left; run version matches | `C_RUNNING` | `GATE_INCOMPLETE`, `VERSION_MISMATCH` |
+| `C_RUNNING` | Stage C writes one complete calendar | Run still `ACTIVE` and `C_RUNNING` | `AT_G3` | — |
+| `AT_G3` | Specialist publishes | Phase is `AT_G3`; acknowledgement matches; run version matches | `COMPLETED` | `ACK_REQUIRED`, `VERSION_MISMATCH` |
+| `AT_G3` | Specialist declines, with a reason | Phase is `AT_G3`; run version matches | `DECLINED` | `REASON_REQUIRED`, `VERSION_MISMATCH` |
+| `AT_G1`, `AT_G2`, `AT_G3` | Specialist abandons, with a reason | Run version matches | `ABANDONED` | `REASON_REQUIRED`, `VERSION_MISMATCH` |
+| `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | Specialist abandons | — | (unchanged) | `RUN_STAGE_RUNNING` |
+| `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | A unit fails after its retry, invalid output, the stage time limit, the cost cap, or calendar generation fails | — | `FAILED` | — |
+| `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | The backend starts again after stopping (start-up rule 7) | — | `FAILED` ("service restarted") | — |
+| Any terminal status | Any decision, abandon, publish or decline | — | (unchanged) | `RUN_NOT_ACTIVE` |
+
+*Legend for the diagram:* the six phases are the inside of `ACTIVE`; `FAILED`, `ABANDONED`,
+`DECLINED` and `COMPLETED` are the four terminal statuses. A gate decision on a row or verdict
+does not change the phase.
 
 **Steps with no model, by requirement:** W-02, W-03b, W-04, W-09, W-10, W-13, W-16, W-18, W-19,
 W-19a, W-21. The tests for W-09, W-13 and W-18 run without a model (SD NFR-011).
@@ -231,10 +284,11 @@ proposal.
 
 **Feasibility verdict**: `feasible with constraints`
 
-**Load-bearing constraint: five focused days, with no slack inside the estimate** (DL-32). The
-ownership split is feasible as designed: the model steps are small, bounded and reviewable, and
-everything consequential is code. What decides the outcome is time. The estimate is about 5.5 days
-against a capacity of 5, and the operator's buffer is the only margin (see "Estimate").
+**Load-bearing constraint: 5 days planned, 8 days hard stop, with no slack inside the estimate**
+(DL-32, DL-42). The ownership split is feasible as designed: the model steps are small, bounded and
+reviewable, and everything consequential is code. What decides the outcome is time. The estimate
+is about 6 days, and the day-3 tripwire and the drop order protect the hard stop (see
+"Estimate").
 
 Two further constraints, named so they are not mistaken for guarantees:
 
@@ -279,7 +333,8 @@ Steps that are Future Work have no row here; they are listed once, under "Future
 
 **Diagrams.** The four structural views the architect owns are drawn with `draw-diagram` under
 `project-context/diagrams/system-arch/`. All four were updated for DL-33 and DL-35 by changing
-labels only; no box or arrow was added or removed.
+labels only. In the final review (DL-42 to DL-46), view 4 gained an arrow and view 2 a callout, as
+described below.
 
 *View 1: system context.* Who and what the running system touches. The specialist runs it and
 decides at G1 to G3. The GP only reads what is published. The system reads the mock data and
@@ -298,8 +353,10 @@ agents (the only parts that call the OpenAI API) and the code steps, ends at its
 its outputs to the backend. **Only the backend decides or remembers gate status** (DL-17). Both
 stores sit in one SQLite file. They are drawn as two boxes because they follow different rules:
 business data is ordinary records, while the audit log and trace are append-only, enforced by
-triggers (CR-013). The people (view 1), the evaluation runner and answer key, and the inside of
-each agent (view 3) are left out.
+triggers (CR-013). A callout by the path to the OpenAI API names `RUN_COST_CAP_USD`, the per-run
+hard stop the backend enforces (CR-017), and `OPENAI_API_KEY`, read from the git-ignored `.env`
+(CR-021). The people (view 1), the evaluation runner and answer key, and the inside of each agent
+(view 3) are left out.
 
 ![Regulatory Intelligence: containers](../diagrams/system-arch/containers.svg)
 
@@ -308,7 +365,8 @@ The editable source is `project-context/diagrams/system-arch/containers.html`.
 *View 3: the agent pipeline.* The MVP's steps in their three stages, with the specialist's gates
 drawn as boxes between them, so the picture cannot be read as an automatic pipeline: agents only
 draft, and nothing moves on until a person decides (SD MN-003). Stage A: the extractor drafts
-rows; the code quote check (the authority that blocks G1, W-04) and the verifier check them; the
+rows; the code quote check (the authority that blocks approval of a row, which must then be
+rejected, W-04) and the verifier check them; the
 code coverage view lists uncited paragraphs. Stage B: the judge drafts verdicts for the approved
 rows, then G2. Stage C: the code date engine, then G3. Agents and code steps have different box
 styles, and each agent's label names its model tier and what it receives (DL-25, DL-26). Two
@@ -322,11 +380,12 @@ The editable source is `project-context/diagrams/system-arch/pipeline.html`.
 
 *View 4: gates and approvals.* Who may change state, and where that is enforced: one permitted
 route into a protected zone, and two blocked routes that stop at its edge. The specialist's
-decisions pass the server's role and version checks (CR-004, CR-009) into the gate service, which
-alone changes gate state, decisions and versions, refuses what the rules forbid, and appends every
-decision and every refusal to the audit log (CR-001, CR-013). Refusals at the role check and the
-version check are written through the same append path, so every refused request is recorded
-with who, when, what was asked and why it was refused (SD MD-009). The stage functions and agents
+requests (start a run, gate decisions, and abandon, which is accepted only at a gate) pass the
+server's role and version checks (CR-004, CR-009) into the gate service, which alone changes gate
+state, decisions and versions, refuses what the rules forbid, and appends every decision and every
+refusal to the audit log (CR-001, CR-013). **A separate arrow from the server checks to the audit
+log** shows that refusals at the role and version checks are recorded too, with who, when, what was
+asked and why it was refused (SD MD-009). The stage functions and agents
 may only return drafts; writing state is blocked (AM A13, A14: **Never**). The GP reads only the
 published calendar (CR-012); any GP write is blocked (AM G2r: **Never**). The three gates share
 one enforcement route, so they are drawn as one gate service; their separate rules are in the
@@ -337,8 +396,10 @@ table above. The OpenAI API, the code steps, the pages and configuration are lef
 The editable source is `project-context/diagrams/system-arch/gates.html`.
 
 Behaviour views (a run flowchart, a sequence of one stage, a run state diagram) belong to other
-personas under `.cursor/skills/draw-diagram/reference.md`. This document holds their content as
-text: the run state model in Work Ownership, and the data flow in §6.
+personas under `.cursor/skills/draw-diagram/reference.md`: a state diagram is `@backend.eng`'s.
+This document holds their content as text: the run state model in Work Ownership, whose
+"Transitions and guards" table and legend are the complete content of the run-state diagram, and
+the data flow in §6. The run-state diagram itself is open (SOQ-28).
 
 ### Pattern Decision
 
@@ -458,7 +519,8 @@ the personas that build the product, not the product).
   before the measurement spike** (block B3) and recorded in the decision log. From then on, a
   change to any role's model is a release (see the rule below). **Claude Code is the build tool
   only**: no application call goes to it, and its usage is not part of the application's model
-  spend. Sampling is set for repeatability: temperature 0 where the model accepts it, and a fixed
+  spend. *(This sampling sentence is rewritten when DL-40 records the model IDs; see SOQ-25.)*
+  Sampling is set for repeatability: temperature 0 where the model accepts it, and a fixed
   `max_tokens` per step. A reasoning model may not accept a temperature setting, so the spike
   records whether the judge's verdicts are stable across runs, and EC-R1 (3 of 3) then measures
   it. The model, sampling settings, `max_tokens` and prompt version are logged for every call.
@@ -510,8 +572,8 @@ change, since agents have no tools). Side effects fail closed. A reviewer always
 inputs and the reason for a flag.
 
 *Evidence column:* `AM T-nn` is a test in `approval-map.md` §7; other test IDs are defined in this
-document. *Retired from the MVP:* CR-010, CR-020, CR-022 and CR-024 to CR-026 (Future Work). *New:* CR-030 (DL-36). *Stretch goal only:* CR-031 (DL-38), not
-built in the core plan.
+document. *Retired from the MVP:* CR-010, CR-020, CR-022 and CR-024 to CR-026 (Future Work). *New:* CR-030 (DL-36). *Parked (F-18):* CR-031 (DL-38, DL-42), not
+built in this plan.
 
 | ID | Risk | Control | Control point | Failure direction | Owner | Evidence | Review routing |
 |---|---|---|---|---|---|---|---|
@@ -534,12 +596,12 @@ built in the core plan.
 | CR-018 | Explaining why an output was produced (SD MP-005) | Every model call, including a retry, appends a **trace record** keyed by run, step, unit and attempt number: prompt version (a hash of its content), model, sampling settings, `max_tokens`, a hash of the input, the raw output, the parsed output or the validation error, token counts, cost, duration and the spend activity (CR-030). The audit entry for an agent output links to its trace record. With the audit log, any row, verdict or entry can be explained from start to finish | output | Fail closed: a call whose trace cannot be written counts as failed | Build crew | The trace store (append-only, CR-013); a query that rebuilds the history of one calendar entry; the trace export (D4) | Not applicable |
 | CR-019 | GP text implies permission or gives advice (SD MN-009; DL-01, DL-05) | Code generates the "precautionary" label and note from the specialist's decision (W-12); no model writes it. The G2 reason field is labelled as visible to GPs (W-17, SA-8). The calendar-level "not legal advice / conventions not yet checked" note is one fixed sentence on the GP view. The wording is checked in a copy review before the demo | output (a human control) | Not applicable (a review) | `@ux.designer` · specialist | The copy review record; US-011 c5, c11 | Human review before the demo |
 | CR-021 | Secrets and real data (SD NFR-009, MN-001) | The provider key is read from `OPENAI_API_KEY` in the git-ignored `.env`; `.env.example` lists names only. The real-name scan runs before every commit. The system holds no real data | input | Fail closed: no key → no calls; a scan hit → no commit | Operator · `@security.eng` | The scan output; `.env.example` | Not applicable |
-| CR-023 | Concurrent runs, and runs that never end (PRD A-6; DL-29) | The server refuses to start a run for the fund while one is `ACTIVE` (see the run state model). **An active run always has a way out:** G3 is decided, a step fails, a time limit passes, the backend restarts mid-stage, or the specialist abandons it at a gate. There is no other cancel | tool-call | Fail closed | Build crew | **T-RUN-0**: start a second run → refused, naming the active run. **T-RUN-1**: a unit fails → the run is `FAILED`, no gate opens, a new run can start. **T-RUN-2**: a step never returns → it fails at its time limit and the run is `FAILED`. **T-RUN-3**: abandon without a reason → `REASON_REQUIRED`; with one → `ABANDONED`, one audit entry, nothing else changed, a new run can start. **T-RUN-4**: abandon or decide on a run that is not active → `RUN_NOT_ACTIVE`; a stale run version → `VERSION_MISMATCH`. **T-RUN-5**: decline G3 without a reason → `REASON_REQUIRED`; with one → `DECLINED`, the GP view unchanged, a new run can start. **T-RUN-6**: a stage passes its stage time limit → `FAILED` with the reason "stage time limit", no gate opens. **T-RUN-7**: restart the backend mid-stage → `FAILED` with the reason "service restarted"; a run waiting at a gate is still `ACTIVE`; abandon mid-stage → `RUN_STAGE_RUNNING`. (AM T-26 to T-29, T-33 to T-35) | The specialist is shown the active run, or the terminal state and its reason |
+| CR-023 | Concurrent runs, and runs that never end (PRD A-6; DL-29) | The server refuses to start a run for the fund while one is `ACTIVE` (see the run state model). **An active run always has a way out:** G3 is decided, a step fails, a time limit passes, the backend restarts mid-stage, or the specialist abandons it at a gate. There is no other cancel | tool-call | Fail closed | Build crew | **T-RUN-0**: start a second run → refused, naming the active run. **T-RUN-1**: a unit fails → the run is `FAILED`, no gate opens, a new run can start. **T-RUN-2**: a stubbed call never returns → it times out, is retried once, times out again → the run is `FAILED` with the reason `model service`; a stubbed call that times out once and then answers → the unit succeeds and both attempts are in the trace (DL-43). **T-RUN-3**: abandon without a reason → `REASON_REQUIRED`; with one → `ABANDONED`, one audit entry, nothing else changed, a new run can start. **T-RUN-4**: abandon or decide on a run that is not active → `RUN_NOT_ACTIVE`; a stale run version → `VERSION_MISMATCH`. **T-RUN-5**: decline G3 without a reason → `REASON_REQUIRED`; with one → `DECLINED`, the GP view unchanged, a new run can start. **T-RUN-6**: a stage passes its stage time limit → `FAILED` with the reason "stage time limit", no gate opens. **T-RUN-7**: restart the backend in each `*_RUNNING` phase → `FAILED` with the reason "service restarted"; a run in an `AT_G*` phase is still `ACTIVE`; abandon in a `*_RUNNING` phase → `RUN_STAGE_RUNNING`; a row decision while `A_RUNNING` → `RUN_STAGE_RUNNING` (DL-46). **T-RUN-8**: a stubbed unit answers after its stage has failed → nothing is stored as a row, flag or verdict, the output is in the trace, and its cost is in the run's cost (DL-43). (AM T-26 to T-29, T-33 to T-35) | The specialist is shown the active run, or the terminal state and its reason |
 | CR-027 | A date rule silently settled while its convention is open (PRD OQ-7; DL-20) | The regulation configuration records each convention whose application is still an open question, with the question ID and the obligations it affects (MVP: `OQ-7` → `OBL-02`). At G1, the form for that row says its business-day rule depends on the open question, and offers no preselected rule. The date code copies the dependency onto every entry from that row. At G3 those entries carry the mark, next to the "roll rule unconfirmed" and "precautionary" marks. The mark does **not** block publishing and is not shown to GPs | output (what the specialist sees at G1 and G3) | Fail safe towards the mark: if the dependency cannot be worked out, the entry is marked | Build crew · `@ux.designer` (wording) | **T-W13-1**: the demo calendar → all four `OBL-02` entries carry the mark at G3 and have the same dates under "no roll" and "roll forward"; no other entry carries it; the GP view shows no mark; publishing is not blocked. **T-W13-2**: the date module has no default rule for `OBL-02` | The specialist sees the mark at G1 and G3; answering the question happens outside the system |
 | CR-028 | Publishing without seeing what was left out (DL-30, P-1) | The G3 page lists the rows rejected at G1, each with its reason, and the paragraphs no non-rejected row cites. The publish request must carry **one explicit acknowledgement** of those two lists. The server works the lists out again and refuses the request without the acknowledgement, or with one that does not match (`ACK_REQUIRED`). Never preselected, never triggered by a timeout. The lists are stored with the acknowledgement. In the demo the three `SRC-PRACT` summaries are always uncited, so the acknowledgement appears on every publish. A decline needs none | tool-call | Fail closed | Build crew · `@ux.designer` (wording) | **T-G3ACK-1**: publish without the acknowledgement → refused; with one naming different lists → refused; with the current lists → published, and the audit entry names them; decline without one → accepted (AM T-36) | Both lists are shown in full at G3 |
-| CR-029 | The planted demo row is mistaken for real output, or reaches GPs (DL-31) | A switch on the run, `demo_planted_row`, **off by default**, set only when the run is started; turning it on is an audit entry. When on, **code** adds one row from a fixed fixture: a real quote, word for word in its paragraph, that does not support the row's rule. The row passes the quote check and **the verifier runs on it like on every other row** (SOQ-22); nothing depends on whether it raises a flag. The row has `origin: demo` and is labelled "demo" wherever it appears. **The backend refuses to approve it** (`DEMO_ROW_NOT_APPROVABLE`), logs the refusal and answers: "This is a planted demo row. It cannot be approved. Reject it with a reason." Its only decision is reject with a reason, so it never reaches a calendar. **An evaluation run refuses to start with the switch on**, and every report records the switch state (EC-R7) | tool-call | Fail closed | Build crew · `@qa.eng` | **T-DEMO-1**: switch off → 6 rows, no demo row, no switch entry in the audit log; switch on → 7 rows, the 7th marked `origin: demo`, with a quote-check pass and a verifier result, and the switch entry exists; reject it → logged, and it appears in the G3 rejected list; an evaluation run with the switch on → refused. **T-DEMO-2**: approve the demo row, with and without a reason and with each business-day rule → every request refused and logged; the row stays pending; G1 cannot complete until it is rejected (AM T-25, T-37) | Shown at G1 labelled "demo", with reject as its only action |
+| CR-029 | The planted demo row is mistaken for real output, or reaches GPs (DL-31) | A switch on the run, `demo_planted_row`, **off by default**, set only when the run is started; turning it on is an audit entry. When on, **code** adds one row from a fixed fixture: a real quote, word for word in its paragraph, that does not support the row's rule. The row passes the quote check and **the verifier runs on it like on every other row** (SOQ-22); nothing depends on whether it raises a flag. The row has `origin: demo` and is labelled "demo" wherever it appears. **Its Approve button stays visible (DL-44)**, and **the backend refuses the approval** (`DEMO_ROW_NOT_APPROVABLE`), logs the refusal and answers: "This is a planted demo row. It cannot be approved. Reject it with a reason." The only decision that can be recorded on it is reject with a reason, so it never reaches a calendar. **An evaluation run refuses to start with the switch on**, and every report records the switch state (EC-R7) | tool-call | Fail closed | Build crew · `@qa.eng` | **T-DEMO-1**: switch off → 6 rows, no demo row, no switch entry in the audit log; switch on → 7 rows, the 7th marked `origin: demo`, with a quote-check pass and a verifier result, and the switch entry exists; reject it → logged, and it appears in the G3 rejected list; an evaluation run with the switch on → refused. **T-DEMO-2**: approve the demo row, with and without a reason and with each business-day rule → every request refused and logged; the row stays pending; G1 cannot complete until it is rejected (AM T-25, T-37) | Shown at G1 labelled "demo", with the same Approve and Reject actions as every row; clicking Approve shows the refusal as a plain message, and the specialist then rejects it (DL-44) |
 | CR-030 | A run made with stand-in agents is mistaken for a real one, or real model calls are made by accident (DL-36) | The setting `AGENTS_MODE` is `stand_in` or `real`. **The default is `stand_in`**, so a real call always needs a deliberate setting. In stand-in mode the three agent functions return fixed outputs from files, and no model is called. Every run stores its mode. A stand-in run is labelled "stand-in agents" on every specialist page and, if its calendar is published, on the GP calendar. Real mode needs `SPEND_ACTIVITY` (`spike`, `tuning`, `evaluation`, `rehearsal` or `demo`), which is stored on every trace record. **An evaluation run refuses to start in stand-in mode**, and every report records the mode. The role harness used for the spike and for tuning counts real calls per activity from the trace and **refuses a call beyond its cap** (EC-R10) | tool-call | Fail closed | Build crew · `@qa.eng` | **T-MODE-1**: default settings → no model client is created, and the run is labelled; real mode without `SPEND_ACTIVITY` → the application refuses to start; an evaluation run in stand-in mode → refused; the harness at its cap → the next call is refused | The label is shown wherever the run or its calendar appears |
-| CR-031 | *Stretch goal only (DL-38).* A public hosted copy is abused, spends money, or a form is submitted from another site | **Public by design, safe because nothing of value is reachable.** In `DEPLOY_MODE=portfolio_demo` the application refuses to start if a model key is set or `AGENTS_MODE` is `real`, so a visitor cannot cause a model call. The "demo, mock data" banner is in the base template, so every page carries it. It also says someone may be mid-run and holds the **Reset demo** button, which is open to every visitor, signed in or not: a **named exception to CR-004** that exists only in this mode, is limited to once a minute for the whole site and is CSRF-checked. Reset replaces the whole database file from a seed built through the real service layer (it never deletes rows, so CR-013 stands). **A CSRF token on every form**, checked by one shared dependency on every `POST` route before any service function runs; a missing or wrong token → `403 CSRF_FAILED`, no state change, one audit entry. The session cookie is `Secure`, `HttpOnly` and `SameSite=Lax`. Reason fields have a maximum length and all output is escaped (CR-015) | tool-call · input | Fail closed: on any doubt the application does not start, or the request is refused | Operator (spend limit) · Build crew · `@security.eng` | **T-HOST-1**: `portfolio_demo` with a key set → refused to start; with `AGENTS_MODE=real` → refused; neither → starts in stand-in mode. **T-BANNER-1**: every route, signed in as each role and signed out, shows the banner text and the Reset demo button. **T-CSRF-1**: a list of every `POST` route fails the test if one lacks the check; no token, a wrong token and another session's token → `403 CSRF_FAILED`, the state unchanged, one audit entry. **T-RESET-1**: after a reset the database equals a fresh seed; the audit log holds only the "demo reset" entry and the seed's entries; a reset during a running stage is refused; deleting a row from the audit table is still refused afterwards. A reset by a signed-out visitor and by a GP visitor works; a second reset within a minute is refused; a reset without a valid token is refused; **the reset route is the only route a GP visitor can write through** (a list of every `POST` route fails the test if another one accepts a GP); in `local` mode the route does not exist | The visitor is told plainly that the demo data has been reset, or that a form was refused and to reload the page |
+| CR-031 | *Parked, Future Work F-18 (DL-38, DL-42); not built in this plan.* A public hosted copy is abused, spends money, or a form is submitted from another site | **Public by design, safe because nothing of value is reachable.** In `DEPLOY_MODE=portfolio_demo` the application refuses to start if a model key is set or `AGENTS_MODE` is `real`, so a visitor cannot cause a model call. The "demo, mock data" banner is in the base template, so every page carries it. It also says someone may be mid-run and holds the **Reset demo** button, which is open to every visitor, signed in or not: a **named exception to CR-004** that exists only in this mode, is limited to once a minute for the whole site and is CSRF-checked. Reset replaces the whole database file from a seed built through the real service layer (it never deletes rows, so CR-013 stands). **A CSRF token on every form**, checked by one shared dependency on every `POST` route before any service function runs; a missing or wrong token → `403 CSRF_FAILED`, no state change, one audit entry. The session cookie is `Secure`, `HttpOnly` and `SameSite=Lax`. Reason fields have a maximum length and all output is escaped (CR-015) | tool-call · input | Fail closed: on any doubt the application does not start, or the request is refused | Operator (spend limit) · Build crew · `@security.eng` | **T-HOST-1**: `portfolio_demo` with a key set → refused to start; with `AGENTS_MODE=real` → refused; neither → starts in stand-in mode. **T-BANNER-1**: every route, signed in as each role and signed out, shows the banner text and the Reset demo button. **T-CSRF-1**: a list of every `POST` route fails the test if one lacks the check; no token, a wrong token and another session's token → `403 CSRF_FAILED`, the state unchanged, one audit entry. **T-RESET-1**: after a reset the database equals a fresh seed; the audit log holds only the "demo reset" entry and the seed's entries; a reset during a running stage is refused; deleting a row from the audit table is still refused afterwards. A reset by a signed-out visitor and by a GP visitor works; a second reset within a minute is refused; a reset without a valid token is refused; **the reset route is the only route a GP visitor can write through** (a list of every `POST` route fails the test if another one accepts a GP); in `local` mode the route does not exist | The visitor is told plainly that the demo data has been reset, or that a form was refused and to reload the page |
 
 ### Production Shape
 
@@ -550,17 +612,34 @@ built in the core plan.
   concern. A stage takes about as long as its slowest call, because the calls of a stage run in
   parallel; stage C has no model and takes under a second. These are estimates (SA-6) until the
   spike measures them.
-- **Retries**: one automatic retry per call on a transport or provider error (timeout, rate limit,
-  server error), after a short wait. **None** on output that fails its schema: sending the same
+- **Retries**: one automatic retry per call on a transport or provider error (its own call timeout,
+  a rate limit, a server error), after a short wait (DL-43). **None** on output that fails its schema: sending the same
   prompt again is not a fix, and the failure should be seen. There is no re-run.
 - **Fallback chain**: **none, by rule.** Falling back to another model in the middle of a run would
   be a model swap without its evaluation. A provider outage ends the run as `FAILED`.
 - **Circuit breaker**: **none in the MVP** (Future Work F-13). It is not needed: the first failed
   unit ends the run, so a stage cannot go on failing. The cost cap (CR-017) and the stage time
   limit (run state rule 6) are the two bounds on a run.
-- **Time limits**: each model task has `max_execution_time`, and each stage has
-  `STAGE_TIME_LIMIT_A`, `_B` or `_C`. Starting values are set in §2 and replaced by measured ones
-  after the spike, before the first evaluation run (EC-R8 point 5).
+- **Time limits: one rule everywhere (DL-43).**
+  1. **Each model call has its own timeout** (`CALL_TIMEOUT_EXTRACT`, `_VERIFY`, `_JUDGE`), and the
+     HTTP client's timeout is set a few seconds below it, so the client gives up first and the
+     retry starts cleanly.
+  2. **A timed-out call is retried once.** Only a timeout on the retry is a final failure. It is
+     recorded as the `model service` reason (§4), which is voidable in evaluations (EC-R8).
+  3. **Each stage limit is the sum of its calls, one retry each, plus about 25%.** Calls of one step
+     run in parallel, so a step costs its slowest call:
+     Stage A ≈ **375 s** (extraction 90 + 90, verification 60 + 60 = 300, plus margin); Stage B ≈
+     **150 s** (60 + 60 = 120, plus margin); Stage C **30 s** (no model).
+  4. **The backend stage timer is the real bound.** CrewAI's `max_execution_time` does **not**
+     cancel a call already in flight, so nothing relies on it to end a stage.
+  5. **Late results are discarded but paid for.** Every store call checks the run's status and
+     phase (run state rule 9); a result that arrives after its stage failed goes to the trace only
+     and counts towards the run's cost.
+  6. These are **starting values**. They are replaced by measured times after the spike, before the
+     first evaluation run, and are not changed during the cycle (EC-R8 point 5).
+
+  The limits bound a hang; they are not the speed target. A run can stay within every limit and
+  still miss EC-010 (under 5 minutes), which is then reported as a miss.
 - **Measurement spike** (the first real calls, in estimate block B3; **at most 70 real calls**,
   EC-R10; the plan here uses about 63). Run each role's call on the
   demo inputs 5 times (the extractor on one document, the verifier on one row, the judge
@@ -589,7 +668,8 @@ built in the core plan.
 - **Configuration names** (values are never committed; `.env.example` is created in Build):
   `OPENAI_API_KEY`, `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE`,
   `LLM_MAX_TOKENS_EXTRACT`, `LLM_MAX_TOKENS_VERIFY`, `LLM_MAX_TOKENS_JUDGE`, `RUN_COST_CAP_USD`
-  (default 2.50), `STAGE_TIME_LIMIT_A`, `STAGE_TIME_LIMIT_B`, `STAGE_TIME_LIMIT_C`, `AGENTS_MODE`
+  (default 2.50), `CALL_TIMEOUT_EXTRACT`, `CALL_TIMEOUT_VERIFY`, `CALL_TIMEOUT_JUDGE`,
+  `STAGE_TIME_LIMIT_A`, `STAGE_TIME_LIMIT_B`, `STAGE_TIME_LIMIT_C`, `AGENTS_MODE`
   (default `stand_in`), `SPEND_ACTIVITY`. Further names are
   listed in §4.
 
@@ -676,8 +756,8 @@ Settings for all three: `allow_delegation=false`, `memory=False`, `tools=[]`, no
 
 | Stage | Steps in order | In parallel | Handed to the backend | Starting time limits (replaced after the spike) |
 |---|---|---|---|---|
-| A | Load the paragraphs (code) → `extract_rows` per **primary** document (5) → add the planted row if the switch is on (code, CR-029) → quote check W-04 per row (code) → `check_conflicts` per row | Extraction per document; verification per row | Rows, quote-check results, flags, and the status of each unit | 90 s per extraction task, 60 s per verification task; `STAGE_TIME_LIMIT_A` 180 s |
-| B | Load the fund profile (code) → `judge_applicability` per approved row | Per row | Verdicts, and the status of each unit | 60 s per task; `STAGE_TIME_LIMIT_B` 90 s |
+| A | Load the paragraphs (code) → `extract_rows` per **primary** document (5) → add the planted row if the switch is on (code, CR-029) → quote check W-04 per row (code) → `check_conflicts` per row | Extraction per document; verification per row | Rows, quote-check results, flags, and the status of each unit | Call timeout 90 s per extraction call, 60 s per verification call, each with one retry; `STAGE_TIME_LIMIT_A` 375 s (DL-43) |
+| B | Load the fund profile (code) → `judge_applicability` per approved row | Per row | Verdicts, and the status of each unit | Call timeout 60 s, with one retry; `STAGE_TIME_LIMIT_B` 150 s (DL-43) |
 | C | Generate the dates and the calendar W-13 (code only) | Nothing | One complete calendar version, or nothing (CR-011) | `STAGE_TIME_LIMIT_C` 30 s |
 
 The coverage view (W-03b) is not a step: the backend works it out from the stored rows each time
@@ -691,13 +771,15 @@ the G1 or G3 page is shown.
 - **Outputs**: every task sets `output_pydantic` to its schema (Row list, Flag list or Verdict)
   and a `guardrail` that applies the rules in CR-003. Every task has a `Task.id` equal to its step
   name.
-- **Errors**: a guardrail failure or a timeout fails its unit, and the run ends as `FAILED`. The
-  model is never asked again (`guardrail_max_retries: 0`, D5). A transport or provider error gets
-  one automatic retry (D1).
-- **Time limits and stopping**: there is **no cancel**. Every task has `max_execution_time`, so a
-  call that hangs becomes a failed unit. The backend also enforces the stage time limit around the
-  stage function. When a run has ended, the backend **ignores any output that arrives late**: it
-  is written to the trace only, and nothing is stored as a row or a verdict. The start-up rule
+- **Errors**: a guardrail failure fails its unit, and the run ends as `FAILED`. The model is never
+  asked again (`guardrail_max_retries: 0`, D5). A transport or provider error, including the
+  call's own timeout, gets one automatic retry (D1); a second failure fails the unit (DL-43).
+- **Time limits and stopping**: there is **no cancel**. Each call has its own timeout, with the HTTP
+  client timeout slightly below it (Production Shape, DL-43). **The backend's stage timer around
+  the stage function is the bound that ends a stage**; `max_execution_time` is set to the call
+  timeout but does not cancel a call in flight, so it is not relied on. Every store call checks the
+  run's status and phase (run state rule 9): output that arrives after its stage failed or the run
+  ended is written to the trace only, nothing is stored as a row or a verdict, and its cost counts. The start-up rule
   fails a run that was interrupted mid-stage (run state rule 7). The one human way to close a run
   is abandon, at a gate (W-19a).
 - **Sampling**: per role, as in Model and Context Strategy.
@@ -711,7 +793,7 @@ the G1 or G3 page is shown.
 | `allow_delegation=false` | Yes, all agents | |
 | Sequential process | Yes | Hierarchical is not used |
 | `max_iter <= 12` | `max_iter: 2` | No tools, so one reasoning step and a final answer |
-| `max_execution_time` | As in the table above | Replaced by measured values after the spike |
+| `max_execution_time` | Equal to the call timeout in the table above | **Not relied on as a bound**: it does not cancel a call in flight. The backend stage timer ends a stage (DL-43) |
 | `max_rpm` at crew level | 30 | Limits bursts from the parallel units |
 | Tools: the minimum set | Empty for every agent | CR-002 |
 | `memory=False` | Yes | No `CREWAI_STORAGE_DIR` needed |
@@ -1043,7 +1125,7 @@ Reviewed by `@system.arch` on 2026-11-12. The operator confirms it at the review
 | 1 | Sign-in | `/sign-in` (`/` redirects here, or to the role's first page) | any | Choose the specialist or the GP identity (mocked) | SD A-5 |
 | 2 | Run list | `/specialist/runs` | specialist | The runs and their states. The form that starts a run, with the planted-row switch, off and never preselected. Starting is refused while a run is active | US-015 · CR-023, CR-029 |
 | 3 | Run status | `/specialist/runs/{run_id}` | specialist | The state, the stage, each unit, and the cost so far. For a failed run: the step, the unit and the reason. Abandon, with a required reason, only while the run waits at a gate. **No re-run action** | US-015 · W-19, W-19a |
-| 4 | G1 | `/specialist/runs/{run_id}/g1` | specialist | Each row with its quote, the cited paragraph, the quote-check result and any flags with both texts. Per row: approve (with a business-day rule; a "who files" choice when the source does not state it, DL-39; and a reason if flagged) or reject (with a reason). A demo row is labelled and offers reject only. The coverage view. Complete G1 | US-001 to US-004 · W-07, W-03b · CR-027, CR-029 |
+| 4 | G1 | `/specialist/runs/{run_id}/g1` | specialist | Each row with its quote, the cited paragraph, the quote-check result and any flags with both texts. Per row: approve (with a business-day rule; a "who files" choice when the source does not state it, DL-39; and a reason if flagged) or reject (with a reason). A demo row is labelled "demo" and shows the same Approve and Reject actions; clicking Approve is refused by the server (`DEMO_ROW_NOT_APPROVABLE`), audited, and shown as a plain message, after which the specialist rejects it (DL-44). The coverage view. Complete G1 | US-001 to US-004 · W-07, W-03b · CR-027, CR-029 |
 | 5 | G2 | `/specialist/runs/{run_id}/g2` | specialist | Each verdict with its reasoning and the cited fact values. Per verdict: confirm, override (with a reason) or decide an "unsure" (with a reason). The reason field says it will be shown to GPs. Complete G2 | US-006, US-007 · W-12, W-17 |
 | 6 | G3 | `/specialist/runs/{run_id}/g3` | specialist | The whole calendar with its marks (roll, rule unconfirmed, precautionary, open question). The "conventions not yet checked" note. The rejected rows with their reasons, and the uncited paragraphs, with **one acknowledgement checkbox, never preselected**. Publish, or decline with a reason | US-008 to US-010 · CR-027, CR-028 |
 | 7 | GP calendar | `/calendar` | GP (and specialist, read-only) | The published calendar only: what, when, who and why for each entry, and the calendar-level note. **Before the first publication, only this fixed message:** "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." | US-011 · CR-012 · DL-27 |
@@ -1088,7 +1170,7 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
 | `GET /specialist/runs` | specialist | The run list, and the form that starts a run, with the planted-row switch (off, never preselected) | CR-029 |
 | `POST /specialist/runs` `{demo_planted_row}` | specialist | Start a run for `FND-DEMO-01`; the backend starts stage A. Turning the switch on is recorded in the audit log | CR-023, CR-029 |
 | `GET /specialist/runs/{run_id}` | specialist | Run status: state, stage, units, cost so far, and for a failed run the step, the unit and the reason | W-19 · US-015 |
-| `POST /specialist/runs/{run_id}/abandon` `{run_version, reason}` | specialist | Abandon a run waiting at a gate; refused while a stage runs | W-19a · CR-009, CR-023 |
+| `POST /specialist/runs/{run_id}/abandon` `{run_version, reason}` | specialist | Abandon a run in phase `AT_G1`, `AT_G2` or `AT_G3`; refused in a `*_RUNNING` phase | W-19a · CR-009, CR-023 · DL-46 |
 | `GET /specialist/runs/{run_id}/g1` | specialist | Rows with quotes, quote-check results and flags; the coverage view | W-07, W-03b |
 | `POST /specialist/rows/{row_id}/decision` `{version, decision, business_day_rule?, who_files?, reason?}` | specialist | Approve or reject one row. `who_files` is required when the row says "not stated in source", and refused otherwise | CR-005, CR-007, CR-009, CR-029 |
 | `POST /specialist/runs/{run_id}/g1/complete` `{run_version}` | specialist | Complete G1; the backend starts stage B | CR-001, CR-009 |
@@ -1122,16 +1204,16 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
   | `ACK_REQUIRED` | The publish acknowledgement is missing or does not match | 409 |
   | `RUN_ACTIVE` | A run is already active for the fund | 409 |
   | `RUN_NOT_ACTIVE` | The run has ended | 409 |
-  | `RUN_STAGE_RUNNING` | A stage is running, so the run cannot be abandoned yet | 409 |
+  | `RUN_STAGE_RUNNING` | The run's phase is `A_RUNNING`, `B_RUNNING` or `C_RUNNING`, or is not the gate the request belongs to, so it cannot be abandoned or decided yet (DL-46) | 409 |
 
 - **Failure reasons.** A failed run stores one reason per failed unit, from this fixed list of
-  **seven**, so that run status can name it and the void rule (EC-R8) can be applied without
-  judgement:
+  **six** (number 2 is retired, so the numbers stay as they were), so that run status can name it
+  and the void rule (EC-R8) can be applied without judgement:
 
   | # | Reason | When | Model-service failure under EC-R8? |
   |---|---|---|---|
-  | 1 | `model service` | The provider call timed out, was rate-limited or returned a server error, after its one retry | **Yes** |
-  | 2 | `task time limit` | A model task passed `max_execution_time` | **Yes** |
+  | 1 | `model service` | The provider call passed its call timeout, was rate-limited or returned a server error, **on its one retry as well** (DL-43) | **Yes** |
+  | 2 | *Retired (DL-43)* | Was `task time limit` (`max_execution_time`). That setting does not cancel a call, so it is not a failure reason; a call that times out twice is reason 1 | — |
   | 3 | `stage time limit` | The stage passed its `STAGE_TIME_LIMIT` | **Yes** |
   | 4 | `invalid output` | The output failed its schema or guardrail | No |
   | 5 | `cost cap` | The run reached `RUN_COST_CAP_USD` | No |
@@ -1149,7 +1231,7 @@ fund, and foreign keys include it, so a row cannot point at another fund's run. 
 
 | Table | Holds | Write rule |
 |---|---|---|
-| `runs` | State, stage, run version, the planted-row switch, the agents mode, cost so far | Updated by the backend only |
+| `runs` | `status` (`ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`), `phase` (`A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`; kept at its last value on a terminal run, DL-46), run version, the planted-row switch, the agents mode, cost so far | Updated by the backend only |
 | `units` | One line per unit of a stage: status, attempts, failure reason | Updated by the backend only |
 | `paragraphs` | The loaded source paragraphs with their IDs | Loaded from the mock files when a run starts |
 | `rows` | Each row: fields, quote, cited paragraph, origin (`model` or `demo`), version | Written once; never changed |
@@ -1205,11 +1287,12 @@ on the next run.
 | `RUN_COST_CAP_USD` | The hard stop on a run's model cost; default 2.50 (CR-017) |
 | `AGENTS_MODE` | `stand_in` (the default; no model is called) or `real` (CR-030) |
 | `SPEND_ACTIVITY` | Required in real mode: `spike`, `tuning`, `evaluation`, `rehearsal` or `demo` (CR-030) |
-| `STAGE_TIME_LIMIT_A`, `STAGE_TIME_LIMIT_B`, `STAGE_TIME_LIMIT_C` | The time limit for each stage |
+| `CALL_TIMEOUT_EXTRACT`, `CALL_TIMEOUT_VERIFY`, `CALL_TIMEOUT_JUDGE` | Each model call's own timeout; the HTTP client timeout is set a few seconds below it (DL-43) |
+| `STAGE_TIME_LIMIT_A`, `STAGE_TIME_LIMIT_B`, `STAGE_TIME_LIMIT_C` | The time limit for each stage, enforced by the backend's stage timer (DL-43) |
 | `SESSION_SECRET` | Signs the session cookie that holds the mocked identity |
 | `DATABASE_PATH` | Where the SQLite file is |
-| `DEPLOY_MODE` | *Stretch goal only (DL-38).* `local` (the default) or `portfolio_demo`. Unused in the core build |
-| `DEMO_RESET_HOUR_UTC` | *Stretch goal only.* The hour of the nightly demo reset; default 3 |
+| `DEPLOY_MODE` | *Parked (F-18, DL-42).* `local` (the default) or `portfolio_demo`. Unused in the core build |
+| `DEMO_RESET_HOUR_UTC` | *Parked (F-18).* The hour of the nightly demo reset; default 3 |
 
 Sign-in is mocked (SD A-5): the sign-in page sets a signed session cookie holding a mocked
 identity and role (`specialist-1` or `gp-1`), and the backend reads the role from the cookie on
@@ -1223,10 +1306,9 @@ it (for example `make dev`). The SQLite file sits in a git-ignored `data/` folde
 cloud target, no container and no domain. `GET /health` answers once the database can be reached
 and the configuration files have loaded; the start command waits for it.
 
-**Hosting for the core plan stays local only.** A hosted copy on Railway is a **stretch goal
-(DL-38)**, started only after the local demo works end to end. Its design, safeguards, estimate
-and place in the drop order are in "Stretch goal: hosted portfolio demo". Nothing in this section
-or in the core build depends on it.
+**Hosting stays local only.** A hosted copy on Railway (DL-38) is **parked as Future Work F-18**
+(DL-42). Its design, safeguards and estimate are kept in Appendix A. Nothing in this section or in
+the build depends on it.
 
 **CI** (GitHub Actions, on every pull request). Two steps, and no model call: CI holds no model
 key (SD NFR-011).
@@ -1234,7 +1316,7 @@ key (SD NFR-011).
 | Step | What it checks |
 |---|---|
 | Lint and format | Python, with `ruff` |
-| Backend tests, agents stubbed | The blocking checks of EC-R4, and the tests named in the Control Register and in this document (T-W04, T-ID, T-RUN, T-DEC, T-W13, T-G3ACK, T-DEMO, T-D4), including the check that no prompt or run-time fixture refers to the answer key (CR-016) |
+| Backend tests, agents stubbed | **Tier 1 (blocking, DL-42)**: the tests listed in §9 "Test tiers". **Tier 2**, once written, also runs here but does not block a merge until it is promoted (§9) |
 
 **Not in CI, and why:**
 
@@ -1308,7 +1390,7 @@ business-side system is replaced by a versioned file under `config/` or `mock-da
 |---|---|---|
 | A model call (the service) | One automatic retry (D1). If it fails again, the run ends as `FAILED` | Run status: `FAILED`, the step, the unit and "the model service did not respond". A new run can be started |
 | A model output (its schema) | The guardrail fails; the model is not asked again (D5); the run ends as `FAILED` | Run status: `FAILED`, the step, the unit and what was wrong, in plain words |
-| A task or stage time limit | The stage ends; the run ends as `FAILED`; late output goes to the trace only | Run status: `FAILED` and which limit passed |
+| A call timeout, twice, or the stage time limit | A call that times out is retried once; a second timeout, or the stage timer, ends the stage and the run as `FAILED`; late output goes to the trace only and its cost counts (DL-43) | Run status: `FAILED` and "the model service did not respond" or "stage time limit" |
 | The cost cap | No further calls; the run ends as `FAILED` (CR-017) | The reason and the cost so far |
 | Calendar generation | All or nothing; nothing is stored (CR-011); the run ends as `FAILED` | Run status: `FAILED`; if two rows collided, both are named. G3 is not offered |
 | A decision or gate request | Refused with a code (§4) and written to the audit log | The same page again, with the plain sentence |
@@ -1346,7 +1428,7 @@ three runs (EC-R1) and about 15 minutes of agent time. **One cycle is planned** 
 | Building and automated tests | **None**: stand-in agents (CR-030) | US$0 | US$0 |
 | Spike and verifier bake-off | At most 70 (about 63 planned, including one clean run) | US$1 to US$2 | Limited by the call cap |
 | Prompt tuning | **At most 60** | US$1 to US$2 | Limited by the call cap |
-| One evaluation cycle | 3 runs, about 63 calls (each run adds about 3 calls for the copied-row and injection cases), plus any replacement under EC-R8 | US$1 to US$2 | US$7.50, and up to US$2.50 for each replacement |
+| One evaluation cycle | 3 runs, about 57 calls (each run adds 2 harness calls, for `I-1` and the injection case; the altered-quote case is a code check, DL-45), plus any replacement under EC-R8 | US$1 to US$2 | US$7.50, and up to US$2.50 for each replacement |
 | Rehearsal and demo | 2 runs, about 38 calls | About US$1 | US$5 |
 | **Total** | **About 225** | **US$4 to US$7** | **About US$15 before any replacement** |
 
@@ -1383,8 +1465,8 @@ CR-012). This is enough to demonstrate the role rules. It is not an access-contr
 |---|---|---|
 | Input validation | Pydantic on every form; unknown fields refused; the run version on every run-level request | §4, CR-009 |
 | State changes | Only by `POST`, never by a link. The session cookie is signed and `SameSite=Lax` | CR-004 |
-| Cross-site request forgery | **In the core build, no token-based protection is built.** `SameSite=Lax` and a local-only demo are the whole defence. **A token on every form is required before any hosted use** and is built in the stretch goal (CR-031, block S3), never in the core build | A stated limitation, closed by CR-031 |
-| Public hosted copy (stretch, DL-38) | Public by design, safe because it holds nothing to reach: stand-in agents only, mock data only, no model key on the host. Mocked sign-in is **not** access control, here as everywhere | CR-031, "Stretch goal: hosted portfolio demo" |
+| Cross-site request forgery | **In the core build, no token-based protection is built.** `SameSite=Lax` and a local-only demo are the whole defence. **A token on every form is required before any hosted use** and is designed in the parked hosted demo (CR-031, block S3, Appendix A), never in this build | A stated limitation, closed by CR-031 |
+| Public hosted copy (parked, F-18) | Public by design, safe because it holds nothing to reach: stand-in agents only, mock data only, no model key on the host. Mocked sign-in is **not** access control, here as everywhere | CR-031, Appendix A |
 | Model input | No typed free text reaches a prompt. Sources are placed in prompts as data, never as instruction | CR-014, CR-015 |
 | Model output | Checked against its schema before it is stored; shown as escaped text, never as HTML | CR-003, CR-015 |
 | Secrets | Environment variables only; `.env` is git-ignored; `.env.example` lists names | CR-021, §4 |
@@ -1441,18 +1523,32 @@ and the answer key. Behaviour that is Future Work has no criterion here.
   records. This is why review time is **not** measured on evaluation runs (EC-011).
 - **EC-R3: exact or miss.** A criterion passes only at its stated value. A miss is reported with
   the expected and actual values, never hidden (PRD §7, DL-10).
-- **EC-R4: the checks that use no model are blocking.** They run in CI on every pull request with
-  stand-in agents, and all must pass before a merge and before the demo:
+- **EC-R4: Tier 1 tests block the build (DL-42).** They use no model, run in CI on every pull
+  request with stand-in agents, and all must pass before a merge and before the demo:
 
-  | What must hold | Check |
+  | What must hold | Tier 1 check |
   |---|---|
   | Gates cannot be bypassed | EC-013 |
-  | GPs see only published content; the GP role cannot write | EC-014 (content part), EC-019 |
-  | Dates match the 22 expected entries, identically on every generation | The date-engine test on answer-key inputs (SD AC-009 to AC-012; US-008 criteria 1 and 8; US-009 criterion 6), EC-008 |
+  | GPs see only published content | EC-014 |
+  | Dates match the 22 expected entries, identically on every generation | EC-007 as the date-engine test on answer-key inputs (SD AC-009 to AC-012; US-008 criteria 1 and 8; US-009 criterion 6), EC-008 |
   | The audit log is complete and cannot be changed | EC-016 |
-  | Agents cannot change what they check, compute a date or hold a tool | EC-015 |
-  | The coverage view and traceability are correct | EC-009, EC-017 |
-  | Repository hygiene | EC-020 (its real-name scan runs locally in the git hooks, not in CI) |
+  | The quote check is right | T-W04-1 to T-W04-6 |
+  | One run at a time; a failed unit fails the run; abandon needs a reason | T-RUN-0, T-RUN-1, T-RUN-3 |
+  | Publishing needs the acknowledgement | T-G3ACK-1 |
+  | The planted row is labelled and cannot be approved | T-DEMO-1, T-DEMO-2 |
+  | No answer reaches a prompt | T-LEAK-1 |
+
+  **Tier 2: done if time allows (DL-42).** Written after Tier 1; it runs in CI once it exists and
+  does not block a merge: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1, the
+  per-state page tests (§9 "Pages"), and **T-MAP-1 until the evaluation cycle**: T-MAP-1 must pass
+  before the first evaluation run, because EC-001 depends on it. The day-3 tripwire (Estimate)
+  drops Tier 2.
+
+  **Not yet tiered** (SOQ-29): the other no-model tests named in this document, among them EC-009,
+  EC-015, EC-017, EC-019, EC-020, T-WHO-1, T-WHO-2, T-MODE-1, T-DEC-1, T-ID-1, T-ID-2, T-W13-1,
+  T-W13-2, T-RUN-2 and T-RUN-4 to T-RUN-8. Until the operator answers, they are written with their
+  blocks and run in CI, and a failure is reported to the operator. EC-020's real-name scan runs
+  locally in the git hooks in any case (§5).
 
 - **EC-R5: the name-match rule is written before the first evaluation run.** The operator writes
   the rule EC-002 is judged by and records it in `project-context/2.build/evals.md` (or the file
@@ -1471,19 +1567,20 @@ and the answer key. Behaviour that is Future Work has no criterion here.
 - **EC-R8: void rule for model-service failures.** *Written on 2026-11-12, before any evaluation run
   exists, so it cannot be used to discard an unwelcome result.*
   1. A run is **voided** only if it ended `FAILED` and **every** failed unit's recorded reason is a
-     model-service failure: the provider call timed out, was rate-limited or returned a server error
-     after its one automatic retry, or a task or stage time limit passed while waiting for the
-     provider.
+     model-service failure: the provider call passed its call timeout, was rate-limited or returned
+     a server error **on its one automatic retry as well** (DL-43), or the stage time limit passed
+     while waiting for the provider.
   2. A run is **never** voided for schema-invalid output, a wrong result, a missed criterion, the
-     cost cap, a failed calendar generation or a backend restart. Those are findings. The seven
-     failure reasons, and which of them count as model-service failures, are listed in §4.
+     cost cap, a failed calendar generation or a backend restart. Those are findings. The failure
+     reasons, and which of them count as model-service failures, are listed in §4.
   3. A voided run is **re-run once** on the same commit. If the replacement also fails for a
      model-service reason, it counts as a **miss** with the reason "model service" and is not re-run
      again.
   4. The report lists every voided run with its failure reasons and its cost. Voided runs count
      towards model spend (EC-R6).
-  5. Time limits are set from the measured calls in block B3 **before the first evaluation run** and
-     are not changed between the runs of the cycle.
+  5. Time limits (the call timeouts and the stage limits, DL-43) are set from the measured calls in
+     block B3 **before the first evaluation run** and are not changed between the runs of the
+     cycle. Until then the starting values in §2 apply (A 375 s, B 150 s, C 30 s).
 - **EC-R9: tuning cap.** Prompt tuning (block B9) is capped at **half a focused day** and at **60
   real model calls**, whichever comes first (EC-R10). When a cap is reached, the three runs are made
   on the commit as it stands and the result is reported.
@@ -1496,7 +1593,8 @@ and the answer key. Behaviour that is Future Work has no criterion here.
      second cycle, or any model-facing change after the cycle, needs a recorded operator decision
      to spend more.
   4. **Balance check.** Before the cycle starts, the operator confirms that the prepaid balance
-     covers three runs at the hard stop (US$7.50), and records the balance in the report. If the
+     covers three runs at the hard stop (US$7.50) **and still leaves at least US$5 for the rehearsal
+     and the demo** (DL-42), so at least US$12.50 in all, and records the balance in the report. If the
      balance runs out during the cycle, the cycle stops; nothing is voided or re-run without an
      operator decision.
 - **EC-R11: responsible role is mapped, then matched exactly (DL-41).** *Written on 2026-11-12,
@@ -1536,11 +1634,26 @@ and the answer key. Behaviour that is Future Work has no criterion here.
   the report)", "Fund administrator or AIFM" and an empty string give "no match", and the report
   counts each as a miss on EC-001 and shows the text; (c) every target in the table is a party
   marked "Filing party: Yes" in the profile, or "not stated in source"; (d) no module under the
-  runtime, the agents or the pages reads the lookup file. T-MAP-1 joins the blocking checks of
-  EC-R4.
-- **Copies, not edits.** The altered-quote case, the `I-1` case and the injection case (EC-021) run
-  on **copies** of rows or paragraphs, never by editing the mock sources (US-013 c4). They add
-  about three model calls to each evaluation run.
+  runtime, the agents or the pages reads the lookup file. T-MAP-1 is Tier 2 until the evaluation
+  cycle and must pass before the first evaluation run (EC-R4, DL-42).
+- **Copy cases: separate harness calls (DL-45).** The altered-quote case, the `I-1` case and the
+  injection case (EC-021) run on **copies** of rows or paragraphs, never by editing the mock
+  sources (US-013 c4), and **never inside the run's own data**:
+  1. The evaluation runner calls the same functions the stage functions use, directly: the **quote
+     check** (code, no model) on the altered `OBL-01` copy; **`check_conflicts`** on the `I-1`
+     copy of `OBL-02`; **`extract_rows`** on the copy of a source paragraph with the injected text,
+     followed by the quote check on what it returns.
+  2. Their outputs are **not written to the run's `rows`, `quote_checks` or `flags` tables** and
+     never reach a gate, the coverage view or the calendar.
+  3. Every call is **labelled in the trace** with its case (`eval_case`: `altered_quote`, `I-1` or
+     `injection`), with the run ID of the evaluation run it belongs to, and counts towards that
+     run's cost and model-call count.
+  4. They are **scored separately**: the altered quote and `I-1` under EC-005, the injection under
+     EC-021. So EC-001's "0 extra rows" and EC-007's "22 entries" are measured on the run's own
+     data and stay true.
+
+  They add **two model calls** to each evaluation run (`I-1` and the injection); the altered quote
+  is a code check.
 
 | ID | Dimension | Metric | Threshold | Grading | Source |
 |----|-----------|--------|-----------|---------|--------|
@@ -1579,7 +1692,7 @@ the evaluation report is shown.
 
 *Must hold before the demo:*
 
-1. The checks that use no model all pass (EC-R4).
+1. The Tier 1 tests all pass (EC-R4, DL-42).
 2. The happy path has run from start to finish once with the real model, as the rehearsal run.
 3. **The evaluation cycle has been made and its report exists**, with its trace export (D4),
    whatever the result.
@@ -1591,8 +1704,10 @@ the evaluation report is shown.
 6. Each model-dependent criterion: passed 3 of 3, or missed, with the expected and actual values
    (EC-R1). A miss is stated, not hidden.
 7. Model cost and agent time for each run, against US$2 and 5 minutes.
-8. Review time from the rehearsal run against 30 minutes (EC-011), next to the operator's labelled
-   estimate of manual effort (PRD OQ-12, DL-11). No saving and no return on investment is claimed.
+8. Review time from the rehearsal run against 30 minutes (EC-011), next to the operator's
+   **assumed** manual effort, "about [N hours] per fund per year" (PRD A-9, SOQ-6, DL-11). It is an
+   assumption, not a measured figure, and is labelled so. No saving and no return on investment is
+   claimed.
 9. Total model spend by activity, against the target of about US$15 (EC-R6).
 
 **Demo script.** The demo starts from an **empty database**, in real mode, with the spend activity
@@ -1604,12 +1719,12 @@ the evaluation report is shown.
 | 2 | The specialist starts a run **with the planted-row switch on** | One run at a time; the switch is a recorded choice |
 | 3 | Stage A runs; the run status page shows the units finishing | Three agents and one code check, with nothing hidden |
 | 4 | **G1.** Seven rows. The specialist approves `OBL-03` and `OBL-05` **over a flag, with a written reason**, approves the other four real rows, sets each business-day rule, and sets "who files" for the four rows whose source does not state it (`OBL-06`: "Tax advisor"; answer key §5, DL-39) | A person decides when two sources disagree; the agents only flag |
-| 5 | **G1, the planted row.** The specialist **rejects it with a reason**: the quote is real, but it does not support the rule | The human checkpoint catching what the code check cannot. **This step does not depend on whether the verifier flagged the row** (SOQ-22). If asked, the presenter can try to approve it and show the refusal |
+| 5 | **G1, the planted row.** The specialist clicks **Approve** on it: the server refuses (`DEMO_ROW_NOT_APPROVABLE`), the refusal is written to the audit log, and the page shows the plain message. The specialist then **rejects it with a reason**: the quote is real, but it does not support the rule (DL-44) | The human checkpoint catching what the code check cannot, and the server, not the page, refusing the approval. **This step does not depend on whether the verifier flagged the row** (SOQ-22) |
 | 6 | The coverage view, then complete G1 | What no row cites is visible |
 | 7 | Stage B runs. **G2.** The specialist confirms five verdicts and **decides the "unsure" on `OBL-04`** as applies (precautionary), with a reason a GP can read | "Unsure" goes to a person, and the cautious choice is labelled |
 | 8 | Stage C runs. **G3.** The calendar of 22 entries with its marks. The specialist reads the rejected row and the seven uncited paragraphs, **ticks the acknowledgement** and publishes | Publishing needs a person to see what was left out |
 | 9 | The GP opens the calendar again | 22 entries, each with what, when, who and why, and the calendar-level note |
-| 10 | The audit log for one entry, then the evaluation report | Every output and decision can be traced; misses are stated |
+| 10 | The audit log for one entry (and the step 5 refusal), then the evaluation report, with review time shown next to the **assumed** manual effort, "about [N hours] per fund per year" (PRD A-9, SOQ-6) | Every output and decision can be traced; misses are stated; no saving is claimed |
 
 If the planted row is cut from the build, the fallback under "Estimate", "Checkpoint" applies to
 step 5.
@@ -1624,7 +1739,7 @@ iteration. No feedback feature is built into the product.
 
 | Field | Value or source |
 |---|---|
-| Before | The operator's **labelled estimate** of manual effort for the five demo obligations (PRD OQ-12). Not a measurement |
+| Before | The operator's **assumption** of manual effort, "about [N hours] per fund per year" (PRD A-9, SOQ-6). Not a measurement |
 | After | Measured specialist review time from G1 to G3 (SD MC-003), from audit timestamps, on the rehearsal run |
 | Control | The answer key: the same cycle's accuracy against it (SD MP-001 to MP-004), so a faster review is only reported next to correct output |
 | Measurement owner | `@qa.eng` (the evaluation report); the operator (the manual-effort estimate) |
@@ -1675,7 +1790,7 @@ summary that SD NFR-012 asks the architecture to keep.
 Neither walkthrough tests security between clients, the legal content of any regime, or whether
 these extension points are enough.
 
-### Estimate: five focused days (PRD OQ-5, DL-08, DL-32)
+### Estimate: 5 days planned, 8 days hard stop (PRD OQ-5, DL-08, DL-32, DL-42)
 
 **Unit.** A focused day of the operator's attention, with the AAMAD personas doing most of the
 writing (SA-16). Figures are the architect's judgement in quarter days, not measurements.
@@ -1692,12 +1807,28 @@ writing (SA-16). Figures are the architect's judgement in quarter days, not meas
 | B8 | Evaluation runner, report, trace export, void rule | WP-02, WP-18 | 2.5 | 0.5 |
 | B9 | Prompt tuning, **capped** at half a day and 60 real calls (EC-R9, EC-R10) | WP-19 | 3 | 0.5 |
 | B10 | Acceptance pass, security assessment by checklist, accessibility and copy check, run instructions, demo rehearsal | WP-20 to WP-22 | 4.5 | 0.5 |
-| | **MVP** | | **45.75** | **≈ 5.5 (4.5–8)** |
+| B11 | **Hours noted earlier but not added (DL-42):** stand-in mode and the role harness (1 to 2 hours, B3, DL-36); the G1 "who files" choice (about 1 hour, B5, DL-39); the loader tests T-LEAK-1, T-PROMPT-1 and T-EXAMPLE-1 (about 1 hour, B3, DL-39) | New | — | 0.5 |
+| | **MVP** | | **45.75** | **≈ 6.0 (5–8.5)** |
 
-**Fit verdict: five days planned, plus half a day from the buffer** (operator decision,
-2026-11-12; SOQ-19). The likely figure is half a day over the five-day capacity. The visual pass
-(B6) and the planted demo row (B7) are the two blocks added to the cut by operator decision, a
-quarter day each, and the operator takes that half day from the buffer.
+**Capacity (DL-42): 5 days planned, 8 days hard stop.** The plan is built to finish in 5 focused
+days. Days 6 to 8 are the operator's buffer. **Day 8 is a hard stop**: whatever is not done then is
+not done, and the demo runs on what exists.
+
+**Fit verdict: about 6 days likely, against 5 planned and 8 at the hard stop.** The likely figure is
+a day over the plan and inside the hard stop. The top of the range (8.5) passes the hard stop, which
+is why the day-3 tripwire and the drop order below exist. B6 and B7 were added to the cut by
+operator decision (SOQ-19); B11 is time the earlier notes said came "out of the same margin", now
+counted.
+
+**Tests in two tiers (DL-42; the lists are in §9, EC-R4).** **Tier 1 blocks the build**: EC-013,
+EC-014, EC-007, EC-008, EC-016, T-W04, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2 and
+T-LEAK-1. **Tier 2 is done if time allows**: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1,
+T-D4-1, the per-state page tests, and T-MAP-1 until the evaluation cycle (it must pass before the
+first evaluation run).
+
+**Day-3 tripwire (DL-42).** If there are **no real Stage A rows by the end of day 3** (rows from a
+real extractor call, stored and shown at G1), **drop B6 and Tier 2** at once, with no further
+decision needed. The architect tells the operator the same day.
 
 **Where 40 days went.** About half is real cuts: no separate frontend application, generated
 client, fixtures or integration step; no re-run, invalidation or duplicate-output machinery; no Flow
@@ -1707,17 +1838,14 @@ every package. **This estimate has no slack inside it.** The range is therefore 
 operator's buffer is the only margin.
 
 **Checkpoint.** B1 and B2 are planned at one day together. If they take more than 1.3 days, the
-architect tells the operator straight away. **Drop order (operator decision, 2026-11-12): the light
-visual pass (B6) is dropped first; the planted demo row (B7) is kept**, because it demonstrates the
-human checkpoint. If B6 is dropped, the pages stay unstyled but usable and accessible, and the
+architect tells the operator straight away. **Drop order (operator decision, 2026-11-12; DL-42):
+the light visual pass (B6) and Tier 2 are dropped first (at once if the day-3 tripwire fires); the
+planted demo row (B7) is kept**, because it demonstrates the human checkpoint. If B6 is dropped, the pages stay unstyled but usable and accessible, and the
 visual pass becomes post-course work for the operator's portfolio (Future Work F-17). Nothing else
 is dropped without a new operator decision.
 
-**The hosted stretch goal sits below this list (DL-38).** Full drop order, first to last: **(1) the
-hosted portfolio demo**, which is not started unless its conditions are met; **(2) the light visual
-pass (B6)**; **(3) the planted demo row (B7)**, which is kept. The hosted demo is not one of the
-core blocks, is not in the 5.5-day figure, and cannot take time from B1 to B10 because it starts
-only after B10 is done. Its estimate is in "Stretch goal: hosted portfolio demo".
+**The hosted demo is parked (DL-38, DL-42).** It is Future Work F-18, not part of this plan and
+not in the drop order. Its design and estimate are kept in Appendix A.
 
 **Build order.** The block numbers in the table are labels, not the order of work. The planted
 demo row (B7) is built **before** the visual pass (B6), straight after the gate actions and pages
@@ -1744,16 +1872,313 @@ required when approving a row that matches an already approved row on recipient,
 (about a quarter day; see the duplicate limitation below); a single "model service not responding"
 message for a stage; a second visual pass.
 
-**Model spend**: a target of about US$15 in total, enforced by the prepaid balance (DL-36; §7). The
-stand-in mode and the role harness add about an hour or two to block B3. The estimate's figures
-are in quarter days and do not change, but that time comes out of the same margin.
+**Model spend**: a target of about US$15 in total, enforced by the prepaid balance (DL-36; §7).
+Before the evaluation cycle, at least US$5 must be left for the rehearsal and the demo (EC-R10
+point 4, DL-42). The stand-in mode and role harness, the "who files" choice and the loader tests are
+now counted in B11 (DL-42). Sending only the primary documents to the extractor saves one call per
+run.
 
-**Agent cards (DL-39)**: the "who files" choice at G1 adds about an hour to block B5, and the
-loader rule with T-LEAK-1, T-PROMPT-1 and T-EXAMPLE-1 adds about an hour to block B3. Sending only the primary
-documents to the extractor saves one call per run. The quarter-day figures do not change; the time
-comes out of the same margin.
+### Known limitations of the MVP
 
-### Stretch goal: hosted portfolio demo (DL-38)
+Each is accepted for the five-day build and is stated so that nobody reads the demo as more than it
+is.
+
+| Limitation | What it means | What protects the GP |
+|---|---|---|
+| A wrong row can only be rejected | With no edit, a row with a wrong field or a misquote is rejected, and its obligation leaves the calendar. A new run at temperature 0 may repeat the same mistake | The G3 acknowledgement lists every rejected row and uncited paragraph before publishing (CR-028) |
+| A wrong decision cannot be undone | A wrong approval, rejection or verdict is corrected only by abandoning the run at a gate and starting a new one | Nothing reaches a GP before G3 |
+| A failure in stage B or C discards the G1 and G2 work | The run ends `FAILED` and the new run repeats both gates. **The 30-minute review measurement (EC-011) is taken on a run with no failures** | No gate opens on a failed stage |
+| The same obligation from two documents can be published twice | There is no duplicate warning. Generation fails closed only when two approved rows give the same entry ID (same paragraph, recipient and period). Otherwise the specialist's review at G3 is the only check. The demo set contains no such pair | The whole calendar is reviewed at G3 |
+| Two obligations in one paragraph to the same authority are not supported | Their entry IDs would collide, so generation fails closed and names both rows | Fail closed |
+| The coverage view always lists seven paragraphs | Nothing records "read, no obligation" (OQ-US001-2), so the acknowledgement appears on every publish | Intended (DL-30) |
+| No unpublish | A published calendar is replaced only by a new run and a new publish (SD §9) | Calendar-level note on the GP view |
+| Plain pages | The pages are readable and accessible, not a designed product interface | Not applicable |
+| One evaluation cycle | The budget covers one three-run cycle. A miss is reported as it stands; fixing it and measuring again needs a decision to spend more (EC-R10) | The blocking checks that use no model still gate every merge (EC-R4) |
+
+### Future Work
+
+**The parking lot.** Everything here was designed in the full SAD (tag `sad-full-design`) and is
+**not built**. The right-hand column lists the IDs retired from this document; they are not reused.
+
+| # | Item | Requirement trace | Retired from this document |
+|---|---|---|---|
+| F-01 | Edit a row and re-verify it; out-of-date marking of dependent verdicts and entries | SD FR-006 (edit part), FR-007, AC-005 · US-005 | W-08, W-14, the edit route in CR-014, `PATCH /rows/{id}` |
+| F-02 | Reopen a rejected row | SD FR-023, AC-022 · US-004 c9–c11 | `POST /rows/{id}/reopen` |
+| F-03 | Reopen a confirmed verdict | SD FR-024, AC-023 · US-007 c8–c9 | `POST /verdicts/{id}/reopen` |
+| F-04 | GP review notice after publication | SD FR-025, AC-024 · US-011 c9–c10 | The notice part of CR-012 |
+| F-05 | Re-run a failed unit, "needs attention", release a failed document to manual entry | SD NFR-004 (re-run sentences), AC-030 (re-run part), AC-031 · US-015 c4–c6, c11–c15 · DL-02, DL-18 | The re-run part of W-19, CR-010, T-REL-1, T-REL-2, the re-run and release endpoints, `UNIT_RERUN_LIMIT`, `RERUN_LIMIT`, the current-output store and its idempotency key |
+| F-06 | Create a missed row by hand | SD FR-027, AC-027 · US-016 · DL-15 | W-07a, CR-020, the hand-created case in T-ID-1, `POST /runs/{id}/rows`, row origin `human` |
+| F-07 | Possible-duplicate groups and the completion confirmation | SD FR-029, AC-028 · US-004 c14–c16 · DL-16 | W-03a, CR-022, T-W03a-1, T-W03a-2, SA-9, `group_confirmations` |
+| F-08 | Verifier and judge dead-end handling | SOQ-10 | — |
+| F-09 | Change monitoring and impact reports (stretch F10) | SD MD-011, FR-021, FR-026, AC-018 to AC-020, AC-025 · US-014 | W-22, CR-024 to CR-026, SA-4, the routing pattern, `classify_amendment` |
+| F-10 | Next.js frontend with a JSON API, generated client and fixtures, contract-drift check | PRD OQ-8 · DL-33 | The Next.js parts of §3, WP-13 to WP-17, `NEXT_PUBLIC_API_BASE_URL`, SA-12 |
+| F-11 | A CrewAI Flow wrapper per stage | DL-17 (first half) · DL-35 | The Flow rows of §2, `backend/runtime/flows.py` |
+| F-12 | Quote position in the stable entry ID, so two obligations in one paragraph to one authority stay distinct | SD FR-016 · DL-35 | The `q<quote_pos>` part of the entry ID |
+| F-13 | Circuit breaker for a stage; restart sweep of individual units | US-015 c18 | The circuit-breaker paragraph of Production Shape |
+| F-14 | Evaluation as a blocking gate; an automated CI check for the report link | DL-23 (replaced by DL-34) | The blocking wording of EC-R1 and of demo readiness criterion 2 |
+| F-15 | Configuration content hashes that invalidate outputs; the client-policy change mechanism | SD §10.2, OQ-12 | The input-version paragraph of §4 |
+| F-16 | Next step after a G3 decline (back to G1 or G2) | SD FR-022 (deferred part) · US-010 c8 | The `next_step` field |
+| F-17 | *Only if dropped at the checkpoint:* the light visual pass (estimate block B6), as post-course portfolio work | DL-33 | — |
+| F-18 | Hosted portfolio demo on Railway: stand-in agents only, public by design, Reset demo, CSRF token (blocks S1 to S4, about 1.25 days) | DL-38 · parked by DL-42 | Appendix A as a whole; CR-031; T-HOST-1, T-BANNER-1, T-CSRF-1, T-RESET-1; `DEPLOY_MODE`, `DEMO_RESET_HOUR_UTC`; SA-21; SOQ-23 |
+
+**Never in the MVP** (SD §9, unchanged): filing status and evidence; notifications to filing
+parties; more than one fund or framework; an official holiday source; fund-fact editing;
+configuration screens; client-data separation; unpublish or withdraw; four-eyes review (future
+scope, DL-37); the full trail view (SD FR-019); live dashboards; real authentication.
+
+**Extensibility walkthroughs S-1 and S-2** (SD NFR-012, §10.4) are paper only. A short summary
+is under "Extensibility walkthroughs"; the full text is at the tag.
+
+## Implementation Guidance for AI Development Agents
+
+**Build only what this document describes.** Anything under "Future Work" is not built until the
+operator moves it into scope. The full design at tag `sad-full-design` is a reference, never a
+build instruction.
+
+### Build card (one page for the build personas)
+
+| | |
+|---|---|
+| **What** | Three CrewAI agents (extractor, verifier, judge) in a gated workflow: stage A → **G1** → stage B → **G2** → stage C (code only) → **G3** → GP calendar. The backend alone owns gate state. 7 server-rendered pages, SQLite, one process |
+| **Time** | 5 days planned, **8 days hard stop**. About 6 days likely. **Day-3 tripwire:** no real Stage A rows by the end of day 3 → drop B6 and Tier 2 (DL-42) |
+| **Order** | B1 → B2 (checkpoint: more than 1.3 days → tell the operator) → B3 (stand-in mode first, then the spike) → B4 → B5 → B7 → B8 → B9 → B6 → B10 |
+| **Tier 1 tests (block the build)** | EC-013, EC-014, EC-007 (date test), EC-008, EC-016, T-W04-1 to T-W04-6, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2, T-LEAK-1 |
+| **Tier 2 (if time allows)** | T-EXAMPLE-1 six-word overlap, T-PROMPT-1, T-D4-1, per-state page tests, T-MAP-1 (must pass before the first evaluation run) |
+| **Run state** | `status` ∈ `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`; `phase` ∈ `A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`. Every guard checks the phase; abandon only in `AT_G*` (DL-46; "Transitions and guards" in Work Ownership) |
+| **Timeouts** | Per call: extract 90 s, verify 60 s, judge 60 s; HTTP client a few seconds lower; one retry; a second timeout = `model service`. Stage limits: A 375 s, B 150 s, C 30 s, on the **backend's timer**, not `max_execution_time`. Late results go to the trace only and still count towards cost (DL-43) |
+| **Models and spend** | Stand-in agents by default (`AGENTS_MODE=stand_in`). Real calls only for the spike, tuning (60 calls), one evaluation cycle, the rehearsal and the demo. US$2.50 hard stop per run. Keep US$5 for the rehearsal and the demo. Model IDs wait for DL-40 (SOQ-25) |
+| **Never** | A model computes a date, approves, publishes or holds a tool; the answer key or the mock files' notes reach a prompt; a check lives in a page handler; the planted row is approved (its Approve button stays visible and the server refuses it, DL-44) |
+| **Evaluation** | One cycle of three runs; reports, does not block. Copy cases are separate harness calls outside the run's tables (DL-45) |
+| **Not built** | Everything under "Future Work", including the hosted demo (F-18, Appendix A) |
+| **If something is missing** | Stop and ask the architect. Do not build from the full design at the tag |
+
+**The hosted portfolio demo is parked as Future Work F-18 (DL-38, DL-42).** Do not start blocks
+S1 to S4, add `DEPLOY_MODE` handling, or add a CSRF token unless the operator moves it back into
+scope (see Appendix A). The pages, templates and
+service layer are written so that adding the CSRF token later means one shared check and one hidden
+field per form, and nothing else.
+
+**Order of work** (the estimate blocks; see "Estimate" for their content):
+
+| Order | Block | Who | Notes |
+|---|---|---|---|
+| 1 | B1 Setup and data | `@project.mgr` (`setup.md`), `@backend.eng` | Install the git hooks first (§5). Record `AAMAD_TARGET_RUNTIME` and the CrewAI settings in `setup.md`. Create `.env.example` |
+| 2 | B2 Gates and run states | `@backend.eng` | The service layer and its checks before any page or agent. **Checkpoint:** if B1 and B2 together pass 1.3 days, tell the operator at once |
+| — | The page-by-page note | `@ux.designer` (`ux.md`) | Short: the seven pages of §3, with the 30-minute review target as a constraint (§7), the voice rule (DL-05) and no bulk or preselected decision (SD AC-026). Needed before B5 |
+| 3 | B3 Stages A and B | `@backend.eng` | **Stand-in mode first** (CR-030), then the three CrewAI agents behind their functions, exactly as §2 and D1 to D6. Then the spike and the verifier bake-off: the first real model calls |
+| 4 | B4 Stage C | `@backend.eng`, `@qa.eng` | The date engine against the 22-entry answer key |
+| 5 | B5 Gate actions and pages | `@backend.eng`, `@frontend.eng` | `@frontend.eng` writes the templates in `backend/web/`; there is no separate application and nothing to wire. Thin handlers only (§4) |
+| 6 | B7 Planted demo row | `@backend.eng` | Before the visual pass |
+| 7 | B8 Evaluation runner and report | `@qa.eng` | With the trace export (D4) and the void rule (EC-R8) |
+| 8 | B9 Tuning, then the evaluation cycle | `@qa.eng`, operator | Capped at half a day and 60 real calls (EC-R9). Then the one cycle (EC-R10) |
+| 9 | B6 Light visual pass | `@frontend.eng`, `@ux.designer` | The last build block; dropped first if time runs out. A stylesheet change is not model-facing, so it needs no new cycle |
+| 10 | B10 Acceptance and rehearsal | `@qa.eng`, `@security.eng`, `@devops.eng` | The security checklist, the accessibility and copy checks, run instructions, the rehearsal run, the outcome fields of §10 |
+
+`@integration.eng` has no separate epic in the MVP: the pages and the backend are one process, so
+its work is the acceptance test of the happy path, inside block B10.
+
+**Rules every Build persona follows:**
+
+- A change to a prompt, a model setting or a step schema follows the release rule in §5.
+- A new tool, memory, automatic retry or re-ask is a change to this document, not a code change.
+- The answer key never enters a prompt or a run-time fixture (CR-016).
+- No real model call is made outside the five activities of EC-R10. The default mode is stand-in.
+- A check belongs in a service function, never in a page handler or a template (§4).
+- If something needed is not described here, stop and ask the architect; do not look it up in the
+  full design and build from there.
+
+## Architecture Validation Checklist
+
+- [x] PRD requirements mapped to architectural components (the requirement-to-component map)
+- [x] Work Ownership complete, with a feasibility verdict and a load-bearing constraint
+- [x] Pattern Decision and Reference Architecture complete
+- [x] Model and Context Strategy, Control Register and Production Shape complete
+- [x] Runtime roles exist only where the Pattern Decision needs them (three CrewAI agents, one per
+      model step; no default crew; §2)
+- [x] The pages and the backend agree on data and streaming (one process; the templates render
+      what the service functions return; no streaming; §1, §3, §4)
+- [x] Secrets through environment variables only (CR-021; the names are in §4)
+- [x] The boundary between the MVP and Future Work is explicit ("MVP scope" and "Future Work",
+      each stated once)
+- [x] The resolved `AAMAD_TARGET_RUNTIME` is recorded in Audit
+- [x] No heading is pending
+
+## Sources
+
+- `project-context/1.define/prd.md`, `system-description.md`, `user-stories/` (US-001 to US-016 and
+  the index), `approval-map.md`, `decision-log.md` (DL-01 to DL-46; DL-40 reserved) and
+  `mock-data/expected-obligation-library.md`: read on 2026-11-12 for this rewrite.
+- The full design: `sad.md` at git tag `sad-full-design` (commit `9e7da27`).
+- The senior-architect review of the full design, pasted by the operator on 2026-11-12, and the
+  operator's answers to it (DL-29 to DL-36).
+- `.cursor/templates/sad-template.md` (headings; "`*create-sad --mvp` may defer scale, not the
+  pattern decision or the control register"), `.cursor/rules/adapter-crewai.mdc` (D1 to D6),
+  `.cursor/skills/draw-diagram/` (the four diagrams) and `aamad.config.yml` (`project.mode:
+  greenfield`, `runtime.target: crewai`).
+
+## Assumptions
+
+Numbers are unchanged from the full design. SA-2 was resolved in Define (the quote check is code,
+DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
+
+- **SA-1**: "Existing system" in the template means the deterministic code this project writes.
+  There is no legacy application.
+- **SA-3**: The GP-facing "why" text is the reasoning confirmed at G2, shown by code. No model
+  runs on the GP path.
+- **SA-5**: The mocked identity (SD A-5) is enough for every "who" in the audit log. No claim is
+  made about real access control.
+- **SA-6**: The call counts, durations and costs in this document are estimates from the size of
+  the mock data (six documents, six rows) until the spike measures them.
+- **SA-7**: Extraction is one call per **primary** source document (five), not one call for all of
+  them; the secondary guide is never sent to the extractor (DL-39). This keeps each call small. If
+  the evaluation shows that context across documents is needed to get 6 of 6 rows, it becomes one
+  call with the five primary documents; the pattern does not change. It is also why two documents can
+  each yield a row for the same obligation, which the MVP does not detect (Known limitations).
+- **SA-8**: At G2, the specialist's override or "unsure" reason is the GP-facing "why" for that
+  entry (W-17): one field, labelled as visible to GPs.
+- **SA-10**: Stack choices made where the PRD is silent: Python 3.12, FastAPI, Pydantic v2,
+  SQLAlchemy 2 with SQLite, Jinja2 templates with one stylesheet, a page that reloads in place of
+  streaming, and a signed cookie for the mocked identity. Each is justified in §1, §3 or §4.
+- **SA-11**: Each run produces its own rows, verdicts and calendar. A new run never changes the
+  published calendar; only a publish does. Entry IDs are the same across runs (§4).
+- **SA-13**: The CrewAI settings in §2 (`max_iter: 2`, `max_rpm: 30`, the time limits) are
+  starting values. The spike confirms or replaces them, and a change is recorded in the Audit.
+- **SA-14**: The page response budget in §7 is a design budget for a local demo, not a
+  requirement.
+- **SA-15**: CI never calls a model and holds no model key. Evaluation runs are local. The
+  real-name scan stays local because its identifier list must never leave `reference/`.
+- **SA-16**: Estimates are in focused days of operator attention, with the AAMAD personas doing
+  most of the writing. They are the architect's judgement, not measurements.
+- **SA-17**: Evaluation runs make the gate decisions by script, as the mocked identity
+  `specialist-eval` (EC-R2). Their audit entries are real and complete, so EC-016 is checked on
+  them. Only review time (EC-011) needs a run made by a person.
+- **SA-18**: A run is complete once G3 is decided: publishing ends it as `COMPLETED`, and
+  declining with a written reason ends it as `DECLINED`. Both are terminal.
+- **SA-19**: The five-day estimate assumes the deterministic parts (gates, dates, audit, quote
+  check) can be written quickly against tests that already exist as acceptance criteria and an
+  answer key, and that the three model steps reach a reportable result within the tuning caps. If
+  either proves false, the checkpoint rule in the estimate applies.
+- **SA-20**: The model spend budget assumes a real run costs well under US$1 (DL-36). The spike
+  measures it; if a run costs much more, the budget table in §7 is corrected and the operator
+  decides before the evaluation cycle starts.
+- **SA-21**: *(Parked with F-18, DL-42.)* The hosted demo (DL-38) assumes Railway can run one process with a volume for the
+  SQLite file, bind to the port it provides, use `GET /health` as a health check and deploy from
+  the main branch. This has not been checked against Railway's current documentation or pricing;
+  the operator confirms both before deploying (start condition 4). If the volume cannot be kept
+  across redeploys, the demo still works but resets on every deploy.
+
+## Open Questions
+
+**Open**
+
+- **SOQ-6, one part left** (operator): **the manual-effort figure.** It is recorded as an
+  **assumption, not a measured figure**: "about [N hours] per fund per year" by hand today. The
+  operator fills in N before the demo. It is referenced from demo readiness item 8, demo script
+  step 10 and the outcome fields in §10, always labelled as an assumption; no saving is claimed.
+  **For `@product-mgr`** (the architect does not edit the PRD): PRD A-9 still reads "[X
+  hours/days]"; change it to "about [N hours] per fund per year" and point it to SAD SOQ-6, so both
+  documents use one wording. The other parts of SOQ-6 are answered by DL-37 (see the table below).
+
+- **SOQ-27** (for `@product-mgr`; the architect does not edit these files; DL-41): (a) **US-013
+  criterion 11** says responsible role is "graded by exact match against the answer key"; it should
+  say the extracted text is first mapped to a profile party name by the fixed lookup (SAD EC-R11),
+  then matched exactly, and that text which does not map counts as a miss. (b) **US-001 criterion
+  2** says responsible role is matched "as the source states it" and expects "Local reporting agent
+  (Spain)", which the source does not literally say; it should point to the same mapping. (c) The
+  **answer key §1** column heading "Responsible role (as the source states it)" should say the
+  value is the profile's party name after mapping.
+- **SOQ-25** (operator, **before the spike**, block B3): **the exact model IDs and each role's
+  reasoning setting. DL-40 is held** until the operator has confirmed the IDs in their own OpenAI
+  account's model list, with its pricing. *Note from the final review (operator):* OpenAI lists
+  `gpt-5.6-terra` as the official replacement for `gpt-5-mini`; confirm it in the account along
+  with the three proposed IDs. **When DL-40 is recorded**, the "temperature 0" sentence in Model
+  and Context Strategy is rewritten to match (see the third consequence below), together with the
+  "new run at temperature 0" wording in Known limitations. Proposed on 2026-11-12 from OpenAI's model, pricing and
+  deprecation pages: extractor `gpt-6-luna` (reasoning `none`), verifier `gpt-6.1-terra` (`low`),
+  judge `gpt-6.1-sol` (`medium`). The older models `gpt-5-mini`, `gpt-5-nano`, `gpt-5` and `o3`
+  shut down on 11 December 2026 and are not used.
+  - **Is the verifier from a different family than the extractor?** DL-25 and DL-26 require a
+    different **model** ("different from the extractor's", and from the judge's); they do not use
+    "family" as a test. The proposal meets that: three different models. **Whether it is a
+    different family is weaker than it looks.** `gpt-6-luna` (GPT-6) and `gpt-6.1-terra` (GPT-6.1)
+    are different releases with different knowledge cutoffs (18 May and 1 June 2026), but OpenAI
+    presents them as one current flagship line and does not publish how they were trained, so a
+    family-level separation cannot be confirmed. The verifier and the judge (`gpt-6.1-sol`) are
+    the same release.
+  - **If a different family is wanted**, the one current mid-tier option that is clearly a
+    different generation from both is **`gpt-5.6-terra`** (GPT-5.6, cutoff 16 February 2026; $2
+    input / $12 output per 1M tokens, against $1 / $5). It adds about US$0.09 to a run (from about
+    US$0.30 to about US$0.40, an estimate). Risks: it is not on OpenAI's model index page, its page
+    warns it may be missing from some accounts, and an older generation is more likely to get a
+    shutdown date. **Recommendation:** check `gpt-5.6-terra` in the account at the same time. If it
+    is listed, use it as the verifier, because the verifier exists to be independent of the
+    extractor (SD MD-003) and the cost difference is small; otherwise keep `gpt-6.1-terra`, which
+    meets DL-25 and DL-26 as written. Either way, every model comes from one provider, so the
+    independence is between models, not vendors; a second provider was rejected in DL-25.
+  - On confirmation, DL-40 records the IDs, with three consequences for this document: no
+    temperature setting (all current models are reasoning models; a reasoning setting per role
+    instead), the model string the API returns logged in the trace (no dated versions are offered),
+    and per-model prices in `config/models.yaml`.
+  - *One-shot examples: decided 2026-11-12 (operator; DL-39 item 6).* Yes, on the condition that
+    each example is drawn from text in no demo row, planted row or evaluation case and mirrors no
+    demo trap; checked by T-EXAMPLE-1 and the review table in "Agent cards".
+
+- **SOQ-28** (operator; diagrams, DL-46): (a) **The run-state diagram.** The skill's ownership
+  table (`.cursor/skills/draw-diagram/reference.md`) gives the state diagram type to
+  `@backend.eng`, not to this persona, so the architect did not draw it. Its full content is the
+  "Transitions and guards" table and legend in Work Ownership: the six phases inside `ACTIVE`, the
+  four terminal statuses, every event and guard, the failure paths, the start-up rule and abandon
+  from `AT_G1`, `AT_G2` and `AT_G3` only. The operator chooses: `@backend.eng` draws it at the start
+  of Build (recommended), or the operator allows the architect to draw it as an exception.
+  (b) **The containers arrow labelled "OUTPUTS".** The operator asked for "drafts + gate state".
+  That arrow is the return from the stage functions to the backend, and stage functions return
+  drafts only (DL-17; the figure's own callout says only the backend decides or remembers gate
+  status). So the label was **not changed**. Recommended: relabel it "DRAFTS", as in view 4, or
+  name the arrow that was meant.
+- **SOQ-29** (operator; DL-42): **tests in neither tier.** DL-42 names Tier 1 and Tier 2. These
+  no-model tests are in neither list: EC-009, EC-015, EC-017, EC-019, EC-020, T-WHO-1, T-WHO-2,
+  T-MODE-1, T-DEC-1, T-ID-1, T-ID-2, T-W13-1, T-W13-2, T-RUN-2 and T-RUN-4 to T-RUN-8. Until the
+  operator answers, they are written and run in CI, and a failure is reported but does not block
+  (§9, EC-R4). **Recommendation:** EC-015 (agents cannot change rows, compute dates or hold tools),
+  EC-019 (a GP cannot write) and T-MODE-1 (no accidental real model calls) join Tier 1, because each
+  protects a safety claim and each is small; the rest are Tier 2.
+
+**Resolved or superseded** (kept so references still resolve; the full text is at the tag)
+
+| ID | Outcome |
+|---|---|
+| SOQ-1 | Answered by the estimate above: about 6 focused days against 5 planned and an 8-day hard stop (DL-42; it was 5.5 before the uncounted hours were added) |
+| SOQ-2 | One automatic transport retry per call. Manual re-runs are Future Work (F-05) |
+| SOQ-3 | Integer versions on rows, verdicts and calendars, recorded on every decision (SD MD-009). In the MVP nothing changes an item after it is created, so a version stays at 1. The idempotency key is Future Work (F-05) |
+| SOQ-4 | Superseded by DL-33: server-rendered pages; Next.js is Future Work (F-10) |
+| SOQ-5 | The quote check is code (DL-14) |
+| SOQ-7, SOQ-8, SOQ-9 | Decided earlier; the features they concern are Future Work (F-05, F-06, F-07). The coverage view from SOQ-8 stays in the MVP |
+| SOQ-10 | Future Work (F-08). In the MVP a failed verifier or judge unit fails the run |
+| SOQ-11 | One row-ID scheme, assigned by the backend; `origin` is a separate field (`model` or `demo` in the MVP) |
+| SOQ-12 | **Resolved by DL-32: five focused days**; anything beyond is buffer |
+| SOQ-13 | US$50 development cap until 13 December 2026 (DL-24). Superseded by DL-36: a target of about US$15, with US$50 kept as the ceiling |
+| SOQ-14, SOQ-15 | Provider and models (DL-25, DL-26) |
+| SOQ-16 | The approval map was aligned on 2026-11-12; it is re-checked against this version in pass 4 |
+| SOQ-17 | Superseded by DL-29: the start-up rule is in the MVP |
+| SOQ-18 | Approval of a demo row is refused (DL-31). Its Approve button stays visible and the server refuses the click (DL-44) |
+| SOQ-19 | **Resolved 2026-11-12 (operator):** the estimate of about 5.5 focused days stands against a capacity of 5; the half day for the visual pass and the planted demo row comes from the buffer. If the checkpoint is missed, the visual pass is dropped first and the planted row is kept. If the planted row is later cut as well, the fallback in "Estimate", under "Checkpoint", applies (reject `OBL-06` only if, on the day, the specialist judges it unsound; otherwise no rejection) |
+| SOQ-22 | **Resolved 2026-11-12 (operator):** yes, the verifier runs on the planted demo row, so it follows the same path as every other row. The demo script must not depend on whether the verifier flags it: the specialist rejects it at G1 either way, and approval is still refused (CR-029; DL-31) |
+| SOQ-21 | **Done 2026-11-12 (architect):** all four diagram views updated for DL-33 and DL-35 by changing labels only. View 4 (gates) also named "Flows" and view 1 (context) named a "web app", so both were corrected, not only checked |
+| SOQ-20 | **Done 2026-11-12 by `@product-mgr`**, all ten items (a) to (j): PRD OQ-5 and OQ-8; US-013 criteria 10 and 12; the re-run wording in US-001, US-006 and US-015; the edit wording in PRD §2; the US-008 entry-ID assumption; SD FR-031 and the stories index for the planted row; US-015 criterion 17 (US$2.50); and the approval map, which gained row H8a (a second decision on a decided row is Never) and no row for stand-in agents. Details are in the decision log Audit |
+| SOQ-6 | **Answered 2026-11-12 (operator, DL-37)**, except the figure listed as open above: four-eyes review is future scope, so one specialist decides at each gate; the programme submission requirements are omitted; the manual-effort estimate is an assumption (PRD A-9), never a measurement; the AED subscription-tax part of PRD OQ-7 stays marked unconfirmed under CR-027 and the demo shows that mark. PRD OQ-11 no longer arises |
+| SOQ-24 | **Done 2026-11-12 by `@product-mgr`**, all five items (DL-39): (a) US-001 criterion 2 matches responsible role against what the source states, or "not stated in source", and no longer grades an extracted pattern; (b) answer key §1 and §5: the extracted value is "not stated in source" for `OBL-02`, `OBL-03`, `OBL-05` and `OBL-06`, and §5 holds the specialist's expected G1 "who files" settings. **"Tax advisor" was added to the parties in `mock-fund-profile.md`** (answer key OQ-D4), so the G1 choice list offers it for `OBL-06`; G1 takes one party, the filer (OQ-D5); (c) the key notes that `OBL-04`'s "Conditional" pattern is shown by the verdict; (d) US-004 criteria 8 and 20, PRD F3 and the stories index; (e) US-011 criteria 2 and 12 ("Filed by: Not confirmed"). The evaluation runs' scripted G1 decisions take "who files" from answer key §5 through the stories index (EC-R2) |
+| SOQ-26 | **Done 2026-11-12 by `@product-mgr`**, (a) to (c): US-004 criterion 20 names the G1 list as the filing parties (AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor) or "not known"; the answer key §5 note says the same; `mock-fund-profile.md`'s parties table has a "Filing party" column (Yes for those five, No for the compliance specialist and the GP), which W-07 builds the list from. One name, "Local reporting agent (Spain)", is used in the profile, the key and the G1 list (operator decision on naming) |
+| SOQ-23 | **Parked with F-18 (DL-42).** The hosted demo is Future Work, so nothing here is needed now. Its three parts are kept for when it returns: (a) Railway pricing, spend limit and volume check by the operator before deploying; (b) PRD §3 and §5 notes, done by `@product-mgr` on 2026-11-12; (c) the sharing rule (Appendix A) |
+
+## Appendix A: Hosted portfolio demo (parked, Future Work F-18)
+
+> **Parked by DL-42 (2026-11-12).** This was the stretch goal of DL-38. It is now **Future Work
+> F-18** and is **not built in this plan**: no Build persona starts blocks S1 to S4, adds
+> `DEPLOY_MODE` handling or adds the CSRF token. The design below is kept unchanged so the work can
+> be picked up later; its "start conditions" and "drop order" describe the plan as it was before it
+> was parked. Moving it back into scope needs a new operator decision.
+
+*Original heading: "Stretch goal: hosted portfolio demo (DL-38)".*
 
 **Status: optional, outside the five-day plan, not built until the start conditions below are
 met.** It is not part of "MVP scope: the five-day slice", it is not in the 5.5-day estimate, and
@@ -1776,7 +2201,7 @@ wrong there is something concrete to bring to office hours. The core demo stays 
 service with one volume for the SQLite file. It runs the stand-in agents only (CR-030): fixed
 outputs, no model call, no spend. It is **public by design** (below).
 
-#### Safeguards (the operator's list, kept as requirements)
+### Safeguards (the operator's list, kept as requirements)
 
 | Safeguard | How it is met | Test |
 |---|---|---|
@@ -1787,7 +2212,7 @@ outputs, no model call, no spend. It is **public by design** (below).
 | **Mock sign-in page** where a visitor chooses specialist or GP | The same mocked sign-in as the core build (W-21), reachable without any password. It is a role picker for the demo, **not access control** | AM T-06 still holds: a GP cannot write |
 | **CSRF protection on every form** | See "CSRF" below | **T-CSRF-1** |
 
-#### Public by design, and why that is acceptable
+### Public by design, and why that is acceptable
 
 Anyone with the link can open the site, choose specialist, and click through the whole flow. That
 is intended: the point is that a reviewer or a visitor can try it without asking for an account.
@@ -1819,7 +2244,7 @@ Accepted risks, stated so nobody reads the hosted copy as more than it is:
 - A traffic spike could cost hosting money. The account spend limit (start condition 4) is the
   bound.
 
-#### Design
+### Design
 
 **Setting.** `DEPLOY_MODE` is `local` (the default) or `portfolio_demo`. Everything below applies
 only in `portfolio_demo`, except the CSRF token: it is built in block S3, not in the core build,
@@ -1879,7 +2304,7 @@ that the volume survives a redeploy.
 **If hosting goes wrong.** Nothing in the core plan is affected. The local demo and the rehearsal
 run stay the demo of record. The office-hours question is then about the hosting setup alone.
 
-#### Estimate (architect's judgement, in quarter days; not in the five-day figure)
+### Estimate (architect's judgement, in quarter days; not in the five-day figure)
 
 | Block | Work | Likely |
 |---|---|---|
@@ -1895,7 +2320,7 @@ buffer already used by B6 and B7 (SOQ-19), so it is the operator's own extra tim
 scope. The tests T-HOST-1, T-BANNER-1, T-CSRF-1 and T-RESET-1 run in CI with the agents stubbed once
 they exist, and join the blocking checks of EC-R4 from then on.
 
-#### Where it sits in the drop order
+### Where it sits in the drop order
 
 | Order of dropping | Item | Rule |
 |---|---|---|
@@ -1911,259 +2336,6 @@ address, which is why its safety rests on there being nothing to reach (see "Pub
 and not on the link staying secret. In practice: do not put the link in the portfolio site, a
 CV, a post or a message to people outside the course until the pages are styled. Because a
 dropped visual pass becomes post-course work (F-17), the link may stay unshared until then.
-
-### Known limitations of the MVP
-
-Each is accepted for the five-day build and is stated so that nobody reads the demo as more than it
-is.
-
-| Limitation | What it means | What protects the GP |
-|---|---|---|
-| A wrong row can only be rejected | With no edit, a row with a wrong field or a misquote is rejected, and its obligation leaves the calendar. A new run at temperature 0 may repeat the same mistake | The G3 acknowledgement lists every rejected row and uncited paragraph before publishing (CR-028) |
-| A wrong decision cannot be undone | A wrong approval, rejection or verdict is corrected only by abandoning the run at a gate and starting a new one | Nothing reaches a GP before G3 |
-| A failure in stage B or C discards the G1 and G2 work | The run ends `FAILED` and the new run repeats both gates. **The 30-minute review measurement (EC-011) is taken on a run with no failures** | No gate opens on a failed stage |
-| The same obligation from two documents can be published twice | There is no duplicate warning. Generation fails closed only when two approved rows give the same entry ID (same paragraph, recipient and period). Otherwise the specialist's review at G3 is the only check. The demo set contains no such pair | The whole calendar is reviewed at G3 |
-| Two obligations in one paragraph to the same authority are not supported | Their entry IDs would collide, so generation fails closed and names both rows | Fail closed |
-| The coverage view always lists seven paragraphs | Nothing records "read, no obligation" (OQ-US001-2), so the acknowledgement appears on every publish | Intended (DL-30) |
-| No unpublish | A published calendar is replaced only by a new run and a new publish (SD §9) | Calendar-level note on the GP view |
-| Plain pages | The pages are readable and accessible, not a designed product interface | Not applicable |
-| One evaluation cycle | The budget covers one three-run cycle. A miss is reported as it stands; fixing it and measuring again needs a decision to spend more (EC-R10) | The blocking checks that use no model still gate every merge (EC-R4) |
-
-### Future Work
-
-**The parking lot.** Everything here was designed in the full SAD (tag `sad-full-design`) and is
-**not built**. The right-hand column lists the IDs retired from this document; they are not reused.
-
-| # | Item | Requirement trace | Retired from this document |
-|---|---|---|---|
-| F-01 | Edit a row and re-verify it; out-of-date marking of dependent verdicts and entries | SD FR-006 (edit part), FR-007, AC-005 · US-005 | W-08, W-14, the edit route in CR-014, `PATCH /rows/{id}` |
-| F-02 | Reopen a rejected row | SD FR-023, AC-022 · US-004 c9–c11 | `POST /rows/{id}/reopen` |
-| F-03 | Reopen a confirmed verdict | SD FR-024, AC-023 · US-007 c8–c9 | `POST /verdicts/{id}/reopen` |
-| F-04 | GP review notice after publication | SD FR-025, AC-024 · US-011 c9–c10 | The notice part of CR-012 |
-| F-05 | Re-run a failed unit, "needs attention", release a failed document to manual entry | SD NFR-004 (re-run sentences), AC-030 (re-run part), AC-031 · US-015 c4–c6, c11–c15 · DL-02, DL-18 | The re-run part of W-19, CR-010, T-REL-1, T-REL-2, the re-run and release endpoints, `UNIT_RERUN_LIMIT`, `RERUN_LIMIT`, the current-output store and its idempotency key |
-| F-06 | Create a missed row by hand | SD FR-027, AC-027 · US-016 · DL-15 | W-07a, CR-020, the hand-created case in T-ID-1, `POST /runs/{id}/rows`, row origin `human` |
-| F-07 | Possible-duplicate groups and the completion confirmation | SD FR-029, AC-028 · US-004 c14–c16 · DL-16 | W-03a, CR-022, T-W03a-1, T-W03a-2, SA-9, `group_confirmations` |
-| F-08 | Verifier and judge dead-end handling | SOQ-10 | — |
-| F-09 | Change monitoring and impact reports (stretch F10) | SD MD-011, FR-021, FR-026, AC-018 to AC-020, AC-025 · US-014 | W-22, CR-024 to CR-026, SA-4, the routing pattern, `classify_amendment` |
-| F-10 | Next.js frontend with a JSON API, generated client and fixtures, contract-drift check | PRD OQ-8 · DL-33 | The Next.js parts of §3, WP-13 to WP-17, `NEXT_PUBLIC_API_BASE_URL`, SA-12 |
-| F-11 | A CrewAI Flow wrapper per stage | DL-17 (first half) · DL-35 | The Flow rows of §2, `backend/runtime/flows.py` |
-| F-12 | Quote position in the stable entry ID, so two obligations in one paragraph to one authority stay distinct | SD FR-016 · DL-35 | The `q<quote_pos>` part of the entry ID |
-| F-13 | Circuit breaker for a stage; restart sweep of individual units | US-015 c18 | The circuit-breaker paragraph of Production Shape |
-| F-14 | Evaluation as a blocking gate; an automated CI check for the report link | DL-23 (replaced by DL-34) | The blocking wording of EC-R1 and of demo readiness criterion 2 |
-| F-15 | Configuration content hashes that invalidate outputs; the client-policy change mechanism | SD §10.2, OQ-12 | The input-version paragraph of §4 |
-| F-16 | Next step after a G3 decline (back to G1 or G2) | SD FR-022 (deferred part) · US-010 c8 | The `next_step` field |
-| F-17 | *Only if dropped at the checkpoint:* the light visual pass (estimate block B6), as post-course portfolio work | DL-33 | — |
-
-**Never in the MVP** (SD §9, unchanged): filing status and evidence; notifications to filing
-parties; more than one fund or framework; an official holiday source; fund-fact editing;
-configuration screens; client-data separation; unpublish or withdraw; four-eyes review (future
-scope, DL-37); the full trail view (SD FR-019); live dashboards; real authentication.
-
-**Extensibility walkthroughs S-1 and S-2** (SD NFR-012, §10.4) are paper only. A short summary
-is under "Extensibility walkthroughs"; the full text is at the tag.
-
-## Implementation Guidance for AI Development Agents
-
-**Build only what this document describes.** Anything under "Future Work" is not built until the
-operator moves it into scope. The full design at tag `sad-full-design` is a reference, never a
-build instruction.
-
-**The hosted portfolio demo is a stretch goal (DL-38) and is not built in the core plan.** Do not
-start blocks S1 to S4, add `DEPLOY_MODE` handling, or add a CSRF token until the operator says the
-start conditions are met (see "Stretch goal: hosted portfolio demo"). The pages, templates and
-service layer are written so that adding the CSRF token later means one shared check and one hidden
-field per form, and nothing else.
-
-**Order of work** (the estimate blocks; see "Estimate" for their content):
-
-| Order | Block | Who | Notes |
-|---|---|---|---|
-| 1 | B1 Setup and data | `@project.mgr` (`setup.md`), `@backend.eng` | Install the git hooks first (§5). Record `AAMAD_TARGET_RUNTIME` and the CrewAI settings in `setup.md`. Create `.env.example` |
-| 2 | B2 Gates and run states | `@backend.eng` | The service layer and its checks before any page or agent. **Checkpoint:** if B1 and B2 together pass 1.3 days, tell the operator at once |
-| — | The page-by-page note | `@ux.designer` (`ux.md`) | Short: the seven pages of §3, with the 30-minute review target as a constraint (§7), the voice rule (DL-05) and no bulk or preselected decision (SD AC-026). Needed before B5 |
-| 3 | B3 Stages A and B | `@backend.eng` | **Stand-in mode first** (CR-030), then the three CrewAI agents behind their functions, exactly as §2 and D1 to D6. Then the spike and the verifier bake-off: the first real model calls |
-| 4 | B4 Stage C | `@backend.eng`, `@qa.eng` | The date engine against the 22-entry answer key |
-| 5 | B5 Gate actions and pages | `@backend.eng`, `@frontend.eng` | `@frontend.eng` writes the templates in `backend/web/`; there is no separate application and nothing to wire. Thin handlers only (§4) |
-| 6 | B7 Planted demo row | `@backend.eng` | Before the visual pass |
-| 7 | B8 Evaluation runner and report | `@qa.eng` | With the trace export (D4) and the void rule (EC-R8) |
-| 8 | B9 Tuning, then the evaluation cycle | `@qa.eng`, operator | Capped at half a day and 60 real calls (EC-R9). Then the one cycle (EC-R10) |
-| 9 | B6 Light visual pass | `@frontend.eng`, `@ux.designer` | The last build block; dropped first if time runs out. A stylesheet change is not model-facing, so it needs no new cycle |
-| 10 | B10 Acceptance and rehearsal | `@qa.eng`, `@security.eng`, `@devops.eng` | The security checklist, the accessibility and copy checks, run instructions, the rehearsal run, the outcome fields of §10 |
-
-`@integration.eng` has no separate epic in the MVP: the pages and the backend are one process, so
-its work is the acceptance test of the happy path, inside block B10.
-
-**Rules every Build persona follows:**
-
-- A change to a prompt, a model setting or a step schema follows the release rule in §5.
-- A new tool, memory, automatic retry or re-ask is a change to this document, not a code change.
-- The answer key never enters a prompt or a run-time fixture (CR-016).
-- No real model call is made outside the five activities of EC-R10. The default mode is stand-in.
-- A check belongs in a service function, never in a page handler or a template (§4).
-- If something needed is not described here, stop and ask the architect; do not look it up in the
-  full design and build from there.
-
-## Architecture Validation Checklist
-
-- [x] PRD requirements mapped to architectural components (the requirement-to-component map)
-- [x] Work Ownership complete, with a feasibility verdict and a load-bearing constraint
-- [x] Pattern Decision and Reference Architecture complete
-- [x] Model and Context Strategy, Control Register and Production Shape complete
-- [x] Runtime roles exist only where the Pattern Decision needs them (three CrewAI agents, one per
-      model step; no default crew; §2)
-- [x] The pages and the backend agree on data and streaming (one process; the templates render
-      what the service functions return; no streaming; §1, §3, §4)
-- [x] Secrets through environment variables only (CR-021; the names are in §4)
-- [x] The boundary between the MVP and Future Work is explicit ("MVP scope" and "Future Work",
-      each stated once)
-- [x] The resolved `AAMAD_TARGET_RUNTIME` is recorded in Audit
-- [x] No heading is pending
-
-## Sources
-
-- `project-context/1.define/prd.md`, `system-description.md`, `user-stories/` (US-001 to US-016 and
-  the index), `approval-map.md`, `decision-log.md` (DL-01 to DL-41; DL-40 reserved) and
-  `mock-data/expected-obligation-library.md`: read on 2026-11-12 for this rewrite.
-- The full design: `sad.md` at git tag `sad-full-design` (commit `9e7da27`).
-- The senior-architect review of the full design, pasted by the operator on 2026-11-12, and the
-  operator's answers to it (DL-29 to DL-36).
-- `.cursor/templates/sad-template.md` (headings; "`*create-sad --mvp` may defer scale, not the
-  pattern decision or the control register"), `.cursor/rules/adapter-crewai.mdc` (D1 to D6),
-  `.cursor/skills/draw-diagram/` (the four diagrams) and `aamad.config.yml` (`project.mode:
-  greenfield`, `runtime.target: crewai`).
-
-## Assumptions
-
-Numbers are unchanged from the full design. SA-2 was resolved in Define (the quote check is code,
-DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
-
-- **SA-1**: "Existing system" in the template means the deterministic code this project writes.
-  There is no legacy application.
-- **SA-3**: The GP-facing "why" text is the reasoning confirmed at G2, shown by code. No model
-  runs on the GP path.
-- **SA-5**: The mocked identity (SD A-5) is enough for every "who" in the audit log. No claim is
-  made about real access control.
-- **SA-6**: The call counts, durations and costs in this document are estimates from the size of
-  the mock data (six documents, six rows) until the spike measures them.
-- **SA-7**: Extraction is one call per **primary** source document (five), not one call for all of
-  them; the secondary guide is never sent to the extractor (DL-39). This keeps each call small. If
-  the evaluation shows that context across documents is needed to get 6 of 6 rows, it becomes one
-  call with the five primary documents; the pattern does not change. It is also why two documents can
-  each yield a row for the same obligation, which the MVP does not detect (Known limitations).
-- **SA-8**: At G2, the specialist's override or "unsure" reason is the GP-facing "why" for that
-  entry (W-17): one field, labelled as visible to GPs.
-- **SA-10**: Stack choices made where the PRD is silent: Python 3.12, FastAPI, Pydantic v2,
-  SQLAlchemy 2 with SQLite, Jinja2 templates with one stylesheet, a page that reloads in place of
-  streaming, and a signed cookie for the mocked identity. Each is justified in §1, §3 or §4.
-- **SA-11**: Each run produces its own rows, verdicts and calendar. A new run never changes the
-  published calendar; only a publish does. Entry IDs are the same across runs (§4).
-- **SA-13**: The CrewAI settings in §2 (`max_iter: 2`, `max_rpm: 30`, the time limits) are
-  starting values. The spike confirms or replaces them, and a change is recorded in the Audit.
-- **SA-14**: The page response budget in §7 is a design budget for a local demo, not a
-  requirement.
-- **SA-15**: CI never calls a model and holds no model key. Evaluation runs are local. The
-  real-name scan stays local because its identifier list must never leave `reference/`.
-- **SA-16**: Estimates are in focused days of operator attention, with the AAMAD personas doing
-  most of the writing. They are the architect's judgement, not measurements.
-- **SA-17**: Evaluation runs make the gate decisions by script, as the mocked identity
-  `specialist-eval` (EC-R2). Their audit entries are real and complete, so EC-016 is checked on
-  them. Only review time (EC-011) needs a run made by a person.
-- **SA-18**: A run is complete once G3 is decided: publishing ends it as `COMPLETED`, and
-  declining with a written reason ends it as `DECLINED`. Both are terminal.
-- **SA-19**: The five-day estimate assumes the deterministic parts (gates, dates, audit, quote
-  check) can be written quickly against tests that already exist as acceptance criteria and an
-  answer key, and that the three model steps reach a reportable result within the tuning caps. If
-  either proves false, the checkpoint rule in the estimate applies.
-- **SA-20**: The model spend budget assumes a real run costs well under US$1 (DL-36). The spike
-  measures it; if a run costs much more, the budget table in §7 is corrected and the operator
-  decides before the evaluation cycle starts.
-- **SA-21**: The stretch goal (DL-38) assumes Railway can run one process with a volume for the
-  SQLite file, bind to the port it provides, use `GET /health` as a health check and deploy from
-  the main branch. This has not been checked against Railway's current documentation or pricing;
-  the operator confirms both before deploying (start condition 4). If the volume cannot be kept
-  across redeploys, the demo still works but resets on every deploy.
-
-## Open Questions
-
-**Open**
-
-- **SOQ-6, one part left** (operator): **the manual-effort figure.** PRD A-9 records the estimate
-  as an assumption, but its value is still a placeholder. The operator gives it before the demo,
-  because demo readiness item 8 (§10) shows review time next to it. The other parts of SOQ-6 are
-  answered by DL-37 (see the table below).
-
-- **SOQ-23** (stretch goal, DL-38): (a) **Operator, before deploying:** confirm Railway's current
-  pricing and set a spend limit on the account; confirm the volume survives a redeploy (SA-21).
-  (b) **Done by `@product-mgr`, 2026-11-12:** PRD §3 Infrastructure and §5 Availability now note
-  the optional hosted demo as a stretch; both statements stay true for the core plan. (c) **Decided 2026-11-12 (operator):** if the
-  visual pass (B6) is dropped, the hosted link is not shared publicly until the visual pass is
-  done (see "Sharing rule" in the stretch section).
-
-- **SOQ-27** (for `@product-mgr`; the architect does not edit these files; DL-41): (a) **US-013
-  criterion 11** says responsible role is "graded by exact match against the answer key"; it should
-  say the extracted text is first mapped to a profile party name by the fixed lookup (SAD EC-R11),
-  then matched exactly, and that text which does not map counts as a miss. (b) **US-001 criterion
-  2** says responsible role is matched "as the source states it" and expects "Local reporting agent
-  (Spain)", which the source does not literally say; it should point to the same mapping. (c) The
-  **answer key §1** column heading "Responsible role (as the source states it)" should say the
-  value is the profile's party name after mapping.
-- **SOQ-25** (operator, before the first real call): **the exact model IDs and each role's
-  reasoning setting. DL-40 is held** until the operator has checked the IDs against the OpenAI
-  account's own model list and its pricing. Proposed on 2026-11-12 from OpenAI's model, pricing and
-  deprecation pages: extractor `gpt-6-luna` (reasoning `none`), verifier `gpt-6.1-terra` (`low`),
-  judge `gpt-6.1-sol` (`medium`). The older models `gpt-5-mini`, `gpt-5-nano`, `gpt-5` and `o3`
-  shut down on 11 December 2026 and are not used.
-  - **Is the verifier from a different family than the extractor?** DL-25 and DL-26 require a
-    different **model** ("different from the extractor's", and from the judge's); they do not use
-    "family" as a test. The proposal meets that: three different models. **Whether it is a
-    different family is weaker than it looks.** `gpt-6-luna` (GPT-6) and `gpt-6.1-terra` (GPT-6.1)
-    are different releases with different knowledge cutoffs (18 May and 1 June 2026), but OpenAI
-    presents them as one current flagship line and does not publish how they were trained, so a
-    family-level separation cannot be confirmed. The verifier and the judge (`gpt-6.1-sol`) are
-    the same release.
-  - **If a different family is wanted**, the one current mid-tier option that is clearly a
-    different generation from both is **`gpt-5.6-terra`** (GPT-5.6, cutoff 16 February 2026; $2
-    input / $12 output per 1M tokens, against $1 / $5). It adds about US$0.09 to a run (from about
-    US$0.30 to about US$0.40, an estimate). Risks: it is not on OpenAI's model index page, its page
-    warns it may be missing from some accounts, and an older generation is more likely to get a
-    shutdown date. **Recommendation:** check `gpt-5.6-terra` in the account at the same time. If it
-    is listed, use it as the verifier, because the verifier exists to be independent of the
-    extractor (SD MD-003) and the cost difference is small; otherwise keep `gpt-6.1-terra`, which
-    meets DL-25 and DL-26 as written. Either way, every model comes from one provider, so the
-    independence is between models, not vendors; a second provider was rejected in DL-25.
-  - On confirmation, DL-40 records the IDs, with three consequences for this document: no
-    temperature setting (all current models are reasoning models; a reasoning setting per role
-    instead), the model string the API returns logged in the trace (no dated versions are offered),
-    and per-model prices in `config/models.yaml`.
-  - *One-shot examples: decided 2026-11-12 (operator; DL-39 item 6).* Yes, on the condition that
-    each example is drawn from text in no demo row, planted row or evaluation case and mirrors no
-    demo trap; checked by T-EXAMPLE-1 and the review table in "Agent cards".
-
-**Resolved or superseded** (kept so references still resolve; the full text is at the tag)
-
-| ID | Outcome |
-|---|---|
-| SOQ-1 | Answered by the estimate above: about 5.5 focused days, five planned plus half a day from the buffer (SOQ-19) |
-| SOQ-2 | One automatic transport retry per call. Manual re-runs are Future Work (F-05) |
-| SOQ-3 | Integer versions on rows, verdicts and calendars, recorded on every decision (SD MD-009). In the MVP nothing changes an item after it is created, so a version stays at 1. The idempotency key is Future Work (F-05) |
-| SOQ-4 | Superseded by DL-33: server-rendered pages; Next.js is Future Work (F-10) |
-| SOQ-5 | The quote check is code (DL-14) |
-| SOQ-7, SOQ-8, SOQ-9 | Decided earlier; the features they concern are Future Work (F-05, F-06, F-07). The coverage view from SOQ-8 stays in the MVP |
-| SOQ-10 | Future Work (F-08). In the MVP a failed verifier or judge unit fails the run |
-| SOQ-11 | One row-ID scheme, assigned by the backend; `origin` is a separate field (`model` or `demo` in the MVP) |
-| SOQ-12 | **Resolved by DL-32: five focused days**; anything beyond is buffer |
-| SOQ-13 | US$50 development cap until 13 December 2026 (DL-24). Superseded by DL-36: a target of about US$15, with US$50 kept as the ceiling |
-| SOQ-14, SOQ-15 | Provider and models (DL-25, DL-26) |
-| SOQ-16 | The approval map was aligned on 2026-11-12; it is re-checked against this version in pass 4 |
-| SOQ-17 | Superseded by DL-29: the start-up rule is in the MVP |
-| SOQ-18 | Approval of a demo row is refused (DL-31) |
-| SOQ-19 | **Resolved 2026-11-12 (operator):** the estimate of about 5.5 focused days stands against a capacity of 5; the half day for the visual pass and the planted demo row comes from the buffer. If the checkpoint is missed, the visual pass is dropped first and the planted row is kept. If the planted row is later cut as well, the fallback in "Estimate", under "Checkpoint", applies (reject `OBL-06` only if, on the day, the specialist judges it unsound; otherwise no rejection) |
-| SOQ-22 | **Resolved 2026-11-12 (operator):** yes, the verifier runs on the planted demo row, so it follows the same path as every other row. The demo script must not depend on whether the verifier flags it: the specialist rejects it at G1 either way, and approval is still refused (CR-029; DL-31) |
-| SOQ-21 | **Done 2026-11-12 (architect):** all four diagram views updated for DL-33 and DL-35 by changing labels only. View 4 (gates) also named "Flows" and view 1 (context) named a "web app", so both were corrected, not only checked |
-| SOQ-20 | **Done 2026-11-12 by `@product-mgr`**, all ten items (a) to (j): PRD OQ-5 and OQ-8; US-013 criteria 10 and 12; the re-run wording in US-001, US-006 and US-015; the edit wording in PRD §2; the US-008 entry-ID assumption; SD FR-031 and the stories index for the planted row; US-015 criterion 17 (US$2.50); and the approval map, which gained row H8a (a second decision on a decided row is Never) and no row for stand-in agents. Details are in the decision log Audit |
-| SOQ-6 | **Answered 2026-11-12 (operator, DL-37)**, except the figure listed as open above: four-eyes review is future scope, so one specialist decides at each gate; the programme submission requirements are omitted; the manual-effort estimate is an assumption (PRD A-9), never a measurement; the AED subscription-tax part of PRD OQ-7 stays marked unconfirmed under CR-027 and the demo shows that mark. PRD OQ-11 no longer arises |
-| SOQ-24 | **Done 2026-11-12 by `@product-mgr`**, all five items (DL-39): (a) US-001 criterion 2 matches responsible role against what the source states, or "not stated in source", and no longer grades an extracted pattern; (b) answer key §1 and §5: the extracted value is "not stated in source" for `OBL-02`, `OBL-03`, `OBL-05` and `OBL-06`, and §5 holds the specialist's expected G1 "who files" settings. **"Tax advisor" was added to the parties in `mock-fund-profile.md`** (answer key OQ-D4), so the G1 choice list offers it for `OBL-06`; G1 takes one party, the filer (OQ-D5); (c) the key notes that `OBL-04`'s "Conditional" pattern is shown by the verdict; (d) US-004 criteria 8 and 20, PRD F3 and the stories index; (e) US-011 criteria 2 and 12 ("Filed by: Not confirmed"). The evaluation runs' scripted G1 decisions take "who files" from answer key §5 through the stories index (EC-R2) |
-| SOQ-26 | **Done 2026-11-12 by `@product-mgr`**, (a) to (c): US-004 criterion 20 names the G1 list as the filing parties (AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor) or "not known"; the answer key §5 note says the same; `mock-fund-profile.md`'s parties table has a "Filing party" column (Yes for those five, No for the compliance specialist and the GP), which W-07 builds the list from. One name, "Local reporting agent (Spain)", is used in the profile, the key and the G1 list (operator decision on naming) |
 
 ## Audit
 
@@ -2440,3 +2612,35 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
   reporting agent (Spain)". No text change in this document: checked that every remaining "local
   reporting agent" without "(Spain)" is either raw extractor text in T-MAP-1, a quote of the source,
   or an earlier audit entry. Prompt Trace not captured: no model call was made by the application.
+- 2026-11-12 · persona `system-arch` · action `update` (final review of the MVP SAD and the approval
+  map, at the operator's instruction) · `AAMAD_TARGET_RUNTIME=crewai` · targeted edits, no redesign;
+  five new decisions recorded in `decision-log.md`. **DL-42** (capacity 5 days planned, 8 days hard
+  stop; new estimate row B11 for the hours noted but not added, so about 6 days (5–8.5); tests in
+  Tier 1 and Tier 2, with EC-R4 now Tier 1; day-3 tripwire; hosted demo parked as F-18 and its
+  section moved to Appendix A; US$5 kept for the rehearsal and demo in EC-R10 point 4). **DL-43**
+  (one timeout rule: per-call timeouts with the HTTP client slightly lower, one retry, a second
+  timeout is `model service`; stage limits A 375 s, B 150 s, C 30 s on the backend timer;
+  `max_execution_time` not relied on; late results discarded but costed; failure reason 2 retired;
+  Production Shape, §2, §4, §6, EC-R8, T-RUN-2 and new T-RUN-8 updated). **DL-44** (the planted
+  row's Approve button stays visible and the server refuses it; Work Ownership note, §3 page 4,
+  CR-029, demo script step 5, SOQ-18). **DL-45** (copy cases are separate harness calls outside the
+  run's tables, labelled in the trace, scored separately; 2 model calls a run, not 3; W-20, §7,
+  §9). **DL-46** (`phase` on `runs`; run state model with a "Transitions and guards" table and
+  legend; rules 7 to 9, W-19a, `RUN_STAGE_RUNNING`, the abandon route, T-RUN-7). Also: a one-page
+  build card at the top of Implementation Guidance; SOQ-6 records the manual effort as an
+  assumption, "about [N hours] per fund per year", referenced from §10, with a PRD A-9 wording
+  change handed to `@product-mgr`; SOQ-25 adds the `gpt-5.6-terra` note and a pointer on the
+  "temperature 0" sentence, to be rewritten when DL-40 is recorded; new SOQ-28 (the run-state
+  diagram belongs to `@backend.eng` under the diagram skill, so it was not drawn; the containers
+  "OUTPUTS" arrow was not relabelled "drafts + gate state", because stage functions return drafts
+  only) and SOQ-29 (tests in neither tier); SOQ-23 moved to resolved as parked. **Diagrams**
+  (`draw-diagram`, type architecture, edited in place, `diagram-design` commit
+  `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`): `gates.html` and `.svg` (the specialist's arrow now
+  says start run, decisions, abandon, with "abandons at a gate only" in the specialist box, which
+  grew from 64 to 80 px high; a new "refusals" arrow from the server checks to the audit log);
+  `containers.html` and `.svg` (one callout naming `RUN_COST_CAP_USD` and `OPENAI_API_KEY` in the
+  git-ignored `.env`); `pipeline.html` and `.svg` (the quote check now reads "blocks approval; row
+  must be rejected", and its box grew from 72 to 84 px high; the legend reads "Code authority:
+  blocks approval"). `self_check.py --offline` printed OK for all three. The Audit history was left
+  in place under "## Audit" (optional item 11), so the Audit stays the last heading for new
+  entries. Prompt Trace not captured: no model call was made by the application.

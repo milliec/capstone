@@ -569,6 +569,8 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 
 ### DL-31 · A labelled demo switch adds one planted row for the demo run
 
+*Partly superseded by DL-44 (2026-11-12): the demo row's Approve button stays visible and the server refuses it; it no longer "offers reject only".*
+
 - **Decision**: a run-level setting, **off by default**, that adds a seventh row: a real quote,
   verbatim in its paragraph, that does not support its rule, so the code quote check passes and the
   specialist rejects it at G1. The extractor never produces it; code adds it from a fixed demo
@@ -855,6 +857,87 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   SOQ-27. For `@product-mgr`: US-013 criterion 11, and the matching wording in US-001 criterion 2
   and the answer key §1 column heading (SAD SOQ-27).
 
+
+### DL-42 · Capacity: 5 days planned, 8 days hard stop; tests in two tiers; day-3 tripwire; hosted demo parked
+
+- **Decision** (operator, 2026-11-12, final review of the MVP SAD; refines DL-32, parks DL-38):
+  1. **Capacity is 5 focused days planned and 8 days as a hard stop.** Days 6 to 8 are buffer; what
+     is not done on day 8 is not done.
+  2. **The uncounted hours are added to the estimate** as block B11, about half a day: stand-in
+     mode and the role harness (DL-36), the G1 "who files" choice and the loader tests T-LEAK-1,
+     T-PROMPT-1 and T-EXAMPLE-1 (DL-39). The likely figure becomes about 6 days (5 to 8.5).
+  3. **Tests in two tiers.** **Tier 1 blocks the build**: EC-013, EC-014, EC-007, EC-008, EC-016,
+     T-W04, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2, T-LEAK-1. **Tier 2 is done if
+     time allows**: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1, the per-state page
+     tests, and T-MAP-1 until the evaluation cycle.
+  4. **Day-3 tripwire.** If there are no real Stage A rows by the end of day 3, drop B6 (the visual
+     pass) and Tier 2.
+  5. **The hosted demo stretch goal (DL-38) is parked as Future Work** (SAD F-18).
+  6. **Budget:** before the evaluation cycle, the operator confirms at least US$5 will be left for
+     the rehearsal and the demo (SAD EC-R10 point 4).
+- **Why**: the estimate left about half a day "in the same margin" without counting it, and a
+  five-day plan with no hard stop has no point at which scope is cut. Real extractor output by day 3
+  is the earliest reliable sign that the riskiest block (B3) works.
+- **Trade-off accepted**: Tier 2 tests and the visual pass may not exist at the demo. The tests
+  that protect the gates, dates, audit log and prompts stay blocking.
+- **Changed**: SAD "Decisions in force", feasibility constraint, Estimate (B11, capacity, tiers,
+  tripwire, drop order), §5 CI, §9 EC-R4, EC-R10 point 4, EC-R11, F-18 and Appendix A, build card,
+  SOQ-1, SOQ-23, new SOQ-29 (tests in neither tier, for the operator).
+
+### DL-43 · One timeout rule everywhere
+
+- **Decision** (operator, 2026-11-12):
+  1. **Each model call has its own timeout**, with the HTTP client timeout set slightly below it.
+  2. **A timed-out call is retried once.** Only a timeout after that retry is a final failure, and
+     it is classed as a model-service reason (voidable in evaluations, SAD EC-R8).
+  3. **Each stage limit is the sum of its calls with one retry each, plus about 25%**: Stage A ≈
+     375 s (90 + 90 + 60 + 60 = 300, plus margin), Stage B ≈ 150 s (60 + 60 = 120, plus margin),
+     Stage C 30 s (no model).
+  4. **The backend stage timer is the real bound.** CrewAI `max_execution_time` does not cancel a
+     call in flight.
+  5. **Every store call checks the run state.** A late result after its stage has failed is
+     discarded but counts towards cost.
+  6. These are starting values, replaced by measured times after the spike.
+- **Why**: the SAD described the time limits in three ways (task `max_execution_time`, a stage
+  limit of 180 s smaller than its own calls with retries, and a separate "task time limit" failure
+  reason), which contradicted each other and the retry rule.
+- **Changed**: SAD Production Shape, run state rules 6 and 9, §2 stage table and settings, §4
+  failure reasons (reason 2 retired) and settings, §6, EC-R8, T-RUN-2, new T-RUN-8.
+
+### DL-44 · The planted demo row keeps its Approve button; the server refuses it
+
+- **Decision** (operator, 2026-11-12; replaces the "offers reject only" part of DL-31 and SAD
+  SOQ-18): on the planted demo row, **Approve stays visible**. On click, the server refuses with
+  `DEMO_ROW_NOT_APPROVABLE`, writes the refusal to the audit log, and the page shows a plain
+  message. The specialist then rejects the row with a reason.
+- **Why**: the demo shows that the server, not a hidden button, refuses the approval, and every row
+  keeps the same decision form (the SAD allows no disabled buttons).
+- **Changed**: SAD planted-row note, §3 page 4, CR-029, demo script step 5, SOQ-18;
+  `approval-map.md` Card G1 and §6 recovery row.
+
+### DL-45 · Evaluation copy cases are separate harness calls
+
+- **Decision** (operator, 2026-11-12): the altered-quote case, `I-1` and the EC-021 injection case
+  are **separate harness calls** to the quote check, `check_conflicts` and `extract_rows`, outside
+  the run's rows table, labelled in the trace and scored separately.
+- **Why**: so EC-001's "0 extra rows" and EC-007's "22 entries" stay true on the run's own data.
+- **Consequence**: two model calls per evaluation run, not three (the altered quote is a code check).
+- **Changed**: SAD W-20, §7 budget table, §9 "Copy cases".
+
+### DL-46 · Runs carry a phase alongside their status
+
+- **Decision** (operator, 2026-11-12): `runs` gets **`phase`** ∈ {`A_RUNNING`, `AT_G1`,
+  `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`}, alongside status `ACTIVE`, `FAILED`, `ABANDONED`,
+  `DECLINED` or `COMPLETED`. Run-state rules and guards, including `RUN_STAGE_RUNNING` and
+  abandon-at-a-gate-only, refer to the phase.
+- **Why**: "a stage is running" and "waiting at a gate" were described in words, so each guard had
+  to work out the phase again; one stored field makes every guard and the start-up rule a single
+  check.
+- **Changed**: SAD MVP scope step 13, run state model (phase table, rules 7 to 9, "Transitions and
+  guards" with a legend), W-19a, §4 `runs` table, the abandon route and `RUN_STAGE_RUNNING`,
+  T-RUN-7. **Still to do**: the run-state diagram, a type the diagram skill gives to `@backend.eng`
+  (SAD SOQ-28).
+
 ---
 
 ## Audit
@@ -923,3 +1006,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-41 (responsible role graded through a fixed lookup to the profile's party names before the exact match; unmapped text is a miss; test T-MAP-1; table fixed before the first evaluation run; DL-39 stands, no parties list in the extractor's prompt); recorded before any evaluation run exists. DL-40 stays reserved for the model IDs
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-41 confirmed by the operator: item 5 (lookup table fixed before the first evaluation run, never from model output, not changed mid-cycle), new item 6 (extractor wording: party name as written, no explanation, no parties list), new item 7 (one name, "Local reporting agent (Spain)"). DL-39 item 2's note now uses that name
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · US-013 criterion 11, US-001 criterion 2 and the answer key's §1 heading and notes now agree: responsible role is mapped to the profile's party name by a fixed lookup, then matched exactly (SOQ-27 a to c)
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-42 (capacity 5 days planned, 8 days hard stop; test tiers; day-3 tripwire; hosted demo parked; US$5 kept for rehearsal and demo), DL-43 (one timeout rule), DL-44 (demo row Approve stays visible and is refused by the server), DL-45 (evaluation copy cases as separate harness calls), DL-46 (run phase); operator decisions from the final SAD review. Follow-up for `@product-mgr`: PRD A-9 wording (SAD SOQ-6)
