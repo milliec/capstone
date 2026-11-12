@@ -183,6 +183,57 @@ Two further constraints, named so they are not mistaken for guarantees:
   MC-002) on 6 documents and 6 rows is comfortable for a fixed sequence of small calls, and would not be
   for an open-ended agent loop. This feeds `*select-pattern`.
 
+### Delegation Map
+
+*A summary of who does each step in the **thin slice**, read against the approval map. Work Ownership
+above holds the detail and stays authoritative; this table adds the approval-map rule and the
+traceability in one place. Runtime: the backend owns gate state, approvals, versions and the audit
+log; a short CrewAI Flow runs each stage and ends at its gate (DL-17). Owners: **agent** = a model
+step behind its §2 interface; **code** = a deterministic step; **human** = the specialist (mocked
+role); **backend** = the gate service, records and state. Approval-map rules: **Alone**, **Ask**,
+**Never** (`approval-map.md` §4); "not in the approval map" marks a step the map does not yet list
+(see SOQ-16).*
+
+| # | Step | Owner | Why this owner | Why not the alternatives | Approval-map rule | Traceability |
+|---|---|---|---|---|---|---|
+| DM-01 | Start a run (intake) | **Human** triggers · **backend** executes | Only the specialist decides when work starts; the backend checks that no run is `ACTIVE` | Not an agent: starting work is not a judgement. Not automatic: there is no schedule in the MVP | Not in the approval map (A1 covers loading) | SD FR-001 · AC-036 · US-015 · CR-023 |
+| DM-02 | Load the mock sources and split them into paragraphs with IDs | **Code** | Parsing known text; every later step cites these IDs | Not an agent: it would make the IDs nondeterministic | A1 **Alone** | SD FR-001 · US-001 c1 · W-02 |
+| DM-03 | Extraction: draft obligation rows with one paragraph ID and a verbatim quote, no dates | **Agent** (extractor, cheaper model) | Reading regulatory text into a schema is the interpretation the capstone tests | Not code: the wording varies too much for rules. Not human: the point is to move the specialist from writing to checking | A2, A3 **Alone** (a draft) · A10 **Never** (no model dates) | SD FR-002, MN-005 · AC-001, AC-002 · US-001 · W-03 · DL-25 |
+| DM-04 | Quote check: is the quote word for word in the cited paragraph? **Blocks G1 approval on failure** | **Code** (QN-1) | A string comparison is a fact, not an opinion; it must be the authority | Not an agent: a model "pass" is a guess about something code can know. No override: no reason unlocks a failed check | A4 **Alone** · H3 **Never** (approve with a failed check) | SD FR-003, MN-006 · AC-004 · US-002 · W-04 · DL-14 |
+| DM-05 | Verifier: internal and cross-source conflict checks; flags only | **Agent** (verifier, mid-tier model, different from both other models) | Spotting that "+6 months" disagrees with a quote or another source is reading, not matching | Not the extractor: the checker must be separate (MD-003). Not code: disagreement is semantic. It never edits or chooses a source | A5 **Alone** · A6 **Never** (change a row) | SD FR-004, MD-003, MN-004 · AC-003, AC-017 · US-003 · W-05, W-06 · DL-26 |
+| DM-06 | Coverage view: paragraphs no non-rejected row cites | **Code** | A set difference; makes a missed row (the costliest error, P-1) visible at G1 | Not an agent: it must not judge which paragraphs hold obligations. No answer key at run time | Not in the approval map | SD FR-028 · AC-029 · US-001 c8–c10 · W-03b |
+| DM-07 | **G1**: approve each row (with a reason over a flag) or reject it with a reason | **Human** decides · **backend** records and enforces | Only a person may let a rule into the library | Not an agent: agents have no approve tool. Not code: approval is a judgement. No bulk or preselected decisions | H1 **Ask** · H2 **Ask**, reason · H4 **Ask**, reason · H3 **Never** · A13 **Never** | SD FR-005, MD-004 · AC-006, AC-026 · US-004 · W-07 |
+| DM-08 | Applicability: applies / does not apply / unsure, citing fact IDs | **Agent** (judge, reasoning model) | Judging a rule against fund facts is the second interpretation task; the judge is the only source of "unsure" | Not code: applicability conditions are prose. Not human first: the specialist decides at G2 instead of from scratch | A8 **Alone** · A14 **Never** (confirm its own verdict) | SD FR-009, MD-002 · AC-007 · US-006 · W-11 · DL-25 |
+| DM-09 | **G2**: confirm, override with a reason, or decide "unsure" (`OBL-04` as precautionary) | **Human** decides · **backend** records and enforces | A verdict decides what is on the calendar; "unsure" needs a person | Not an agent: it cannot decide "unsure". Not code: the precautionary label is applied by code only from the human decision | H6 **Ask** · H7 **Ask**, reason · H8 **Ask**, blocking · H9 **Never** | SD FR-010, P-1 · AC-008 · US-007 · W-12 · DL-01 |
+| DM-10 | Due dates: anchor + offset, conventions `D-1` to `D-7`, business-day rolls, events, marks | **Code** | Dates must be identical every time and testable without a model | Not an agent: a model may never compute a date (MN-005). No guessed roll rules (DL-19); open conventions are marked (DL-20) | A11 **Alone** (after G2 only) · A10 **Never** | SD FR-011 to FR-013, MN-005, NFR-001 · AC-009 to AC-012, AC-032 · US-008, US-009 · W-13 · DL-19, DL-20 |
+| DM-11 | Calendar generation: one complete version with stable entry IDs, or nothing | **Code** | All-or-nothing generation prevents a partial calendar | Not an agent: no model step. Not human: the specialist reviews the result at G3 | A11 **Alone** · A22 **Never** (partial calendar) | SD FR-016, NFR-004 · AC-015 · W-13 · CR-011 |
+| DM-12 | **G3**: publish the whole calendar, or decline with a reason (the run ends `DECLINED`) | **Human** decides · **backend** records and enforces | Publishing reaches GPs and cannot be withdrawn in the MVP | Not an agent: agents have no publish tool. Never preselected or triggered by a timeout | H10 **Ask** · H10a **Ask**, reason · H11 **Never** | SD FR-014, FR-022, A-6 · AC-021, AC-026 · US-010 · W-15 · DL-22 |
+| DM-13 | Publishing: switch the fund's published version atomically | **Backend** | Executes the G3 decision as one indivisible change | Not code-in-a-Flow: Flows never hold or change gate or publication state (DL-17) | Executes H10 · A21 **Never** (working content to GPs) · A22 **Never** | SD FR-014, FR-015 · AC-013 · CR-011, CR-012 |
+| DM-14 | GP view: published calendar only, calendar-level note; before the first publication, the fixed "being prepared" message | **Backend** (read-only) | GPs must see only what the specialist published | Not an agent: no model on the GP path (W-17). Read-only is enforced on the server | G1r **Alone** · G2r **Never** (GP changes anything); the empty state is not in the approval map | SD FR-015, FR-020, MN-007, NFR-010 · AC-013, AC-014 · US-011 · W-16 · DL-27 |
+| DM-15 | Audit log: every agent output, human decision, refusal and gate event, with versions | **Backend** | Add-only bookkeeping that proves who decided what | Not an agent or a Flow: records must survive and be refused edits at the storage boundary | A16 **Alone** · A17 **Never** (edit or delete) | SD FR-017, MD-009, NFR-003 · AC-016 · US-012 · W-18 · CR-013 |
+| DM-16 | Gate state, approvals and versions | **Backend** | One owner of where the run is; refuses any advance without the matching decision | Not a Flow: two state machines would have to agree (DL-17). Not the UI: hiding a button is not enforcement | A13 **Never** · A14 **Never** | SD MN-003, MP-006, MD-009 · W-09 · CR-001, CR-009 · DL-17 |
+| DM-17 | **Failed run**: a step fails, its output is invalid, a task times out, or the cost cap stops it → `FAILED` (terminal) | **Backend** (automatic) | Fail closed: nothing moves forward on bad output, and a new run is then allowed | Not human: a failure must not wait for someone to notice. No re-run in the MVP | A15 **Alone** (stop and log) | SD NFR-004 · AC-033, AC-034, AC-036 · US-015 · Run state model · DL-22 |
+| DM-18 | **Abandoned run**: the specialist closes an `ACTIVE` run with a written reason → `ABANDONED` (terminal) | **Human** decides · **backend** records | The only way to end a run stuck at a gate (for example after a wrong rejection) without undoing anything | Not automatic: a gate wait never times out (AC-026) | Not in the approval map | SD AC-035, AC-036 · US-015 · W-19a · Run state model · DL-22 |
+
+**Future scope** (designed in this SAD, **not** rows in the slice; DL-22): edit and re-verify (AM
+H5, A7, A9, A12); reopen a rejected row or a verdict (H4a, H6a); the post-publication GP review notice
+(FR-025); the next-step choice after a G3 decline (H10a note); re-running a failed unit (US-015
+c4–c6); manual row creation (FR-027); duplicate groups (FR-029); releasing a failed document (DL-18);
+the verifier and judge dead ends (SOQ-10); the start-up rule that fails a run interrupted by a
+backend restart (SOQ-17, DL-28: in the MVP the specialist abandons it with a reason); change
+monitoring and impact reports (AM S1 to S5).
+
+**Diagrams.** The structural views the architect owns (system context, containers, the agent
+pipeline, the gate and approval view) are drawn with `draw-diagram` under
+`project-context/diagrams/system-arch/` (next step). The behaviour views are owned by other personas
+under `.cursor/skills/draw-diagram/reference.md`, and the SAD already holds their content as text:
+
+| Diagram | Owner | Source in this SAD |
+|---|---|---|
+| End-to-end run flowchart (stages A–C, gates G1–G3, where the human acts) | `@ux.designer` (or `@qa.eng`) | §6 happy-path data flow; this Delegation Map |
+| Sequence: backend starts a Flow, the Flow ends at a gate, the human decides, the backend records it and starts the next Flow | `@backend.eng` (or `@integration.eng`) | §2 runtime shape and orchestration; §6 data flow |
+| Run state diagram (`ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`) | `@backend.eng` | Run state model (Work Ownership) |
+
 ### Pattern Decision
 
 - **Primary shape**: `workflow`
@@ -1253,7 +1304,7 @@ that `@product-mgr` records as deferred):
 | Verifier and judge dead-end handling (SOQ-10) | SOQ-10 | Undecided; a new run is the only route |
 | Impact report and change monitoring (F10, FR-021, FR-026) | W-22, CR-024 to CR-026 | Stretch, unchanged: not in the six weeks |
 | Extra CI checks: contract drift, release-rule PR check | §3, §5 | Replaced by a reviewer checklist |
-| Robustness: circuit breaker, restart sweep | Production Shape, §2 | One failure message per unit; a restart mid-stage needs a new run |
+| Robustness: circuit breaker, restart sweep, start-up auto-fail of an interrupted run (SOQ-17, DL-28) | Production Shape, §2 | One failure message per unit. **Known limitation:** after a backend restart mid-stage the run stays `ACTIVE`; the specialist abandons it with a reason, then starts a new run |
 
 **Estimate for the slice.** Unit: a **focused day** of the operator's attention, with the AAMAD
 personas doing most of the writing (SA-16). "Likely" is the planning figure; the range is roughly
@@ -1529,6 +1580,25 @@ only after the operator moves it into scope.
 - **PRD OQ-6 / SD OQ-1 / OQ-US011-1**: *Decided 2026-11-12 (operator, DL-27).* Before the first
   publication the GP view shows a read-only empty state with a fixed message; no notifications.
   Recorded in W-16, §3 `/calendar`, CR-012 and EC-014. `@product-mgr` to update the Define documents.
+- **SOQ-16** (for `@product-mgr` and the operator; found while building the Delegation Map,
+  2026-11-12; **not fixed here**): the approval map does not yet reflect the thin slice and the run
+  state model. (a) No rows for starting a run, the coverage view (FR-028), abandoning a run (W-19a,
+  AC-035), the GP pre-publication message (DL-27), or a new run after a closed run (AC-036). (b) H3
+  says "the fix is an edit and re-check"; in the MVP edit is future scope, so the fix is to reject the
+  row (or abandon the run) and start a new run. (c) Card G1 steps 4–5, Card G2 step 4, the §6
+  recovery table and the §7 corrections and freshness tables describe edit and reopen as available,
+  and A7, A9, A12, H4a, H4b, H5 and H6a and tests T-09, T-19 to T-22 cover them; all are future scope
+  (DL-22) but not marked so. (d) §7 "Failure and retries" says a retried step replaces its own failed
+  draft; the MVP has no re-run, and a failed step ends the run `FAILED`.
+- **SOQ-17**: *Resolved 2026-11-12 (operator decision, DL-28): accepted as a known MVP limitation.*
+  After a restart, the specialist ends an interrupted run with abandon and a written reason (DM-18);
+  the start-up auto-fail rule is future scope. *Original question, kept for the record:* **a backend
+  restart while a stage is running.** Step timeouts run in
+  the backend process, so after a restart no timer fires and the run stays `ACTIVE` until the
+  specialist abandons it (DM-18). §2 describes a start-up sweep that marks running units failed, but
+  that sweep is future scope with re-run (DL-22). Options: accept "abandon after a restart" for the
+  MVP, or bring a minimal start-up rule into the slice (any `ACTIVE` run with a running stage becomes
+  `FAILED`, reason "service restarted"; about 0.25 day).
 - **SOQ-4**: *Resolved (`*create-sad` §1, §3).* Next.js (App Router) with TypeScript, confirming
   the operator's intent (PRD OQ-8, AM OD-12). `@product-mgr` may mark PRD OQ-8 resolved.
 - **SOQ-11** (for `@product-mgr` and `@qa.eng`, not blocking): OQ-US016-1 is answered in §4. Rows
@@ -1742,3 +1812,15 @@ only after the operator moves it into scope.
   by the operator and reworded; CR-023 and T-RUN-4 list `DECLINED`, new T-RUN-5; decline endpoint loses
   `next_step` (future scope); W-15 and the G3 route text updated; WP-12a (2 days, 1.5–3) confirmed by the
   operator. Flagged for `@system.arch`.
+- 2026-11-12 · persona `system-arch` · action `update` (Delegation Map) · `AAMAD_TARGET_RUNTIME=crewai` ·
+  new Delegation Map (DM-01 to DM-18) for the thin slice: owner, why, why not the alternatives,
+  approval-map rule and traceability per step; future scope listed, not as rows; diagram ownership
+  table (structural views by `@system.arch` next; flowchart, sequence and state by `@ux.designer` and
+  `@backend.eng`, per `draw-diagram/reference.md`; Mermaid and LikeC4 not used, operator decision to
+  follow the framework). No new scope. Inconsistencies recorded, not fixed: SOQ-16 (approval map vs
+  thin slice and run states), SOQ-17 (restart while a stage runs). The operator's answer on run
+  endings matched the Run state model already merged (DL-22 updates), so no new decision was needed.
+- 2026-11-12 · persona `system-arch` · action `update` (SOQ-17) · `AAMAD_TARGET_RUNTIME=crewai` ·
+  operator decision DL-28: a run interrupted by a backend restart is ended by the specialist with
+  abandon and a reason; the start-up auto-fail rule is future scope, recorded as a known limitation
+  in the future-scope table and the Delegation Map.

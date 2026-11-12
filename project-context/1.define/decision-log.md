@@ -495,6 +495,18 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   OQ-US011-1 resolved; US-011 criterion 7 and SD AC-013 now name the message; US-010 criterion 6 points
   to it.
 
+
+### DL-28 · After a backend restart, the specialist abandons the interrupted run
+
+- **Decision**: accepted as a **known MVP limitation**. If the backend restarts while a stage is
+  running, no step timer fires and the run stays `ACTIVE`; the specialist ends it with **abandon and a
+  written reason** (SAD DM-18, W-19a, SD AC-035), and then starts a new run. The start-up rule that
+  would mark such a run `FAILED` automatically ("service restarted") moves to **future scope**.
+- **Why**: abandon already exists in the slice and undoes nothing; a restart is rare in a local demo;
+  the start-up rule is extra Build work (about 0.25 day) for a case abandon already covers.
+- **Changed**: SAD SOQ-17 resolved, future-scope table (robustness row), Delegation Map future-scope
+  list · **for `@product-mgr`**: if the known-limitations list in US-015 or the PRD should name it.
+
 ---
 
 ## Audit
@@ -534,3 +546,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-27 (PRD OQ-6: before the first publication, a read-only empty state with a fixed message; no notifications); operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-27 follow-up marked done: PRD OQ-6, SD OQ-1 and OQ-US011-1 resolved; US-011 criterion 7 and SD AC-013 name the message (on branch `define-gp-pre-publication-message`, not yet merged)
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-22 second update: G3 decline ends the run as DECLINED (terminal), SA-18 and the WP-12a estimate confirmed, OQ-US001-2 accepted as a known limitation; SD AC-033 to AC-036, US-010 criteria 8–9, PRD F8 line
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-28 (after a backend restart the specialist abandons the interrupted run; start-up auto-fail is future scope, a known limitation); operator decision
