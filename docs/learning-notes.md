@@ -75,6 +75,25 @@ matches, no check or approval is weakened). Sorting variation into regulation, f
 policy also helped, because each changes in a different way and has a different owner. Write paper
 scenarios as questions for a specialist, not legal findings, so they don't read as a coverage promise.
 
+**Cut scope by removing the text, not by labelling it.** The architecture document marked cut
+features "future scope" but left their full design in place. An AI build agent reads the whole
+document and builds what it finds described, so a label is a weak fence. Each later fix added more
+text on top, and the file grew while it was being corrected. The repair was to rewrite it as a short
+MVP version, list everything deferred once in a "Future Work" section, and keep the long version in
+git history under a tag. It's the same reason a design file shouldn't keep abandoned screens on the
+main page with a "not for build" sticker.
+
+**A plan with no capacity number can't be checked.** "I'll commit the time it needs" sounded
+reasonable, but it meant nobody could compare the estimate with anything. Once the number was written
+down (five days against an estimate of about 45), the gap was obvious and the real trade-offs could
+be decided. State how much time you have before judging whether a scope fits.
+
+**Build last what you would cut first.** A plan can name what gets dropped if time runs short, but
+that only works for work not yet started. The estimate listed the visual pass before the planted demo
+row, while the drop order said the visual pass goes first. Built in the listed order, the time would
+already be spent on the thing meant to be cut. Whenever you write a drop order, check that the build
+order is its reverse, and say that the numbering of a list is not its sequence.
+
 ## 2. Designing AI agent systems
 
 **Use AI where judgement is needed, plain code where correctness is needed.** Agents read text and
@@ -304,3 +323,5 @@ question to answer.
 - 2026-11-11 · added the six CrewAI adapter deviations (D1–D6) with what each protects, and how
   they came to be reviewed before recording
 - 2026-11-11 · added one note from the Define follow-up session (recount any number a document hands you before writing it into a test)
+- 2026-11-12 · added two notes from the MVP rewrite of the architecture document (cut scope by removing text; a plan needs a capacity number)
+- 2026-11-12 · added one note from the review of the MVP estimate (build last what you would cut first)
