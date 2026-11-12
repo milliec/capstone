@@ -75,12 +75,17 @@ have already made.
     the run moves to **failed**: a plain message names the step, the unit and the reason, and says that
     nothing moved forward. No gate opens for the failed stage, and every decision already recorded stays
     as it was. A failed run is final: it is not resumed or re-run. A step that never returns is treated
-    the same way once its time limit passes, so a hang cannot keep a run active for good. Because a
-    failed run is not active, the specialist can start a new run (criterion 16). (SAD run state model,
-    tests T-RUN-1 and T-RUN-2; decision log DL-22.)
-20. **Given** an active run, **when** the specialist abandons it **with a written reason**, **then** the
-    run is closed as **abandoned** and the specialist can start a new run. Abandoning without a reason
-    is refused. Nothing is undone or deleted: decisions already recorded, rows, verdicts, drafts, the
+    the same way once its time limit passes, so a hang cannot keep a run active for good. A stage that
+    passes its stage time limit also ends the run as failed, and so does a backend restart while a stage
+    is running: on start-up the run becomes failed with the reason "service restarted" (a run waiting
+    at a gate is unaffected). Because a failed run is not active, the specialist can start a new run
+    (criterion 16). (SAD run state model rules 6–7, tests T-RUN-1 and T-RUN-2; decision log DL-22,
+    DL-29.)
+20. **Given** an active run **waiting at G1, G2 or G3**, **when** the specialist abandons it **with a
+    written reason**, **then** the run is closed as **abandoned** and the specialist can start a new
+    run. Abandoning without a reason is refused. **Given** a run whose stage is still running, **when**
+    the specialist tries to abandon it, **then** it is refused with a plain message saying the stage
+    will end by itself (criterion 19); nothing changes and nothing is recorded as abandoned (DL-29). Nothing is undone or deleted: decisions already recorded, rows, verdicts, drafts, the
     audit log and any published calendar stay as they were, and GPs keep seeing the last published
     version. No new model call is started for the run. The audit log records who, when, the reason and
     the stage the run was in. (SAD W-19a, test T-RUN-3.)
@@ -104,9 +109,15 @@ have already made.
 - **Deferred**: automatic re-runs of a failed step or unit; resuming a run after the application
   restarts. (The SAD allows one automatic retry of a single failed call; the specialist sees only the
   outcome.)
-- **Restart (SAD §2)**: *Deferred (DL-22): the restart sweep.* A restart does not resume a run. On start-up, every unit that was still
-  running is marked failed and re-runnable, so the recorded decisions and the last safe state survive.
-  That is the "comes free" part; a full resume stays deferred.
+- **Restart (SAD run state model, DL-29)**: a restart does not resume a run. On start-up, a run whose
+  stage was running becomes **failed** with the reason "service restarted", logged as a system event;
+  recorded decisions stay, and the specialist starts a new run (criterion 19). A run waiting at a gate
+  is unaffected. This replaces the known limitation recorded in DL-28 (the specialist had to abandon
+  an interrupted run by hand); DL-29 supersedes it. *Still deferred (DL-22):* the restart sweep that
+  marks units re-runnable, and a full resume.
+- **Abandon only at a gate (DL-29)**: every running stage ends by itself (step and stage time limits,
+  the start-up rule), so abandon is needed only for a run waiting at a gate. Refusing it mid-stage means
+  no model calls keep running for output nobody will use.
 
 ## 5. Traceability
 
@@ -115,7 +126,8 @@ have already made.
 - **Decision log**: DL-18 (criteria 14–15)
 - **SAD controls**: CR-023 (criterion 16) · CR-017 and MC-002 (criterion 17) · Production Shape circuit
   breaker (criterion 18) · run state model, W-19a and tests T-RUN-0 to T-RUN-4 (criteria 19–21)
-- **Decision log**: DL-22 (run state and abandon)
+- **Decision log**: DL-22 (run state and abandon) · DL-29 (abandon only at a gate; stage time limit;
+  start-up rule; supersedes DL-28)
 - **Related SFS**: none yet
 
 ## Sources
@@ -168,3 +180,4 @@ have already made.
   cancel; OQ-US015-3 and OQ-US015-4 resolved; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 4–6 (re-run from the last safe state), 11–13 (unit re-run, example, "needs attention"), 14–15 (release) and 18 (circuit breaker) marked deferred, with the restart note; criteria 1–3, 7–10, 16–17 and 19–21 stay; DL-02's re-run is superseded for the MVP
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 16 lists a declined run as not active; OQ-US015-4 notes the operator's confirmation of SA-18; traced to SD AC-033 to AC-036
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-29) · criterion 20: abandon only while a run waits at a gate, refused while a stage runs; criterion 19: stage time limit and start-up rule ("service restarted"); restart scope note rewritten (the DL-28 known limitation is superseded); new scope note on abandon at a gate; operator decision

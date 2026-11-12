@@ -169,6 +169,8 @@ error this system can make. Naming the principle stops the same choice being mad
 | FR-027 | Create a missed row by hand: at G1 the specialist can open the edit form on an empty row and enter a paragraph ID, a quote and the other fields. No model is involved and there is no "re-extract" action. The row is stored as human-created, with the creator's identity; the marking cannot be changed. The quote check cannot be skipped: a row with no paragraph ID, or a quote not found word for word in the cited paragraph, cannot be approved (MN-006). The conflict checks run on it (FR-004) and it needs its own G1 decision (FR-005, AC-026). The evaluation report counts human-created rows on a separate line, so they neither inflate nor hide the extractor's result (FR-018). *New scope decision (operator, DL-15, 2026-11-11).* | Deferred (DL-22) | MD-005, MD-009, MN-006, P-1 |
 | FR-028 | Coverage view at G1: G1 lists every loaded source paragraph that no non-rejected row cites, each with its text. It is a set difference between the loaded paragraph IDs and the IDs that non-rejected rows cite (human-created rows count, FR-027; a paragraph whose only row was rejected is listed again, so the specialist sees it, and it leaves the list if the row is reopened under FR-023). It does not use the answer key at run time and makes no claim about which uncited paragraphs contain an obligation; it only makes a possible gap visible, because a missed row is the costliest error (P-1). It does not block G1. A real gap is fixed by creating a row (FR-027, deferred: in the MVP a missed row means a new run, DL-22). *Raised with the SAD (W-03b); operator context DL-15, 2026-11-11.* | Must | MD-001, MD-004, P-1 |
 | FR-029 | Possible-duplicate groups at G1: code (never a model) groups rows that may describe one obligation, across documents or between a primary source and a secondary summary, and G1 shows each group with a plain warning and every row's quote and source. Grouping does not block any single row; each row keeps its own explicit decision (AC-026). If a group still has two or more approved rows when the specialist completes G1, completion needs one confirmation with a written reason, logged with the rows' IDs and versions. If groups cannot be computed, G1 does not open. Grouping rules: SAD W-03a. *Operator decision (DL-16, 2026-11-11).* | Deferred (DL-22) | MD-004, MN-004, P-1 |
+| FR-030 | G3 acknowledgement of what was left out: before publishing, G3 shows every row rejected at G1 (with the reason given at rejection) and every loaded source paragraph that no non-rejected row cites (with its text, as in FR-028). Publishing requires **one explicit acknowledgement** of both lists, given as part of the publish decision. It is never preselected and never given by a timeout or by closing the screen. Publishing is refused without it, or if either list has changed since it was shown. The acknowledgement is recorded in the audit log with who, when, and the rows (with their versions) and paragraphs it covered. It applies to publishing only, not to a decline (FR-022). In the demo the 3 `SRC-PRACT` summaries are always uncited, so the acknowledgement appears on every publish. *Operator decision (DL-30, 2026-11-12).* | Must | MD-004, MD-009, MN-003, P-1 |
+| FR-031 | Labelled demo switch: when starting a run, the specialist can turn on a run-level demo switch. It is **off by default**, and turning it on is recorded in the audit log. When on, code (never the extractor) adds **one** planted row from a fixed demo fixture: a real quote, verbatim in its paragraph, that does not support the row's rule, so the quote check passes and the specialist is expected to reject it at G1. The row is marked "demo" wherever it appears (G1, the G3 rejected list, run status, audit log). The switch adds a row and never approves anything: approving a demo row is refused, the refusal is recorded in the audit log, and a plain message explains it; the only decision on a demo row is reject with a written reason. An evaluation run refuses to start with the switch on. The switch is not a role switcher: roles stay on the mock sign-in. *Operator decisions (DL-31, SAD SOQ-18, 2026-11-12).* | Must | MD-004, MD-009, MN-003, MP-001 |
 
 ## 5. Non-Functional Requirements
 
@@ -183,7 +185,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | NFR-007 | Cost | See MC-002. | MC-002 |
 | NFR-008 | Usability | See MC-003. | MC-003 |
 | NFR-009 | Security and privacy | No secrets or real data in the repository. API keys come from local environment settings that git ignores. | MN-001 |
-| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, create a row by hand (FR-027), reject, override, reopen (FR-023, FR-024), publish or decline (FR-022), abandon a run (AC-035), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
+| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, create a row by hand (FR-027), reject, override, reopen (FR-023, FR-024), publish (with the G3 acknowledgement, FR-030) or decline (FR-022), abandon a run waiting at a gate (AC-035), turn on the demo switch when starting a run (FR-031), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
 | NFR-011 | Testability | Tests for gates, due-date calculation and the audit log run without calling a language model. Only agent evaluations need the live model. | MP-006, MP-007, MP-008 |
 | NFR-012 | Extensibility (architecture quality goal) | The MVP is built as the **first validated configuration of a shared product**, not a bespoke implementation (§10). The SAD (a) names the shared capabilities, the configuration and the defined extension points; (b) walks through scenarios S-1 and S-2 (§10.4) separately and shows, for each, what would be configuration, what would need an extension point and what would stay unchanged, with no client-specific copy of a shared capability; and (c) shows how the extension rules EX-1 to EX-6 (§10.3) would be checked. The MVP builds only the Luxembourg UCI Part II configuration. No extension, extra configuration or configuration screen is in the MVP. *Operator decision, 2026-11-08.* | §10, MP-001 to MP-008 |
 
@@ -335,9 +337,15 @@ outcome; the linked story criteria hold the detail.*
   already recorded stay as they were. *Detail: US-015 criterion 19; SAD test T-RUN-1.*
 - **AC-034** (NFR-004, MN-003): Given a step that never returns, when its time limit passes, then the
   unit fails and the run moves to **failed** as in AC-033, so a hang cannot keep a run active.
-  *Detail: US-015 criterion 19; SAD test T-RUN-2.*
-- **AC-035** (NFR-004, MD-009, MN-003, NFR-010): Given an active run, when the specialist abandons it
-  without a written reason, then it is refused. With a reason, the run closes as **abandoned**, one audit
+  Given a stage that passes its stage time limit, then the stage ends and the run moves to **failed**
+  in the same way. Given the backend restarts while a stage is running, then on start-up that run
+  moves to **failed** with the reason "service restarted", recorded as a system event; a run waiting
+  at a gate is unaffected. *(DL-29, superseding DL-28.)* *Detail: US-015 criterion 19 and the restart
+  note; SAD test T-RUN-2 and run state model rules 6–7.*
+- **AC-035** (NFR-004, MD-009, MN-003, NFR-010): Given an active run **waiting at G1, G2 or G3**,
+  when the specialist abandons it without a written reason, then it is refused. Given a run whose
+  stage is still running, then abandoning it is refused with a plain message, and the stage ends by
+  itself (AC-034) *(DL-29)*. With a reason, a run waiting at a gate closes as **abandoned**, one audit
   entry records who, when, the reason and the stage, and nothing is undone: decisions, rows, verdicts,
   drafts, the audit log and any published calendar stay as they were, and GPs keep seeing the last
   published version. Abandoning a run that is not active, on an out-of-date screen, or twice is refused.
@@ -346,6 +354,24 @@ outcome; the linked story criteria hold the detail.*
   the specialist starts a new run, then it is allowed. Given a run that is still active, it is refused
   with a message that names the active run. *Detail: US-015 criterion 16; US-010 criterion 8; SAD tests
   T-RUN-0, T-RUN-1, T-RUN-3 and T-RUN-5.*
+- **AC-037** (FR-030, MD-009, P-1): Given a generated calendar for a run in which one row was rejected
+  at G1, when the specialist opens G3, then it lists that row with its rejection reason and every
+  paragraph no non-rejected row cites, with its text. (In the demo run, the rejected list is the demo
+  row, FR-031, and the uncited list is the 7 paragraphs of AC-029: a rejected row cites nothing.)
+  Publishing without the acknowledgement is refused. Publishing with an acknowledgement made
+  for lists that have since changed (for example a row rejected after the page loaded) is refused.
+  With the acknowledgement of the current lists, the calendar is published and the audit log records
+  the rows (with versions) and paragraphs acknowledged. The acknowledgement is never preselected. A
+  decline needs no acknowledgement. *Detail: US-010 criterion 14; SAD CR-028, test T-G3ACK-1.*
+- **AC-038** (FR-031, MD-009, MN-003, MP-001): Given a run started with the demo switch off (the
+  default), then G1 shows the 6 extracted rows and no demo row, and the audit log has no switch entry.
+  Given a run started with it on, then G1 shows 7 rows; the 7th is marked "demo" and passes the quote
+  check, and the audit log records that the switch was turned on. Approving the demo row, with or
+  without a reason, is refused with a plain message and the refusal is logged; the row stays pending
+  and G1 cannot complete until it is rejected. Rejecting it with a reason is accepted and logged, and it
+  then appears in the G3 rejected list (AC-037). After that rejection, the calendar is the same 22
+  entries as with the switch off. Starting an evaluation run with the switch on is refused. *Detail:
+  `user-stories/README.md`, "Demo decisions"; SAD CR-029, tests T-DEMO-1 and T-DEMO-2.*
 
 *Stretch goal (FR-021, FR-026). Not part of the Week 6 definition of done.*
 
@@ -377,7 +403,10 @@ reopen a rejected row (FR-023, AC-022); reopen a verdict (FR-024, AC-023); the G
 (NFR-004 sentences, AC-030 re-run part, AC-031); manual row creation (FR-027, AC-027); duplicate groups
 and the completion confirmation (FR-029, AC-028); the verifier and judge dead-end handling (SAD
 SOQ-10); the impact report (FR-021, FR-026, stretch, unchanged); the extra CI checks, the circuit
-breaker and the restart sweep. The list by story is in `user-stories/README.md`, "Scope status (DL-22)".
+breaker and the restart sweep that marks units re-runnable. The list by story is in
+`user-stories/README.md`, "Scope status (DL-22)". *Not deferred (DL-29, superseding DL-28):* the
+start-up rule that fails a run interrupted mid-stage ("service restarted", AC-034) is in the MVP, so
+the earlier known limitation (abandon an interrupted run by hand) no longer applies.
 
 **Known MVP limitation (OQ-US001-2, accepted by the operator, 2026-11-12).** There is no way to mark a
 source paragraph as read and holding no obligation. The coverage view (FR-028) shows such a paragraph as
@@ -715,3 +744,4 @@ investors in Singapore.
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope items marked deferred: FR-007, FR-023, FR-024, FR-025, FR-027 and FR-029 (priority), FR-005 and FR-006 edit parts and NFR-004 re-run sentences (notes), AC-005, AC-022 to AC-024, AC-027, AC-028 and AC-031 (prefix), AC-030 (re-run part); §9 lists them. Nothing deleted; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · OQ-1 resolved (the "being prepared" message before the first publication); AC-013 names the message; no requirement changed; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · new AC-033 to AC-036 (failed step and timeout end the run as failed; abandon with a reason; a new run is allowed after a closed run); FR-022 and AC-021 drop the next-step choices (a decline ends the run as declined); NFR-010 lists abandon as specialist-only; §9 records the OQ-US001-2 limitation; operator decisions
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-29 to DL-31) · AC-034 adds the stage time limit and the start-up rule ("service restarted"); AC-035 abandon only while a run waits at a gate (refused while a stage runs); new FR-030 and AC-037 (G3 acknowledgement of rejected rows and uncited paragraphs); new FR-031 and AC-038 (labelled demo switch, off by default; one planted row that can only be rejected); NFR-010 lists both; §9 notes the start-up rule is in the MVP (DL-28 limitation superseded); operator decisions

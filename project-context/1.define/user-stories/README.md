@@ -77,7 +77,8 @@ Every acceptance criterion in `system-description.md` §8 is tested by at least 
 | AC-030 | US-015 (also US-001 c7, US-006 c7) | AC-031 | US-015, US-016, US-013 |
 | AC-032 | US-010, US-004 (assumptions: US-011) | AC-033 | US-015 |
 | AC-034 | US-015 | AC-035 | US-015 |
-| AC-036 | US-015, US-010 | | |
+| AC-036 | US-015, US-010 | AC-037 | US-010 |
+| AC-038 | US-004 (criterion 19) | | |
 
 Stretch: AC-018, AC-019, AC-020 and AC-025 are covered by US-014.
 
@@ -128,6 +129,7 @@ at each gate. The stories assume these demo decisions:
 | G1 | `OBL-03` | Approve with reason, keeping "6 months" | Primary source (`SRC-UCILAW-P3`) wins over the secondary summary (conflict `C-1`). |
 | G1 | `OBL-05` | Approve with reason, keeping "becoming aware" | Primary source (`SRC-RBELAW-P1`) wins (conflict `C-2`). |
 | G1 | All six rows | Business-day rules as in answer key §5 | Operator guidance (`D-5`). |
+| G1 | The planted row marked "demo" *(demo run only: the run is started with the demo switch on)* | Reject with reason: "Planted demo row: the quote does not support this rule" | The demo shows the specialist catching a row whose quote is verbatim but does not support its rule, which the code quote check cannot catch (SD FR-031, DL-31). Approve is refused for a demo row. The row then appears in the G3 rejected list (US-010 criterion 14). The calendar stays at 22 entries. Evaluation runs have the switch off. |
 | G2 | `OBL-04` (unsure) | Resolve as **applies (precautionary: registration unconfirmed)**, reason: "Treated as applicable until CNMV registration is confirmed" | Design principle **P-1** (`system-description.md` §2): an extra entry is harmless, a missed filing is not. Adds 4 entries. |
 | G2 | Other five | Confirm the agent's verdict | Matches answer key §2. |
 
@@ -181,3 +183,4 @@ at each gate. The stories assume these demo decisions:
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · US-013 criteria 10–11 (3 of 3 consecutive runs on one commit; names graded by the specialist); OQ-US001-1 and OQ-US013-1 resolved
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · US-011 criterion 7 and SD AC-013 name the GP "being prepared" message; PRD OQ-6, SD OQ-1 and OQ-US011-1 resolved
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · AC-033 to AC-036 in the coverage table; US-010 criteria 8–9 reworded (a decline ends the run as declined); OQ-US001-2 accepted as a known limitation
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-30, DL-31) · demo decision added: reject the planted demo row at G1 with a reason (demo run only); AC-037 and AC-038 in the coverage table (AC-038 backed by US-004 criterion 19); operator decisions
