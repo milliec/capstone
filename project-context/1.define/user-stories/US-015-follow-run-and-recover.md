@@ -98,10 +98,11 @@ have already made.
 
 ## 4. Scope Notes
 
-- **In Scope for MVP**: one run at a time; re-running only the unit that failed (a document or a row),
-  by the specialist, up to 3 times per unit and input; releasing one failed source document to manual
-  entry after that limit (decision log DL-18). *Deferred (DL-22): unit re-runs and the release. In the
-  MVP a failed step ends the run as failed (criterion 19).*
+- **In Scope for MVP**: one run at a time. In the MVP a failed step ends the run as failed
+  (criterion 19).
+- **Deferred (DL-22)**: re-running only the unit that failed (a document or a row), by the specialist,
+  up to 3 times per unit and input; and releasing one failed source document to manual entry after
+  that limit (decision log DL-18).
 - **Not included**: releasing a verification or applicability unit, releasing several documents at
   once, or releasing before the re-run limit. A release is never a shortcut.
 - **Abandon is not a general cancel**: it closes a run and nothing else. There is no cancel of a model
@@ -146,7 +147,8 @@ have already made.
 ## Open Questions
 
 - **OQ-US015-1**: *Resolved by the SAD (SOQ-2, CR-010).* 3 manual re-runs per unit per input; then
-  "needs attention" (criterion 13). *(Approval map OD-7.)*
+  "needs attention" (criterion 13). *Deferred for the MVP (DL-22): unit re-runs are Future Work, so
+  the limit is not built.* *(Approval map OD-7.)*
 - **OQ-US015-2**: *Resolved* (operator decision, 2026-11-11, decision log DL-18, SAD SOQ-9). A source
   document that reaches "needs attention" can be released to manual entry with a written reason, one
   document at a time and only after the re-run limit. Then G1 opens and the specialist adds missing
@@ -183,3 +185,4 @@ have already made.
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 16 lists a declined run as not active; OQ-US015-4 notes the operator's confirmation of SA-18; traced to SD AC-033 to AC-036
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-29) · criterion 20: abandon only while a run waits at a gate, refused while a stage runs; criterion 19: stage time limit and start-up rule ("service restarted"); restart scope note rewritten (the DL-28 known limitation is superseded); new scope note on abandon at a gate; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22, SAD SOQ-20 d, g) · re-running only the failed unit is deferred; the failed unit is named and the run ends as failed, a new run is the only way through
+- 2026-11-12 · persona `product-mgr` · action `update` (spot-check of SAD SOQ-20, DL-22) · Scope Notes split into In Scope (a failed step ends the run) and Deferred (unit re-runs, release); OQ-US015-1 notes the re-run limit is deferred; no behaviour change

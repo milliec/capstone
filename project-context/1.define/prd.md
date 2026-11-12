@@ -193,7 +193,14 @@ These are inputs, not a pattern verdict.
 
 ### Infrastructure Specifications
 
-**Deferred to the SAD.** The MVP has no hosting, compute or network targets beyond §5. *(SD §6)*
+**Deferred to the SAD.** The MVP has no hosting, compute or network targets beyond §5. The core demo
+runs locally. *(SD §6, DL-32)*
+
+**Optional stretch, not a requirement (DL-38):** a hosted copy of the demo may be built **only after
+the local demo works end to end**. It is public by design: stand-in agents only, mock data only, and no
+model key on the host. It adds no requirement to the MVP and is the first thing dropped if time runs
+short. Its design and safeguards are in the SAD, section "Stretch goal: hosted portfolio demo".
+*(DL-38, SAD)*
 
 ## 4. Functional Requirements
 
@@ -235,7 +242,7 @@ trust enter the library.*
 
 | Acceptance criterion | Trace |
 |---|---|
-| Each row can be approved, edited or rejected. The business-day rule is set at approval. *Edit deferred (DL-22): the MVP's G1 has approve and reject only.* | SD FR-005 |
+| Each row can be approved, edited or rejected. The business-day rule is set at approval, and so is "who files" when the source does not state it (chosen from the fund's filing parties or "not known", nothing preselected). *Edit deferred (DL-22): the MVP's G1 has approve and reject only.* | SD FR-005 |
 | *Deferred (DL-22).* An edit re-runs the verifier on that row. | SD AC-005 |
 | A row with a remaining flag cannot be approved without a written reason. With a reason, it is approved and the reason is logged. | SD AC-006 |
 | *Deferred (DL-22).* Editing an approved row returns it to pending and marks its calendar entries out of date. | SD AC-005, FR-007 |
@@ -376,7 +383,7 @@ scope (OQ-1, DL-37). In the MVP one specialist decides at each gate.
 |---|---|---|
 | Full pipeline run on the demo set (agent output only) | Under 5 minutes | SD MC-001, operator-confirmed |
 | Throughput / concurrency | One run at a time | Assumption A-6 |
-| Availability | **N/A for the MVP** (local demo) | SD §6 |
+| Availability | **N/A for the MVP** (local demo). The optional hosted stretch (§3, DL-38) sets no availability target | SD §6, DL-38 |
 
 ### Security & Compliance
 
@@ -570,7 +577,8 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - **OQ-3**: Is any user-satisfaction measure needed for the capstone? None defined.
 - **OQ-4**: *Resolved.* Accessibility standard is WCAG 2.2 AA (operator decision).
 - **OQ-5**: Does the MVP scope fit six weeks, and how are the weeks split across Define, Build and
-  Deliver? **Not yet shown.** Operator decision: keep the full scope until the architect estimates it
+  Deliver? **Answered: capacity is five focused days (DL-32); see the last paragraph of this entry.**
+  History, oldest first. Operator decision: keep the full scope until the architect estimates it
   after the SAD. A possible cut line (a core demo path vs hardening stories) was proposed in Define and
   **not** adopted. *2026-11-09: re-running a failed step (§6) is new scope and goes into the estimate. 2026-11-12 (operator decision, DL-22): superseded for the MVP, the re-run is deferred.*
   *2026-11-09 (business review): the timebox is six weeks. `@system.arch` estimates the Must scope
@@ -690,3 +698,7 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-37) · SOQ-6 answers recorded: OQ-1 resolved (four-eyes is future scope; one specialist per gate); OQ-10 closed as not needed; OQ-11 marked no longer arising; OQ-12 recorded as assumption A-9 with the figure still a placeholder; OQ-7 AED part stays unconfirmed under CR-027 and the demo shows the flag; §4 future-scope note updated; operator decisions
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-37, DL-32, DL-33) · four-eyes cleanup: open-question and deferred lines in US-004, US-007, US-010, the stories index, context-summary, system-description OQ-5 and approval-map (OD-10, H12, assumptions row); SAD SOQ-20 (a), (b): PRD OQ-5 records capacity (five focused days, estimate about 5.5) and OQ-8 records server-rendered pages with Next.js as post-course scope
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-20 e, f, h) · edit and re-verify marked future scope in the specialist cell, happy-path step 4 and Must-do list (DL-22)
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-38, SAD SOQ-23 b) · §3 Infrastructure and §5 Availability note the optional hosted portfolio demo as a stretch after the local demo works; no requirement added, core plan stays local
+- 2026-11-12 · persona `product-mgr` · action `update` (spot-check of SAD SOQ-20) · OQ-5 now opens with its answer (five focused days, DL-32) instead of "Not yet shown"; no decision changed
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-39, SAD SOQ-24 d) · F3: "who files" is set at G1 when the source does not state it
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26 a) · F3: "who files" is chosen from the fund's filing parties

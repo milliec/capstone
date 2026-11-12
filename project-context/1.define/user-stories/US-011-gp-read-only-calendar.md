@@ -18,7 +18,8 @@ miss a filing and don't have to read legal text.
 2. **Then** each entry shows:
    - **What**: obligation name and authority;
    - **When**: the due date, plus a note if it was moved;
-   - **Who**: the role that files it;
+   - **Who**: the role that files it, or "Not confirmed" when the specialist chose "not known" at G1
+     (criterion 12);
    - **Why**: a plain-English reason it applies, with the source citation and quote.
 3. **Example:** the first `OBL-01` entry shows "Monthly financial report U1.1 · CSSF", "11 Jan 2027
    (moved from Sun 10 Jan)", "Filed by: fund administrator", "Applies because the fund is subject to
@@ -45,6 +46,9 @@ miss a filing and don't have to read legal text.
     specialist-approved interpretations, not legal advice, and the date conventions behind them have
     not yet been checked against the legal texts. The note is not repeated on each entry. (SD FR-020,
     Must)
+12. **Given** an entry whose "who files" the specialist set to "not known" at G1 (US-004 criterion 20),
+    **then** its Who line reads "Filed by: Not confirmed". It is never blank and never a guess. No demo row is set to "not known" (answer key §5), so this
+    is checked with a test row, not on the demo path. (Decision log DL-39, SAD SOQ-24 e.)
 
 ## 4. Scope Notes
 
@@ -55,7 +59,7 @@ miss a filing and don't have to read legal text.
 
 - **PRD Anchors**: F8 · §2 step 9 · §6 · UN-G1 to UN-G6 · AB-5, AB-6, AB-7
 - **System description**: FR-015, FR-020, FR-025 · A-7 · MD-008 · MN-007 · NFR-005, NFR-010 · AC-013, AC-014
-- **Decision log**: DL-27 (criterion 7)
+- **Decision log**: DL-27 (criterion 7), DL-39 (criterion 12)
 - **Related SFS**: none yet
 
 ## Sources
@@ -95,3 +99,5 @@ miss a filing and don't have to read legal text.
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · assumption: the OBL-02 open-question mark is specialist-only, matching US-010 criterion 12; no criterion changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 9–10 (the GP review notice) marked deferred; the calendar-level note (criterion 11) stays; nothing deleted
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · criterion 7 names the agreed "being prepared" message (read-only, no count or status, no notification); OQ-US011-1 resolved; assumption notes the message is agreed text; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-39, SAD SOQ-24 e) · criterion 2 (Who) and new criterion 12: the GP sees "Filed by: Not confirmed" when the specialist chose "not known"
+- 2026-11-12 · persona `product-mgr` · action `update` (operator decision on OQ-D4) · criterion 12: no demo row is set to "not known", so the check uses a test row

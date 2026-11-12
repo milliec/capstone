@@ -726,6 +726,135 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   OQ-12; four-eyes wording in US-004, US-007, US-010, the stories index, `context-summary.md`,
   SD OQ-5 and `approval-map.md` (done) · **still to do by `@product-mgr`**: the OQ-12 figure.
 
+### DL-38 · A hosted portfolio demo is a stretch goal, started only after the local demo works
+
+- **Decision** (operator, 2026-11-12):
+  1. **The core five-day plan does not change.** The demo is local (DL-32, PRD §3). Nothing in the
+     core build depends on hosting.
+  2. **A hosted "portfolio demo mode" is a stretch goal.** It starts only after the local demo works
+     end to end: the acceptance pass and the rehearsal run (estimate block B10) are done on the local
+     build and the checks that use no model pass. The reason for it: a hosted link during the course,
+     so that if hosting goes wrong the operator can get help at office hours.
+  3. **Host: Railway**, one service with one volume for the SQLite file. The operator confirms the
+     current Railway pricing and sets a spend limit on the account **before deploying**. The SAD
+     states no price.
+  4. **The hosted demo is public by design.** It runs the stand-in agents only (fixed outputs), holds
+     mock data only, and has **no model key set on Railway at all**, so a visitor cannot cause model
+     spend and there is nothing secret to leak. Safeguards kept: a visible "demo, mock data" label on
+     every page; an automatic reset of the demo data (nightly, and on a button); no model key; the
+     mock sign-in page, where a visitor chooses specialist or GP; and CSRF protection on every form.
+     **Added the same day:** a visible **Reset demo** button on every page, open to every visitor, as
+     well as the nightly reset, so offensive text can be cleared at once (a named exception to the
+     rule that a GP cannot write, limited to once a minute for the whole site); and a short banner
+     saying someone may be mid-run and how to reset.
+  5. **Drop order.** The hosted stretch is below everything in the core plan: it is dropped (not
+     started) before the light visual pass (B6), and the visual pass is dropped before the planted
+     demo row (B7), which is kept.
+  6. **Sharing rule.** If the visual pass (B6) is dropped, the hosted link is not shared publicly
+     until the visual pass is done (SAD SOQ-23c). It may still be used privately, for example at
+     office hours. This is a rule about what the operator does, not a security control.
+- **Why**: a link the operator can show, and debug with help, is worth about a day only if the core
+  demo already works. Stand-in agents make a public site safe and free to run. A public site with
+  mocked sign-in is not access control, so the safety rests on there being nothing of value to reach
+  (SAD §8).
+- **Considered**: AWS (more setup than one process and one file need; not chosen); a password on the
+  whole site (rejected by the operator: the demo is meant to be open to visitors); real model calls
+  on the hosted copy (rejected: it would need a key on the host and an open spend path).
+- **Changed**: SAD (new "Stretch goal: hosted portfolio demo" section, decisions table, §5, §8,
+  Control Register CR-031, estimate drop order, Implementation Guidance, SA-21, SOQ-23). No Define
+  requirement changes; PRD §3 Infrastructure is raised for `@product-mgr` as SOQ-23 (b).
+
+### DL-39 · Agent cards: what each agent sees, says and leaves to the specialist
+
+- **Decision** (operator, 2026-11-12, on the architect's agent-card proposal):
+  1. **The mock files' answers never reach a prompt.** The loader reads only the paragraph text of
+     each source and only the ID, fact and value of each fund fact. It never reads the "Test note"
+     or "Planted conflict" notes, the header warnings, the amendments, or the fund profile's
+     "Decides" column. A test that uses no model (T-LEAK-1) fails if any of that content, or the
+     phrases "Test note", "Planted conflict", "correct verdict" or the "Decides" column, appears
+     in a rendered prompt.
+  2. **"Who files" is never guessed.** The extractor reports the responsible party only when the
+     source document states it, and otherwise "not stated in source". In that case the specialist
+     sets "who files" at G1, from the fund's parties, like the business-day rule. US-001
+     criterion 2 needs rewording by `@product-mgr` (SAD SOQ-24). **Narrowed the same day
+     (operator):** the G1 list is **only the filing parties** (AIFM, Fund administrator, Auditor,
+     Local reporting agent (Spain), Tax advisor) plus "not known". The compliance specialist and the GP are
+     not filers and are never offered (SAD W-07, CR-007, SOQ-26).
+  3. **Only primary documents go to the extractor**: five calls, not six. The secondary guide still
+     goes to the verifier. "No row cites the guide" becomes true by construction.
+  4. **No `pattern` field in the extractor's output.** Code derives the pattern for the evaluation
+     report from the frequency and the anchor.
+  5. **The judge's general rule is worded generally.** It says a fact counts only when what it
+     asserts meets the condition as the rule words it. The wording was checked against the demo
+     material so that it does not repeat the words of any demo trap (SAD, "Agent cards").
+  6. **Each card's worked example is also its one-shot example in the prompt**, on one condition:
+     the example is drawn from text in none of the six demo rows, the planted row or any evaluation
+     case, and it does not mirror a demo trap. A test that uses no model (T-EXAMPLE-1) fails if an
+     example's quote matches any mock source paragraph (and the planted-row fixture, the answer
+     key's quotes and the evaluation cases); "does not mirror a demo trap" is recorded in a review
+     table in the SAD. The first drafts of the examples were replaced because two mirrored demo
+     traps in structure (a secondary source giving a different offset; a definition paragraph and a
+     "may submit on its behalf" paragraph).
+- **Why**: (1) a prompt that contains the answer makes the evaluation meaningless (CR-016). (2) The
+  sources are silent on who files for four of the six demo rows, so an extractor that matched the
+  answer key there would be guessing (the same principle as DL-19). (3) A rule code can enforce
+  should not be left to a model. (4) `pattern` repeated other fields, and "conditional" was too vague
+  to apply consistently. (5) The rule protects against the costliest error (P-1), but wording that
+  echoed a demo case would teach to the test and flatter the evaluation.
+  (6) A one-shot example helps the model get the format right, but an example that echoes a demo
+  case teaches the answer to that case.
+- **Considered**: giving the extractor the fund's parties table (rejected: it would judge facts about
+  the fund, and its context would no longer be one document); removing the judge's rule entirely
+  (rejected by the operator: the rule is sound, only its wording needed to be general).
+- **Pending, not part of this decision**: the exact model IDs. **DL-40 is held** until the operator
+  has checked them against the OpenAI account's model list and pricing (SAD SOQ-25, which also sets
+  out whether the verifier is from a different family than the extractor).
+- **Changed**: SAD (new "Agent cards" in §2; MVP scope steps 3 and 6; W-03, W-07, W-16; call counts;
+  Model and Context Strategy; CR-007, CR-016; §3 G1 page; §4 route, refusal code and
+  `row_decisions`; EC-001; SA-7; the estimate note for B5; SOQ-24, SOQ-25). For `@product-mgr`:
+  US-001 criterion 2, the answer key's notes on responsible role and pattern, and the related G1
+  story wording (SAD SOQ-24).
+
+*DL-40 is reserved for the model IDs, held until the operator has checked them (SAD SOQ-25).*
+
+### DL-41 · Responsible role is graded through a fixed lookup to the profile's party names
+
+- **Decision** (operator, 2026-11-12, recorded **before the first evaluation run**):
+  1. **The extractor is unchanged in substance.** It still reports who files as free text, as the
+     document states it, or "not stated in source". **DL-39 stands: no parties list goes in the
+     extractor's prompt.**
+  2. **The evaluation maps the text in code.** Before the exact-match comparison with answer key §1
+     (US-013 criterion 11, SAD EC-001), the evaluation runner normalises the extracted text and
+     looks it up in a small, fixed table that gives a party name from the fund profile (for
+     example "a local reporting agent" becomes "Local reporting agent (Spain)"), or "not stated in
+     source". The table is in SAD EC-R11.
+  3. **Text that does not map is a miss.** The report shows the extracted text, "no match" and the
+     expected value. No model and no judgement is used to stretch a match.
+  4. **A test that uses no model** (T-MAP-1) checks the lookup.
+  5. **The table is fixed before the first evaluation run** from the profile's party names and the
+     mock sources' own wording, **never from a model's output**, and is **not changed between the
+     runs of a cycle**. A change needs a recorded operator decision and applies from the next
+     cycle. *(Proposed by the architect for the same reason as the void rule, EC-R8; confirmed by
+     the operator the same day.)*
+  6. **The extractor's wording for who files** is "the party's name as the document writes it,
+     with no explanation", or "not stated in source". It is still free text, and still no parties
+     list is in its prompt. *(Proposed by the architect; confirmed by the operator.)*
+  7. **One name for the Spanish agent everywhere: "Local reporting agent (Spain)"**, in the
+     profile, the answer key, the G1 list, the stories and the SAD. The sources' own wording ("a
+     local reporting agent appointed by the undertaking") stays as it is; the lookup maps it.
+     *(Confirmed by the operator.)*
+- **Why**: the sources name a party in their own words ("a local reporting agent appointed by the
+  undertaking"), while the answer key uses the profile's name ("Local reporting agent (Spain)").
+  An exact match on raw text would fail a correct row; giving the extractor the parties list
+  would break DL-39. A fixed lookup keeps the comparison exact and repeatable, and fixing it
+  before any run keeps it from being tuned to the results.
+- **Considered**: grading responsible role by the specialist's judgement, as for the obligation
+  name (option 2 in the discussion; not chosen); giving the extractor the parties list (rejected:
+  DL-39).
+- **Changed**: SAD EC-R11 (new), EC-001, the extractor card's wording for `responsible_role`,
+  SOQ-27. For `@product-mgr`: US-013 criterion 11, and the matching wording in US-001 criterion 2
+  and the answer key §1 column heading (SAD SOQ-27).
+
 ---
 
 ## Audit
@@ -781,3 +910,16 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · SAD SOQ-20 (d) and (g): US-001 criterion 7, US-006 criterion 7 and US-015 criterion 9 no longer promise a re-run or a "re-runnable" unit; the failed unit is named and the run fails
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-20 e, f, h) · (e) PRD edit wording, (f) US-008 entry-ID assumption, (h) stories index and SD FR-031 planted-row wording
 - 2026-11-12 · persona `product-mgr` · action `update` · SAD SOQ-20 (j) closed: approval-map row H8a added for a second decision on an already-decided row (CR-009, ALREADY_DECIDED); no map row for stand-in agents (CR-030); operator decisions. All of SOQ-20 (a) to (j) is now done
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-38 (a hosted portfolio demo on Railway as a stretch goal after the local demo works; stand-in agents only, no model key, public by design; first to be dropped, then the visual pass, with the planted row kept); operator decision. SAD, section "Stretch goal: hosted portfolio demo", CR-031, SOQ-23
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-23 b) · PRD §3 Infrastructure and §5 Availability now note the DL-38 hosted stretch; no requirement change
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-38 amended: Reset demo button on every page (open to every visitor), banner saying someone may be mid-run, and the sharing rule if the visual pass is dropped; SAD SOQ-23c decided
+- 2026-11-12 · persona `product-mgr` · action `update` · wording cleanup after the SOQ-20 spot-check: PRD OQ-5 headline, US-015 Scope Notes and OQ-US015-1; no decision changed
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-39 (agent cards: the loader strips the mock files' answers, with test T-LEAK-1; "who files" set by the specialist at G1 when the source is silent; only primary documents to the extractor; no `pattern` field, derived by code; the judge's general rule worded generally and checked against the demo traps); operator decisions on the architect's proposal. Model IDs and one-shot examples still pending (SAD SOQ-25)
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-24 a to e) · US-001 c2, answer key §1 and §5, US-004 c8 and c20, US-011 c2 and c12, PRD F3, stories index; OQ-D4 (tax advisor missing from the mock profile) and OQ-D5 (more than one party for OBL-03) opened in the answer key; no date, verdict or flag changed
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-39 item 6 added: worked examples are used as one-shot examples, drawn from text in no demo row, planted row or evaluation case and mirroring no demo trap, checked by T-EXAMPLE-1 and a review table; DL-40 (model IDs) held until the operator checks the account's model list and pricing
+- 2026-11-12 · persona `product-mgr` · action `update` (operator decisions on OQ-D4, OQ-D5; SAD SOQ-24) · fictional "Tax advisor" added to the mock profile's parties; `OBL-06` expected G1 value "Tax advisor"; `OBL-03` "Fund administrator" (G1 takes one party, the filer); answer key rechecked, no expected result changed; US-004 and US-011 examples aligned; system description FR-005 and approval-map H1 updated, both flagged for `@product-mgr` to confirm
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-39 item 2 narrowed: the G1 "who files" list is only the filing parties (AIFM, Fund administrator, Auditor, Local reporting agent, Tax advisor) plus "not known"; SAD W-07, CR-007 (T-WHO-2), SOQ-26 for `@product-mgr`
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26 a to c; operator decision on naming) · G1 "who files" list is the filing parties only: US-004 criterion 20, answer key §5 note, profile "Filing party" column; "Local reporting agent (Spain)" is the one name in the stories, the key, the profile and the G1 list; PRD F3 aligned
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-41 (responsible role graded through a fixed lookup to the profile's party names before the exact match; unmapped text is a miss; test T-MAP-1; table fixed before the first evaluation run; DL-39 stands, no parties list in the extractor's prompt); recorded before any evaluation run exists. DL-40 stays reserved for the model IDs
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-41 confirmed by the operator: item 5 (lookup table fixed before the first evaluation run, never from model output, not changed mid-cycle), new item 6 (extractor wording: party name as written, no explanation, no parties list), new item 7 (one name, "Local reporting agent (Spain)"). DL-39 item 2's note now uses that name
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · US-013 criterion 11, US-001 criterion 2 and the answer key's §1 heading and notes now agree: responsible role is mapped to the profile's party name by a fixed lookup, then matched exactly (SOQ-27 a to c)
