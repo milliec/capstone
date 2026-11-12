@@ -236,6 +236,16 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   the operator prefers the runtime's own orchestration within a stage, with the same gate ownership.
 - **Changed**: SAD §2, W-09, CR-001, Model and Context Strategy (entry point). No Define document
   changes.
+- **Wording change, 2026-11-12 (operator, with DL-35):** *Runtime shape: three CrewAI agents run by
+  plain stage functions; the backend owns the gates.* The backend is still the single owner of gate
+  state. Each stage (A extract and verify, B judge, C generate) is now run by a **plain backend
+  function**, with **no CrewAI Flow wrapper**. The extractor, the verifier and the applicability
+  judge **remain CrewAI agents**, each run as a one-agent, one-task crew behind its runtime-neutral
+  function interface, so the system stays visibly multi-agent. A stage function starts only when
+  the backend triggers it, ends at its gate, and never decides or remembers gate status. The Flow
+  wrapper is future scope (SAD F-11). *Why:* with five focused days (DL-32), the wrapper adds
+  framework surface to learn and debug without changing who owns the gates; this returns to the
+  "plain function calls" option listed under Considered, while keeping the agents in CrewAI.
 
 ### DL-18 · A document that cannot be extracted can be released to manual entry
 
@@ -410,6 +420,9 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   by `@product-mgr`** (branch `define-defer-future-scope`, not yet merged): OQ-US001-1 and OQ-US013-1
   resolved; US-013 criterion 10 (3 of 3 consecutive runs on one commit) and criterion 11 (names graded
   by the specialist, date and routing fields by exact match); US-001 assumption points to criterion 11.
+- **Superseded in part, 2026-11-12, by DL-34:** part (1) is no longer a gate. The three runs are still
+  made and a pass still means 3 of 3, but a miss is reported and does not block a merge or the demo.
+  Part (2), names graded by the specialist, stands.
 
 ### DL-24 · Development model spend is capped at US$50 until 13 December 2026
 
@@ -569,6 +582,93 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   `@product-mgr`** (branch `sad-dl29-31`): SD FR-031 and AC-038; US-004 criterion 19; the demo decision in
   `user-stories/README.md`; approval map H0b and A26 (H3a and T-25 kept).
 
+### DL-32 · Capacity is five focused days; anything beyond is buffer
+
+- **Decision**: the operator plans Build and Deliver for **five focused days**. Anything beyond that
+  is buffer, not scope. This resolves SAD SOQ-12 and the capacity part of PRD OQ-5.
+- **Why**: a senior-architect review of the SAD found the thin slice estimated at about 44.5 focused
+  days (45.75 after DL-29 to DL-31) against 5 to 8 days actually available. DL-22 recorded the
+  capacity as a commitment "without a number", so the fit could not be checked.
+- **Considered**: planning for 8 days, the upper end of what is available. Not chosen: with 5 as the
+  plan, the buffer is real.
+- **Consequence**: the SAD estimate is re-cut to about **5.5 focused days (4.5–8)**, which is half a
+  day over. **Decided 2026-11-12 (operator, SAD SOQ-19):** the half day, a quarter each for the
+  light visual pass and the planted demo row, comes from the buffer. If the first day's work
+  overruns (SAD checkpoint: blocks B1 and B2 over 1.3 days), **the visual pass is dropped first and
+  the planted demo row is kept**, because the row demonstrates the human checkpoint; the visual
+  pass can then be done after the course for the operator's portfolio.
+- **Fallback, decided 2026-11-12 (operator):** this applies only if the planted demo row is later
+  cut as well. The specialist rejects `OBL-06` at G1 if its row is genuinely weak on the demo run.
+  `OBL-06` produces no calendar entries, so the demo calendar stays at 22. If `OBL-06` is sound on
+  the day, the demo shows no rejection and relies on the decisions already in the script: the two
+  approvals over a flag and the "unsure" decision.
+- **Changed**: SAD "Estimate: five focused days", SOQ-1, SOQ-12 · **still to do by `@product-mgr`**:
+  PRD OQ-5 (capacity and the new estimate).
+
+### DL-33 · Plain server-rendered pages with a light visual pass; Next.js is post-course
+
+- **Decision**: the MVP's two surfaces are **plain server-rendered HTML pages** served by the
+  backend. A visual pass is in scope and kept light: one small shared stylesheet with clear type,
+  spacing and status colours, and **no JavaScript framework**. The backend's page handlers stay thin,
+  calling the same service functions a JSON API would call, so an API can be added later without
+  rework. **Next.js is recorded as post-course future scope.**
+- **Why**: a separate Next.js application with a generated client, fixtures and an integration step
+  was about 10 of the 45.75 estimated days, the largest single block. Pages served by the backend
+  remove that block. The visual pass stays so the demo is readable.
+- **Considered**: keeping Next.js (does not fit five days); unstyled pages (not chosen: the operator
+  put a light visual pass in scope).
+- **Supersedes**: SAD SOQ-4 and the resolution of PRD OQ-8, for the MVP. PRD A-4 ("web") and the
+  WCAG 2.2 AA standard are unchanged.
+- **Cost**: about 1 focused day for the gate actions and pages (SAD B5) and 0.25 for the stylesheet
+  (B6).
+- **Changed**: SAD decisions in force, estimate, Future Work F-10 · **still to do**: `@product-mgr`,
+  PRD OQ-8; `@system.arch`, SAD §1 and §3 in the rewrite, and diagram view 2 (containers), which
+  names Next.js.
+
+### DL-34 · Evaluations report; they do not block (replaces DL-23's gate)
+
+- **Decision**: (1) Evaluations **report, they do not block**. Three runs on the same commit; a pass
+  means 3 of 3; a miss is stated in the evaluation report and the demo goes ahead. (2) **Tuning is
+  capped at half a day**, after which the result is reported as it stands. (3) A run that fails only
+  because of a **model-service timeout or outage** is voided and re-run once, under a rule written
+  down before the first run (SAD EC-R8). **The checks that use no model stay blocking:** gates
+  cannot be bypassed, GPs see only published content, dates match the 22 expected entries, and the
+  audit log is complete. DL-23's second part, names graded by the specialist, is unchanged.
+- **Why**: the targets are exact matches from probabilistic models, and DL-23's "fix and repeat all
+  three runs" loop had no upper bound (the SAD estimated tuning at 1 to 6 days) against a five-day
+  plan. The PRD (§7) and DL-10 already say a missed target is a finding to report, not to hide.
+- **Considered**: keeping the gate. Not chosen: tuning could use the whole buffer or delay the demo.
+- **Trade-off accepted**: the demo may carry an honest reported miss (for example a conflict flagged
+  on 2 of 3 runs) instead of a clean pass. The gates still stop anything unapproved reaching a GP.
+- **Changed**: SAD §5 release rule; §9 run rules EC-R1, EC-R1a and EC-R4, new EC-R8 (void rule) and
+  EC-R9 (tuning cap); estimate block B9 · **still to do**: `@product-mgr`, US-013 criterion 10;
+  `@system.arch`, demo readiness in SAD §10 (pass 4 of the rewrite).
+
+### DL-35 · The SAD is rewritten as an MVP version, with three simplifications
+
+- **Decision**: `sad.md` becomes a lean MVP SAD (`*create-sad --mvp`). It describes only what the
+  five-day build needs and lists everything else once, under "Future Work". The full design is kept
+  unchanged at git tag `sad-full-design` (commit `9e7da27`). IDs that stay keep their numbers;
+  retired IDs are listed and never reused.
+- **Three simplifications that go with the five-day cut** (proposed by the architect; **accepted by
+  the operator on 2026-11-12**, with a condition on the first): (a) each stage is run by a **plain
+  function in the backend**, with no CrewAI Flow wrapper. *Operator's condition:* the extractor,
+  verifier and applicability steps **remain CrewAI agents**, so the system stays visibly
+  multi-agent, and the backend still alone owns the gates (see the wording change on DL-17). (b) **No
+  invalidation machinery**: each row and verdict is decided once, so nothing goes out of date; the
+  version each decision was made on is still recorded (SD MD-009) and stays at 1. (c) **Entry IDs
+  drop the quote position**, which depended on where a model started its quote; if two approved rows
+  would give the same ID, generation fails closed and names both.
+- **Why**: build agents read the whole SAD, and "future scope" labels did not stop about 30 places
+  from describing deferred features as built. Each fix so far had added text; the file grew from
+  1,841 to 1,960 lines while being corrected.
+- **Considered**: another sweep of the existing file (the same additive pattern); a separate
+  `sad-mvp.md` (26 framework files read the SAD by the name `sad.md`); an archived copy in the
+  repository (agents searching the repository would still read it).
+- **Changed**: `sad.md`, in four passes on branch `sad-mvp-rewrite` · **still to do**: `@system.arch`,
+  passes 2 to 4, diagram views 2 and 3, the approval-map re-check; `@product-mgr`, the list in SAD
+  SOQ-20.
+
 ---
 
 ## Audit
@@ -612,3 +712,6 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction, raised through `@product-mgr`) · action `update` · DL-29 (abandon only at a gate; start-up rule and stage time limit; supersedes DL-28), DL-30 (G3 acknowledgement), DL-31 (planted demo row switch); operator decisions
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-31: SOQ-18 decided (approval of a demo row refused, audited, plain message; reject only); operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-29, DL-30 and DL-31 follow-ups marked done (SD FR-030, FR-031, AC-034, AC-035, AC-037, AC-038; US-010 criterion 14; US-015 criteria 19–20 and restart note; demo decision in the stories index); approval map brought in line with the SAD (SOQ-16) and no longer marked draft; on branch `sad-dl29-31`, not yet merged
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-32 (capacity: five focused days), DL-33 (plain server-rendered pages with a light visual pass; Next.js post-course), DL-34 (evaluations report and do not block; replaces DL-23's gate, with a superseded note on DL-23) and DL-35 (the SAD rewritten as an MVP version, full design at tag `sad-full-design`; three simplifications listed for the operator's review); operator decisions. Follow-ups for `@product-mgr` are in SAD SOQ-20
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · operator's review of SAD pass 1: DL-32 records the buffer decision and the drop order (visual pass first, planted demo row kept); DL-35's three simplifications accepted, with the condition that the three steps remain CrewAI agents; DL-17 carries the wording change (plain stage functions, no Flow wrapper, backend alone owns the gates)
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-32: fallback recorded for the case where the planted demo row is also cut (reject `OBL-06` at G1 only if genuinely weak, calendar stays at 22; otherwise no rejection); operator decision. Operator also confirmed the pattern stays "workflow", described as three CrewAI agents in a gated workflow (DL-17 as reworded); no text change
