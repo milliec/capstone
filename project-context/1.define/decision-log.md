@@ -363,6 +363,47 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   8–9); record PRD OQ-5 as decided (scope) with capacity still open; note that DL-02's re-run is
   superseded for the MVP.
 
+### DL-23 · Evaluation: three passing runs, and names graded by the specialist
+
+- **Decision**: (1) the model-dependent evaluation criteria (SAD §9, EC-001 to EC-007, EC-010, EC-012,
+  EC-021) must pass on **3 of 3 consecutive evaluation runs on the same commit** before a merge that
+  changes a prompt, model or schema, and before the demo. (2) The extracted obligation **name** is
+  graded by the operator's judgement as specialist ("same obligation" or not, recorded per row in the
+  report); the fields that drive dates and routing are graded by exact match.
+- **Why**: (1) the agents are probabilistic even at temperature 0, so one passing run can be luck;
+  three runs cost under US$6 and about 15 minutes. (2) Name wording legitimately varies; a person
+  reading six names is cheaper and more trustworthy than adding a model as grader.
+- **Considered**: (1) one run (cheapest, but hides intermittent failure); five runs (stronger, five
+  times the cost per release). (2) An LLM judge (automatic, but a probabilistic grader with its own
+  cost and rubric); not grading the name at all.
+- **Changed**: SAD §9 (EC-R1, EC-002), §5 release rule, §10 demo criterion 2 · **still to do by
+  `@product-mgr`**: mark OQ-US001-1 and OQ-US013-1 resolved (EC-002); add to US-013 that a pass needs
+  three consecutive runs on one commit, and that names are graded by the specialist. **Done 2026-11-12
+  by `@product-mgr`** (branch `define-defer-future-scope`, not yet merged): OQ-US001-1 and OQ-US013-1
+  resolved; US-013 criterion 10 (3 of 3 consecutive runs on one commit) and criterion 11 (names graded
+  by the specialist, date and routing fields by exact match); US-001 assumption points to criterion 11.
+
+### DL-24 · Development model spend is capped at US$50 until 13 December 2026
+
+- **Decision**: a hard cap of **US$50** on model usage for development (the week-1 spike, prompt
+  tuning, evaluation runs and any other Build calls) until **13 December 2026**, enforced as a
+  spending limit **in the model provider's account**. A soft checkpoint at **US$25 (50%)**: stop
+  model calls and review usage by activity (spike, tuning, evaluation runs) before continuing. Spend
+  is logged per evaluation run, with an activity label and a running total (SAD EC-R6).
+- **Why**: the SAD separates the per-run limit (MC-002, US$2) from development spend, which had no
+  limit (SOQ-13). Planning basis: about 15–20 evaluation runs at under US$2 each (about US$30–40),
+  plus the spike and a day of tuning (about US$10); the mock inputs are small. The checkpoint shows
+  early if a cost assumption is wrong.
+- **Considered**: no cap, tracking only (the SAD's earlier default); setting the cap to the value of
+  any course credits, so nothing is paid out of pocket: kept as the way to raise the cap, by a
+  recorded decision, if the credits cover more.
+- **Note**: the cap lives in the provider account, so it is an operator-owned control; the
+  application does not enforce it, and the SAD does not claim it does. A different model for one role
+  (for example the applicability judge) would be a release under the swap rule, with its own
+  evaluation; it is not assumed.
+- **Changed**: SAD §7 (development spend cap), §9 EC-R6, SOQ-13 resolved. No Define requirement
+  changes.
+
 ---
 
 ## Audit
@@ -392,3 +433,6 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-11 · persona `product-mgr` · action `update` · PRD F3 corrected to list manual row creation for both a missed row at G1 and a released document (operator confirmed the earlier wording only described the PRD); DL-15 unchanged; OQ-US016-2 closed on that basis
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-21 (CrewAI adapter deviations D1–D5 and interpretation D6 accepted, with conditions on D4 and D5); operator decision
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-22 (the MVP is the thin slice; recovery, reopen, release, dead-end handling, impact report and extra CI checks move to future scope); operator decision. Follow-ups listed for `@product-mgr`
+- 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-23 (evaluation: 3 of 3 runs on one commit; obligation names graded by the specialist); operator decisions
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-24 (development model spend capped at US$50 until 13 December 2026 in the provider account; US$25 checkpoint; spend logged per evaluation run); operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-23 follow-up marked done: US-013 criteria 10–11, OQ-US001-1 and OQ-US013-1 resolved (on branch `define-defer-future-scope`, not yet merged)
