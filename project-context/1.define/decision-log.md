@@ -354,6 +354,18 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Capacity** (SAD SOQ-12, answered the same day): the operator commits the time the slice needs,
   without a number. It is a commitment, not a measured fit; the re-estimate after Build week 1 is the
   check (Tier 2 cuts go to the operator if the first packages take more than 1.3× their estimate).
+- **Update 2026-11-12 (operator, answering OQ-US015-4): a failed step ends the run, and a run can be
+  abandoned.** The consequence above ("a failed step ... means a new run") needed a way for a new run to
+  start, because CR-023 refuses one while a run is active. Decided: (1) a failed step moves the run to a
+  terminal `FAILED` state, so it is no longer active; (2) every agent step has a time limit that turns a
+  hang into a failed unit and so a `FAILED` run; (3) a specialist **abandon run** action, with a written
+  reason and an audit entry, closes an active run without undoing anything. It is **not a general cancel
+  feature**: no cancel of a call or step, no undo, no rollback, no deleted drafts. It also covers a run
+  left active by a crash, because the restart sweep stays future scope. **Estimate:** one new package,
+  WP-12a, **2 focused days likely (1.5–3)**, so the slice moves from about 42.5 (32–60) to about
+  **44.5 (33.5–63)**, and the fit table moves by 2. That is the product manager's figure for the
+  architect to confirm at the week-1 re-estimate. Recorded in the SAD (Run state model, W-19a, CR-023,
+  tests T-RUN-0 to T-RUN-4, SA-17) and in US-015 criteria 19–21.
 - **Changed**: SAD "Six-week estimate and agreed scope", scope keys in Work Ownership and the Control
   Register, feasibility note, SOQ-1, implementation guidance · **still to do by `@product-mgr`**: mark
   the future-scope requirements, acceptance criteria and story criteria as deferred (starting list:
@@ -392,3 +404,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-11 · persona `product-mgr` · action `update` · PRD F3 corrected to list manual row creation for both a missed row at G1 and a released document (operator confirmed the earlier wording only described the PRD); DL-15 unchanged; OQ-US016-2 closed on that basis
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-21 (CrewAI adapter deviations D1–D5 and interpretation D6 accepted, with conditions on D4 and D5); operator decision
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-22 (the MVP is the thin slice; recovery, reopen, release, dead-end handling, impact report and extra CI checks move to future scope); operator decision. Follow-ups listed for `@product-mgr`
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-22 updated with the operator's answer to OQ-US015-4: failed step → terminal FAILED run, step time limits, specialist abandon run with a reason (not a general cancel); estimate +2 days (slice ≈ 44.5, 33.5–63); SAD run state model, US-015 criteria 19–21

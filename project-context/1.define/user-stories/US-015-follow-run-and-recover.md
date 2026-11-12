@@ -54,10 +54,11 @@ have already made.
     (US-016). The evaluation report counts the release as one **extraction failure** (SD AC-031).
     A row unit (verification or applicability) that reaches "needs attention" has no release: a new run
     is the only way through (OQ-US015-3).
-16. **Given** a run is active for the fund (a stage has not ended at its gate, or a gate has not been
-    completed), **when** the specialist tries to start another run, **then** it is refused with a plain
-    message that names the active run (its ID), and the active run is unchanged. One run at a time is a
-    rule the system enforces, not a convention. (SAD CR-023, PRD A-6; see OQ-US015-4.)
+16. **Given** a run is active for the fund (a stage is running, or a gate is waiting for the
+    specialist), **when** the specialist tries to start another run, **then** it is refused with a plain
+    message that names the active run (its ID), and the active run is unchanged. A run that has failed,
+    been abandoned or completed is not active (criteria 19 and 20). One run at a time is a rule the
+    system enforces, not a convention. (SAD CR-023, PRD A-6, SAD run state model.)
 17. **Given** a run's model cost passes US$2, **then** run status shows a warning. **Given** it reaches
     the run's cost cap (set by configuration, US$4 by default), **then** no further model calls are made
     in that run, the valid units are kept, and run status states in plain words that the cost cap was
@@ -69,6 +70,24 @@ have already made.
     their valid outputs are kept, and run status shows **one** message, such as "the model service is
     not responding; nothing moved forward", not one message per unit. The message follows the voice rule
     in criterion 8. (SAD Production Shape, circuit breaker; exact wording is for `@ux.designer`.)
+19. **Given** a step fails, returns invalid output, or does not finish within its time limit, **then**
+    the run moves to **failed**: a plain message names the step, the unit and the reason, and says that
+    nothing moved forward. No gate opens for the failed stage, and every decision already recorded stays
+    as it was. A failed run is final: it is not resumed or re-run. A step that never returns is treated
+    the same way once its time limit passes, so a hang cannot keep a run active for good. Because a
+    failed run is not active, the specialist can start a new run (criterion 16). (SAD run state model,
+    tests T-RUN-1 and T-RUN-2; decision log DL-22.)
+20. **Given** an active run, **when** the specialist abandons it **with a written reason**, **then** the
+    run is closed as **abandoned** and the specialist can start a new run. Abandoning without a reason
+    is refused. Nothing is undone or deleted: decisions already recorded, rows, verdicts, drafts, the
+    audit log and any published calendar stay as they were, and GPs keep seeing the last published
+    version. No new model call is started for the run. The audit log records who, when, the reason and
+    the stage the run was in. (SAD W-19a, test T-RUN-3.)
+21. **Given** a run that is failed, abandoned or completed, **when** the specialist tries to abandon it,
+    or a decision is sent for it, **then** the request is refused with a plain message giving the run's
+    state. **Given** an abandon request made on an out-of-date run screen, or submitted twice, **then** it
+    is refused and only one abandon is recorded (the stale-screen rule, US-004 criterion 18). (SAD test
+    T-RUN-4.)
 
 ## 4. Scope Notes
 
@@ -77,6 +96,9 @@ have already made.
   entry after that limit (decision log DL-18).
 - **Not included**: releasing a verification or applicability unit, releasing several documents at
   once, or releasing before the re-run limit. A release is never a shortcut.
+- **Abandon is not a general cancel**: it closes a run and nothing else. There is no cancel of a model
+  call or a step, no undo of a decision, no rollback of a stage and no deletion of a draft (decision
+  log DL-22, SAD W-19a).
 - **Deferred**: automatic re-runs of a failed step or unit; resuming a run after the application
   restarts. (The SAD allows one automatic retry of a single failed call; the specialist sees only the
   outcome.)
@@ -90,7 +112,8 @@ have already made.
 - **System description**: NFR-004 · MC-001 · MD-009 · AC-030, AC-031
 - **Decision log**: DL-18 (criteria 14–15)
 - **SAD controls**: CR-023 (criterion 16) · CR-017 and MC-002 (criterion 17) · Production Shape circuit
-  breaker (criterion 18)
+  breaker (criterion 18) · run state model, W-19a and tests T-RUN-0 to T-RUN-4 (criteria 19–21)
+- **Decision log**: DL-22 (run state and abandon)
 - **Related SFS**: none yet
 
 ## Sources
@@ -113,16 +136,16 @@ have already made.
   document that reaches "needs attention" can be released to manual entry with a written reason, one
   document at a time and only after the re-run limit. Then G1 opens and the specialist adds missing
   rows by hand (US-016). See criteria 14–15.
-- **OQ-US015-3**: A verification or applicability unit (a row) that reaches "needs attention" holds G1
-  or G2 closed with no release; a new run is the only way through. Is that acceptable? (SAD SOQ-10, for
-  the operator; nothing is decided here.)
-- **OQ-US015-4**: Criterion 16 refuses a second run while one is active (a stage not ended at its gate,
-  or a gate not completed). But criteria 13, 15 and 17, DL-18 and SAD SOQ-10 name "start a new run" as
-  the way out of a run that cannot continue (a unit that needs attention, the cost cap, an outage). A
-  stuck run is still active, so a new run would be refused. Nothing says how a run ends other than by
-  completing. Also unclear: whether a run is finished after G3 is published, after G3 is declined, or
-  only when no gate is open. (For `@system.arch` and the operator; nothing is decided here and no
-  "abandon run" feature is added.)
+- **OQ-US015-3**: *Resolved for the MVP* (operator decision, 2026-11-12, decision log DL-22 and
+  OQ-US015-4). A verification or applicability unit (a row) that fails makes the run **failed**, and a
+  new run follows (criterion 19). Releasing such a unit stays future scope (SAD SOQ-10).
+- **OQ-US015-4**: *Resolved* (operator decision, 2026-11-12, decision log DL-22, SAD run state model).
+  A failed step moves the run to a terminal failed state, so it is no longer active and a new run is
+  allowed (criterion 19). Every agent step has a time limit that turns a hang into a failure. A
+  specialist action to **abandon** a run, with a written reason and an audit entry, closes an active run
+  without undoing anything (criterion 20). This is not a general cancel feature. A run ends when G3 is
+  decided, fails, or is abandoned; the architect confirms that a declined G3 also ends the run (SAD
+  SA-17).
 
 ## Audit
 
@@ -137,3 +160,7 @@ have already made.
   notes); new OQ-US015-3 for verifier and judge units (SAD SOQ-10); NFR-004 and AC-031 in the SD
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-023, CR-017, Production Shape) · criteria 16–18: a second run is refused and names the active run; run status shows the US$2 warning and the cost-cap stop; one "model service not responding" message instead of one per unit; new OQ-US015-4 (how a stuck run ends, since a new run is refused while one is active)
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD §2) · scope note: a restart does not resume a run, but running units are marked failed and re-runnable so decisions survive; full resume stays deferred; no criterion changed
+- 2026-11-12 · persona `product-mgr` · action `update` (OQ-US015-4, DL-22) · criterion 16 reworded to the
+  run state model; criteria 19–21 (a failed step or timeout ends the run as failed; abandon with a
+  reason, audited, nothing undone; refusals on a closed run); scope note that abandon is not a general
+  cancel; OQ-US015-3 and OQ-US015-4 resolved; operator decision
