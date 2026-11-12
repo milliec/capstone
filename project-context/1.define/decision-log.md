@@ -42,6 +42,9 @@ The operator reviewed the PRD from a user-experience point of view.
 - **Note**: re-running is **new scope**. It goes into the architect's estimate (PRD OQ-5). Retry limits
   stay open (approval map OD-7, US-015 OQ-US015-1).
 - **Changed**: PRD §6 (replaces the one-line failure requirement), OQ-5 · new US-015.
+- **Superseded for the MVP (DL-22, 2026-11-12):** re-running a failed step is future scope. In the thin
+  slice a failed step ends the run as failed and the specialist starts a new run, or abandons an active
+  run with a written reason (US-015 criteria 19–21). The rest of this decision stands.
 
 ### DL-03 · Each verifier flag states its type and evidence
 
@@ -373,7 +376,12 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   AC-028, AC-031, US-005, US-016, US-015 criteria 4–6 and the release criteria, US-004 reopen and
   group-confirmation criteria, US-007 reopen criteria, US-011 review-notice criteria, US-013 criteria
   8–9); record PRD OQ-5 as decided (scope) with capacity still open; note that DL-02's re-run is
-  superseded for the MVP.
+  superseded for the MVP. **Done 2026-11-12 by `@product-mgr`:** the future-scope items are marked
+  *Deferred (DL-22)* in the SD (FR/AC/NFR-004, §9 list), the stories, the PRD (F3, F5, F8, §6, OQ-5 decided
+  on scope) and the story README ("Scope status (DL-22)"); DL-02 carries a superseded note. Beyond the
+  starting list, these were also marked: FR-005 and FR-006 edit parts, AC-030's re-run part, US-001
+  criterion 9, and US-015 criteria 11–13 and 18 and the restart note. Kept in the MVP: US-015 criteria 9
+  and 10 (a failed unit is named, the gate stays closed).
 
 ---
 
@@ -405,3 +413,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-21 (CrewAI adapter deviations D1–D5 and interpretation D6 accepted, with conditions on D4 and D5); operator decision
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-22 (the MVP is the thin slice; recovery, reopen, release, dead-end handling, impact report and extra CI checks move to future scope); operator decision. Follow-ups listed for `@product-mgr`
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-22 updated with the operator's answer to OQ-US015-4: failed step → terminal FAILED run, step time limits, specialist abandon run with a reason (not a general cancel); estimate +2 days (slice ≈ 44.5, 33.5–63); SAD run state model, US-015 criteria 19–21
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-22 follow-up done: future-scope requirements, acceptance criteria, story criteria and PRD rows marked deferred (nothing deleted); PRD OQ-5 recorded as decided on scope, capacity open; DL-02 re-run superseded for the MVP

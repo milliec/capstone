@@ -1,10 +1,12 @@
 # US-005 — Edit a rule and re-verify it
 
+> **Deferred (DL-22).** Designed and written down, not built in the MVP. It is built only after the operator moves it into scope.
+
 ## 1. Story Identity
 
 - **ID**: US-005
 - **Title**: Edit a rule and re-verify it
-- **Priority**: Must
+- **Priority**: Deferred (DL-22); was Must
 - **Persona**: Compliance specialist
 
 ## 2. Narrative
@@ -67,3 +69,4 @@ so that a human edit is never the one change nobody checked.
   until reopened (SD FR-023), operator decision
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · scope note: the edit form on an empty
   row creates a missed row (US-016, FR-027, DL-15); no criterion changed
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · whole story marked deferred (thin-slice MVP); nothing deleted

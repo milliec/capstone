@@ -13,8 +13,8 @@ stories pass. It depends on US-005 and is not part of the Week 6 definition of d
 | 3 | [US-002](US-002-verify-quotes.md) | Verify quotes | Specialist | F2 | FR-003 |
 | 3 | [US-003](US-003-check-source-conflicts.md) | Check conflicts (internal and between sources) | Specialist | F2 | FR-004 |
 | 4 | [US-004](US-004-approve-rules-g1.md) | Approve or reject rules (G1) | Specialist | F3 | FR-005, FR-023, FR-029 |
-| 4 | [US-005](US-005-edit-rule-and-reverify.md) | Edit a rule and re-verify it | Specialist | F3 | FR-006, FR-007 |
-| 4 | [US-016](US-016-create-missed-rule-by-hand.md) | Add a missed rule by hand | Specialist | F3 (new scope, DL-15) | FR-027 |
+| 4 | [US-005](US-005-edit-rule-and-reverify.md) | Edit a rule and re-verify it *(deferred, DL-22)* | Specialist | F3 | FR-006, FR-007 |
+| 4 | [US-016](US-016-create-missed-rule-by-hand.md) | Add a missed rule by hand *(deferred, DL-22)* | Specialist | F3 (new scope, DL-15) | FR-027 |
 | 5 | [US-006](US-006-judge-applicability.md) | Judge applicability for the fund | Specialist | F4 | FR-008, FR-009 |
 | 6 | [US-007](US-007-approve-verdicts-g2.md) | Confirm or override verdicts (G2) | Specialist | F5 | FR-010, FR-024 |
 | 7 | [US-008](US-008-generate-scheduled-calendar.md) | Generate calendar dates for scheduled obligations | Specialist | F6 | FR-011, FR-012, FR-016 |
@@ -78,6 +78,26 @@ Every acceptance criterion in `system-description.md` §8 is tested by at least 
 | AC-032 | US-010, US-004 (assumptions: US-011) | | |
 
 Stretch: AC-018, AC-019, AC-020 and AC-025 are covered by US-014.
+
+### Scope status (DL-22)
+
+The MVP is the thin slice (decision log DL-22). The items below are written down and designed, not
+built; they are marked *Deferred (DL-22)* where they appear. Nothing was deleted.
+
+| Where | Deferred |
+|---|---|
+| Whole stories | US-005 (edit and re-verify), US-016 (add a missed rule by hand) |
+| US-001 | criterion 9; the reopening clause of criterion 10 |
+| US-004 | criteria 9–11 (reopen a rejected row), 14–16 (possible duplicates, completion confirmation) |
+| US-007 | criteria 8–9 (reopen a verdict) |
+| US-011 | criteria 9–10 (GP review notice) |
+| US-013 | criteria 8–9 (human-created rows, release counted) |
+| US-015 | criteria 4–6, 11–13, 14–15, 18; the restart note. Criteria 19–21 (failed run, abandon) stay |
+| System description | FR-007, FR-023, FR-024, FR-025, FR-027, FR-029; AC-005, AC-022 to AC-024, AC-027, AC-028, AC-031; the edit parts of FR-005 and FR-006; the re-run sentences of NFR-004 and AC-030 |
+
+Still in the MVP: the coverage view (FR-028), G1 reject and approve over a flag with a reason, G2
+override and "unsure", G3 decline with a reason, the evaluation report, and the run states (US-015
+criteria 16, 19–21).
 
 ### Constraints covered outside the stories
 
@@ -154,3 +174,4 @@ at each gate. The stories assume these demo decisions:
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-18, DL-20) · US-004 criterion 17, US-010 criterion 12, US-013 criterion 9, US-011 assumption; AC-031 and AC-032 in the coverage table; PRD F3 line for released documents
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009, CR-023, CR-017) · new criteria for out-of-date and double-submitted decisions (US-004 c18, US-007 c12, US-010 c13) and for the active-run rule, cost-cap stop and service-outage message (US-015 c16–18); OQ-US015-4 raised
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-4, SOQ-11, §2, §4) · PRD OQ-8 and OQ-US016-1 resolved; US-008 and US-015 notes point to the SAD's entry-ID scheme and restart behaviour
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope stories and criteria marked deferred; new "Scope status (DL-22)" table; nothing deleted

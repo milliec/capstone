@@ -34,10 +34,10 @@ quote their source paragraph, so that I check rules instead of writing them by h
    of the 6 paragraphs the rows cite. It is computed from the loaded paragraph IDs and the rows' cited IDs only:
    the answer key is not used, and the view does not say which uncited paragraphs contain an
    obligation. It does not block G1.
-9. **Given** the coverage view lists a paragraph, **when** the specialist creates a row that cites it
+9. *Deferred (DL-22).* **Given** the coverage view lists a paragraph, **when** the specialist creates a row that cites it
    (US-016), **then** the paragraph no longer appears in the view.
 10. **Given** a paragraph whose only row is rejected at G1 (US-004), **then** the paragraph appears in
-    the coverage view again. If the row is reopened (US-004 criterion 9), the paragraph leaves the view.
+    the coverage view again. If the row is reopened (US-004 criterion 9), the paragraph leaves the view. *The reopening part is deferred (DL-22).*
     (Tested with a rejected copy of a row, not by changing the mock sources.)
 
 ## 4. Scope Notes
@@ -86,3 +86,4 @@ quote their source paragraph, so that I check rules instead of writing them by h
   obligation); operator decision. AC-001 and AC-002 unaffected
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-8) · criterion 7 clarified: valid rows from
   other documents are kept and only the failed document is re-run (US-015, NFR-004)
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 9 (a row created by hand removes the paragraph from the view) deferred; the reopening clause of criterion 10 deferred; the coverage view itself stays

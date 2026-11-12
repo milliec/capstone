@@ -29,14 +29,14 @@ rule, so that only rules I trust enter the obligation library.
    who and when.
 8. **Given** the demo decisions in the story index, **then** all 6 rows end G1 approved, with business-day
    rules as in answer key §5.
-9. **Given** a rejected row, before or after publication, **when** the specialist reopens it without a
+9. *Deferred (DL-22).* **Given** a rejected row, before or after publication, **when** the specialist reopens it without a
    reason, **then** reopening is refused. **With** a reason, the row returns to **pending** and is
    re-verified. The original rejection stays in the audit log.
-10. **Given** a reopened row, **then** G1 is not complete until the row is approved or rejected again,
+10. *Deferred (DL-22).* **Given** a reopened row, **then** G1 is not complete until the row is approved or rejected again,
     and its verdict then needs G2. Until both are done, publishing a new calendar version is refused
     (US-010 criterion 2). If a calendar is already published, GPs keep seeing it until the specialist
     republishes, with a neutral review notice (US-011 criterion 9).
-11. **Given** a rejected row, **when** the specialist tries to edit it directly, **then** the edit is
+11. *Deferred (DL-22).* **Given** a rejected row, **when** the specialist tries to edit it directly, **then** the edit is
     refused. A rejected row is read-only until it is reopened (criterion 9); after reopening, normal
     pending-row editing applies (US-005).
 12. **Given** the G1 review screen, **then** there is no "approve all" or other bulk decision, and no
@@ -46,18 +46,18 @@ rule, so that only rules I trust enter the obligation library.
 13. **Given** undecided rows, **when** the specialist closes the screen, the session times out, or
     nothing is done, **then** those rows stay **pending** and G1 is not complete. Rows already decided
     keep their recorded decisions.
-14. **Given** rows that may describe one obligation, **when** G1 opens, **then** code groups them and
+14. *Deferred (DL-22).* **Given** rows that may describe one obligation, **when** G1 opens, **then** code groups them and
     shows each group as "possible duplicates" with a plain warning, every row's quote and source
     visible. A group forms when rows (a) cite the same paragraph ID, (b) match exactly on recipient,
     anchor and offset, or (c) match on recipient and frequency where one cites a primary source and the
     other a secondary summary (`SRC-PRACT-*`). No model merges rows, and a group does not block any
     single row: each row still needs its own decision (criterion 12). Groups are logged when computed.
     If the groups cannot be computed, G1 does not open and the failure is shown (US-015).
-15. **Given** a group with two or more **approved** rows, **when** the specialist completes G1, **then**
+15. *Deferred (DL-22).* **Given** a group with two or more **approved** rows, **when** the specialist completes G1, **then**
     completion is refused until they give one confirmation with a written reason, naming the rows. With
     the reason, G1 completes, and the audit log records the confirmation with the reason and the rows'
     IDs and versions. A group with one or no approved rows needs no confirmation. (Decision log DL-16.)
-16. **Example:** a copy of `OBL-02` is added so two rows cite `SRC-UCILAW-P2`: one group is shown with
+16. *Deferred (DL-22).* **Example:** a copy of `OBL-02` is added so two rows cite `SRC-UCILAW-P2`: one group is shown with
     a warning. The specialist approves both and tries to complete G1 without a reason: refused. With a
     reason: G1 completes and the audit entry shows the reason and both rows. (Tested with a copy of a
     row, as in US-013 criterion 4.)
@@ -126,3 +126,4 @@ rule, so that only rules I trust enter the obligation library.
   traced to SD AC-032; operator decision
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009) · criterion 18: a decision made on an
   out-of-date screen, or submitted twice, is refused with a plain message showing the current version
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 9–11 (reopen a rejected row; rejected rows read-only) and 14–16 (possible duplicates and the completion confirmation) marked deferred; nothing deleted

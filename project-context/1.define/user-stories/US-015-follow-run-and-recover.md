@@ -20,11 +20,11 @@ have already made.
 2. **Given** a step fails or returns invalid output (as in US-001 criterion 7 and US-006 criterion 7),
    **then** a plain message names the step and confirms that nothing moved forward.
 3. **Then** the run stops at the last safe state, and every gate decision already recorded is kept.
-4. **When** the specialist re-runs the failed step, **then** it runs again from the last safe state.
+4. *Deferred (DL-22).* **When** the specialist re-runs the failed step, **then** it runs again from the last safe state.
    Finished steps are not repeated, and earlier gate decisions are not asked for again.
-5. **Example:** applicability fails after G1 is complete. The specialist re-runs applicability. The six
+5. *Deferred (DL-22).* **Example:** applicability fails after G1 is complete. The specialist re-runs applicability. The six
    G1 decisions stay as they were, and extraction and verification do not run again.
-6. **Then** a re-run step replaces its own failed output. It does not add duplicate rows or verdicts.
+6. *Deferred (DL-22).* **Then** a re-run step replaces its own failed output. It does not add duplicate rows or verdicts.
 7. **Then** every failure and every re-run is recorded in the audit log with who, when and which step.
 8. **Then** the messages follow the voice rule in PRD §6: they state facts without reassurance or alarm.
 9. **Given** a step made of one call per unit (extraction: one per source document; verification and
@@ -34,22 +34,22 @@ have already made.
 10. **Then** the gate after that step does not open until every unit has valid output. This is what
     "nothing is passed to review" means in US-001 criterion 7 and US-006 criterion 7. The one exception
     is a source document released to manual entry (criterion 14).
-11. **When** the specialist re-runs a failed unit, **then** only that unit runs again. Its new output
+11. *Deferred (DL-22).* **When** the specialist re-runs a failed unit, **then** only that unit runs again. Its new output
     replaces its own earlier output for the same input, valid units and recorded gate decisions stay as
     they were, no duplicate rows or verdicts appear, and the audit log names the unit.
-12. **Example:** applicability output for `OBL-04` is invalid. The other five verdicts are kept and G2
+12. *Deferred (DL-22).* **Example:** applicability output for `OBL-04` is invalid. The other five verdicts are kept and G2
     does not open. The specialist re-runs `OBL-04` only, and G2 then opens with all six verdicts.
-13. **Given** a unit that has been re-run 3 times for the same input without valid output, **then** it
+13. *Deferred (DL-22).* **Given** a unit that has been re-run 3 times for the same input without valid output, **then** it
     is marked **needs attention**, the specialist is told this is likely a systematic failure and not a
     one-off, and no further re-run is offered for that input. The specialist can start a new run. For a
     source document, criterion 14 also applies. (SAD CR-010; an input changes when a row or document
     changes.)
-14. **Given** a source document whose extraction is **needs attention**, **when** the specialist
+14. *Deferred (DL-22).* **Given** a source document whose extraction is **needs attention**, **when** the specialist
     releases it to manual entry with a written reason, **then** that one document stops holding G1
     closed. Release is refused without a reason, refused before the document has reached the re-run
     limit, and applies to one document at a time. Every other unit must still be valid before G1 opens.
     The release is recorded in the audit log with who, when, the document and the reason.
-15. **Given** a released document, **when** G1 opens, **then** its paragraphs appear in the coverage view
+15. *Deferred (DL-22).* **Given** a released document, **when** G1 opens, **then** its paragraphs appear in the coverage view
     (US-001 criterion 8) because no row cites them, and the specialist adds any missing rows by hand
     (US-016). The evaluation report counts the release as one **extraction failure** (SD AC-031).
     A row unit (verification or applicability) that reaches "needs attention" has no release: a new run
@@ -65,7 +65,7 @@ have already made.
     reached and nothing further moved forward. The cost counts every call, including retries, re-runs
     and re-verifications. The specialist decides whether to start a new run. (SAD CR-017, SD MC-002;
     the US$2 target itself is judged in US-013 criteria 3 and 6.)
-18. **Given** 3 model calls in the same stage have failed on transport or provider errors (after their
+18. *Deferred (DL-22).* **Given** 3 model calls in the same stage have failed on transport or provider errors (after their
     one automatic retry), **then** the stage issues no new calls, calls already in progress finish and
     their valid outputs are kept, and run status shows **one** message, such as "the model service is
     not responding; nothing moved forward", not one message per unit. The message follows the voice rule
@@ -93,7 +93,8 @@ have already made.
 
 - **In Scope for MVP**: one run at a time; re-running only the unit that failed (a document or a row),
   by the specialist, up to 3 times per unit and input; releasing one failed source document to manual
-  entry after that limit (decision log DL-18).
+  entry after that limit (decision log DL-18). *Deferred (DL-22): unit re-runs and the release. In the
+  MVP a failed step ends the run as failed (criterion 19).*
 - **Not included**: releasing a verification or applicability unit, releasing several documents at
   once, or releasing before the re-run limit. A release is never a shortcut.
 - **Abandon is not a general cancel**: it closes a run and nothing else. There is no cancel of a model
@@ -102,7 +103,7 @@ have already made.
 - **Deferred**: automatic re-runs of a failed step or unit; resuming a run after the application
   restarts. (The SAD allows one automatic retry of a single failed call; the specialist sees only the
   outcome.)
-- **Restart (SAD §2)**: a restart does not resume a run. On start-up, every unit that was still
+- **Restart (SAD §2)**: *Deferred (DL-22): the restart sweep.* A restart does not resume a run. On start-up, every unit that was still
   running is marked failed and re-runnable, so the recorded decisions and the last safe state survive.
   That is the "comes free" part; a full resume stays deferred.
 
@@ -164,3 +165,4 @@ have already made.
   run state model; criteria 19–21 (a failed step or timeout ends the run as failed; abandon with a
   reason, audited, nothing undone; refusals on a closed run); scope note that abandon is not a general
   cancel; OQ-US015-3 and OQ-US015-4 resolved; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 4–6 (re-run from the last safe state), 11–13 (unit re-run, example, "needs attention"), 14–15 (release) and 18 (circuit breaker) marked deferred, with the restart note; criteria 1–3, 7–10, 16–17 and 19–21 stay; DL-02's re-run is superseded for the MVP

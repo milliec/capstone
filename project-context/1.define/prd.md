@@ -235,13 +235,13 @@ trust enter the library.*
 
 | Acceptance criterion | Trace |
 |---|---|
-| Each row can be approved, edited or rejected. The business-day rule is set at approval. | SD FR-005 |
-| An edit re-runs the verifier on that row. | SD AC-005 |
+| Each row can be approved, edited or rejected. The business-day rule is set at approval. *Edit deferred (DL-22): the MVP's G1 has approve and reject only.* | SD FR-005 |
+| *Deferred (DL-22).* An edit re-runs the verifier on that row. | SD AC-005 |
 | A row with a remaining flag cannot be approved without a written reason. With a reason, it is approved and the reason is logged. | SD AC-006 |
-| Editing an approved row returns it to pending and marks its calendar entries out of date. | SD AC-005, FR-007 |
-| A rejected row can be reopened with a reason, before or after publication. It returns to pending and goes through G1 and G2 again. | SD FR-023, AC-022 |
-| At G1 the specialist can add a missed row by hand, using the edit form on an empty row. No model is involved. The row needs a source paragraph and a verbatim quote, passes the code quote check, is labelled as manual, gets its own G1 decision, and is audited. | SD FR-027, AC-027 |
-| After a source document is released to manual entry (it failed its re-runs), the specialist adds that document's rows by hand in the same way: a source paragraph and verbatim quote, the code quote check, labelled as manual, audited. | SD FR-027, NFR-004, AC-031 |
+| *Deferred (DL-22).* Editing an approved row returns it to pending and marks its calendar entries out of date. | SD AC-005, FR-007 |
+| *Deferred (DL-22).* A rejected row can be reopened with a reason, before or after publication. It returns to pending and goes through G1 and G2 again. | SD FR-023, AC-022 |
+| *Deferred (DL-22).* At G1 the specialist can add a missed row by hand, using the edit form on an empty row. No model is involved. The row needs a source paragraph and a verbatim quote, passes the code quote check, is labelled as manual, gets its own G1 decision, and is audited. | SD FR-027, AC-027 |
+| *Deferred (DL-22).* After a source document is released to manual entry (it failed its re-runs), the specialist adds that document's rows by hand in the same way: a source paragraph and verbatim quote, the code quote check, labelled as manual, audited. | SD FR-027, NFR-004, AC-031 |
 
 #### F4. Applicability verdicts
 **Why:** UN-S5 · MRD §1 (each framework means interpreting obligations again), MRD §3
@@ -265,7 +265,7 @@ wrongly hidden or added.*
 | G2 cannot be completed while any verdict is "unsure". | SD AC-008 |
 | When the specialist decides an "unsure" verdict as "applies" under P-1, it is labelled **precautionary** with its reason (for `OBL-04`: "precautionary: registration unconfirmed"). The label is visible at G2 and carried into the calendar. | SD P-1, OQ-11 · KEY §2 |
 | At G2, each fund fact ID cited in a verdict can be opened to show what the fact says. Read-only. | SD MD-002, FR-008 · Operator decision (UX review, 2026-11-09) |
-| A confirmed verdict can be reopened with a reason, before or after publication, without editing its rule. It returns to G2, and its entries are marked out of date until the dates are regenerated. | SD FR-024, AC-023 |
+| *Deferred (DL-22).* A confirmed verdict can be reopened with a reason, before or after publication, without editing its rule. It returns to G2, and its entries are marked out of date until the dates are regenerated. | SD FR-024, AC-023 |
 
 #### F6. Deterministic calendar
 **Why:** UN-S6, UN-G5 · MRD §2 (deadlines set by hand, inconsistently), MRD §4 (anchor + offset)
@@ -304,7 +304,7 @@ filing and don't have to read legal text.*
 | Each entry shows what (obligation + authority), when (date + roll note if moved), who files, and why (reason + source citation and quote). | SD AC-014 |
 | No pending, unsure, rejected or conflicted working content is shown. | SD MN-007 |
 | A precautionary entry shows "precautionary" and its reason. GP text must not state or imply that a registration or marketing is permitted. | SD P-1, OQ-11 |
-| After publication, a change that questions the published calendar shows GPs a neutral review notice. The last published entries and their publication date stay visible. The notice clears only on a successful republish. | SD FR-025, AC-024 |
+| *Deferred (DL-22).* After publication, a change that questions the published calendar shows GPs a neutral review notice. The last published entries and their publication date stay visible. The notice clears only on a successful republish. | SD FR-025, AC-024 |
 | The GP cannot change anything. | SD §1, NFR-010 |
 | **Must.** The GP view carries one calendar-level note: entries are specialist-approved interpretations, not legal advice, and the date conventions behind them have not yet been checked against the legal texts. The note is not repeated on each entry. | SD FR-020, MN-009, A-7 · Operator decision (business review, 2026-11-09) |
 
@@ -423,7 +423,7 @@ Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
 | Flags and "unsure" verdicts are visibly distinct and block their gate until resolved. | SD AC-006, AC-008 |
 | Overrides ask for a written reason. | SD AC-006 |
 | **Run status.** During a run, the specialist sees which steps have finished and which step is running. | SD MC-001 · Operator decision (UX review, 2026-11-09) |
-| **Failures.** If a step fails, a plain message names the step and confirms nothing moved forward. The run stops at the last safe state, and gate decisions already recorded are kept. The specialist can re-run the failed step from that state, without repeating finished steps or earlier gate decisions. | SD NFR-004 · Operator decision (UX review, 2026-11-09) · OQ-5 |
+| **Failures.** If a step fails, a plain message names the step and confirms nothing moved forward. The run stops at the last safe state, and gate decisions already recorded are kept. The specialist can re-run the failed step from that state, without repeating finished steps or earlier gate decisions. *Deferred (DL-22): re-running from the last safe state. In the MVP a failed step ends the run as failed and the specialist starts a new run; an active run can be abandoned with a written reason (US-015 criteria 19–21).* | SD NFR-004 · Operator decision (UX review, 2026-11-09) · OQ-5 |
 | Rolled and unconfirmed dates are labelled in plain English. | SD AC-010, AC-011 |
 | GP-facing "why" text is readable by a non-lawyer. | SD NFR-005 |
 | **Voice.** Agent and system text uses plain British English. It states facts and uncertainty without reassurance or alarm, cites its source and gives no advice. GP-facing text is written for a non-lawyer and stays neutral. Checked in a copy review before the demo. Detailed voice guidance belongs to `@ux.designer`. | SD NFR-005, MN-009 · Operator decision (UX review, 2026-11-09) |
@@ -565,10 +565,14 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - **OQ-5**: Does the MVP scope fit six weeks, and how are the weeks split across Define, Build and
   Deliver? **Not yet shown.** Operator decision: keep the full scope until the architect estimates it
   after the SAD. A possible cut line (a core demo path vs hardening stories) was proposed in Define and
-  **not** adopted. *2026-11-09: re-running a failed step (§6) is new scope and goes into the estimate.*
+  **not** adopted. *2026-11-09: re-running a failed step (§6) is new scope and goes into the estimate. 2026-11-12 (operator decision, DL-22): superseded for the MVP, the re-run is deferred.*
   *2026-11-09 (business review): the timebox is six weeks. `@system.arch` estimates the Must scope
   against it, including the recovery paths (SD FR-022 to FR-025) and the full gate
   logic, and a cut line is agreed with the operator before Build (§8 risks).*
+  **Decided on scope (operator, 2026-11-12, DL-22):** the MVP is the thin slice, estimated at about 44.5
+  focused days (33.5–63) with the run-state change; the future-scope items are listed in SD §9. The
+  capacity the operator can commit is still open: the operator committed the time the slice needs
+  without a number (SAD SOQ-12), and the week-1 re-estimate is the check.
 - **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
   *Before first publication only. After publication, see SD FR-025 (SD OQ-7 resolved).*
 - **OQ-7**: *Part resolved.* Business-day rules for `OBL-04` and `OBL-05`: *resolved* (operator
@@ -665,3 +669,4 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-18) · F3: one criterion for manual entry of rows after a source document is released (source quote, code quote check, labelled manual, audited); closes US-016 OQ-US016-2; operator decision
 - 2026-11-11 · persona `product-mgr` · action `update` · F3 corrected: separate criteria for a missed row at G1 (FR-027, AC-027) and for a released document (FR-027, NFR-004, AC-031); replaces the earlier released-document-only line; operator decision
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-4) · OQ-8 resolved: Next.js (App Router) with TypeScript; no requirement changed
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope criteria in F3, F5 and F8 marked deferred; §6 failures row notes the deferred re-run and the MVP behaviour; OQ-5 recorded as decided on scope (capacity still open); DL-02's re-run superseded for the MVP; operator decision
