@@ -29,7 +29,10 @@ miss a filing and don't have to read legal text.
    fund's CNMV registration is confirmed. The entry shows "precautionary" and its reason. No GP text
    states or implies that a registration or marketing is permitted. (PRD F8, SD P-1, OQ-11)
 6. **Then** the GP has no way to change anything. Any attempt to change data as a GP is refused.
-7. **Given** the calendar is not published, **then** the view shows an empty state with no entries.
+7. **Given** the calendar is not published, **then** the view shows a read-only empty state with no
+   entries and this message: "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." It shows no entry, count, status or draft content, and no
+   notification is sent. The message appears only before the first publication; it is not the review
+   notice of criteria 9 and 10. (Decision log DL-27, SD AC-013.)
 8. **Then** the view meets WCAG 2.2 AA.
 9. *Deferred (DL-22).* **Given** a published calendar, **when** a change calls its accuracy or completeness into question
    (SD FR-025 triggers, including reopening a "does not apply" verdict or a rejected rule), **then** the
@@ -52,6 +55,7 @@ miss a filing and don't have to read legal text.
 
 - **PRD Anchors**: F8 · §2 step 9 · §6 · UN-G1 to UN-G6 · AB-5, AB-6, AB-7
 - **System description**: FR-015, FR-020, FR-025 · A-7 · MD-008 · MN-007 · NFR-005, NFR-010 · AC-013, AC-014
+- **Decision log**: DL-27 (criterion 7)
 - **Related SFS**: none yet
 
 ## Sources
@@ -66,13 +70,15 @@ miss a filing and don't have to read legal text.
   also for the specialist only. The GP sees the date without it, as US-010 criterion 12 requires. The
   calendar-level note (criterion 11) already tells GPs that date conventions are unchecked.
   (Decision log DL-20, SD AC-032.)
-- Display wording above is an example. Exact wording and layout are for `@ux.designer`.
+- Display wording above is an example, except the criterion 7 message, which is the agreed text
+  (DL-27). It goes through the copy review (DL-05), and a change to it is recorded in DL-27. Layout
+  and the rest of the wording are for `@ux.designer`.
 
 ## Open Questions
 
-- **OQ-US011-1**: Should the GP see a neutral "under review" note for items still with compliance?
-  Decide before the UX step. (PRD OQ-6) *Before first publication only. After publication, see
-  criteria 9 and 10.*
+- **OQ-US011-1**: *Resolved* (operator decision, 2026-11-12, decision log DL-27). Before the first
+  publication the GP sees the read-only message in criterion 7, with no count or status. (PRD OQ-6)
+  *After publication, see criteria 9 and 10 (deferred, DL-22).*
 
 ## Audit
 
@@ -88,3 +94,4 @@ miss a filing and don't have to read legal text.
 - 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 5: shows "precautionary" and its reason; no implied registration or marketing permission (PRD F8); decision log DL-01
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · assumption: the OBL-02 open-question mark is specialist-only, matching US-010 criterion 12; no criterion changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 9–10 (the GP review notice) marked deferred; the calendar-level note (criterion 11) stays; nothing deleted
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · criterion 7 names the agreed "being prepared" message (read-only, no count or status, no notification); OQ-US011-1 resolved; assumption notes the message is agreed text; operator decision

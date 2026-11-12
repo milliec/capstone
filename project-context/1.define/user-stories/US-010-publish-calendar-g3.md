@@ -23,7 +23,8 @@ so that GPs never see unfinished work.
 4. **Given** entries marked "roll rule unconfirmed" or "precautionary", **then** they do **not** block
    publishing. They are safe defaults (design principle P-1).
 5. **When** the specialist publishes, **then** the whole fund calendar is published at once.
-6. **Given** the calendar has not been published, **then** the GP view shows no entries for the fund.
+6. **Given** the calendar has not been published, **then** the GP view shows no entries for the fund,
+   only the read-only message in US-011 criterion 7.
 7. **Then** every publish, and every refused attempt, is recorded in the audit log with who and when.
 8. **Given** a generated calendar, **when** the specialist declines at G3 without a reason, **then** the
    decline is refused. **With** a reason and a chosen next step (G1, G2, or keep unpublished), it is
@@ -117,3 +118,4 @@ so that GPs never see unfinished work.
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009) · criterion 13: a publish or decline
   made on an out-of-date calendar screen, or a publish submitted twice, is refused with a plain message
   showing the current version
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · criterion 6 points to the GP message in US-011 criterion 7; no behaviour changed

@@ -573,8 +573,10 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   focused days (33.5–63) with the run-state change; the future-scope items are listed in SD §9. The
   capacity the operator can commit is still open: the operator committed the time the slice needs
   without a number (SAD SOQ-12), and the week-1 re-estimate is the check.
-- **OQ-6**: Should the GP view show a neutral "under review" note? Decide before the UX step. (SD OQ-1)
-  *Before first publication only. After publication, see SD FR-025 (SD OQ-7 resolved).*
+- **OQ-6**: *Resolved* (operator decision, 2026-11-12, decision log DL-27). Yes, before the first
+  publication only: the GP view shows a read-only empty state with the message "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." No
+  notifications are sent. (SD OQ-1) *After publication, see SD FR-025 (SD OQ-7 resolved); that review
+  notice stays future scope (DL-22).*
 - **OQ-7**: *Part resolved.* Business-day rules for `OBL-04` and `OBL-05`: *resolved* (operator
   decision, 2026-11-11, decision log DL-19). A rule the sources do not state stays "not confirmed"
   until the specialist sets one at G1; code never infers one. Both rows stay "not confirmed" in the
@@ -670,3 +672,4 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-11 · persona `product-mgr` · action `update` · F3 corrected: separate criteria for a missed row at G1 (FR-027, AC-027) and for a released document (FR-027, NFR-004, AC-031); replaces the earlier released-document-only line; operator decision
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-4) · OQ-8 resolved: Next.js (App Router) with TypeScript; no requirement changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope criteria in F3, F5 and F8 marked deferred; §6 failures row notes the deferred re-run and the MVP behaviour; OQ-5 recorded as decided on scope (capacity still open); DL-02's re-run superseded for the MVP; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · OQ-6 resolved: before the first publication the GP view shows a read-only "being prepared" message; operator decision
