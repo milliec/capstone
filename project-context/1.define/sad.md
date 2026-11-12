@@ -5,7 +5,9 @@
 One fictional Luxembourg UCI Part II fund (`FND-DEMO-01`), mock data, mocked roles.
 **Status**: **Being rewritten as a lean MVP SAD (`*create-sad --mvp`). Pass 1 of 4 is done:** the
 MVP scope, the decisions in force, the evaluation run rules and release rule (DL-34), the five-day
-estimate, the known limitations, Future Work and the open questions. A heading marked *pending*
+estimate, the known limitations, Future Work and the open questions. **Pass 2 is part done:** Work
+Ownership (with the quote-check rule and the run state model) and the Delegation Map table. Still
+to come in pass 2: the diagrams, Pattern Decision, Reference Architecture and §1. A heading marked *pending*
 has not been rewritten yet. **Nothing is built from a pending heading**; passes 2 to 4 fill them.
 
 > **This document replaces the full design.** The earlier SAD (1,960 lines) described the MVP and
@@ -96,13 +98,181 @@ already failed), starts again and repeats the gate decisions. See "Known limitat
 
 ### Work Ownership
 
-*Pending: pass 2. Rows W-01 to W-21 for the slice only, the quote-check rule QN-1 with its tests,
-the run state model, and the feasibility verdict.*
+Each step has one owner. **Model** means a language-model call, made by one of the three CrewAI
+agents. **Existing system** means deterministic application code (there is no legacy system; this
+is the code the project writes, which owns rules and records). **Human** means the compliance
+specialist, acting through the review pages. **Collaborative** means draft-and-decide: a model
+drafts, a human decides, and the decision is the record.
+
+**The lens.** Four properties of a language model decide what it may own:
+
+- *Probabilistic output* → a model may draft, never decide or record. Every model output is a
+  proposal that code checks and a human decides on. Exact-match targets (SD MP-001 to MP-004) are
+  measured, not guaranteed.
+- *Knowledge cutoff* → the model is never asked what the law says from memory. It reads the mock
+  paragraphs and fund facts it is given, and every claim cites one (SD MN-006, MD-002).
+- *Limited working memory* → each model step receives only what that step needs (one document; one
+  row and its sources; one row and the fund profile).
+- *Steerability* → a model can be talked into a wrong answer by its inputs, so no model output
+  changes state. Gates, dates, status and the audit log are code paths with no model in them
+  (SD MN-003, MN-005, NFR-003).
+
+Deterministic rules and live records stay with code: due dates, business-day rolls, holiday lists,
+stable IDs, gate state, decision versions and the audit log.
+
+| # | Step | Owner | Reversibility | Stakes | Accountable | Rationale and trace |
+|---|---|---|---|---|---|---|
+| W-01 | Start a run on the mock sources for `FND-DEMO-01` | Human (trigger) · existing system (execution) | High: a run creates drafts only | Low | Specialist | One run at a time (CR-023). Starting a run changes nothing a GP can see. The planted-row switch is off unless the specialist turns it on for this run (see the note below the table). SD FR-001 · US-015 |
+| W-02 | Load the 6 mock source documents and split them into 13 paragraphs with stable IDs | Existing system | High | Low | Build crew | Parsing known text. A model here would make the IDs that every later step cites nondeterministic. SD FR-001 · AM A1 |
+| W-03 | **Extract** obligation rows: fixed schema, one paragraph ID, a verbatim quote, no dates | **Model** | High before G1: a draft row is approved or rejected, never published as it is | Medium. A wrong row is caught by the checks or at G1. **A missed row is the costlier error** (P-1) and is made visible by W-03b | Specialist (at G1) · Build crew (schema check) | The interpretation work the capstone tests. Code validates the output against the row schema before anyone sees it; invalid output ends the run as `FAILED`. A row's business-day rule defaults to "not confirmed" in code when the model gives none. Any rationale the extractor emits is logged and is not passed to later steps (W-05). SD MD-001, FR-002, MN-005, NFR-004 · US-001 |
+| W-03b | **Coverage view**: every loaded paragraph that no non-rejected row cites, shown at G1 and again at G3 | **Existing system** | High: a view only | High: without it a missed row is invisible until the evaluation report | Specialist (reads it) · Build crew | A set difference: loaded paragraph IDs minus the IDs cited by pending or approved rows, with each paragraph's text. The answer key is not used at run time, and the view does not say which uncited paragraphs hold obligations. In the demo set **seven** uncited paragraphs are expected: 13 loaded minus the 6 cited. Three of the seven are the `SRC-PRACT` summaries, which are never a row's source. **A real miss is corrected by a new run.** SD FR-028, AC-029, P-1 · US-001 c4, c8, c10 · DL-10, DL-30 |
+| W-04 | **Quote check**: is the quote word for word in the cited paragraph? | **Existing system** (rule QN-1 below) | High | High: a failed check blocks approval with no override (SD MN-006) | Build crew | A string comparison is a fact, not a judgement, so code is the authority (DL-14). The verifier receives the result and cannot overrule it. **A row that fails can only be rejected.** SD FR-003, MN-006, AC-004 · US-002 · AM A4, H3 |
+| W-05 | **Internal conflict check**: do the row's fields match what its own quote says? | **Model**, flag only | High: adds a flag, changes no field | Medium: a miss lets a wrong field reach G1 unflagged; the specialist still sees the quote next to the field | Specialist (at G1) | Comparing "+6 months" with "within six months following the end of the financial year" is reading, not string matching. The verifier cannot write row fields (SD MN-004). **Inputs:** the row's fields, its quote, the quote-check result and the cited paragraph. **Not** the extractor's reasoning or prompt: a checker that reads the maker's justification is anchored by it (SD MD-003). SD FR-004, AC-017 · US-003 c5–c6 · AM A5, A6 |
+| W-06 | **Cross-source conflict check**: does another source disagree with the row? | **Model**, flag only | High | Medium: false alarms cost trust (PRD AB-3); a miss leaves a disagreement to be found by chance | Specialist (at G1) | As W-05. The verifier receives the row and the full mock source set (6 short documents) and reports flags with both paragraph IDs and both quotes. It never chooses which source is right (SD MN-004). SD FR-004, AC-003 · US-003 · KEY §3 |
+| W-07 | **G1 decision** per row: approve and set the business-day rule; approve over a flag with a written reason; or reject with a written reason | **Human** decides · existing system records | **Low inside the run: each row is decided once.** A wrong decision is corrected by abandoning the run (W-19a) and starting a new one. Nothing reaches a GP before G3 | High: this is where a wrong rule enters the library | Specialist | A fixed project gate, not a trust setting (AM §6). Enforced in code: failed quote check → approval refused; remaining flag → reason required; any undecided row → G1 incomplete; a second decision on the same row → refused (CR-009). No bulk or preselected decisions (SD AC-026). SD MD-004, FR-005, AC-006 · US-004 · AM H1, H2, H3, H3a, H4 |
+| W-09 | **Gate state and transitions**: G1 complete → applicability may run; G2 complete → the calendar may be generated; G3 → publish | **Existing system** (the backend) | Not applicable (state machine) | Highest: a bypass is the failure the design exists to prevent | Build crew · `@security.eng` verifies | **The backend is the single owner of gate state** (DL-17). A stage function starts only when the backend calls it and ends by returning outputs. No agent and no stage function can decide, remember or advance a gate, and no agent has a tool. Enforced in backend code, never in the page and never in a prompt. Tested without a model (SD NFR-011). SD MN-003, MP-006 · AM A13, A14 · CR-001 |
+| W-10 | Load the mock fund profile (fact IDs) and event log | Existing system | High | Low | Build crew | Static mock data, read-only in the MVP (SD §9). SD FR-008 |
+| W-11 | **Applicability verdict** per approved row: applies, does not apply or unsure, with reasoning that cites fact IDs | **Model** | High before G2: every verdict is confirmed, overridden or decided by the specialist | High for a wrong "does not apply" (a deadline disappears, the most harmful error, P-1); medium otherwise | Specialist (at G2) | The second interpretation task. The judge is the only source of "unsure" and is told to prefer it to a confident guess when a fact is missing. Code validates the output: one verdict from the allowed set, at least one fact ID that exists, no dates; otherwise the run ends as `FAILED`. SD MD-002, FR-009, AC-007, MN-005 · US-006 · KEY §2 |
+| W-12 | **G2 decision** per verdict: confirm, override with a written reason, or decide an "unsure" | **Human** decides · existing system records | **Low inside the run: each verdict is decided once** (as W-07) | High: this decides what is on the calendar | Specialist | G2 cannot complete with any undecided "unsure" (SD AC-008). The **precautionary** label is applied by code from the specialist's decision, never by the model (DL-01): the model's verdict stays "unsure" in the log, and the specialist's "applies (precautionary)" is the record. Cited fund facts are shown read-only. SD MD-004, FR-010, P-1 · US-007 · AM H6, H7, H8, H9 |
+| W-13 | **Generate the calendar**: anchors, offsets, conventions `D-1` to `D-7`, business-day rolls against the mock holiday list, event-triggered entries, stable entry IDs | **Existing system** | High: a draft, invisible before G3 | High for correctness (one wrong date breaks trust, PRD AB-5); code ownership removes the probabilistic risk | Build crew · `@qa.eng` (22-entry exact-match test) | No model may compute a date (SD MN-005) and two runs must be identical (SD NFR-001). **Business-day rules are never inferred** (DL-19): a rule is stated in the source or set by the specialist at G1; otherwise it stays "not confirmed" and `D-6` applies (keep the earlier date, mark it). **An entry whose rule depends on an open question is marked, never silently resolved** (DL-20, CR-027); this covers `OBL-02`. Entry ID: `ENT-<fund>-<paragraph_id>-<recipient>-<period>`; if two approved rows give the same ID, generation fails closed and names both rows (DL-35). Runs only after G2 is complete, on approved inputs only. All or nothing (CR-011). SD MD-006, MD-007, FR-011 to FR-013, FR-016 · US-008, US-009 · KEY §4–§5 |
+| W-15 | **G3**: publish the whole calendar, or decline with a written reason | **Human** decides · existing system executes atomically | **Low**: there is no unpublish (SD §9). A published calendar is replaced only by a new run and a new publish | **Highest**: the only step that reaches GPs | Specialist | One explicit decision for the whole calendar, never preselected or triggered by a timeout. Code refuses publishing while G1 or G2 is incomplete. **Acknowledgement (DL-30):** the page lists the rows rejected at G1 and the uncited paragraphs (W-03b); the publish request must carry one explicit acknowledgement of those lists, or it is refused (`ACK_REQUIRED`, CR-028). A decline needs a reason, needs no acknowledgement, ends the run as `DECLINED` and cancels nothing. The "date conventions not yet checked" note is shown (DL-12). SD MD-004, FR-014, FR-022, FR-030, MP-006 · US-010 · AM H10, H10a, H11, H11a |
+| W-16 | **GP read-only calendar**: what, when, who and why per entry; one calendar-level "not legal advice / conventions not yet checked" note; before the first publication, one fixed "being prepared" message (DL-27) | **Existing system** (renders published data only) | Not applicable (read-only) | High: GPs rely on it | Build crew · `@ux.designer` (wording) | Read-only is enforced on the server, not by hiding buttons. The view reads only the published version; draft, flag and reasoning data are never sent to it (CR-012). SD FR-015, FR-020, MN-007, NFR-010 · US-011 · AM G1r to G3r |
+| W-17 | **GP-facing "why" text** per entry: plain-English reason, citation and quote | **Collaborative**: the judge drafts the reasoning (W-11) · the specialist confirms, overrides or decides at G2 · code renders it | Low inside the run (as W-12) | High: a GP reads it as the explanation; it must not imply permission (DL-01) | Specialist (content) · `@ux.designer` (voice, DL-05) | **The GP sees the reasoning of whoever made the final decision.** Confirm → the model's reasoning as confirmed. Override → the specialist's written reason; the model's text stays in the audit log only. Decide "unsure" → the specialist's written reason, plus the code-generated "precautionary" label and note. "Does not apply" → no entry, so no text. **So a G2 reason must be readable by a GP**, and the G2 page says so next to the field (SA-8). G1 reasons are specialist-only. No model runs on the GP path. SD MD-008, NFR-005, P-1 · US-007 c3, c5–c6 · US-011 c2–c5 |
+| W-18 | **Audit log**: every agent output, human decision (who, when, what, reason, version decided on), refusal and gate event; update and delete refused | Existing system | Not applicable (append-only by design) | High: the evidence for SD MP-008 and for the review-time measurement (MC-003) | Build crew · `@security.eng` (verifies append-only) | Bookkeeping with no decision in it. Append-only is enforced at the storage boundary (CR-013). SD MD-009, FR-017, NFR-003, AC-016 · US-012 · AM A16, A17 |
+| W-19 | **Run status**: the run's state and stage; for a failed run, the step, the unit and the reason in plain words | Existing system | Not applicable (a view) | Medium: the specialist needs it to know that a new run is the next step | Build crew | A view of the run state model below. **There is no re-run**; the status never offers one. SD NFR-004 · US-015 c1–c3, c19 |
+| W-19a | **Abandon a run** that is waiting at G1, G2 or G3, with a written reason | **Human** decides · existing system closes the run and refuses further decisions on it | High: nothing is undone or deleted, and a new run can start | Low to medium: abandoning the wrong run wastes review work; no published calendar, decision or audit entry changes | Build crew | **Not a general cancel.** It does not cancel a model call, undo a decision or delete a draft. It is the only way out of a run that waits at a gate and is not wanted, for example after a wrong rejection. Refused without a reason (`REASON_REQUIRED`), on a run that is not active (`RUN_NOT_ACTIVE`), and while a stage is running (`RUN_STAGE_RUNNING`). Audited with who, when, reason and stage. SD MN-003, NFR-004, MD-009, AC-035 · US-015 c20–c21 · DL-29 · AM H13, H13a |
+| W-20 | **Evaluation report** against the answer key: rows, flags, verdicts, calendar; run time, model cost, review time from audit timestamps; misses stated, never hidden | Existing system (comparison and report) · reads model outputs as data | High | Medium: the report is the proof (PRD §7); a hidden miss would be the harm | `@qa.eng` | Scoring is a deterministic comparison with KEY §1–§4. Three runs; **the report states the result and does not block** (DL-34, EC-R1). The altered-quote and `I-1` cases run on copies of rows, not on the mock sources. An evaluation run refuses to start with the planted-row switch on (EC-R7). SD FR-018, MP-001 to MP-004 · US-013 · DL-10, DL-11 |
+| W-21 | **Mocked identity** (specialist or GP), attached to every decision and checked on every write | Existing system | Not applicable | Medium for the demo; **not an access-control claim** (AM §3) | Build crew | Enforced on the server: identity lives in code, not in a prompt (CR-004). Real authentication is out of scope (SD A-5). SD NFR-010 |
+
+*Not in this table:* `W-03a`, `W-07a`, `W-08`, `W-14`, `W-22` and the re-run part of `W-19` are
+retired from the MVP (Future Work F-01, F-05, F-06, F-07, F-09).
+
+**The planted demo row (DL-31, CR-029).** When the specialist starts a run with the switch on,
+**code** adds one row from a fixed fixture; the extractor never does. The row carries a real quote
+that is word for word in its paragraph but does not support the row's rule, so the quote check
+passes and the judgement is left to the specialist. The row is marked `origin: demo` and labelled
+"demo" everywhere it appears. The backend refuses to approve it (`DEMO_ROW_NOT_APPROVABLE`), so its
+only decision is reject with a reason, and it can never reach a calendar. SD FR-031 · AM A26, H3a.
+
+**Quote-check rule (QN-1), for W-04.** The row's quote and the cited paragraph are normalised the
+same way; the quote must then occur as one unbroken piece of the paragraph.
+
+1. Trim whitespace at the start and end.
+2. Replace every run of whitespace (spaces, tabs, line breaks) with one space. *Reason:* the mock
+   paragraphs wrap mid-sentence, while a quote is written on one line.
+3. Nothing else. Comparison is case-sensitive. Punctuation, typographic quotes and apostrophes,
+   dashes and Unicode forms are **not** normalised; a difference in any of them fails the check.
+4. A row with no paragraph ID, or an ID that matches no loaded paragraph, fails.
+
+A failed check blocks approval of that row. No reason unlocks it (AM H3).
+
+**Tests for W-04** (run without a model, SD NFR-011; `@qa.eng` implements):
+
+| ID | Setup | Expected | Trace |
+|---|---|---|---|
+| T-W04-1 | The 6 answer-key quotes against their paragraphs | All pass | US-002 c1 · KEY §1 |
+| T-W04-2 | The `OBL-01` quote with "calendar" changed to "business" | Fails; approval refused, with or without a reason | SD AC-004 · US-002 c2 |
+| T-W04-3 | A correct quote with its line break replaced by two spaces and a trailing space added | Passes (rule steps 1–2) | US-002 c8 |
+| T-W04-4 | A correct quote with one straight quote mark made typographic, or one letter's case changed | Fails (rule step 3) | US-002 c8 |
+| T-W04-5 | A row with no paragraph ID; a row citing an unknown ID | Both fail | US-002 c3 |
+| T-W04-6 | The verifier's output claims "quote ok" for a row the code failed | The code result stands; the row stays blocked; the disagreement is logged | SD MN-006 |
+
+**Failure inside a stage.** Stages A and B are made of one model call per unit: one per source
+document for extraction, one per row for the verifier and for the judge. A call that fails on a
+transport or provider error gets **one** automatic retry (D1). If a unit still fails, or its output
+fails schema validation, the stage ends and the run becomes `FAILED`. Valid outputs from the other
+units stay in the trace as a record. **No gate opens on a failed stage**, and nothing is re-run: a
+new run follows. Every call, including the retry, counts towards the run's cost and time (SD
+MC-001, MC-002).
+
+**Run state model (DL-22, DL-29).** A run is in exactly one state. Only `ACTIVE` blocks a new run.
+A **terminal** state is an end state: the run is over and its state never changes again.
+
+| State | Meaning | Ends when |
+|---|---|---|
+| `ACTIVE` | A stage is running, or a gate is waiting for the specialist | A stage fails (`FAILED`), the specialist abandons it while it waits at a gate (`ABANDONED`), or G3 is decided (`COMPLETED` if published, `DECLINED` if declined) |
+| `FAILED` (terminal) | A unit returned invalid output, a call failed after its one retry, a task or the whole stage passed its time limit, the cost cap stopped the run (CR-017), or the backend restarted while a stage was running. Run status names the step, the unit and the reason | Never; a new run follows |
+| `ABANDONED` (terminal) | The specialist closed a run waiting at G1, G2 or G3, with a written reason (W-19a) | Never; a new run follows |
+| `COMPLETED` (terminal) | G3 was decided by publishing the calendar | Never |
+| `DECLINED` (terminal) | The specialist declined G3 with a written reason. Nothing new was published; GPs keep any earlier published version | Never; a new run follows |
+
+Rules:
+
+1. **No gate opens on a failed stage.**
+2. **A run in a terminal state is never resumed and never re-run.**
+3. **Ending a run undoes nothing.** Recorded decisions, drafts, the audit log, the traces and any
+   published calendar stay as they were, and GPs keep seeing the last published version.
+4. A decision on a run that is not `ACTIVE` is refused (`RUN_NOT_ACTIVE`), and no model call is
+   started for it.
+5. A new run is refused only while a run is `ACTIVE` (CR-023).
+6. **Every running stage ends by itself.** Each model task has a time limit, and the backend also
+   enforces a time limit per stage (`STAGE_TIME_LIMIT_A`, `_B`, `_C`). The starting values are set
+   in §2 and confirmed by the measurement spike in estimate block B3.
+7. **Start-up rule.** When the backend starts, an `ACTIVE` run whose stage was running becomes
+   `FAILED` with the reason "service restarted", logged as a system event. A run waiting at a gate
+   is unaffected.
+8. **Abandon only at a gate.** Abandon is refused while a stage is running (`RUN_STAGE_RUNNING`);
+   the stage ends by itself under rule 6, so no model call is left running for output nobody uses.
+
+**Steps with no model, by requirement:** W-02, W-03b, W-04, W-09, W-10, W-13, W-16, W-18, W-19,
+W-19a, W-21. The tests for W-09, W-13 and W-18 run without a model (SD NFR-011).
+
+**Model steps:** W-03 (extractor), W-05 and W-06 (verifier), W-11 (judge). Each produces a draft
+that code validates against a schema and a human decides on at a gate. None can write to the
+library, the calendar, the gate state or the audit log, except that its own output is logged as a
+proposal.
+
+**Feasibility verdict**: `feasible with constraints`
+
+**Load-bearing constraint: five focused days, with no slack inside the estimate** (DL-32). The
+ownership split is feasible as designed: the model steps are small, bounded and reviewable, and
+everything consequential is code. What decides the outcome is time. The estimate is about 5.5 days
+against a capacity of 5, and the operator's buffer is the only margin (see "Estimate").
+
+Two further constraints, named so they are not mistaken for guarantees:
+
+- **Exact-match model targets are measured, not guaranteed.** SD MP-001 to MP-003 ask for 6 of 6
+  rows, 6 of 6 verdicts and exactly the planted flags from probabilistic steps. The design makes a
+  miss visible (W-20) and harmless to GPs (W-09, W-15). It cannot make a miss impossible, which is
+  why the evaluation reports and does not block (DL-34).
+- **Cost and time budgets bound the pattern.** Under US$2 and under 5 minutes per run (SD MC-001,
+  MC-002) on 6 documents and 6 rows is comfortable for a fixed sequence of small calls. It would
+  not be for an open-ended agent loop (see Pattern Decision).
 
 ### Delegation Map
 
-*Pending: pass 2. DM-01 to DM-18 and the four diagrams. Views 2 (containers) and 3 (pipeline) name
-Next.js and a Flow per stage and are redrawn for DL-33 and DL-35 (SOQ-21).*
+A one-page summary of who does each step, read against the approval map. Work Ownership above
+holds the detail and is the authority; this table adds the approval-map rule. **Agent** = one of
+the three CrewAI agents. **Code** = a deterministic step. **Human** = the specialist (mocked
+role). **Backend** = the gate service, the records and the run state. Approval-map rules are
+**Alone**, **Ask** and **Never** (`approval-map.md` §4).
+
+| # | Step | Owner | Why this owner | Why not the alternatives | Approval-map rule | Trace |
+|---|---|---|---|---|---|---|
+| DM-01 | Start a run | **Human** triggers · **backend** executes | Only the specialist decides when work starts; the backend checks that no run is `ACTIVE` | Not an agent: starting work is not a judgement. Not automatic: the MVP has no schedule | H0 **Ask** · A24 **Never** (start while a run is active) · A26 **Alone** (code adds the planted row, only with the switch on) | SD FR-001, FR-031, AC-036 · US-015 · W-01 · CR-023, CR-029 |
+| DM-02 | Load the mock sources and split them into paragraphs with IDs | **Code** | Parsing known text; every later step cites these IDs | Not an agent: it would make the IDs nondeterministic | A1 **Alone** | SD FR-001 · US-001 c1 · W-02 |
+| DM-03 | Extraction: draft obligation rows with one paragraph ID and a verbatim quote, no dates | **Agent** (extractor; the cheaper model) | Reading regulatory text into a schema is the interpretation the capstone tests | Not code: the wording varies too much for rules. Not human: the aim is to move the specialist from writing to checking | A2, A3 **Alone** (a draft) · A10 **Never** (no model dates) | SD FR-002, MN-005, AC-001, AC-002 · US-001 · W-03 · DL-25 |
+| DM-04 | Quote check: is the quote word for word in the cited paragraph? **Blocks approval on failure** | **Code** (QN-1) | A string comparison is a fact, not an opinion, so it must be the authority | Not an agent: a model "pass" is a guess about something code can know. No override: no reason unlocks a failed check | A4 **Alone** · H3 **Never** (approve with a failed check) | SD FR-003, MN-006, AC-004 · US-002 · W-04 · DL-14 |
+| DM-05 | Verifier: internal and cross-source conflict checks; flags only | **Agent** (verifier; a mid-tier model, different from the other two) | Seeing that "+6 months" disagrees with a quote or with another source is reading, not matching | Not the extractor: the checker must be separate (SD MD-003). Not code: disagreement is a matter of meaning. It never edits a row or chooses a source | A5 **Alone** · A6 **Never** (change a row) | SD FR-004, MD-003, MN-004, AC-003, AC-017 · US-003 · W-05, W-06 · DL-26 |
+| DM-06 | Coverage view: paragraphs no non-rejected row cites, at G1 and G3 | **Code** | A set difference; it makes a missed row (the costliest error, P-1) visible | Not an agent: nothing may judge which paragraphs hold obligations. No answer key at run time | A23 **Alone** | SD FR-028, AC-029 · US-001 c8, c10 · W-03b |
+| DM-07 | **G1**: approve each row (with a reason over a flag) or reject it with a reason. Each row is decided once | **Human** decides · **backend** records and enforces | Only a person may let a rule into the library | Not an agent: agents have no approve tool. Not code: approval is a judgement. No bulk or preselected decisions | H1 **Ask** · H2 **Ask**, reason · H4 **Ask**, reason · H3, H3a **Never** · A13 **Never** | SD FR-005, MD-004, AC-006, AC-026 · US-004 · W-07 |
+| DM-08 | Applicability: applies, does not apply or unsure, citing fact IDs | **Agent** (judge; the reasoning model) | Judging a rule against fund facts is the second interpretation task; the judge is the only source of "unsure" | Not code: applicability conditions are prose. Not human first: the specialist decides at G2 instead of starting from nothing | A8 **Alone** · A14 **Never** (confirm its own verdict) | SD FR-009, MD-002, AC-007 · US-006 · W-11 · DL-25 |
+| DM-09 | **G2**: confirm, override with a reason, or decide "unsure" (`OBL-04` as precautionary). Each verdict is decided once | **Human** decides · **backend** records and enforces | A verdict decides what is on the calendar; "unsure" needs a person | Not an agent: it cannot decide its own "unsure". Not code: code applies the precautionary label only from the human decision | H6 **Ask** · H7 **Ask**, reason · H8 **Ask**, blocking · H9 **Never** | SD FR-010, P-1, AC-008 · US-007 · W-12 · DL-01 |
+| DM-10 | Due dates: anchor and offset, conventions `D-1` to `D-7`, business-day rolls, events, marks | **Code** | Dates must be identical every time and testable without a model | Not an agent: a model may never compute a date (SD MN-005). No guessed roll rules (DL-19); open conventions are marked (DL-20) | A11 **Alone** (after G2 only) · A10 **Never** | SD FR-011 to FR-013, NFR-001, AC-009 to AC-012, AC-032 · US-008, US-009 · W-13 |
+| DM-11 | Calendar generation: one complete version with stable entry IDs, or nothing | **Code** | All-or-nothing generation prevents a partial calendar | Not an agent: no model step. Not human: the specialist reviews the result at G3 | A11 **Alone** · A22 **Never** (partial calendar) | SD FR-016, NFR-004, AC-015 · W-13 · CR-011 |
+| DM-12 | **G3**: publish the whole calendar after one explicit acknowledgement of the rejected rows and uncited paragraphs, or decline with a reason (the run ends `DECLINED`) | **Human** decides · **backend** records and enforces | Publishing reaches GPs and cannot be withdrawn in the MVP | Not an agent: agents have no publish tool. Never preselected or triggered by a timeout | H10 **Ask** · H10a **Ask**, reason · H11, H11a **Never** | SD FR-014, FR-022, FR-030, AC-021, AC-026, AC-037 · US-010 · W-15 · DL-30 · CR-028 |
+| DM-13 | Publishing: switch the fund's published version in one indivisible step | **Backend** | It carries out the G3 decision as one change | Not a stage function and not an agent: neither holds or changes gate or publication state (DL-17) | Carries out H10 · A21 **Never** (working content to GPs) · A22 **Never** | SD FR-014, FR-015, AC-013 · CR-011, CR-012 |
+| DM-14 | GP view: the published calendar and the calendar-level note; before the first publication, the fixed "being prepared" message | **Backend** (read-only) | GPs must see only what the specialist published | Not an agent: no model on the GP path (W-17). Read-only is enforced on the server | G1r **Alone** · G2r **Never** (a GP changes anything) · G3r **Alone** | SD FR-015, FR-020, MN-007, NFR-010, AC-013, AC-014 · US-011 · W-16 · DL-27 |
+| DM-15 | Audit log: every agent output, human decision, refusal and gate event, with versions | **Backend** | Append-only bookkeeping that proves who decided what | Not an agent and not a stage function: records must outlive both and refuse edits at the storage boundary | A16 **Alone** · A17 **Never** (edit or delete) | SD FR-017, MD-009, NFR-003, AC-016 · US-012 · W-18 · CR-013 |
+| DM-16 | Gate state, decisions and versions | **Backend** | One owner of where the run is; it refuses any advance without the matching decision | Not a stage function and not an agent: with two owners, two records of the gate would have to agree (DL-17). Not the page: hiding a button is not enforcement | A13 **Never** · A14 **Never** | SD MN-003, MP-006, MD-009 · W-09 · CR-001, CR-009 · DL-17 |
+| DM-17 | **Failed run**: invalid output, a failed call, a time limit, the cost cap or a restart mid-stage → `FAILED` (terminal) | **Backend** (automatic) | Fail closed: nothing moves forward on bad output, and a new run is then allowed | Not human: a failure must not wait for someone to notice. No re-run in the MVP | A15 **Alone** (stop and log) · A25 **Alone** (start-up rule) | SD NFR-004, AC-033, AC-034, AC-036 · US-015 · Run state model · DL-29 |
+| DM-18 | **Abandoned run**: the specialist closes an `ACTIVE` run waiting at a gate, with a written reason → `ABANDONED` (terminal) | **Human** decides · **backend** records | The only way to end a run waiting at a gate (for example after a wrong rejection) without undoing anything | Not automatic: a gate wait never times out (SD AC-026). Not mid-stage: a running stage ends by itself (DL-29) | H13 **Ask**, reason · H13a **Never** (abandon mid-stage) | SD AC-035, AC-036 · US-015 · W-19a · Run state model · DL-29 |
+
+Steps that are Future Work have no row here; they are listed once, under "Future Work".
+
+**Diagrams.** *Pending: the next part of pass 2. Views 1 (context) and 4 (gates) are checked
+against this version. Views 2 (containers) and 3 (pipeline) still name Next.js and a Flow per stage
+and are redrawn for DL-33 and DL-35 (SOQ-21).*
 
 ### Pattern Decision
 
@@ -450,3 +620,15 @@ Two belong to this pass:*
   show no rejection and rely on the two approvals over a flag and the "unsure" decision; also
   noted on DL-32 and SOQ-19. (2) Confirmed: the pattern stays "workflow" and the system is
   described as three CrewAI agents in a gated workflow; no text change needed.
+- 2026-11-12 · persona `system-arch` · action `create-sad --mvp` (pass 2, first part) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · sources: the Work Ownership and Delegation Map sections of the
+  full design at tag `sad-full-design`; `approval-map.md` (row IDs checked); US-001 and US-015
+  (criteria numbers checked); `decision-log.md` DL-17, DL-29 to DL-35 · rewrote **Work Ownership**
+  for the slice (W-01 to W-21 without the retired rows; each gate decision made once; a failed
+  step ends the run; the planted demo row note; QN-1 and tests T-W04-1 to T-W04-6; the run state
+  model and its eight rules; feasibility verdict `feasible with constraints`, now bound by the
+  five-day capacity) and the **Delegation Map** table (DM-01 to DM-18, with "Flow" replaced by
+  "stage function" and approval-map rows A26, H3a, H11a and H13a added). The estimate also gained
+  a build-order paragraph (the planted row is built before the visual pass). Diagrams, Pattern
+  Decision, Reference Architecture and §1 remain pending. Prompt Trace not captured: no model
+  call was made by the application.
