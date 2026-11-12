@@ -264,7 +264,27 @@ audit log (views 2 and 4), future-scope steps and the evaluation runner are left
 
 ![Regulatory Intelligence: agent pipeline](../diagrams/system-arch/pipeline.svg)
 
-The editable source is `project-context/diagrams/system-arch/pipeline.html`. The behaviour views are owned by other personas
+The editable source is `project-context/diagrams/system-arch/pipeline.html`.
+
+*View 4: gates and approvals.* Who may change state, and where that is enforced, drawn as a
+"secure paved road": one permitted route into a protected zone and two blocked routes that stop
+at its boundary. The specialist's decisions pass the server's role and version checks (CR-004,
+CR-009) into the gate service, the single privileged gate for G1, G2 and G3, which alone changes
+gate state, approvals and versions, refuses what the rules forbid, and appends every decision and
+refusal to the audit log (CR-001, CR-013). **Refusals at the role check (CR-004) and at the version
+check (CR-009) are written to the audit log through the gate service's append path**, the same path
+as gate decisions, so every refused gate request is recorded with who, when, what was requested and
+why it was refused, not only the decisions that succeed (§4 error envelope; SD MD-009). The diagram
+therefore has no separate checks-to-audit arrow. The stage Flows and agents may only return drafts;
+writing state is blocked (approval map A13, A14: **Never**). The GP reads only the published
+calendar through the GP read model (CR-012); any GP write is blocked (G2r: **Never**). The three
+gates share one enforcement route, so they are drawn as one gate service rather than three boxes;
+their individual rules are in the Delegation Map. The OpenAI API, code steps, web app, configuration
+and future-scope paths are left out.
+
+![Regulatory Intelligence: gates and approvals](../diagrams/system-arch/gates.svg)
+
+The editable source is `project-context/diagrams/system-arch/gates.html`. The behaviour views are owned by other personas
 under `.cursor/skills/draw-diagram/reference.md`, and the SAD already holds their content as text:
 
 | Diagram | Owner | Source in this SAD |
@@ -1882,3 +1902,16 @@ only after the operator moves it into scope.
   `self_check.py --offline` printed OK. Nine nodes (gates as boxes, architect's recommendation
   accepted by the operator), nine arrows, two callouts (W-05, CR-002); every node and arrow traced
   to the Delegation Map, W-03 to W-15, DL-25 and DL-26.
+- 2026-11-12 · persona `system-arch` · action `draw-diagram` · `AAMAD_TARGET_RUNTIME=crewai` · view 4
+  of 4, gates and approvals: type `architecture`, semantic pattern "secure paved road" (one trust
+  zone, eight components, ten paths of which two blocked, one privileged gate), size `doc-wide`,
+  default style, system fonts, files `project-context/diagrams/system-arch/gates.html` and
+  `gates.svg`, `diagram-design` commit `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`;
+  `self_check.py --offline` printed OK. The planned "checks → audit (refused)" arrow was folded into
+  the gate service's append path to stay within the pattern's ten-path budget; the checks and audit
+  labels say refusals are recorded. Every node and path traced to CR-001, CR-004, CR-009, CR-012,
+  CR-013, DL-17 and the approval map.
+- 2026-11-12 · persona `system-arch` · action `update` (view 4 text) · `AAMAD_TARGET_RUNTIME=crewai` ·
+  operator instruction: the view 4 text states that refusals at the role check (CR-004) and the
+  version check (CR-009) are written to the audit log through the gate service's append path, so
+  every refused gate request is recorded, not only successful gate decisions.
