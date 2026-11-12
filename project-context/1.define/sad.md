@@ -302,12 +302,25 @@ decision.
 
 ### Model and Context Strategy
 
-- **Default model tier**: **balanced default**, one model for all three roles (extractor, verifier,
-  judge). No measured need for a stronger tier exists; six short documents and six rows are a small
-  task. The model name is configuration (`LLM_MODEL`), never hard-coded, so a tier change is a
-  release under the swap rule below. Sampling is set for reproducibility (temperature 0 or the
-  provider's deterministic setting, fixed `max_tokens` per step); model, temperature, `max_tokens` and
-  prompt version are logged per call (aamad-core tooling rule).
+- **Provider and model per role** (operator decision, 2026-11-12, DL-25; resolves SOQ-14). One
+  provider: the **OpenAI API**, on prepaid credits. A model is chosen **per role**, each from its own
+  configuration value, never hard-coded:
+
+  | Role | Model (family) | Variable | Why |
+  |---|---|---|---|
+  | Extractor (W-03) | A **cheaper default** model | `LLM_MODEL_EXTRACT` | Fixed-schema extraction from short mock paragraphs; the code quote check and the verifier catch its mistakes |
+  | Verifier (W-05, W-06) | **Default: a cheaper mid-tier model, different from both the extractor's and the judge's** (DL-26). **Switch to the judge's reasoning model** only if the mid-tier model misses any planted conflict in the spike | `LLM_MODEL_VERIFY` | Strengthens the separate verifier (SD MD-003): two different models are less likely to share a blind spot. Same provider, so no second live service (SD MN-002, PRD A-3 unchanged) |
+  | Applicability judge (W-11) | A **reasoning** model | `LLM_MODEL_JUDGE` | Applicability is the judgement-heavy step, and a wrong "does not apply" is the costliest error (P-1) |
+
+  No other step uses a model: calendar generation is code (MN-005) and the GP text is the reasoning
+  confirmed at G2 (W-17). **Exact model IDs are confirmed against the provider's current list before
+  the week-1 spike**, recorded in the decision log, and from then on a change to any role's model is
+  a release under the swap rule. **Claude Code is the build tool only**: it is not a runtime provider,
+  no application call goes to it, and its usage is not part of the application's model spend.
+  Sampling is set for reproducibility per role: temperature 0 where the model supports it, fixed
+  `max_tokens` per step. **Reasoning models may not accept a temperature setting**; for the judge the
+  spike records whether its verdicts are stable across runs, which EC-R1 (3 of 3) then tests. Model,
+  sampling settings, `max_tokens` and prompt version are logged per call (aamad-core tooling rule).
 - **Context strategy**: **progressive, built by code per call.** Each call receives only the stored
   data its step needs; nothing is carried over from a previous call.
 
@@ -380,7 +393,7 @@ error cost, not volume, and the reviewer always receives the inputs and the reas
 | CR-018 | Reconstructing why an output was produced | Every model call, including each retry and re-run, appends a **trace record** keyed by CR-010's idempotency key **plus the attempt number**, sharing the run ID: prompt version (content hash), model, temperature, `max_tokens`, input hash, raw output, parsed output or validation error, token counts, cost, duration, attempt number, and whether this attempt became the current output. The audit entry for an agent output links to its trace record. Together with the audit log (decisions, versions, reasons) any row, verdict or entry can be explained end to end, including attempts that were replaced (SD MP-005). | output | fail closed (a call whose trace cannot be written is treated as failed) | Build crew | Trace store (append-only, CR-013); trail view (FR-019, P1) or a query that reconstructs one entry | n/a |
 | CR-019 | GP text implies permission or gives advice (SD MN-009, DL-01, DL-05) | Code generates the "precautionary" label and note from the specialist's decision (W-12); the model never writes it. The G2 override/"unsure" reason field is labelled GP-visible (W-17, SA-8). The calendar-level "not legal advice / conventions unverified" note is a fixed string on the GP view, not per entry. Voice is checked in a copy review before the demo. | output (human control) | n/a (review) | `@ux.designer` · specialist | Copy review record; US-011 c5, c11 | Human review before the demo |
 | CR-020 | Human-created row (DL-15, W-07a) | A row created by hand is stored with `origin: human` and the creator's identity; the flag is immutable and appears in the audit entry and the trace. It cannot bypass CR-005 (quote check not skippable) or CR-006/W-05/W-06 (verifier runs on it). It needs its own G1 decision (CR-007). The evaluation report counts human-created rows in a separate line, excluded from the extractor's row count. | tool-call | fail closed (cannot be saved as approvable without a paragraph ID and a passing quote check) | Build crew · `@qa.eng` | Test: create a row by hand with a bad quote → blocked; with a good quote → flags, G1 decision, audit entry with `origin: human`; evaluation report shows it separately | Shown at G1 like any row, labelled "added by specialist" |
-| CR-021 | Secrets and real data (SD NFR-009, MN-001) | Provider key from `LLM_API_KEY` in the git-ignored `.env`; `.env.example` lists names only. Real-name scan runs before every commit. No real data exists in the system to leak. | input | fail closed (missing key → no calls; scan hit → no commit) | Operator · `@security.eng` | Scan output; `.env.example` | n/a |
+| CR-021 | Secrets and real data (SD NFR-009, MN-001) | Provider key from `OPENAI_API_KEY` in the git-ignored `.env`; `.env.example` lists names only. Real-name scan runs before every commit. No real data exists in the system to leak. | input | fail closed (missing key → no calls; scan hit → no commit) | Operator · `@security.eng` | Scan output; `.env.example` | n/a |
 | CR-022 | Duplicate rows approved (W-03a; *operator decision 2026-11-11*) | Deterministic grouping shown at G1 as "possible duplicates", with a **plain warning on each group**. Non-blocking per row (SA-9): each row keeps its own explicit decision. **At G1 completion, if any group has two or more approved rows, the server requires one confirmation with a written reason before G1 completes**, logged in the audit trail with the group's row IDs and versions. Groups are logged when computed. | output (display) · tool-call (G1 completion) | fail closed: if grouping cannot be computed, G1 does not open; G1 completion with an unconfirmed multi-approved group is refused | Build crew | Test T-W03a-1: two rows citing one paragraph → one group with a warning, shown and logged. **Test T-W03a-2**: approve both rows in a group, complete G1 without a reason → refused; with a reason → G1 completes and the audit log has the confirmation with reason, row IDs and versions. | Specialist sees the group with every row's quote and source; at completion, a single confirmation card naming the rows |
 | CR-023 | Concurrent runs (PRD A-6) | The server refuses to start a run for a fund while one is `ACTIVE` (a stage running, or a gate waiting for the specialist: see "Run state model" in Work Ownership). A run in `FAILED`, `ABANDONED` or `COMPLETED` is not active. One run at a time is a code rule, not a convention; it also keeps versions (CR-009) and idempotency keys (CR-010) unambiguous. **Ways out of an active run:** it ends by completing, by failing (a failed step or a timeout), or by the specialist abandoning it (W-19a; reason required, audited, nothing undone); there is no other cancel. | tool-call | fail closed | Build crew | **T-RUN-0**: start a run, start another → refused with the active run's ID. **T-RUN-1**: make a unit fail → the stage ends, the run is `FAILED`, no gate opens, `POST /runs` now succeeds. **T-RUN-2**: a step that never returns → after `max_execution_time` the unit fails and the run is `FAILED`. **T-RUN-3**: abandon without a reason → `REASON_REQUIRED`; with a reason → `ABANDONED`, one audit entry (who, when, reason, stage, run version), row, verdict, decision and publication records unchanged, GP view unchanged, `POST /runs` succeeds. **T-RUN-4**: abandon a `FAILED`, `ABANDONED` or `COMPLETED` run → `RUN_NOT_ACTIVE`; a decision on an abandoned run → `RUN_NOT_ACTIVE`; a stale run version or a double submit → `VERSION_MISMATCH`, one audit entry | Specialist is shown the active run, and on a terminal run the state and its reason |
 
@@ -419,7 +432,15 @@ include them; detailed when the stretch is scheduled.
   role (the share of calls whose output passes the guardrail on the first attempt, with
   `guardrail_max_retries: 0`; D5), plus one full clean run end to end. The
   measured figures replace the estimates in SA-6, feed the six-week estimate and cut line (SOQ-1), and
-  give `*define-eval-criteria` real numbers for the cost and latency thresholds. Output: a short
+  give `*define-eval-criteria` real numbers for the cost and latency thresholds. **Verifier
+  bake-off (DL-26):** both verifier candidates, the mid-tier default and the reasoning model, run on
+  the planted conflicts (`C-1` on `OBL-03`, `C-2` on `OBL-05`, and `I-1` on a copy of `OBL-02`), at
+  least 5 times each. **If the mid-tier model misses any planted conflict in any run, the verifier
+  switches to the reasoning model**; otherwise the mid-tier model stays. The spike records, for each
+  candidate, recall on the planted conflicts, false alarms on the correct rows (reported for the
+  operator; not part of the switch rule), and **cost per full run** (verifier calls × 6 rows plus the
+  other roles), so the cost of each option against MC-002 and the US$50 cap is known. The choice is
+  recorded in the decision log before the first evaluation cycle. Output: a short
   table in `project-context/2.build/` (file named by `@project.mgr`), referenced from this SAD's
   Audit when it exists.
 - **Failure mode specific to a document pipeline, and its mitigation**: **schema-valid but wrong, and
@@ -434,7 +455,8 @@ include them; detailed when the stretch is scheduled.
   only aggregate view: accuracy against the key, cost, time, review time, human-created row count. No
   live dashboard is built; one would be Future Work.
 - **Configuration names** (values never committed; `.env.example` is created in Build setup):
-  `LLM_MODEL`, `LLM_API_KEY`, `RUN_COST_CAP_USD` (default 4: the hard stop; any run over US$2 fails
+  `OPENAI_API_KEY`, `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE`, `RUN_COST_CAP_USD`
+  (default 4: the hard stop; any run over US$2 fails
   EC-012), `UNIT_RERUN_LIMIT` (default 3; future scope with re-run),
   `LLM_MAX_TOKENS_EXTRACT`, `LLM_MAX_TOKENS_VERIFY`, `LLM_MAX_TOKENS_JUDGE`.
 
@@ -548,7 +570,9 @@ agent, `process=sequential` (trivially, with one task).
   that closes an active run without undoing anything. The restart sweep that marked running units
   failed on start-up is future scope (DL-22); until it is built, a run left active by a crash is
   closed by abandoning it.
-- **Sampling**: temperature 0, per-step `max_tokens` from configuration; model from `LLM_MODEL`.
+- **Sampling**: per role: temperature 0 where the model supports it (the reasoning judge may not),
+  per-step `max_tokens` from configuration; model from `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY` or
+  `LLM_MODEL_JUDGE` (Model and Context Strategy).
 
 **Runtime-conditional configuration (crewai)**, per `.cursor/rules/adapter-crewai.mdc`:
 
@@ -749,7 +773,8 @@ Build setup):
 | Variable | Purpose |
 |---|---|
 | `AAMAD_TARGET_RUNTIME` | `crewai` (development crew setting, recorded in Audit) |
-| `LLM_MODEL`, `LLM_API_KEY` | Model provider |
+| `OPENAI_API_KEY` | OpenAI API key; the provider's standard name, which CrewAI reads directly (DL-25) |
+| `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE` | Model per role (DL-25); exact IDs confirmed before the spike |
 | `LLM_MAX_TOKENS_EXTRACT`, `LLM_MAX_TOKENS_VERIFY`, `LLM_MAX_TOKENS_JUDGE` | Per-step output limits |
 | `RUN_COST_CAP_USD`, `UNIT_RERUN_LIMIT` | CR-017, CR-010 |
 | `SESSION_SECRET` | Signs the mocked-identity session cookie |
@@ -789,7 +814,7 @@ database is reachable and the configuration files have loaded; the start command
 
 **Release rule for model-facing changes** (because evaluations are not in CI): a pull request that
 changes any **prompt** (`agents.yaml`, `tasks.yaml`), the **model or sampling settings**
-(`LLM_MODEL`, temperature, `max_tokens`), or any **step schema** (Row, Flag, Verdict, guardrails)
+(`LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE`, temperature, `max_tokens`), or any **step schema** (Row, Flag, Verdict, guardrails)
 must link the saved reports of **three consecutive local evaluation runs** made **on that branch's
 final commit** (EC-R1), and each must meet the swap-as-release criteria (Model and Context Strategy)
 and the model-dependent criteria in §9 (EC-001 to EC-007, EC-010, EC-012, EC-021). No report, or a stale or failing one, means no merge. A CI step
@@ -889,6 +914,7 @@ with each cycle.
 | Item | Rule |
 |---|---|
 | Hard cap | **US$50** of model usage for development (spike, prompt tuning, evaluation runs, any other Build calls) **until 13 December 2026** |
+| How it is enforced in practice | **Prepaid OpenAI credits** (DL-25): **US$25 loaded to start**, which is the checkpoint, so usage stops when the balance runs out; topping up to the **US$50 ceiling** is a deliberate step taken only after the checkpoint review. A provider spending limit at US$50 is set as a second guard where the account offers one |
 | Where it is enforced | **In the model provider's account** (a spending limit set by the operator), **not in the application**. It is an operator-owned control; nothing in the code claims to enforce it. The per-run hard stop (CR-017) is separate and still applies inside each run |
 | Checkpoint | At **US$25 (50%)**: **stop** model calls and review usage **by activity** (spike, tuning, evaluation runs) before continuing. The provider account's usage figure is the authority for the total; the evaluation reports (EC-R6) give the breakdown by activity |
 | Raising it | Only on purpose, by a recorded operator decision (for example, to match course credits if they cover more, so nothing is paid out of pocket) |
@@ -1478,7 +1504,11 @@ only after the operator moves it into scope.
 - **SOQ-13**: *Resolved 2026-11-12 (operator decision, DL-24).* Development model usage has a hard
   cap of **US$50 until 13 December 2026**, enforced in the provider account, with a stop-and-review
   checkpoint at **US$25**. See §7 and EC-R6.
-- **SOQ-14** (operator; **decide before the week-1 spike**): **model provider and starting model.**
+- **SOQ-14**: *Resolved 2026-11-12 (operator decision, DL-25).* OpenAI API on prepaid credits
+  (US$25 to start, US$50 ceiling); a cheaper default model for the extractor, a reasoning model for
+  the applicability judge, and a verifier on a model different from the extractor's; exact IDs
+  confirmed before the spike (Model and Context Strategy). Steps (3) and (4) below still apply at
+  Setup. *Original question, kept for the record:* **model provider and starting model.**
   The SAD fixes the tier (balanced) and the rule (model from configuration; any change is a release
   under the swap rule), but not the provider or the model. A course `.env` template suggests OpenAI
   and `gpt-4o`; that is a candidate, not a decision. When decided: (1) record it in the decision log;
@@ -1488,6 +1518,11 @@ only after the operator moves it into scope.
   `.env`; (4) at Setup, confirm the exact telemetry opt-out variable for the installed CrewAI version
   and check that no outbound call goes anywhere but the provider (SD MN-002). The week-1 spike then
   measures the chosen model.
+- **SOQ-15**: *Resolved 2026-11-12 (operator decision, DL-26).* Verifier default: a cheaper
+  mid-tier model, different from both the extractor's and the judge's. The spike runs it and the
+  reasoning model on the planted conflicts; the verifier switches to the reasoning model only if the
+  mid-tier model misses any planted conflict in any spike run. Cost per run is recorded for both
+  options (Production Shape, week-1 spike).
 - **SOQ-4**: *Resolved (`*create-sad` §1, §3).* Next.js (App Router) with TypeScript, confirming
   the operator's intent (PRD OQ-8, AM OD-12). `@product-mgr` may mark PRD OQ-8 resolved.
 - **SOQ-11** (for `@product-mgr` and `@qa.eng`, not blocking): OQ-US016-1 is answered in §4. Rows
@@ -1676,3 +1711,17 @@ only after the operator moves it into scope.
   T-RUN-4; endpoint `POST /runs/{id}/abandon` and error `RUN_NOT_ACTIVE`; new WP-12a (2 focused days,
   the product manager's estimate for the architect to confirm), slice 42.5 → 44.5 (32–60 → 33.5–63) and
   the fit table moved by 2; SA-18 (`COMPLETED` = G3 decided); SOQ-10 note. Flagged for `@system.arch`.
+- 2026-11-12 · persona `system-arch` · action `update` (SOQ-14) · `AAMAD_TARGET_RUNTIME=crewai` ·
+  operator decision DL-25: OpenAI API on prepaid credits (US$25 to start, US$50 ceiling); model per
+  role (cheaper default for the extractor, reasoning model for the judge, verifier on a model
+  different from the extractor's; exact IDs confirmed before the spike); Claude Code is the build
+  tool only. Model and Context Strategy, §2 sampling, §4 and Production Shape variables
+  (`OPENAI_API_KEY`, `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE`), §7 enforcement via
+  prepaid credits updated. "Generation" in the operator's wording recorded as the extractor only
+  (no other model step exists). SOQ-14 resolved; new SOQ-15 (verifier model family).
+- 2026-11-12 · persona `system-arch` · action `update` (SOQ-15) · `AAMAD_TARGET_RUNTIME=crewai` ·
+  operator decision DL-26: verifier defaults to a cheaper mid-tier model different from both the
+  extractor's and the judge's; the week-1 spike runs both candidates on `C-1`, `C-2` and `I-1` at
+  least 5 times; switch to the reasoning model if the mid-tier misses any planted conflict in any run;
+  recall, false alarms and cost per run recorded for each. Model table and spike bullet updated;
+  SOQ-15 resolved.
