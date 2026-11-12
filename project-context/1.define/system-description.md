@@ -244,8 +244,10 @@ error this system can make. Naming the principle stops the same choice being mad
   date stays 2027-02-28 and is marked "roll rule unconfirmed".
 - **AC-012** (MD-007): Given `EVT-01` (changed 2027-01-20, aware 2027-01-31), then the `OBL-05` entry is
   calculated from 2027-01-31, not 2027-01-20.
-- **AC-013** (MN-003): Given a calendar that has not passed G3, when the GP view is opened, then it
-  shows no entries for the fund.
+- **AC-013** (MN-003, MN-007): Given a calendar that has not passed G3, when the GP view is opened,
+  then it shows no entries for the fund and a read-only empty state with the message "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." It shows
+  no count, status or draft content, and no notification is sent. *Detail: US-011 criterion 7; decision
+  log DL-27.*
 - **AC-014** (MD-008): Given a published entry, when a GP views it, then it shows what, when, who and
   why, including the source citation and quote.
 - **AC-015** (MP-007): Given the same approved inputs, when the calendar is generated twice, then both
@@ -539,9 +541,11 @@ investors in Singapore.
 
 ## Open Questions
 
-- **OQ-1**: Should the GP view show a neutral note such as "1 possible obligation is under review by
-  compliance"? **Decide before the UX step (`@ux.designer`).** Until then, nothing under review is
-  shown. *Before first publication only. After publication, see FR-025.*
+- **OQ-1**: *Resolved* (operator decision, 2026-11-12, decision log DL-27). Yes, in a limited form: not
+  a count such as "1 possible obligation is under review", but, before the first publication only,
+  a read-only empty state with one fixed message: "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." It shows no entry, count, status or
+  draft content, and sends no notification (MN-007). *After publication, see FR-025 (future scope,
+  DL-22).*
 - **OQ-2**: *Resolved* (operator decision, 2026-11-11, decision log DL-19). Business-day rules for
   Luxembourg Business Registers (`OBL-05`) and CNMV (`OBL-04`) filings: a rule the sources do not state
   stays "not confirmed" until the specialist sets one at G1. Code never infers or defaults one, so both
@@ -688,3 +692,4 @@ investors in Singapore.
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · OQ-4 kept open and pointed at the G1 note and G3 mark (US-004, US-010 criterion 12); no requirement changed
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · new AC-032 (OBL-02 open-question mark at G1 and G3; SAD CR-027, T-W13-1, T-W13-2); AC-031 detail points to US-013 criterion 9. Operator decision; no requirement changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope items marked deferred: FR-007, FR-023, FR-024, FR-025, FR-027 and FR-029 (priority), FR-005 and FR-006 edit parts and NFR-004 re-run sentences (notes), AC-005, AC-022 to AC-024, AC-027, AC-028 and AC-031 (prefix), AC-030 (re-run part); §9 lists them. Nothing deleted; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · OQ-1 resolved (the "being prepared" message before the first publication); AC-013 names the message; no requirement changed; operator decision

@@ -176,3 +176,4 @@ at each gate. The stories assume these demo decisions:
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-4, SOQ-11, §2, §4) · PRD OQ-8 and OQ-US016-1 resolved; US-008 and US-015 notes point to the SAD's entry-ID scheme and restart behaviour
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope stories and criteria marked deferred; new "Scope status (DL-22)" table; nothing deleted
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · US-013 criteria 10–11 (3 of 3 consecutive runs on one commit; names graded by the specialist); OQ-US001-1 and OQ-US013-1 resolved
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · US-011 criterion 7 and SD AC-013 name the GP "being prepared" message; PRD OQ-6, SD OQ-1 and OQ-US011-1 resolved
