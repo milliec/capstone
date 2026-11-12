@@ -200,6 +200,23 @@ stopped it: nothing gets recorded until each one is reviewed, with the rule quot
 line number, the decisions it clashes with, the justification and the risk. Checking line by line is
 what found the other four. A deviation is a decision, so it needs the same review as any other.
 
+**A backstory is for reasons, not a résumé.** "You are a world-class expert with 20 years of
+experience" gives the model nothing to act on. A useful backstory has four parts: who the agent
+works for, which mistake costs that person most, the habits that follow from that, and the trap (a
+case that looks like it fits but doesn't). Reasons matter because rules only cover the cases you
+thought of. An agent that knows *why* it copies exactly ("a quote one word off costs the specialist
+more than a gap") can handle a case no rule names. A quick test: if deleting a sentence wouldn't
+change what the agent does, delete it. The same split keeps agent and task apart: values and reasons
+go in the agent (role, goal, backstory), steps go in the task. Template: `docs/agent-card-template.md`.
+
+**A time limit is only real if something enforces it, and it must leave room for its own retries.**
+The plan said a stage had 180 seconds, yet one extraction call (90 s) plus its retry (90 s) and one
+verification call (60 s) already needed 240. The library's own "max execution time" also turned out not
+to stop a call already running. The fix is one rule everywhere: each call gets a timeout and one retry,
+a stage's limit is the sum of its calls *with* their retries plus a margin, and the backend's own timer
+ends the stage. Results that arrive after the stage has failed are thrown away but still paid for.
+When a document gives the same limit in three places, add them up and check that they agree.
+
 ## 3. Testing and evaluation
 
 **An answer key is how you prove the agents work.** QA runs the agents on the mock sources and compares
@@ -368,3 +385,6 @@ question to answer.
 - 2026-11-12 · added one note from the review of the MVP estimate (build last what you would cut first)
 - 2026-11-12 · added one note from a branch switch during the architecture rewrite (a stash is a shelf, not a loss)
 - 2026-11-12 · added one note from the model spend decision (a cap is not a budget)
+- 2026-11-12 · added one note from the agent card template session (a backstory is for reasons, not a
+  résumé)
+- 2026-11-12 · added one note from the final SAD review (a time limit must cover its own retries)
