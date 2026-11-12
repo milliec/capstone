@@ -235,7 +235,21 @@ DL-25) and the answer key (evaluation only) are deliberately left out.
 
 ![Regulatory Intelligence: system context](../diagrams/system-arch/context.svg)
 
-The editable source is `project-context/diagrams/system-arch/context.html`. The behaviour views are owned by other personas
+The editable source is `project-context/diagrams/system-arch/context.html`.
+
+*View 2: containers.* Inside the system: the web app calls the backend API, which owns gate state,
+approvals and versions and starts one CrewAI Flow per stage. Each Flow ends at its gate, returns
+its outputs to the backend, and never decides or remembers gate status (DL-17). The diagram
+separates the **model steps** (extractor, verifier, judge, the only parts that call the OpenAI API)
+from the **code steps** (quote check, dates and the other deterministic modules). Both stores sit in
+one SQLite file, drawn as two boxes because they follow different rules: business data is replaced
+per idempotency key (CR-010), while the audit log and trace are append-only, enforced by triggers
+(CR-013). The people (view 1), the evaluation runner and answer key (QA tooling), future-scope
+parts and the internals of each agent (view 3) are left out.
+
+![Regulatory Intelligence: containers](../diagrams/system-arch/containers.svg)
+
+The editable source is `project-context/diagrams/system-arch/containers.html`. The behaviour views are owned by other personas
 under `.cursor/skills/draw-diagram/reference.md`, and the SAD already holds their content as text:
 
 | Diagram | Owner | Source in this SAD |
@@ -1839,3 +1853,10 @@ only after the operator moves it into scope.
   `project-context/diagrams/system-arch/context.html` and `context.svg`, `diagram-design` commit
   `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`; `self_check.py --offline` printed OK. Linked from the
   Delegation Map's Diagrams note. Five nodes, four arrows; every node and arrow traced to the SAD.
+- 2026-11-12 · persona `system-arch` · action `draw-diagram` · `AAMAD_TARGET_RUNTIME=crewai` · view 2
+  of 4, containers: type `architecture` with two zones (backend process; one SQLite file), size
+  `doc-wide`, default style, system fonts, files `project-context/diagrams/system-arch/containers.html`
+  and `containers.svg`, `diagram-design` commit `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`;
+  `self_check.py --offline` printed OK. Nine nodes (operator choice: model steps separate from the
+  Flows; business data and audit/trace separate inside one SQLite zone), nine arrows, one callout
+  (DL-17); every node and arrow traced to §1, §2, §4, CR-010 and CR-013.
