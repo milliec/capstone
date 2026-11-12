@@ -225,7 +225,17 @@ monitoring and impact reports (AM S1 to S5).
 
 **Diagrams.** The structural views the architect owns (system context, containers, the agent
 pipeline, the gate and approval view) are drawn with `draw-diagram` under
-`project-context/diagrams/system-arch/` (next step). The behaviour views are owned by other personas
+`project-context/diagrams/system-arch/`, one at a time.
+
+*View 1: system context.* Who and what the running system touches: the specialist runs it and
+decides at G1 to G3, the GP only reads what is published, the system reads the mock data and
+configuration files, and the OpenAI API is its only live external service (SD MN-002, DL-25).
+Filing parties (no role in the MVP), Claude Code (the build tool, not part of the running system,
+DL-25) and the answer key (evaluation only) are deliberately left out.
+
+![Regulatory Intelligence: system context](../diagrams/system-arch/context.svg)
+
+The editable source is `project-context/diagrams/system-arch/context.html`. The behaviour views are owned by other personas
 under `.cursor/skills/draw-diagram/reference.md`, and the SAD already holds their content as text:
 
 | Diagram | Owner | Source in this SAD |
@@ -1824,3 +1834,8 @@ only after the operator moves it into scope.
   operator decision DL-28: a run interrupted by a backend restart is ended by the specialist with
   abandon and a reason; the start-up auto-fail rule is future scope, recorded as a known limitation
   in the future-scope table and the Delegation Map.
+- 2026-11-12 · persona `system-arch` · action `draw-diagram` · `AAMAD_TARGET_RUNTIME=crewai` · view 1
+  of 4, system context: type `architecture`, default style (operator choice), system fonts, files
+  `project-context/diagrams/system-arch/context.html` and `context.svg`, `diagram-design` commit
+  `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`; `self_check.py --offline` printed OK. Linked from the
+  Delegation Map's Diagrams note. Five nodes, four arrows; every node and arrow traced to the SAD.
