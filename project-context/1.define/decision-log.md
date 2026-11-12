@@ -498,6 +498,9 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 
 ### DL-28 · After a backend restart, the specialist abandons the interrupted run
 
+> **Superseded 2026-11-12 by DL-29** (operator decision): the start-up rule is now in the slice, and
+> abandon works only while a run waits at a gate. Kept for the record.
+
 - **Decision**: accepted as a **known MVP limitation**. If the backend restarts while a stage is
   running, no step timer fires and the run stays `ACTIVE`; the specialist ends it with **abandon and a
   written reason** (SAD DM-18, W-19a, SD AC-035), and then starts a new run. The start-up rule that
@@ -506,6 +509,65 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   the start-up rule is extra Build work (about 0.25 day) for a case abandon already covers.
 - **Changed**: SAD SOQ-17 resolved, future-scope table (robustness row), Delegation Map future-scope
   list · **for `@product-mgr`**: if the known-limitations list in US-015 or the PRD should name it.
+
+
+### DL-29 · Abandon only at a gate; a run interrupted mid-stage fails automatically
+
+- **Decision** (supersedes DL-28): (1) the specialist can abandon an `ACTIVE` run, with a written
+  reason, **only while it waits at G1, G2 or G3**; abandon is refused while a stage is running.
+  (2) **Start-up rule:** when the backend starts, any `ACTIVE` run whose stage was running becomes
+  `FAILED` with the reason "service restarted", logged as a system event; a new run can then start.
+  (3) Architect's addition, needed so that (1) leaves no dead end: the backend enforces a **stage
+  time limit**; a stage that exceeds it ends and the run becomes `FAILED`.
+- **Why**: a running stage already ends by itself (step timeouts, now a stage limit), so abandoning
+  mid-stage is never needed, and it would leave model calls running and spending for output nobody
+  uses. The start-up rule closes the one case where a stage could otherwise stay "running" forever.
+- **Considered**: keeping DL-28 (abandon any active run; abandon by hand after a restart): simpler,
+  but it allows orphan model calls and depends on someone noticing an interrupted run.
+- **Cost**: about 0.25 focused day (SAD WP-12b).
+- **Changed**: SAD Run state model (rules 6 to 8), W-19a, DM-17, DM-18, abandon endpoint, error
+  codes (`RUN_STAGE_RUNNING`), future-scope rows, SOQ-17 · **still to do by `@product-mgr`**: SD
+  AC-035 (abandon only at a gate), the failed-run ACs for the stage limit and the start-up rule,
+  US-015 criterion 20 and the known-limitations note from DL-28. **Done 2026-11-12 by
+  `@product-mgr`** (branch `sad-dl29-31`): SD AC-034 and AC-035, NFR-010 and §9; US-015 criteria 19–20
+  and the restart scope note; approval map A15, A25, H13, H13a.
+
+### DL-30 · G3 requires an acknowledgement of rejected rows and uncited paragraphs
+
+- **Decision**: before publishing, the specialist sees the rows rejected at G1 and the paragraphs no
+  non-rejected row cites, and gives **one explicit acknowledgement** as part of the publish request.
+  It is never preselected; publish is refused without it, or if either list changed after it was
+  shown; it is logged with the lists acknowledged. It does not apply to a decline.
+- **Why**: P-1. A missed or wrongly rejected row is the costliest error, and the last point to catch
+  it before GPs rely on the calendar is G3.
+- **Note**: in the demo the three `SRC-PRACT` summaries are always uncited, so the acknowledgement
+  appears on every publish; that is intended.
+- **Cost**: about 0.5 focused day (SAD WP-12c).
+- **Changed**: SAD W-15, DM-12, §3 G3 route, §4 G3 and publish endpoints (`ACK_REQUIRED`), new
+  CR-028, EC-013 · **still to do by `@product-mgr`**: a requirement and acceptance criterion for the
+  acknowledgement, and a US-010 criterion; approval map H10 and Card G3 (as part of SOQ-16). **Done
+  2026-11-12 by `@product-mgr`** (branch `sad-dl29-31`): SD FR-030 and AC-037; US-010 criterion 14;
+  approval map H10, H11a and Card G3.
+
+### DL-31 · A labelled demo switch adds one planted row for the demo run
+
+- **Decision**: a run-level setting, **off by default**, that adds a seventh row: a real quote,
+  verbatim in its paragraph, that does not support its rule, so the code quote check passes and the
+  specialist rejects it at G1. The extractor never produces it; code adds it from a fixed demo
+  fixture. It is on for the demo run and off for evaluation runs. It adds a row but never approves
+  anything; the row is marked "demo" wherever it appears; turning the switch on is recorded in the
+  audit log. The mock sign-in page stays as it is for roles; no role switcher.
+- **Design** (SAD CR-029): `demo_planted_row` on `POST /runs`; row `origin: demo`; evaluation runs
+  refuse to start with the switch on and each report records the switch state (EC-R7).
+- **Decided 2026-11-12 (operator, SAD SOQ-18):** the backend **refuses approval of any `demo` row**,
+  records the refusal in the audit log and shows a plain message; demo rows can only be rejected.
+  Test T-DEMO-2 (SAD CR-029); approval map H3a (**Never**) and T-25.
+- **Cost**: about 0.5 focused day (SAD WP-12d).
+- **Changed**: SAD `POST /runs`, row origin values, new CR-029, EC-R7, EC-013 · **still to do by
+  `@product-mgr`**: a requirement and acceptance criterion for the switch and the demo row; the demo
+  decisions in the stories index (reject the planted row at G1, with a reason). **Done 2026-11-12 by
+  `@product-mgr`** (branch `sad-dl29-31`): SD FR-031 and AC-038; US-004 criterion 19; the demo decision in
+  `user-stories/README.md`; approval map H0b and A26 (H3a and T-25 kept).
 
 ---
 
@@ -547,3 +609,6 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-27 follow-up marked done: PRD OQ-6, SD OQ-1 and OQ-US011-1 resolved; US-011 criterion 7 and SD AC-013 name the message (on branch `define-gp-pre-publication-message`, not yet merged)
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-22 second update: G3 decline ends the run as DECLINED (terminal), SA-18 and the WP-12a estimate confirmed, OQ-US001-2 accepted as a known limitation; SD AC-033 to AC-036, US-010 criteria 8–9, PRD F8 line
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-28 (after a backend restart the specialist abandons the interrupted run; start-up auto-fail is future scope, a known limitation); operator decision
+- 2026-11-12 · persona `system-arch` (at the operator's instruction, raised through `@product-mgr`) · action `update` · DL-29 (abandon only at a gate; start-up rule and stage time limit; supersedes DL-28), DL-30 (G3 acknowledgement), DL-31 (planted demo row switch); operator decisions
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-31: SOQ-18 decided (approval of a demo row refused, audited, plain message; reject only); operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-29, DL-30 and DL-31 follow-ups marked done (SD FR-030, FR-031, AC-034, AC-035, AC-037, AC-038; US-010 criterion 14; US-015 criteria 19–20 and restart note; demo decision in the stories index); approval map brought in line with the SAD (SOQ-16) and no longer marked draft; on branch `sad-dl29-31`, not yet merged
