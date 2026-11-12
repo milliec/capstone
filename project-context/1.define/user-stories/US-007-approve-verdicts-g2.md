@@ -28,11 +28,11 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
    "precautionary: registration unconfirmed", so the calendar includes it and the note stays visible
    (design principle P-1). The word "pending" is not used, because "pending" means *not yet approved*.
 7. **Then** every confirmation and override is recorded in the audit log with who and when.
-8. **Given** a confirmed or overridden verdict, before or after publication, **when** the specialist
+8. *Deferred (DL-22).* **Given** a confirmed or overridden verdict, before or after publication, **when** the specialist
    reopens it without a reason, **then** reopening is refused. **With** a reason, the verdict returns to
    **pending** G2 and the rule stays G1-approved. The original decision and reasoning stay in the audit
    log, and the applicability agent does not run again.
-9. **Given** a reopened verdict, **then** its calendar entries are marked out of date, and publishing a
+9. *Deferred (DL-22).* **Given** a reopened verdict, **then** its calendar entries are marked out of date, and publishing a
    new version is refused until G2 is complete and the dates are regenerated. The specialist must
    finish with **applies** or **does not apply**, and an override still needs a reason. GPs keep seeing
    the last published version until the specialist republishes.
@@ -94,3 +94,4 @@ unclear case myself, so that no obligation is wrongly hidden from, or added to, 
 - 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 1: cited fund facts can be opened, read-only (PRD F5); decision log DL-04
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009) · criterion 12: a decision made on an
   out-of-date screen, or submitted twice, is refused with a plain message showing the current version
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 8–9 (reopen a confirmed verdict) marked deferred; nothing deleted

@@ -42,6 +42,9 @@ The operator reviewed the PRD from a user-experience point of view.
 - **Note**: re-running is **new scope**. It goes into the architect's estimate (PRD OQ-5). Retry limits
   stay open (approval map OD-7, US-015 OQ-US015-1).
 - **Changed**: PRD §6 (replaces the one-line failure requirement), OQ-5 · new US-015.
+- **Superseded for the MVP (DL-22, 2026-11-12):** re-running a failed step is future scope. In the thin
+  slice a failed step ends the run as failed and the specialist starts a new run, or abandons an active
+  run with a written reason (US-015 criteria 19–21). The rest of this decision stands.
 
 ### DL-03 · Each verifier flag states its type and evidence
 
@@ -354,6 +357,18 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Capacity** (SAD SOQ-12, answered the same day): the operator commits the time the slice needs,
   without a number. It is a commitment, not a measured fit; the re-estimate after Build week 1 is the
   check (Tier 2 cuts go to the operator if the first packages take more than 1.3× their estimate).
+- **Update 2026-11-12 (operator, answering OQ-US015-4): a failed step ends the run, and a run can be
+  abandoned.** The consequence above ("a failed step ... means a new run") needed a way for a new run to
+  start, because CR-023 refuses one while a run is active. Decided: (1) a failed step moves the run to a
+  terminal `FAILED` state, so it is no longer active; (2) every agent step has a time limit that turns a
+  hang into a failed unit and so a `FAILED` run; (3) a specialist **abandon run** action, with a written
+  reason and an audit entry, closes an active run without undoing anything. It is **not a general cancel
+  feature**: no cancel of a call or step, no undo, no rollback, no deleted drafts. It also covers a run
+  left active by a crash, because the restart sweep stays future scope. **Estimate:** one new package,
+  WP-12a, **2 focused days likely (1.5–3)**, so the slice moves from about 42.5 (32–60) to about
+  **44.5 (33.5–63)**, and the fit table moves by 2. That is the product manager's figure for the
+  architect to confirm at the week-1 re-estimate. Recorded in the SAD (Run state model, W-19a, CR-023,
+  tests T-RUN-0 to T-RUN-4, SA-18) and in US-015 criteria 19–21.
 - **Changed**: SAD "Six-week estimate and agreed scope", scope keys in Work Ownership and the Control
   Register, feasibility note, SOQ-1, implementation guidance · **still to do by `@product-mgr`**: mark
   the future-scope requirements, acceptance criteria and story criteria as deferred (starting list:
@@ -361,7 +376,12 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   AC-028, AC-031, US-005, US-016, US-015 criteria 4–6 and the release criteria, US-004 reopen and
   group-confirmation criteria, US-007 reopen criteria, US-011 review-notice criteria, US-013 criteria
   8–9); record PRD OQ-5 as decided (scope) with capacity still open; note that DL-02's re-run is
-  superseded for the MVP.
+  superseded for the MVP. **Done 2026-11-12 by `@product-mgr`:** the future-scope items are marked
+  *Deferred (DL-22)* in the SD (FR/AC/NFR-004, §9 list), the stories, the PRD (F3, F5, F8, §6, OQ-5 decided
+  on scope) and the story README ("Scope status (DL-22)"); DL-02 carries a superseded note. Beyond the
+  starting list, these were also marked: FR-005 and FR-006 edit parts, AC-030's re-run part, US-001
+  criterion 9, and US-015 criteria 11–13 and 18 and the restart note. Kept in the MVP: US-015 criteria 9
+  and 10 (a failed unit is named, the gate stays closed).
 
 ### DL-23 · Evaluation: three passing runs, and names graded by the specialist
 
@@ -436,3 +456,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-11 · persona `system-arch` (at the operator's instruction) · action `update` · DL-23 (evaluation: 3 of 3 runs on one commit; obligation names graded by the specialist); operator decisions
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-24 (development model spend capped at US$50 until 13 December 2026 in the provider account; US$25 checkpoint; spend logged per evaluation run); operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` · DL-23 follow-up marked done: US-013 criteria 10–11, OQ-US001-1 and OQ-US013-1 resolved (on branch `define-defer-future-scope`, not yet merged)
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-22 updated with the operator's answer to OQ-US015-4: failed step → terminal FAILED run, step time limits, specialist abandon run with a reason (not a general cancel); estimate +2 days (slice ≈ 44.5, 33.5–63); SAD run state model, US-015 criteria 19–21
+- 2026-11-12 · persona `product-mgr` · action `update` · DL-22 follow-up done: future-scope requirements, acceptance criteria, story criteria and PRD rows marked deferred (nothing deleted); PRD OQ-5 recorded as decided on scope, capacity open; DL-02 re-run superseded for the MVP

@@ -1,10 +1,12 @@
 # US-016 — Add a missed rule by hand
 
+> **Deferred (DL-22).** Designed and written down, not built in the MVP. It is built only after the operator moves it into scope.
+
 ## 1. Story Identity
 
 - **ID**: US-016
 - **Title**: Add a missed rule by hand
-- **Priority**: Must
+- **Priority**: Deferred (DL-22); was Must
 - **Persona**: Compliance specialist
 
 ## 2. Narrative
@@ -93,3 +95,4 @@ and hoping.
 - 2026-11-11 · persona `product-mgr` · action `update` · OQ-US016-2 resolved (operator decision): PRD F3 mentions manual row creation only for a released document; PRD anchor wording updated; no criterion changed
 - 2026-11-11 · persona `product-mgr` · action `update` · OQ-US016-2 resolution corrected (operator confirmed the earlier wording only described the PRD): PRD F3 lists manual row creation for both a missed row at G1 and a released document; PRD anchor wording updated; no criterion changed, DL-15 and FR-027 unchanged
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-11) · OQ-US016-1 resolved: one row-ID scheme for all rows, `origin` tells them apart; assumption reworded; no criterion changed
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · whole story marked deferred (thin-slice MVP); nothing deleted

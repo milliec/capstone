@@ -81,6 +81,7 @@ holiday lists, stable IDs, gate state, approval versions and the audit log.
 | W-17 | **GP-facing "why" text** for each entry (plain-English reason + citation + quote) (step 9) | **Collaborative**: model drafts the reasoning at W-11 · specialist confirms, overrides or decides at G2 · code renders the result with the citation and quote | Medium: reopening the verdict (FR-024) replaces it | High: a GP reads it as the explanation; it must not imply permission (DL-01) | Specialist (content, via G2) · `@ux.designer` (voice check and field design, DL-05) | **Rule (review finding 5): the GP sees the reasoning of whoever made the final decision.** (a) *Confirm* → the model's reasoning, exactly as confirmed. (b) *Override* → the specialist's written reason replaces the model's reasoning; the model's text stays in the audit log only. (c) *Decide "unsure"* → the specialist's written reason, plus the code-generated "precautionary" label and its note when the decision is "applies (precautionary)". For a "does not apply" decision there is no entry and so no GP text. **Therefore a G2 override or "unsure" reason must be GP-readable**: plain British English for a non-lawyer, no implied permission (SD NFR-005, DL-01, DL-05). The G2 form says so next to the field (SA-8; wording by `@ux.designer`). G1 reasons are specialist-only and are not shown to GPs. No model runs on the GP path. `SD MD-008, NFR-005, P-1` · `US-007 c3, c5–c6`, `US-011 c2–c5` · `DL-01, DL-05` |
 | W-18 | **Audit log**: append every agent output, every human decision (with who, when, what, reason, version decided on) and every gate opening; refuse update and delete | Existing system | n/a (add-only by design) | High: this is the evidence for MP-008 and the review-time measurement (MC-003) | Build crew · `@security.eng` (verifies add-only) | Mandatory bookkeeping with no decision in it (AM A16). Versioning scheme (AM OD-11): **CR-009**; the audit log is append-only and distinct from the replaceable current-output store: **CR-013**. `SD MD-009, FR-017, NFR-003, AC-016` · `US-012` |
 | W-19 | **Run status** and **re-run of a failed unit** from the last safe state (US-015) | **Human** triggers the re-run · existing system owns state, replaces the failed unit's own output, repeats nothing finished | High | Medium: a bad re-run could duplicate drafts (AM §7) or lose decisions; both are code responsibilities | Build crew | New scope (DL-02), in the estimate (PRD OQ-5). **"Last safe state" is per unit (review finding 3):** the set of units (documents for W-03, rows for W-05/W-06/W-11) that have a valid output for the current input version, plus every recorded gate decision. A failed unit is marked re-runnable; the specialist re-runs only that unit; the gate stays closed until every unit of the stage is valid. **One exception (SOQ-9, DL-18):** an extraction unit that has reached the re-run limit can be released to manual entry with a written reason; it then no longer holds G1 closed, but every other unit must still be valid. See "Partial failure per unit" below and CR-010. Retry limit (AM OD-7) and the idempotency key for step outputs (AM OD-11): **CR-010**. `SD NFR-004` · `US-015` · `DL-02` |
+| W-19a | **Abandon a run**: the specialist closes an `ACTIVE` run with a written reason, without undoing anything (OQ-US015-4, DL-22) | **Human** decides · existing system closes the run, records it and refuses further decisions on it | High: nothing is undone or deleted, and a new run can start | Low to medium: abandoning the wrong run wastes review work in progress, but no published calendar, decision or audit entry changes | Build crew | **Not a general cancel feature:** it does not cancel a model call or a step, undo a decision, roll back a stage or delete a draft; it is the only way out of a run that is stuck or not wanted, because a failed step already ends the run as `FAILED`. A reason is required (`REASON_REQUIRED`); the request carries the run version (CR-009); only an `ACTIVE` run can be abandoned (`RUN_NOT_ACTIVE`). Audited with who, when, reason, the stage and the run version. `SD MN-003, NFR-004, MD-009` · `US-015` · `DL-22` |
 | W-20 | **Evaluation report** against the answer key: extraction, verifier flags, verdicts, calendar; run time, model cost, review time from audit timestamps; misses reported, never hidden | Existing system (comparison and report) · reads model outputs as data | High | Medium: the report is the proof (PRD §7); a hidden miss would be the harm | `@qa.eng` | Scoring is deterministic comparison with KEY §1–§4; the altered-quote and `I-1` cases run on copies of rows, not on the mock sources. The fuzzy case (obligation-name closeness, US-001 OQ) is settled in the evaluation design, not here. `SD FR-018, MP-001 to MP-004` · `US-013` · `DL-10, DL-11` |
 | W-21 | **Mocked identity** (specialist / GP) attached to every decision and checked on every write | Existing system | n/a | Medium for the demo; **not an access-control claim** (AM §3) | Build crew | Enforced server-side (template rule: identity in code, not in the prompt). Real authentication is out of scope (SD A-5). `SD NFR-010, A-5` · `PRD §3 Identity` |
 | W-22 | *(Stretch, F10)* **Impact assessment** of a rule amendment: which rows, verdicts and entries are affected, and why (US-014) | **Collaborative, provisional**: existing system finds the mechanical dependencies (which rows cite the amended paragraphs; which verdicts and entries depend on those rows) · **model** judges whether the change is substantive and how far it reaches (wording-only vs offset change vs new scope paragraph) · code sets flags and status only | High: flags and status only; nothing substantive changes (SD MD-011) | Medium-high: a missed impact is silent (AM S3); over-flagging also counts as failure (US-014 assumption). Every report, including "no impact", needs specialist acceptance or manual review (FR-026) | Specialist (acceptance) · Build crew (dependency logic) | Provisional because the stretch is built only after US-001 to US-013 and US-015 pass, and is estimated separately. `AMD-01` and `AMD-02` need semantic judgement (is "five months" substantive? does a new scope paragraph change applicability?); `AMD-03` needs the model to say "same meaning". Code alone cannot do that; a model alone cannot be trusted to find every dependent entry. The split keeps the enumeration deterministic and the judgement reviewable. `SD MD-011, FR-021, FR-026, AC-018 to AC-020` · `US-014` · `KEY §6` |
@@ -130,6 +131,24 @@ for that run (review finding 4): cost is the sum of all calls attributable to th
 wall-clock of agent steps, excluding time waiting for the specialist. The evaluation report (W-20)
 reports both.
 
+**Run state model (OQ-US015-4, DL-22).** A run is in exactly one state. Only `ACTIVE` blocks a new run.
+
+| State | Meaning | Ends when |
+|---|---|---|
+| `ACTIVE` | A stage is running, or a gate is waiting for the specialist | A stage fails (`FAILED`), the specialist abandons it (`ABANDONED`), or G3 is decided (`COMPLETED`) |
+| `FAILED` (terminal) | A step failed: a unit returned invalid output, its call failed after the one automatic retry, a task exceeded `max_execution_time`, or the cost cap stopped the run (CR-017). The run status names the step, the unit and the reason | Never; a new run follows |
+| `ABANDONED` (terminal) | The specialist closed an active run with a written reason (W-19a) | Never; a new run follows |
+| `COMPLETED` (terminal) | G3 was decided (published, or declined with a reason) | Never; see SA-18 |
+
+Rules: (1) A step fails when its stage ends with any failed unit, or a hang reaches
+`max_execution_time`; in-flight calls finish and their valid outputs stay in the trace, and **no gate
+opens on a failed stage** (the "gate stays closed" rule above). (2) A terminal run is never resumed
+and never re-run; the MVP has no unit re-run (DL-22). (3) Entering `FAILED` or `ABANDONED` deletes and
+undoes nothing: recorded decisions, row and verdict versions, drafts, the audit log, the traces and any
+published calendar stay as they were, and GPs keep seeing the last published version. (4) A decision
+request on a run that is not `ACTIVE` is refused (`RUN_NOT_ACTIVE`), and no new model call is started for it. (5) CR-023 reads the state:
+`POST /runs` is refused only while a run is `ACTIVE`.
+
 **Steps with no model, by requirement, not by choice:** W-02, W-03a, W-03b, W-04, W-09, W-13, W-14,
 W-16, W-18, W-21. Tests for W-09, W-13 and W-18 run without a model (SD NFR-011).
 
@@ -148,7 +167,8 @@ is code. What is not yet shown is that all of it fits six weeks for one operator
 (`*create-sad` pass c):* the Must scope is estimated at about **52 focused days** (39–73), of which the
 core demo path is about **46** (34–64). The verdict depends on the focused days remaining (SOQ-12); see
 "Six-week estimate and proposed cut line". *Update (DL-22):* the operator agreed the **thin slice**, estimated at
-about **42.5 focused days** (32–60). The verdict stays `feasible with constraints`; the constraint is
+about **42.5 focused days** (32–60); with the run state model and abandon action (OQ-US015-4, WP-12a) about **44.5
+(33.5–63)**. The verdict stays `feasible with constraints`; the constraint is
 now the slice against the operator's capacity, which the operator has committed without a number
 (SOQ-12); the week-1 re-estimate checks it.
 
@@ -362,7 +382,7 @@ error cost, not volume, and the reviewer always receives the inputs and the reas
 | CR-020 | Human-created row (DL-15, W-07a) | A row created by hand is stored with `origin: human` and the creator's identity; the flag is immutable and appears in the audit entry and the trace. It cannot bypass CR-005 (quote check not skippable) or CR-006/W-05/W-06 (verifier runs on it). It needs its own G1 decision (CR-007). The evaluation report counts human-created rows in a separate line, excluded from the extractor's row count. | tool-call | fail closed (cannot be saved as approvable without a paragraph ID and a passing quote check) | Build crew · `@qa.eng` | Test: create a row by hand with a bad quote → blocked; with a good quote → flags, G1 decision, audit entry with `origin: human`; evaluation report shows it separately | Shown at G1 like any row, labelled "added by specialist" |
 | CR-021 | Secrets and real data (SD NFR-009, MN-001) | Provider key from `LLM_API_KEY` in the git-ignored `.env`; `.env.example` lists names only. Real-name scan runs before every commit. No real data exists in the system to leak. | input | fail closed (missing key → no calls; scan hit → no commit) | Operator · `@security.eng` | Scan output; `.env.example` | n/a |
 | CR-022 | Duplicate rows approved (W-03a; *operator decision 2026-11-11*) | Deterministic grouping shown at G1 as "possible duplicates", with a **plain warning on each group**. Non-blocking per row (SA-9): each row keeps its own explicit decision. **At G1 completion, if any group has two or more approved rows, the server requires one confirmation with a written reason before G1 completes**, logged in the audit trail with the group's row IDs and versions. Groups are logged when computed. | output (display) · tool-call (G1 completion) | fail closed: if grouping cannot be computed, G1 does not open; G1 completion with an unconfirmed multi-approved group is refused | Build crew | Test T-W03a-1: two rows citing one paragraph → one group with a warning, shown and logged. **Test T-W03a-2**: approve both rows in a group, complete G1 without a reason → refused; with a reason → G1 completes and the audit log has the confirmation with reason, row IDs and versions. | Specialist sees the group with every row's quote and source; at completion, a single confirmation card naming the rows |
-| CR-023 | Concurrent runs (PRD A-6) | The server refuses to start a run for a fund while one is active (any stage not ended at its gate, or a gate not yet completed). One run at a time is a code rule, not a convention; it also keeps versions (CR-009) and idempotency keys (CR-010) unambiguous. | tool-call | fail closed | Build crew | Test: start a run, start another → refused with the active run's ID | Specialist is shown the active run |
+| CR-023 | Concurrent runs (PRD A-6) | The server refuses to start a run for a fund while one is `ACTIVE` (a stage running, or a gate waiting for the specialist: see "Run state model" in Work Ownership). A run in `FAILED`, `ABANDONED` or `COMPLETED` is not active. One run at a time is a code rule, not a convention; it also keeps versions (CR-009) and idempotency keys (CR-010) unambiguous. **Ways out of an active run:** it ends by completing, by failing (a failed step or a timeout), or by the specialist abandoning it (W-19a; reason required, audited, nothing undone); there is no other cancel. | tool-call | fail closed | Build crew | **T-RUN-0**: start a run, start another → refused with the active run's ID. **T-RUN-1**: make a unit fail → the stage ends, the run is `FAILED`, no gate opens, `POST /runs` now succeeds. **T-RUN-2**: a step that never returns → after `max_execution_time` the unit fails and the run is `FAILED`. **T-RUN-3**: abandon without a reason → `REASON_REQUIRED`; with a reason → `ABANDONED`, one audit entry (who, when, reason, stage, run version), row, verdict, decision and publication records unchanged, GP view unchanged, `POST /runs` succeeds. **T-RUN-4**: abandon a `FAILED`, `ABANDONED` or `COMPLETED` run → `RUN_NOT_ACTIVE`; a decision on an abandoned run → `RUN_NOT_ACTIVE`; a stale run version or a double submit → `VERSION_MISMATCH`, one audit entry | Specialist is shown the active run, and on a terminal run the state and its reason |
 
 | CR-027 | A date rule silently resolved while its convention is open (PRD OQ-7, KEY OQ-D3; DL-20) | The regulation configuration records, for each convention application still under an open question, the question ID and the obligations it affects (MVP: `OQ-7` / `OQ-D3` → `OBL-02`). (1) At G1, when the specialist sets that row's business-day rule, the form shows that the rule depends on the open question; the row has no preselected rule beyond the safe default value (SD AC-026). (2) The date code copies the dependency onto every entry generated from that row: "rule depends on open question OQ-7 (AED subscription tax)". (3) At G3 the mark is shown on those entries, next to the "roll rule unconfirmed" and "precautionary" marks. It does **not** block publishing (like the other safe-default marks, US-010 c4) and is specialist-only, not shown to GPs (as the "roll rule unconfirmed" mark, US-011 assumptions). The mark is removed only by recording the answer to the open question in the configuration, which is a regulation change reviewed like any other (SD §10.2). | output (what the specialist sees at G1 and G3) | fail safe towards the mark: if the dependency cannot be evaluated, the entry is marked | Build crew · `@ux.designer` (mark wording) | **T-W13-1**: generate the demo calendar → all four `OBL-02` entries carry the OQ-7 mark at G3 and have the same dates under "no roll" and "roll forward"; no other entry carries it; GP view shows no mark; publishing is not blocked. **T-W13-2**: the date module contains no default rule for `OBL-02` (a row with rule unset stays "not confirmed") | Specialist sees the mark at G1 and G3; resolving it is a specialist decision or a question to a tax specialist, outside the system |
 
@@ -521,11 +541,13 @@ agent, `process=sequential` (trivially, with one task).
   name.
 - **Error handling**: a guardrail failure or a timeout marks that unit failed and re-runnable (W-19);
   it is never retried automatically (Production Shape; `guardrail_max_retries: 0`, D5). Transport errors get one automatic retry.
-- **Cancellation and timeouts**: there is no user cancel in the MVP (not in the requirements). A
-  task that exceeds `max_execution_time` fails its unit. If the backend process stops mid-stage, on
-  start-up every unit still marked "running" is marked failed and re-runnable, so the last safe state
-  (W-19) survives a restart without a resume feature (US-015 deferred "unless it comes free"; this
-  much does).
+- **Cancellation and timeouts**: there is **no general cancel** in the MVP: no cancel of a model call
+  or a step, no undo and no rollback. Every task has a `max_execution_time`; a task that exceeds it
+  fails its unit, so a hang becomes a failed unit and then a `FAILED` run ("Run state model" in Work Ownership).
+  The one human way to close a run is **abandon** (W-19a): a specialist action with a written reason
+  that closes an active run without undoing anything. The restart sweep that marked running units
+  failed on start-up is future scope (DL-22); until it is built, a run left active by a crash is
+  closed by abandoning it.
 - **Sampling**: temperature 0, per-step `max_tokens` from configuration; model from `LLM_MODEL`.
 
 **Runtime-conditional configuration (crewai)**, per `.cursor/rules/adapter-crewai.mdc`:
@@ -586,7 +608,7 @@ they name.
 |---|---|---|---|
 | `/` | any | Mock sign-in: choose specialist or GP (mocked identity) | SD A-5 |
 | `/specialist/runs` | specialist | Start a run (refused while one is active, CR-023); list runs | US-015 |
-| `/specialist/runs/[runId]` | specialist | Run status per stage and per unit; re-run a failed unit; release a failed extraction document | US-015, DL-18 |
+| `/specialist/runs/[runId]` | specialist | Run status per stage and per unit, with the run state (`ACTIVE`, `FAILED`, `ABANDONED`, `COMPLETED`); abandon an active run (reason required); re-run a failed unit and release a failed extraction document (future scope) | US-015, DL-18, DL-22 |
 | `/specialist/runs/[runId]/g1` | specialist | Rows with quote, quote-check result and flags; duplicate groups with warnings; coverage view; edit, approve, reject, reopen; add a row by hand; complete G1 (with group confirmation when required) | US-001 to US-005, US-016 · FR-027 to FR-029 |
 | `/specialist/runs/[runId]/g2` | specialist | Verdicts with reasoning and openable fact values; confirm, override, decide "unsure", reopen; GP-visible reason field | US-007 · W-17 |
 | `/specialist/runs/[runId]/g3` | specialist | Full calendar version with roll, unconfirmed, precautionary and OQ-7 marks; "conventions not yet checked" note; publish or decline | US-010 · CR-027 |
@@ -643,6 +665,7 @@ completion. This also absorbs double submits.
 | `GET /runs/{run_id}` | specialist | Run status: stages, units, failures, cost so far | US-015 |
 | `POST /runs/{run_id}/units/{unit_id}/rerun` `{run_version}` | specialist | Re-run one failed unit | CR-009, CR-010 |
 | `POST /runs/{run_id}/units/{unit_id}/release` `{run_version, reason}` | specialist | Release a failed extraction document to manual entry | CR-009, CR-010, DL-18 |
+| `POST /runs/{run_id}/abandon` `{run_version, reason}` | specialist | Abandon an `ACTIVE` run with a written reason; nothing is undone | CR-009, CR-023, W-19a |
 | `GET /runs/{run_id}/g1` | specialist | Rows, flags, quote checks, duplicate groups, coverage list | W-03a, W-03b |
 | `POST /runs/{run_id}/rows` `{paragraph_id, quote, fields}` | specialist | Create a row by hand | CR-020 |
 | `PATCH /rows/{row_id}` `{version, fields}` | specialist | Edit a pending or approved row; triggers re-verification | CR-005, CR-009, W-08 |
@@ -665,7 +688,7 @@ completion. This also absorbs double submits.
 - **Error envelope** (every non-2xx response):
   `{"error": {"code": "VERSION_MISMATCH", "message": "<plain sentence for the specialist>", "details": {...}}}`.
   Codes: `FORBIDDEN` (403), `VALIDATION` (422), `VERSION_MISMATCH` (409), `GATE_INCOMPLETE` (409),
-  `RUN_ACTIVE` (409), `RERUN_LIMIT` (409), `QUOTE_CHECK_FAILED` (409), `REASON_REQUIRED` (422),
+  `RUN_ACTIVE` (409), `RUN_NOT_ACTIVE` (409), `RERUN_LIMIT` (409), `QUOTE_CHECK_FAILED` (409), `REASON_REQUIRED` (422),
   `COST_CAP` (409), `MODEL_UNAVAILABLE` (503). Every refusal is also written to the audit log
   (CR-001).
 - **Streaming or event envelope**: none (§1).
@@ -837,7 +860,9 @@ replaced by a versioned file under `config/` or `mock-data/` (PRD §3 Integratio
 | The cost cap | No further calls in the run (CR-017) | The stop reason and cost so far |
 | A decision request | Refused with an error code (§4) and logged | The backend's plain message (§3 error states) |
 | Calendar generation | All-or-nothing; nothing stored on failure (CR-011) | Stage C failed; G3 not offered |
-| The backend process | Restart marks running units failed (§2) | Units marked failed and re-runnable after restart |
+| The backend process | Restart marks running units failed (§2); in the MVP the restart sweep is future scope (DL-22) | Units marked failed and re-runnable after restart (future scope); in the MVP a run left active by a crash is abandoned with a reason |
+| A step fails or exceeds its time limit | The stage ends, the run moves to `FAILED`, no gate opens (Run state model) | The state `FAILED`, the step, the unit and the reason; a new run can be started |
+| The specialist abandons a run | The run moves to `ABANDONED`; nothing is undone; audited (W-19a) | The state `ABANDONED` with the reason; a new run can be started |
 
 ### 7. Performance & Scalability Specifications
 
@@ -1221,6 +1246,7 @@ personas doing most of the writing (SA-16). "Likely" is the planning figure; the
 | WP-09 | G1: approve, approve over a flag with reason, reject with reason, coverage view, completion | 1.25 |
 | WP-11 | G2: confirm, override with reason, decide "unsure" (precautionary), fact view, completion | 1.5 |
 | WP-12 | G3: atomic publish, decline with reason, GP endpoint (published only), calendar-level note | 1.5 |
+| WP-12a | Run state model, step timeouts and abandon run (OQ-US015-4): `FAILED` and `ABANDONED` terminal states, the one-active-run rule on states, the abandon endpoint with its audit entry, run-status and abandon dialog on the status page | 2 |
 | WP-13 | Frontend shell, mock sign-in, generated client and fixtures, run status page | 2 |
 | WP-14 | Frontend G1 page | 2.25 |
 | WP-15 | Frontend G2 and G3 pages | 2.5 |
@@ -1231,20 +1257,24 @@ personas doing most of the writing (SA-16). "Likely" is the planning figure; the
 | WP-20 | QA acceptance pass, accessibility review, copy review | 2 |
 | WP-21 | Security assessment | 1 |
 | WP-22 | Deliver: run instructions, user guide, outcome document, demo rehearsal | 1.5 |
-| | **Thin slice** | **≈ 42.5 (32–60)** |
+| | **Thin slice** | **≈ 44.5 (33.5–63)** |
 | | *Future scope above, for comparison (excluding F10 and SOQ-10)* | *≈ 10* |
 | | *Stretch F10* | *≈ 6* |
 
-(WP-10, manual row creation, is now future scope, so the numbering skips it.)
+(WP-10, manual row creation, is now future scope, so the numbering skips it. WP-12a was added on the
+operator's decision on OQ-US015-4: the product manager's estimate, 2 focused days likely (1.5–3), split
+about 1.0 backend for the state model, step-timeout mapping and abandon endpoint with audit, 0.5
+frontend for the status states and the abandon dialog, 0.5 for tests T-RUN-1 to T-RUN-4. The architect
+confirms or corrects it at the week-1 re-estimate. The earlier slice figure was 42.5 (32–60).)
 
 **Fit verdict**: the operator has committed the time (SOQ-12) without giving a number, so the table
 below is kept as the reference for the week-1 re-estimate rather than as a verdict:
 
 | Focused days remaining for Build and Deliver | Verdict |
 |---|---|
-| ≥ 43 | The slice fits on the likely figure |
-| 32–43 | Fits only if the week goes to the low end of the range; agree Tier 2 cuts in advance |
-| < 32 | Does not fit as estimated; Tier 2 cuts needed from the start |
+| ≥ 45 | The slice fits on the likely figure |
+| 33.5–45 | Fits only if the week goes to the low end of the range; agree Tier 2 cuts in advance |
+| < 33.5 | Does not fit as estimated; Tier 2 cuts needed from the start |
 
 **Tier 2 cuts** (available, **not** pre-approved): (a) time-box prompt tuning (WP-19) to 1 day and
 report any miss (PRD §7, DL-10); (b) build the frontend directly against the backend, skipping
@@ -1259,8 +1289,8 @@ straight away.
 
 | In the MVP | Future scope |
 |---|---|
-| Routes: all seven (§3). The G1 page has approve, reject and the coverage view only (no edit form, no manual row, no duplicate groups, no reopen); the G2 page has no reopen; the run status page has no re-run or release; the GP page has no review notice | — |
-| Endpoints: `POST /runs`, `GET /runs/{id}`, `GET .../g1`, `POST /rows/{id}/decision`, `POST .../g1/complete` (without `group_confirmations`), `GET .../g2`, `POST /verdicts/{id}/decision`, `POST .../g2/complete`, `GET .../g3`, `POST /calendars/{id}/publish`, `POST /calendars/{id}/decline`, `GET /calendar` (without the review notice), `GET /health` | `POST .../units/{unit}/rerun`, `POST .../units/{unit}/release`, `POST .../rows` (manual row), `PATCH /rows/{id}`, `POST /rows/{id}/reopen`, `POST /verdicts/{id}/reopen`, `group_confirmations`, the review-notice part of `GET /calendar` |
+| Routes: all seven (§3). The G1 page has approve, reject and the coverage view only (no edit form, no manual row, no duplicate groups, no reopen); the G2 page has no reopen; the run status page has no re-run or release, but has the run states and the abandon action; the GP page has no review notice | — |
+| Endpoints: `POST /runs`, `GET /runs/{id}`, `POST /runs/{id}/abandon`, `GET .../g1`, `POST /rows/{id}/decision`, `POST .../g1/complete` (without `group_confirmations`), `GET .../g2`, `POST /verdicts/{id}/decision`, `POST .../g2/complete`, `GET .../g3`, `POST /calendars/{id}/publish`, `POST /calendars/{id}/decline`, `GET /calendar` (without the review notice), `GET /health` | `POST .../units/{unit}/rerun`, `POST .../units/{unit}/release`, `POST .../rows` (manual row), `PATCH /rows/{id}`, `POST /rows/{id}/reopen`, `POST /verdicts/{id}/reopen`, `group_confirmations`, the review-notice part of `GET /calendar` |
 
 *Record:* the first proposal (an "above the line" core of about 46 days and seven items below it) was
 replaced by this slice on the operator's decision. That proposal was never committed; its outline is
@@ -1377,13 +1407,17 @@ only after the operator moves it into scope.
 - **SA-17**: Evaluation runs drive the gates with the scripted demo decisions as the mocked identity
   `specialist-eval` (EC-R2). Their audit entries are real and complete, so EC-016 is checked on them;
   only review time (EC-011) needs a human run.
+- **SA-18**: `COMPLETED` means G3 was decided (published, or declined with a reason). After a decline the
+  MVP offers only "keep unpublished" and a new run (the G1 and G2 routes need reopen, which is future
+  scope), so the run does not stay active. Written as an assumption because no document had said when a
+  run ends; the architect or operator confirms or corrects it.
 - **SA-13**: The CrewAI settings in §2 (`max_iter: 2`, `max_rpm: 30`, timeouts) are starting values.
   The week-1 spike confirms or replaces them, and any change is recorded in the Audit.
 
 ## Open Questions
 
 - **SOQ-1** (from PRD OQ-5, DL-08): Does the MVP fit six weeks? **Scope agreed (DL-22): the thin
-  slice, about 42.5 focused days (32–60).** The fit verdict waits for SOQ-12. Re-estimated after Build
+  slice, about 44.5 focused days (33.5–63), after WP-12a added 2 to the earlier 42.5 (32–60).** The fit verdict waits for SOQ-12. Re-estimated after Build
   week 1.
 - **SOQ-12**: *Answered 2026-11-11 (operator).* The operator will dedicate the time the thin slice
   needs. No number of focused days is recorded, so the fit is a **commitment, not a measured fit**.
@@ -1439,7 +1473,8 @@ only after the operator moves it into scope.
   dead ends.** A verifier unit (a row) or a judge unit (a verdict) that fails the re-run limit holds
   G1 or G2 closed with no release (T-REL-2). The fixes differ from extraction: a row with no conflict
   check, or a row with no agent verdict. To be decided separately; until then, a new run is the only
-  way through.
+  way through. *For the MVP (OQ-US015-4, DL-22): a failed row unit fails the run, which is then `FAILED`
+  and a new run can start; no release or unit re-run exists, so this stays future scope.*
 - **SOQ-13**: *Resolved 2026-11-12 (operator decision, DL-24).* Development model usage has a hard
   cap of **US$50 until 13 December 2026**, enforced in the provider account, with a stop-and-review
   checkpoint at **US$25**. See §7 and EC-R6.
@@ -1633,3 +1668,11 @@ only after the operator moves it into scope.
   (model provider and starting model, before the week-1 spike), with the Setup steps it triggers:
   provider-standard key name, spending limit before the key, telemetry opt-out verified against the
   installed CrewAI version (SD MN-002).
+- 2026-11-12 · operator session (Claude Code, no AAMAD persona; at the operator's instruction, edited by
+  the product manager session because the operator asked for the SAD run state model to be updated) ·
+  action `update` (OQ-US015-4, DL-22) · added the Run state model (`ACTIVE`, `FAILED`, `ABANDONED`,
+  `COMPLETED`); a failed step or a timeout ends the run as `FAILED`; new W-19a abandon run (reason
+  required, audited, nothing undone, not a general cancel); CR-023 reads the state, tests T-RUN-0 to
+  T-RUN-4; endpoint `POST /runs/{id}/abandon` and error `RUN_NOT_ACTIVE`; new WP-12a (2 focused days,
+  the product manager's estimate for the architect to confirm), slice 42.5 → 44.5 (32–60 → 33.5–63) and
+  the fit table moved by 2; SA-18 (`COMPLETED` = G3 decided); SOQ-10 note. Flagged for `@system.arch`.

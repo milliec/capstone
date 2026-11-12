@@ -31,12 +31,12 @@ miss a filing and don't have to read legal text.
 6. **Then** the GP has no way to change anything. Any attempt to change data as a GP is refused.
 7. **Given** the calendar is not published, **then** the view shows an empty state with no entries.
 8. **Then** the view meets WCAG 2.2 AA.
-9. **Given** a published calendar, **when** a change calls its accuracy or completeness into question
+9. *Deferred (DL-22).* **Given** a published calendar, **when** a change calls its accuracy or completeness into question
    (SD FR-025 triggers, including reopening a "does not apply" verdict or a rejected rule), **then** the
    GP view shows a neutral calendar-level review notice. The last published entries stay visible with
    their publication date. No draft content, flag detail or specialist reasoning is shown. Draft work
    that doesn't affect the published calendar does not trigger it.
-10. **Given** the notice is shown, **then** it clears only when a replacement calendar is successfully
+10. *Deferred (DL-22).* **Given** the notice is shown, **then** it clears only when a replacement calendar is successfully
     published. A declined or failed publication does not clear it.
 11. **Given** the published calendar, **then** the view shows one calendar-level note: entries are
     specialist-approved interpretations, not legal advice, and the date conventions behind them have
@@ -87,3 +87,4 @@ miss a filing and don't have to read legal text.
   operator decision
 - 2026-11-09 · persona `product-mgr` · action `update` (UX review) · criterion 5: shows "precautionary" and its reason; no implied registration or marketing permission (PRD F8); decision log DL-01
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · assumption: the OBL-02 open-question mark is specialist-only, matching US-010 criterion 12; no criterion changed
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 9–10 (the GP review notice) marked deferred; the calendar-level note (criterion 11) stays; nothing deleted
