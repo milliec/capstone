@@ -27,11 +27,12 @@ so that GPs never see unfinished work.
    only the read-only message in US-011 criterion 7.
 7. **Then** every publish, and every refused attempt, is recorded in the audit log with who and when.
 8. **Given** a generated calendar, **when** the specialist declines at G3 without a reason, **then** the
-   decline is refused. **With** a reason and a chosen next step (G1, G2, or keep unpublished), it is
-   accepted. *(The G2 route reopens the verdict: SD FR-024, US-007 criteria 8 and 9.)*
+   decline is refused. **With** a reason, it is accepted and the run ends as **declined** (final).
+   Correcting the calendar means starting a new run (US-015 criterion 16). The next-step choices, going
+   back to G1 or G2, and the reopen they need are future scope (DL-22).
 9. **When** the specialist declines, **then** no new version is published. The draft and its review
    history stay available to the specialist only, any previously published version stays visible to
-   GPs together with any review notice (US-011 criterion 10), and no earlier G1 or G2 approval is cancelled. The decline, the reason and the chosen next step
+   GPs together with any review notice (deferred, US-011 criterion 10), and no earlier G1 or G2 approval is cancelled. The decline and the reason
    are recorded in the audit log with who and when.
 10. **Then** publishing happens only through an explicit publish action. It is never preselected, and
     is never triggered by a timeout or by closing the screen. If the specialist leaves without
@@ -119,3 +120,4 @@ so that GPs never see unfinished work.
   made on an out-of-date calendar screen, or a publish submitted twice, is refused with a plain message
   showing the current version
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · criterion 6 points to the GP message in US-011 criterion 7; no behaviour changed
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 8–9: a decline needs a reason, is audited and ends the run as declined; no next-step choice (back to G1 or G2 is future scope); correcting means a new run; operator decision

@@ -303,6 +303,7 @@ filing and don't have to read legal text.*
 |---|---|
 | Each entry shows what (obligation + authority), when (date + roll note if moved), who files, and why (reason + source citation and quote). | SD AC-014 |
 | No pending, unsure, rejected or conflicted working content is shown. | SD MN-007 |
+| Before the first publication, the GP view shows a read-only empty state with the message "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." It shows no entry, count, status or draft content, and no notification is sent. | SD AC-013, OQ-6, DL-27 |
 | A precautionary entry shows "precautionary" and its reason. GP text must not state or imply that a registration or marketing is permitted. | SD P-1, OQ-11 |
 | *Deferred (DL-22).* After publication, a change that questions the published calendar shows GPs a neutral review notice. The last published entries and their publication date stay visible. The notice clears only on a successful republish. | SD FR-025, AC-024 |
 | The GP cannot change anything. | SD §1, NFR-010 |
@@ -673,3 +674,4 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD SOQ-4) · OQ-8 resolved: Next.js (App Router) with TypeScript; no requirement changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope criteria in F3, F5 and F8 marked deferred; §6 failures row notes the deferred re-run and the MVP behaviour; OQ-5 recorded as decided on scope (capacity still open); DL-02's re-run superseded for the MVP; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · OQ-6 resolved: before the first publication the GP view shows a read-only "being prepared" message; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · F8: criterion for the read-only "being prepared" empty state before the first publication; no notifications; operator decision

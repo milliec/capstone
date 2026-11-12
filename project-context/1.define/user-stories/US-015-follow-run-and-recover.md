@@ -57,7 +57,8 @@ have already made.
 16. **Given** a run is active for the fund (a stage is running, or a gate is waiting for the
     specialist), **when** the specialist tries to start another run, **then** it is refused with a plain
     message that names the active run (its ID), and the active run is unchanged. A run that has failed,
-    been abandoned or completed is not active (criteria 19 and 20). One run at a time is a rule the
+    been abandoned, been declined at G3 (US-010 criterion 8) or completed is not active (criteria 19
+    and 20). One run at a time is a rule the
     system enforces, not a convention. (SAD CR-023, PRD A-6, SAD run state model.)
 17. **Given** a run's model cost passes US$2, **then** run status shows a warning. **Given** it reaches
     the run's cost cap (set by configuration, US$4 by default), **then** no further model calls are made
@@ -110,7 +111,7 @@ have already made.
 ## 5. Traceability
 
 - **PRD Anchors**: §6 (run status, failures, voice) · OQ-5
-- **System description**: NFR-004 · MC-001 · MD-009 · AC-030, AC-031
+- **System description**: NFR-004 · MC-001 · MD-009 · AC-030, AC-031, AC-033 to AC-036
 - **Decision log**: DL-18 (criteria 14–15)
 - **SAD controls**: CR-023 (criterion 16) · CR-017 and MC-002 (criterion 17) · Production Shape circuit
   breaker (criterion 18) · run state model, W-19a and tests T-RUN-0 to T-RUN-4 (criteria 19–21)
@@ -145,8 +146,8 @@ have already made.
   allowed (criterion 19). Every agent step has a time limit that turns a hang into a failure. A
   specialist action to **abandon** a run, with a written reason and an audit entry, closes an active run
   without undoing anything (criterion 20). This is not a general cancel feature. A run ends when G3 is
-  decided, fails, or is abandoned; the architect confirms that a declined G3 also ends the run (SAD
-  SA-18).
+  decided, fails, or is abandoned. *Confirmed by the operator, 2026-11-12:* a declined G3 ends the run
+  as declined, so it is no longer active (SAD SA-18; US-010 criterion 8).
 
 ## Audit
 
@@ -166,3 +167,4 @@ have already made.
   reason, audited, nothing undone; refusals on a closed run); scope note that abandon is not a general
   cancel; OQ-US015-3 and OQ-US015-4 resolved; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 4–6 (re-run from the last safe state), 11–13 (unit re-run, example, "needs attention"), 14–15 (release) and 18 (circuit breaker) marked deferred, with the restart note; criteria 1–3, 7–10, 16–17 and 19–21 stay; DL-02's re-run is superseded for the MVP
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 16 lists a declined run as not active; OQ-US015-4 notes the operator's confirmation of SA-18; traced to SD AC-033 to AC-036

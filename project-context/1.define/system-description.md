@@ -161,7 +161,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | FR-019 | The specialist can view a row's full trail: source, quote, verifier flags, verdict, approvals. | Should | MP-005 |
 | FR-020 | GP view shows one plain calendar-level note: entries are specialist-approved interpretations, not legal advice, and the date conventions have not yet been checked against the legal texts (A-7). *Raised from Should to Must, operator decision 2026-11-09; MN-009 already required the note.* | Must | MN-009, A-7 |
 | FR-021 | **Stretch:** given an amendment, produce an impact report listing affected rows, verdicts and calendar entries with reasons, and send them back through G1 or G2. Unaffected items are left alone. | Could | MD-011, MN-003 |
-| FR-022 | G3 decline: declining G3 requires a reason, publishes no new version and retains the draft and review history (including its evidence), visible to the specialist only. Any previously published version remains visible to GPs. The specialist chooses the next step: *a rule needs correcting* (go to G1), *a verdict needs review* (return to G2 by reopening the verdict under FR-024), or *keep unpublished for later*. Declining cancels no earlier G1 or G2 approval. | Must | MD-004, MD-009 |
+| FR-022 | G3 decline: declining G3 requires a reason, publishes no new version and retains the draft and review history (including its evidence), visible to the specialist only. Any previously published version remains visible to GPs. In the MVP a decline ends the run as declined (terminal), and correcting the calendar means a new run. *The next-step choices, a rule needs correcting (go to G1) and a verdict needs review (return to G2 by reopening the verdict under FR-024), are deferred (DL-22).* Declining cancels no earlier G1 or G2 approval. | Must | MD-004, MD-009 |
 | FR-023 | Reopen a rejected row: the specialist can reopen a rejected row, before or after publication. A reason is required, and the original rejection stays in the audit log. The row returns to pending, is re-verified, and needs fresh G1 approval and then a G2 verdict. Until those are complete, publishing a new calendar version is refused. GPs keep seeing the last published version until the specialist republishes. A rejected row is read-only: direct editing is refused until it is reopened, and after reopening normal pending-row editing applies (MD-005). *New scope decision (operator, 2026-11-07), supporting P-1; not implied by earlier requirements. Scope is limited to this recovery path; it is not a general undo system.* | Deferred (DL-22) | MD-004, MD-005, MD-009, P-1 |
 | FR-024 | Reopen a confirmed verdict: the specialist can reopen a confirmed or overridden G2 verdict, before or after publication, to correct a judgement while the rule and the relevant fund facts are unchanged. A reason is required. The original decision and the agent's reasoning stay in the audit log. The rule keeps its G1 approval, and the applicability agent is not re-run. The verdict returns to pending G2, its calendar entries are marked out of date, and publishing a new version is refused until G2 is complete and the dates are regenerated. GPs keep seeing the last published version. The specialist must finish with "applies" or "does not apply", and an override still needs a reason. If the rule has changed, the edit path applies instead (MD-005). Fund facts are static in the MVP, so reassessment after a fact change is not defined (OQ-9). *New scope decision (operator, 2026-11-07).* | Deferred (DL-22) | MD-004, MD-009, FR-022, P-1 |
 | FR-025 | Published-calendar review notice: when a change calls the currently published calendar's accuracy or completeness into question, the GP view shows a neutral, calendar-level review notice. Triggers: an edit to an approved row the published version used (MD-005); reopening a verdict the published version used, including a "does not apply" decision that excluded an obligation (FR-024); reopening a rejected row for the published calendar's fund and regulatory scope (FR-023); and, only if the stretch is built, an impact flag on a published item (MD-011). Unrelated draft work does not trigger it. The last published entries stay visible with their publication date. No draft content, flag detail or specialist reasoning is shown. The notice clears only when a replacement calendar is successfully published; a declined (FR-022) or failed publication does not clear it. Exact wording is set at the UX step. *Limit: the notice warns of uncertainty; it does not by itself prevent reliance on an incorrect date.* *New scope decision (operator, 2026-11-07).* | Deferred (DL-22) | MN-007, FR-015, P-1 |
@@ -183,7 +183,7 @@ error this system can make. Naming the principle stops the same choice being mad
 | NFR-007 | Cost | See MC-002. | MC-002 |
 | NFR-008 | Usability | See MC-003. | MC-003 |
 | NFR-009 | Security and privacy | No secrets or real data in the repository. API keys come from local environment settings that git ignores. | MN-001 |
-| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, create a row by hand (FR-027), reject, override, reopen (FR-023, FR-024), publish or decline (FR-022), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
+| NFR-010 | Access | GP access is read-only. Only the specialist role can approve, edit, create a row by hand (FR-027), reject, override, reopen (FR-023, FR-024), publish or decline (FR-022), abandon a run (AC-035), and, in the stretch, accept impact reports or send them for manual review (FR-026). Naming "override" adds no permission: it covers only the existing approval over a remaining conflict flag (AC-006) and the G2 verdict override (FR-010), both with a reason. Checks that cannot be overridden stay so: a failed quote check or missing paragraph ID (MN-006), "unsure" at G2 close (AC-008), and publishing with gates incomplete or entries out of date (MP-006). Roles may be mocked for the MVP. | MN-003 |
 | NFR-011 | Testability | Tests for gates, due-date calculation and the audit log run without calling a language model. Only agent evaluations need the live model. | MP-006, MP-007, MP-008 |
 | NFR-012 | Extensibility (architecture quality goal) | The MVP is built as the **first validated configuration of a shared product**, not a bespoke implementation (§10). The SAD (a) names the shared capabilities, the configuration and the defined extension points; (b) walks through scenarios S-1 and S-2 (§10.4) separately and shows, for each, what would be configuration, what would need an extension point and what would stay unchanged, with no client-specific copy of a shared capability; and (c) shows how the extension rules EX-1 to EX-6 (§10.3) would be checked. The MVP builds only the Luxembourg UCI Part II configuration. No extension, extra configuration or configuration screen is in the MVP. *Operator decision, 2026-11-08.* | §10, MP-001 to MP-008 |
 
@@ -263,9 +263,9 @@ error this system can make. Naming the principle stops the same choice being mad
 outcome; the linked story criteria hold the detail.*
 
 - **AC-021** (FR-022): Given a generated calendar, when the specialist declines G3 without a reason,
-  then the decline is refused. With a reason and a chosen next step, no new version is published, the
-  draft and its review history stay available to the specialist, any previously published version
-  stays visible to GPs, and no G1 or G2 approval changes. *Detail: US-010 criteria 8–9.*
+  then the decline is refused. With a reason, no new version is published, the draft and its review
+  history stay available to the specialist, any previously published version stays visible to GPs, no
+  G1 or G2 approval changes, and the run ends as declined (terminal). *Detail: US-010 criteria 8–9.*
 - **AC-022** (FR-023): *Deferred (DL-22).* Given a rejected row, when the specialist edits it directly or reopens it without
   a reason, then both are refused. When it is reopened with a reason, the row returns to pending and is
   re-verified, G1 is incomplete until the row is decided again, its verdict then needs G2, and
@@ -329,6 +329,23 @@ outcome; the linked story criteria hold the detail.*
   under "no roll" and "roll forward". The date code has no built-in rule for `OBL-02`: a row whose
   rule is unset stays "not confirmed". *Traces to SAD CR-027, tests T-W13-1 and T-W13-2. Detail:
   US-004 criterion 17, US-010 criterion 12, US-011 assumptions.*
+- **AC-033** (NFR-004, MN-003): Given a model step returns output that fails its schema, or a call fails
+  after its one automatic retry, when the stage ends, then the run moves to **failed** (terminal). Run
+  status names the step, the unit and the reason, no gate opens for the failed stage, and decisions
+  already recorded stay as they were. *Detail: US-015 criterion 19; SAD test T-RUN-1.*
+- **AC-034** (NFR-004, MN-003): Given a step that never returns, when its time limit passes, then the
+  unit fails and the run moves to **failed** as in AC-033, so a hang cannot keep a run active.
+  *Detail: US-015 criterion 19; SAD test T-RUN-2.*
+- **AC-035** (NFR-004, MD-009, MN-003, NFR-010): Given an active run, when the specialist abandons it
+  without a written reason, then it is refused. With a reason, the run closes as **abandoned**, one audit
+  entry records who, when, the reason and the stage, and nothing is undone: decisions, rows, verdicts,
+  drafts, the audit log and any published calendar stay as they were, and GPs keep seeing the last
+  published version. Abandoning a run that is not active, on an out-of-date screen, or twice is refused.
+  This is not a general cancel. *Detail: US-015 criteria 20–21; SAD tests T-RUN-3 and T-RUN-4.*
+- **AC-036** (PRD A-6, NFR-004): Given a run that is failed, declined or abandoned (or completed), when
+  the specialist starts a new run, then it is allowed. Given a run that is still active, it is refused
+  with a message that names the active run. *Detail: US-015 criterion 16; US-010 criterion 8; SAD tests
+  T-RUN-0, T-RUN-1, T-RUN-3 and T-RUN-5.*
 
 *Stretch goal (FR-021, FR-026). Not part of the Week 6 definition of done.*
 
@@ -361,6 +378,10 @@ reopen a rejected row (FR-023, AC-022); reopen a verdict (FR-024, AC-023); the G
 and the completion confirmation (FR-029, AC-028); the verifier and judge dead-end handling (SAD
 SOQ-10); the impact report (FR-021, FR-026, stretch, unchanged); the extra CI checks, the circuit
 breaker and the restart sweep. The list by story is in `user-stories/README.md`, "Scope status (DL-22)".
+
+**Known MVP limitation (OQ-US001-2, accepted by the operator, 2026-11-12).** There is no way to mark a
+source paragraph as read and holding no obligation. The coverage view (FR-028) shows such a paragraph as
+uncovered, as a warning, on every run. A "reviewed, no obligation" mark is future scope.
 
 **Out of scope for the MVP**
 - Real client data, fund names or branding.
@@ -693,3 +714,4 @@ investors in Singapore.
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-20) · new AC-032 (OBL-02 open-question mark at G1 and G3; SAD CR-027, T-W13-1, T-W13-2); AC-031 detail points to US-013 criterion 9. Operator decision; no requirement changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope items marked deferred: FR-007, FR-023, FR-024, FR-025, FR-027 and FR-029 (priority), FR-005 and FR-006 edit parts and NFR-004 re-run sentences (notes), AC-005, AC-022 to AC-024, AC-027, AC-028 and AC-031 (prefix), AC-030 (re-run part); §9 lists them. Nothing deleted; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · OQ-1 resolved (the "being prepared" message before the first publication); AC-013 names the message; no requirement changed; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · new AC-033 to AC-036 (failed step and timeout end the run as failed; abandon with a reason; a new run is allowed after a closed run); FR-022 and AC-021 drop the next-step choices (a decline ends the run as declined); NFR-010 lists abandon as specialist-only; §9 records the OQ-US001-2 limitation; operator decisions

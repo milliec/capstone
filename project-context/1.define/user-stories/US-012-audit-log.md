@@ -18,7 +18,7 @@ that I can show afterwards who decided what, when and why.
    with the time, the step that produced it and the run ID.
 2. **Then** every human decision (approve, reject, edit, override, reopen, publish, decline) is recorded
    with who, when and what. Rejections, overrides, approvals over a flag, reopenings (SD FR-023,
-   FR-024) and G3 declines (with the chosen next step, SD FR-022) include the written reason. Each
+   FR-024) and G3 declines (SD FR-022) include the written reason. Each
    approval decision (approve, reject, override, reopen, publish, decline) also records the version of
    the row, verdict or calendar it was made on (SD MD-009).
 3. **Then** edits record the value before and after. Opening each gate is also recorded with who and
@@ -63,3 +63,4 @@ that I can show afterwards who decided what, when and why.
 - 2026-11-07 · operator session (Claude Code, no AAMAD persona) · action `update` · criterion 2: the
   version requirement extended from overrides to every approval decision (SD MD-009); supersedes the
   override-only wording above; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criterion 2 no longer mentions a chosen next step on a G3 decline (deferred); the reason is still recorded
