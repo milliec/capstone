@@ -233,6 +233,20 @@ when a story states an expected count, derive it from the data and show the sum 
 next reader can check it without trusting you, and report any mismatch to the owner of the source
 document instead of silently fixing it.
 
+**Test data can carry its own answers.** The mock source files had helpful "Test note" lines ("the
+correct verdict is unsure") and the fund profile had a "Decides" column. Useful for people, fatal if
+they reach a prompt: the agent would be reading the answer key. The fix is a loader that takes only
+the paragraph text and fact values, plus a test that renders every prompt and fails if any of that
+content appears. Lesson: before an agent reads a file, ask what else is in the file besides the part
+you meant it to read. It's like handing a usability-test participant a prototype with your
+facilitator notes still on the artboard.
+
+**Teach the principle, not the test case.** The judge needed a rule ("a fact counts only if it
+asserts what the condition requires"), but a rule that echoes a demo case makes the evaluation look
+better than the model is. The rule was written generally, then checked mechanically against the demo
+material for shared wording. Lesson: when an instruction exists because of a known test case, word
+it so it would make sense without that case, and check.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -280,6 +294,19 @@ went back to its last committed state. It looked as if the work had vanished. It
 changes parked on a shelf, and restoring it puts them back. Lesson: commit before switching branches,
 and if "stashed changes" appears, restore them before doing anything else. It's like Figma's version
 history: the work is still there, just not on the canvas.
+
+**A public site is safe when there is nothing to reach, not when it is hidden.** The hosted demo is
+open to anyone, with a role picker instead of a login. That is only acceptable because the host holds
+no model key (so no one can run up a bill), only mock data, and one low-value secret. The design makes
+the safe state the only possible one: the app refuses to start if a key is present. Lesson: ask "what
+could a stranger reach?" before asking "how do I lock it?". It's like publishing a Figma file with
+only placeholder content: you don't need a password, you need to check there's nothing real in it.
+
+**Resetting data must not fight the rules that protect it.** The audit log is append-only: the
+database refuses edits and deletes. A "reset the demo" that deleted rows would have to defeat that
+rule. The answer is to replace the whole database file with a fresh one and leave the rule alone.
+Lesson: when a new feature seems to need an exception to a protection, look for a way to do it that
+never touches the protection. Also, a reset means the hosted audit log is a demo record, not evidence.
 
 ## 5. Domain: fund compliance calendars
 
