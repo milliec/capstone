@@ -54,9 +54,9 @@ date is correct and comes out the same each time.
 ## Assumptions
 
 - The same occurrence of an obligation must always get the same ID. The SAD sets the stable entry-ID
-  scheme (§4): the ID is built from the fund, the source paragraph, the recipient authority, the
-  position of the quote in the paragraph and the period, and is independent of the due date, so an
-  edited offset moves the date but not the ID. Test T-ID-2 covers distinct IDs, the same IDs on
+  scheme (§4): the ID is built from the fund, the source paragraph, the recipient authority and
+  the period (it no longer includes the position of the quote, DL-35), and is independent of the due
+  date, so an edited offset moves the date but not the ID. Test T-ID-2 covers distinct IDs, the same IDs on
   regeneration, and a refused generation when two approved rows would give the same ID.
 
 ## Open Questions
@@ -74,3 +74,4 @@ date is correct and comes out the same each time.
   the SAD); Spain note renamed
 - 2026-11-11 · persona `product-mgr` · action `update` (DL-19) · OQ-US008-1 part resolved (CNMV `OBL-04`); AED subscription-tax part stays open (DL-20); no criterion changed
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD §4) · assumption points to the SAD's stable entry-ID scheme and test T-ID-2; no criterion changed
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-20 e, f, h) · entry-ID assumption no longer includes the quote position (DL-35)

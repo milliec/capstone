@@ -94,7 +94,7 @@ so that GPs never see unfinished work.
 
 ## Open Questions
 
-- **OQ-US010-1**: Four-eyes review: in the MVP or later? (PRD OQ-1)
+- **OQ-US010-1**: *Resolved* (operator decision, 2026-11-12, DL-37). Four-eyes review is future scope; one specialist decides at G3. (PRD OQ-1)
 - **OQ-US010-2**: *Resolved.* After a post-publish edit, GPs keep seeing the last published version
   until the specialist publishes again (operator-confirmed).
 - **OQ-US010-3**: *Resolved* (operator decision, 2026-11-07). See criteria 8 and 9. (SD OQ-6)

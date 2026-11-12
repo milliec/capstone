@@ -94,6 +94,13 @@ row, while the drop order said the visual pass goes first. Built in the listed o
 already be spent on the thing meant to be cut. Whenever you write a drop order, check that the build
 order is its reverse, and say that the numbering of a list is not its sequence.
 
+**A cap is not a budget.** I wanted model spend down to about US$15. Lowering the per-run cap helped
+the worst case, but caps only limit what one run or one activity can cost; they can still add up past
+the target. The real saving came from asking which model calls teach me something: building against
+stand-in agents costs nothing, and real calls are kept for measuring, tuning, evaluating and the demo.
+The total is enforced by the one thing that can enforce it, the prepaid balance. Lesson: set a cap for
+the worst case, a call count for each activity, and let the money you load be the budget.
+
 ## 2. Designing AI agent systems
 
 **Use AI where judgement is needed, plain code where correctness is needed.** Agents read text and
@@ -333,3 +340,4 @@ question to answer.
 - 2026-11-12 · added two notes from the MVP rewrite of the architecture document (cut scope by removing text; a plan needs a capacity number)
 - 2026-11-12 · added one note from the review of the MVP estimate (build last what you would cut first)
 - 2026-11-12 · added one note from a branch switch during the architecture rewrite (a stash is a shelf, not a loss)
+- 2026-11-12 · added one note from the model spend decision (a cap is not a budget)

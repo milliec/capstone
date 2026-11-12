@@ -1,7 +1,7 @@
 # Approval Map
 
 **Product**: Regulatory Intelligence for fund compliance calendars
-**Status**: **Matches the SAD as of 2026-11-12 (SAD SOQ-16; decisions DL-22, DL-27, DL-29 to DL-31).
+**Status**: **Matches the MVP SAD as of 2026-11-12 (SAD SOQ-16; decisions DL-22, DL-27, DL-29 to DL-36).
 Not a requirement in itself.** Requirements live in `system-description.md`, `prd.md` and the user
 stories; rows marked "Proposed" remain proposals. This map does not itself change `prd.md`,
 `system-description.md` or the user stories. On 2026-11-07 the operator decided most of its open
@@ -79,7 +79,7 @@ this map must be re-checked.
 | Editing re-verifies, returns the row to pending, sends its verdict back to G2, marks entries out of date | Existing · *future scope (DL-22)* | SD MD-005, FR-006, FR-007, AC-005, US-005 |
 | GP access is read-only | Existing | SD NFR-010, US-011 AC6 |
 | Change monitoring is a stretch goal. It flags impacts and never applies changes. | Existing | SD MD-011, FR-021, US-014 AC8 |
-| One specialist. Four-eyes review is **not** assumed. | Existing (timing open) | SD OQ-5, PRD OQ-1 |
+| One specialist. Four-eyes review is future scope. | Existing (decided, DL-37) | SD OQ-5, PRD OQ-1 |
 | G3 offers publish or decline. A decline needs a reason, publishes nothing new and keeps the draft and its history. | Existing | SD MD-004, FR-022, AC-021, US-010 AC8–AC9 |
 | A rejected row can be reopened with a reason; it is read-only until then. A confirmed verdict can be reopened with a reason for judgement-only corrections. | Existing · *future scope (DL-22)* | SD FR-023, FR-024, AC-022, AC-023, US-004 AC9–AC11, US-007 AC8–AC9 |
 | After publication, GPs keep the last published version plus a neutral calendar-level review notice when a change questions it | Existing · *the notice is future scope (DL-22)* | SD MN-007, FR-025, AC-024, US-011 AC9–AC10 |
@@ -91,6 +91,8 @@ this map must be re-checked.
 
 **Not in the Define documents:** a Next.js frontend. PRD A-4 says only "web", with the framework left
 to the SAD. Next.js is recorded as operator intent for the SAD, not an agreed requirement (PRD OQ-8).
+*Decided 2026-11-12 (DL-33): the MVP uses plain server-rendered pages; Next.js is post-course
+future scope.*
 
 ---
 
@@ -120,7 +122,7 @@ human-approved decision does not let any actor **make** that decision.
 | Actor | Kind | Reads | Produces | Must never | Status · trace |
 |---|---|---|---|---|---|
 | Extraction | Model responsibility | Mock source paragraphs | Draft obligation rows (proposals) | Approve, write the library, compute dates | Existing · SD MD-001, FR-002, PRD §3 |
-| Verifier | Model responsibility, separate from extraction | Draft rows, all mock sources | Quote-check result, conflict flags (internal and cross-source) | Edit, resolve or approve a row | Existing · SD MD-003, MN-004, FR-003, FR-004 |
+| Verifier | Model responsibility, separate from extraction | Draft rows, all mock sources, and the quote-check result (which code produces: A4, DL-14) | Conflict flags (internal and cross-source) | Edit, resolve or approve a row | Existing · SD MD-003, MN-004, FR-003, FR-004 |
 | Applicability | Model responsibility | G1-approved rows, mock fund profile | Draft verdicts with reasoning citing fact IDs; the only source of "unsure" | Confirm its own verdict, decide "unsure" | Existing · SD MD-002, FR-009, US-007 assumption |
 | Due-date code | Deterministic code | G2-approved rows and verdicts, mock holidays, mock event log | Draft calendar entries with stable IDs | Run before G2 is complete, call a model | Existing · SD MD-006, MN-005, FR-011 to FR-013, FR-016 |
 | Gate and state code | Deterministic code | Approvals, flags, statuses | State changes only on a recorded specialist decision | Advance work without the matching approval | Existing · SD MN-003, MP-006 |
@@ -193,12 +195,13 @@ The system may never complete them for the specialist.
 | H6a | **Reopen** a confirmed or overridden verdict, with a written reason, before or after publication | No | Yes (verdict returns to pending G2; its entries go out of date; the rule keeps G1 approval) | Not until republish; GPs see the review notice if a calendar is published | No | **Ask**, reason required | *Future scope (DL-22).* Existing · SD FR-024, US-007 AC8–AC9. For judgement-only corrections; a changed rule uses the edit path. |
 | H7 | **Override** a verdict, with a written reason (G2) | As H6 | Yes | Not until G3 | Uncertain | **Ask**, reason required | Existing · US-007 AC3. The specialist cannot set "unsure" (US-007 assumption). |
 | H8 | **Decide** an "unsure" verdict (G2) | As H6 | Yes | Not until G3 | No | **Ask**, blocking | Existing · SD AC-008, US-007 AC4–AC6, P-1 |
+| H8a | **Decide again** a row (G1) or a verdict (G2) that already has a decision | — | Yes (it would replace an approved decision) | Not until G3 | Yes | **Never** | Existing · SAD CR-009, MD-009. Refused (`ALREADY_DECIDED`, 409) with a clear message, and the refusal is recorded in the audit log, like the other gate refusals. The service checks first and the database enforces it again; if the database refuses, the service still answers `ALREADY_DECIDED` and logs it. Reopening a decision is future scope (H4a, H6a, DL-22): in the MVP the way through is a new run. |
 | H9 | **Complete** G2 while any verdict is "unsure" | — | Yes | Yes | Yes | **Never** | Existing · SD AC-008 |
 | H10 | **Publish** the whole fund calendar (G3), with **one explicit acknowledgement** of the rows rejected at G1 and the paragraphs no non-rejected row cites | **Yes** (GP reliance; unpublish deliberately deferred) | Yes | **Yes** (GPs) | No | **Ask**, acknowledgement required | Existing · SD FR-014, FR-030, AC-037, A-6, US-010 AC14, DL-30 (SAD CR-028). The acknowledgement is part of the publish request, never preselected, and logged with the lists and versions acknowledged. It applies to publish only, not to a decline. In the demo the 3 `SRC-PRACT` summaries are always uncited, so it appears on every publish. |
 | H10a | **Decline** to publish (G3), with a written reason *(the chosen next step is deferred, DL-22: in the MVP a decline ends the run as declined)* | No (draft and history kept) | No (nothing published; no approval cancelled) | No (any previous published version stays visible) | No | **Ask**, reason required | Existing · SD FR-022, US-010 AC8–AC9 |
 | H11 | **Publish** while G1 or G2 is incomplete or any entry is out of date | Yes | Yes | Yes | Yes | **Never** | Existing · SD MP-006, US-010 AC2–AC3 |
-| H11a | **Publish** without the G3 acknowledgement, or with one made for lists that have changed since they were shown | Yes | Yes | Yes | Yes | **Never** | Existing · SD FR-030, AC-037, US-010 AC14, DL-30. Refused (`ACK_REQUIRED`) and logged; a row rejected after the page loaded makes the old acknowledgement stale. |
-| H12 | **Approve** as a second specialist (four-eyes) | — | — | — | — | **Not in this map** | Existing: timing undecided · SD OQ-5, PRD OQ-1 |
+| H11a | **Publish** without the G3 acknowledgement, or with one made for lists that have changed since they were shown | Yes | Yes | Yes | Yes | **Never** | Existing · SD FR-030, AC-037, US-010 AC14, DL-30. Refused (`ACK_REQUIRED`) and logged. In the MVP the lists cannot change once G1 is complete, so this guards against a request that names different lists; the staleness case returns with reopen (future scope, DL-22). |
+| H12 | **Approve** as a second specialist (four-eyes) | — | — | — | — | **Not in this map** | Existing: future scope (DL-37) · SD OQ-5, PRD OQ-1 |
 | H13 | **Abandon** an active run **while it waits at G1, G2 or G3**, with a written reason | Yes (the run is final) but it loses nothing: no decision, row, verdict, draft, audit entry or published calendar is undone | No (closes the run only) | No (GPs keep the last published version) | No | **Ask**, reason required | Existing · SD AC-035, US-015 AC20–AC21, DL-29 (SAD W-19a). Not a general cancel: no call cancel, undo, rollback or deleted draft. Only a run waiting at a gate; a stale screen or a double submit is refused. |
 | H13a | **Abandon** a run while a stage is running | — | — | — | — | **Never** | Existing · SD AC-035, US-015 AC20, DL-29 (SAD run state model rule 8, `RUN_STAGE_RUNNING`). The stage ends by itself (A15, A25), so abandon never leaves model calls running for output nobody will use. |
 
@@ -455,7 +458,7 @@ report (US-013). A passing test is bounded evidence, not a safety claim.
 | T-33 | A generated calendar | Decline with a reason; then start a new run | The run is `DECLINED`; audit entry; draft kept; GP view unchanged; a new run is allowed | Deterministic | Existing · SD AC-021, AC-036, US-010 AC8 (SAD T-RUN-5) |
 | T-34 | A stage is running | Abandon the run, with a reason | Refused (`RUN_STAGE_RUNNING`) with a plain message; the run and the stage are unchanged; nothing is recorded as abandoned | Deterministic (stubbed agent) | Existing · SD AC-035, US-015 AC20, DL-29 (SAD run state model rule 8; no SAD test ID yet) |
 | T-35 | A stubbed stage that passes its stage time limit; separately, a run with a stage running when the backend stops | Wait past the limit; restart the backend | Each run is `FAILED`, the second with the reason "service restarted" logged as a system event; recorded decisions kept; a run waiting at a gate is unaffected by the restart; a new run is allowed | Deterministic (stubbed agent) | Existing · SD AC-034, US-015 AC19, DL-29 (SAD run state model rules 6–7; no SAD test ID yet) |
-| T-36 | A generated calendar, one row rejected at G1, uncited paragraphs | Publish without the acknowledgement; with one for an older list (a row rejected after the page loaded); with the current lists; decline without it | Refused, refused, then published with the acknowledged lists and versions in the audit log; the decline needs no acknowledgement | Deterministic | Existing · SD AC-037, US-010 AC14, DL-30 (SAD CR-028, T-G3ACK-1) |
+| T-36 | A generated calendar, one row rejected at G1, uncited paragraphs | Publish without the acknowledgement; with one that names different lists; with the current lists; decline without it | Refused, refused, then published with the acknowledged lists and versions in the audit log; the decline needs no acknowledgement | Deterministic | Existing · SD AC-037, US-010 AC14, DL-30 (SAD CR-028, T-G3ACK-1) |
 | T-37 | Start a run with the switch off, then with it on; start an evaluation run with it on | Count rows; read the audit log | Off: 6 rows, no demo row, no switch entry. On: 7 rows, the 7th labelled "demo", passing the quote check, and an audit entry for the switch. Evaluation run refused | Deterministic | Existing · SD AC-038, DL-31 (SAD CR-029, T-DEMO-1) |
 
 ---
@@ -477,9 +480,9 @@ report (US-013). A passing test is bounded evidence, not a safety claim.
 | OD-7 | Retry policy for failed agent steps | Duplicate drafts, cost (SD MC-002) | SAD |
 | OD-8 | Is the quote check deterministic code, a model, or both? | MN-006 enforcement should not rely on a model saying "pass" | SAD |
 | OD-9 | *(stretch)* Does the specialist sign off impact reports, especially "no impact"? | A missed impact is silent | Operator (PM) |
-| OD-10 | Four-eyes review: MVP or later? | Would add a second role to G1–G3 cards | Operator (PRD OQ-1, SD OQ-5) |
+| OD-10 | ~~Four-eyes review: MVP or later?~~ *Resolved (DL-37): future scope* | Would add a second role to G1–G3 cards | Operator (PRD OQ-1, SD OQ-5) |
 | OD-11 | Do approval records reference a version ID? | Needed to prove approvals are fresh | SAD |
-| OD-12 | Is Next.js the frontend? | Not in the Define documents (PRD A-4 defers to SAD) | Operator / SAD |
+| OD-12 | Is Next.js the frontend? | Not in the Define documents (PRD A-4 defers to SAD). **Decided 2026-11-12 (DL-33): not in the MVP; plain server-rendered pages; Next.js is post-course future scope** | Operator / SAD |
 
 ### Conflicts found between sources
 
@@ -488,7 +491,7 @@ report (US-013). A passing test is bounded evidence, not a safety claim.
 | K-1 | "Each gate offers approve / edit / reject" vs G3 offering publish only | SD MD-004 vs US-010 | Not resolved; OD-1 |
 | K-2 | Change monitoring marks **published** entries out of date, but GPs keep seeing the last published version | US-014 AC2 vs US-010 assumption | Not resolved; OD-4 |
 | K-3 | "GP view shows no … conflicted items" vs a published entry later known to be out of date staying visible | SD MN-007 vs US-010 assumption | Not resolved; OD-4 |
-| K-4 | Next.js named by the operator but not in requirements | Operator instruction vs PRD A-4 | Treated as Open; OD-12 |
+| K-4 | Next.js named by the operator but not in requirements | Operator instruction vs PRD A-4 | Decided by DL-33 (see OD-12) |
 
 ### Resolved in Define (2026-11-07)
 
@@ -548,10 +551,11 @@ current state.
 ## Open Questions
 
 - See §8 (OD-1 to OD-12) and conflicts K-1 to K-4. Most are resolved (§8, "Resolved in Define").
-  Still open: OD-10 (four-eyes review, PRD OQ-1). Closed by the SAD: OD-8 (the quote check is code,
+  OD-10 (four-eyes review) is resolved as future scope (DL-37). Closed by the SAD: OD-8 (the quote check is code,
   W-04); OD-7 (one automatic transport retry per call, SAD SOQ-2; manual re-runs are future scope,
   DL-22, so in the MVP a failed step ends the run); OD-11 (integer versions per row, verdict and
-  calendar, SAD SOQ-3, CR-009); OD-12 (Next.js, SAD §2).
+  calendar, SAD SOQ-3, CR-009; in the MVP each row and verdict is decided once, DL-35); OD-12 (plain
+  server-rendered pages in the MVP, DL-33; Next.js is post-course future scope).
 - SAD SOQ-16 (this map vs the thin slice and the run states) is addressed by the 2026-11-12 update
   below. For `@system.arch`: the Delegation Map's "not in the approval map" notes (DM-01, DM-06,
   DM-14, DM-18) can now cite H0, A23, G3r and H13; SAD source line 25 still calls this map a draft;
@@ -597,3 +601,5 @@ current state.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction; this file is outside the architect's declared outputs) · action `update` · new H3a (approve a demo row: **Never**) and T-25, from operator decisions DL-31 and SAD SOQ-18; no other row changed. The wider approval-map gaps in SAD SOQ-16 remain with `@product-mgr`
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22, SAD SOQ-16) · map brought in line with the thin slice (first drafted on branch `define-approval-map-thin-slice`, not merged; applied here): new rows A23, A24, H0, H0a, H13, G3r (coverage view, second run refused, start and restart a run, abandon, GP message); A15 and H3 reworded; A7, A9, A12, H4a, H4b, H5, H6a, cards G1 and G2, recovery and freshness tables, corrections and tests T-09, T-10, T-19 to T-22 marked future scope; failure and retries rewritten (a failed step ends the run FAILED); new freshness row, enforcement rows and tests T-26 to T-33 (numbered after `@system.arch`'s T-25); operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-29 to DL-31, SAD SOQ-16) · abandon only at a gate (H13, new H13a **Never**); stage time limit (A15) and automatic fail at start-up (new A25 **Alone**), superseding DL-28; G3 acknowledgement (H10 **Ask**, acknowledgement required; new H11a **Never**; Card G3 evidence, blocks, steps 1–3 and 5); labelled demo switch (new H0b **Ask**, A26 **Alone**; it adds a row and never approves; H3a and T-25 kept); boundary, recovery, enforcement and audit text; tests T-34 to T-37; OD-7, OD-11 and OD-12 marked closed by the SAD; status changed from DRAFT to "matches the SAD"; operator decisions
+- 2026-11-12 · persona `system-arch` (at the operator's instruction; this file is outside the architect's declared outputs) · action `update` · re-checked against the MVP SAD after its four-pass rewrite. Changed: the status line (DL-32 to DL-36); the Next.js note, OD-12 and K-4 (DL-33); the Verifier row in §3 (the quote-check result is an input from code, DL-14); H11a and T-36 (the acknowledgement cannot go stale in the MVP, so the test names different lists). No rule (Alone, Ask, Never) changed. Left for `@product-mgr`: whether to add rows for stand-in agents (SAD CR-030) and for a second decision on a decided row (SAD CR-009)
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-20 j, CR-009) · new row H8a: a second decision on a row or verdict that already has one is **Never**, refused as `ALREADY_DECIDED` and logged. No row for stand-in agents (CR-030): they make no decisions and approve nothing, so they stay in the SAD as a labelled testing aid; operator decisions

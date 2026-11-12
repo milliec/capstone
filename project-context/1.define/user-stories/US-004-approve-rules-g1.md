@@ -85,7 +85,7 @@ rule, so that only rules I trust enter the obligation library.
 - **Demo set**: the six answer-key rows form no group (different paragraphs, recipients and offsets;
   none cites `SRC-PRACT`), so criterion 15 does not apply to the demo path in criterion 8.
 - **Open-question note (G1)**: now criterion 17; the mark at G3 is US-010 criterion 12.
-- **Deferred**: four-eyes review (a second specialist confirms), pending decision on timing.
+- **Deferred**: four-eyes review (a second specialist confirms), which is future scope (PRD OQ-1, DL-37).
 
 ## 5. Traceability
 
@@ -107,7 +107,7 @@ rule, so that only rules I trust enter the obligation library.
 
 ## Open Questions
 
-- **OQ-US004-1**: Four-eyes review: in the MVP or later? (PRD OQ-1)
+- **OQ-US004-1**: *Resolved* (operator decision, 2026-11-12, DL-37). Four-eyes review is future scope; one specialist decides at G1. (PRD OQ-1)
 - **OQ-US004-2**: *Resolved* (operator decision, 2026-11-07). Yes, with a reason, before or after
   publication. See criteria 9 and 10, SD FR-023. *(Approval map OD-2.)*
 

@@ -85,7 +85,7 @@ the unverified date-conventions note as one GP calendar-level note (SD FR-020, D
 
 | Question | Needed before |
 |---|---|
-| Four-eyes review: MVP or later? (PRD OQ-1) | Build planning |
+| ~~Four-eyes review: MVP or later?~~ *Resolved (DL-37): future scope; one specialist per gate.* (PRD OQ-1) | Closed |
 | GP "under review" note **before first publication**? (PRD OQ-6; after publication it is decided, SD FR-025) | UX step |
 | Roll rules for CNMV and business-register filings; AED subscription tax (PRD OQ-7) | Final demo data |
 | How close must an extracted name be to pass? (OQ-US001-1) | QA evaluation design |

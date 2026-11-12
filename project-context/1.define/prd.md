@@ -60,7 +60,7 @@ not here.
 
 | Persona | Who they are | Needs | Can do in MVP | Trace |
 |---|---|---|---|---|
-| **Compliance specialist** | Owns the obligation calendar. Expert in the rules. | Rules they can trust and check quickly. Every rule traceable to its source. Conflicts surfaced, not hidden. | Run the pipeline, review, edit, reject, approve at G1–G3, publish. | SD §1, MRD §1 |
+| **Compliance specialist** | Owns the obligation calendar. Expert in the rules. | Rules they can trust and check quickly. Every rule traceable to its source. Conflicts surfaced, not hidden. | Run the pipeline, review, reject, approve at G1–G3, publish. *(Editing a row is future scope, DL-22.)* | SD §1, MRD §1 |
 | **GP / fund manager** | Accountable for the fund's filings, files few of them. Often less familiar with Luxembourg rules *(unvalidated, A-7)*. | Know what is due, when, who files and why, without reading legal text. | **Read only.** View the published calendar. | SD §1, MRD §1 |
 | **Filing parties** (AIFM, administrator, auditor, tax advisor, local reporting agent) | Do most of the actual filings *(unvalidated, A-7)*. Stakeholders, **not MVP users**. | Know what they must file and when (future). | **Nothing in the MVP.** Named on every obligation as "who files". No notifications, logins or confirmations. | SD §1, SD A-9, SRC-BRIEF |
 
@@ -73,7 +73,7 @@ Market segment size and geographic expansion: **N/A, internal tool.**
 | 1 | Specialist | Starts a run on the mock source documents for fund `FND-DEMO-01`. | — | SD FR-001 |
 | 2 | System | Extracts obligation rows, each with a paragraph ID and verbatim quote. | — | SD FR-002 |
 | 3 | System | Verifies each row: quote check and conflict check. | — | SD FR-003, FR-004 |
-| 4 | Specialist | Reviews rows and flags. Resolves conflicts (with a reason if overriding), sets business-day rules, approves or rejects each row. Any edit re-verifies the row. | **G1** | SD FR-005, FR-006 |
+| 4 | Specialist | Reviews rows and flags. Resolves conflicts (with a reason if overriding), sets business-day rules, approves or rejects each row. *(Editing a row, and re-verifying after an edit, is future scope, DL-22.)* | **G1** | SD FR-005, FR-006 |
 | 5 | System | Judges applicability for each approved row: applies / does not apply / unsure, with reasoning, using the mock fund profile. | — | SD FR-008, FR-009 |
 | 6 | Specialist | Confirms or overrides each verdict. Decides every "unsure". | **G2** | SD FR-010 |
 | 7 | System | Generates the calendar with deterministic code. | — | SD FR-011 to FR-013 |
@@ -138,7 +138,7 @@ summarised here and not repeated.
 
 | Bucket | IDs | Key constraints |
 |---|---|---|
-| Must do | SD MD-001 to MD-010 | Source-linked extraction, applicability verdicts, separate verifier, three gates, re-verify on edit, deterministic dates, event handling, GP view, audit log, stable entry IDs |
+| Must do | SD MD-001 to MD-010 | Source-linked extraction, applicability verdicts, separate verifier, three gates, deterministic dates, event handling, GP view, audit log, stable entry IDs |
 | Must not | SD MN-001 to MN-009 | No real data, no live externals, no gate bypass, verifier never auto-resolves, no model-computed dates, no unsourced rows, no unfinished work shown to GPs, no task tool as record, not legal advice |
 | Must cost | SD MC-001 to MC-003 | See §5 |
 | Must prove | SD MP-001 to MP-008 | Exact match with the answer key, traceability, gate enforcement, determinism, complete audit log |
@@ -365,7 +365,8 @@ SD MD-005), so it falls away if that chain is cut. The architect should estimate
 | Fund-fact editing and configuration screens. Client-policy changes need an authorised decision, reason, version history and impact assessment. | SD §9, §10.2 |
 | Separation of one client's data from another's. | SD §10.5 |
 
-Four-eyes review is **not** placed here yet. Its timing is undecided (OQ-1).
+Four-eyes review (a second, different specialist confirms before a decision stands) is also future
+scope (OQ-1, DL-37). In the MVP one specialist decides at each gate.
 
 ## 5. Non-Functional Requirements
 
@@ -553,11 +554,16 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   are the operator's expectations, not findings. *(SD A-10)*
 - **A-8**: Rule amendments create the same manual re-reading burden as new frameworks. This is inferred
   from the brief and the MRD, not observed directly. It is the basis for the F10 stretch goal.
+- **A-9**: **Manual effort today (an assumption, not a measurement).** Interpreting the rules for one
+  fund by hand takes about **[X hours/days] per fund per year**. *The operator has not yet given the
+  figure, so it stays a placeholder.* It is used only to put the specialist's review time (§7) in
+  context for the demo, and is always labelled an estimate. No ROI or time saving is claimed from it.
+  (OQ-12, operator decision, 2026-11-12)
 
 ## Open Questions
 
-- **OQ-1**: **Four-eyes review**: in the MVP or later? The operator wants it. Timing is undecided.
-  (SD OQ-5)
+- **OQ-1**: *Resolved* (operator decision, 2026-11-12, DL-37). **Four-eyes review is future scope.** In
+  the MVP a single specialist decides at each gate. (SD OQ-5)
 - **OQ-2**: *Deferred to after the MVP* (operator decision). The share of rows approved without edits
   needs real specialists reviewing unscripted text. The Week 6 accuracy checks against the answer key
   cover agent correctness instead. (MRD OQ-2)
@@ -574,6 +580,9 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   focused days (33.5–63) with the run-state change; the future-scope items are listed in SD §9. The
   capacity the operator can commit is still open: the operator committed the time the slice needs
   without a number (SAD SOQ-12), and the week-1 re-estimate is the check.
+  **Capacity decided (operator, 2026-11-12, DL-32):** five focused days, with half a day from the
+  buffer if needed. The architect's estimate for the rewritten MVP SAD is about 5.5 focused days
+  (range 4.5 to 8), which replaces the 44.5-day figure above (SAD, "Estimate: five focused days").
 - **OQ-6**: *Resolved* (operator decision, 2026-11-12, decision log DL-27). Yes, before the first
   publication only: the GP view shows a read-only empty state with the message "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." No
   notifications are sent. (SD OQ-1) *After publication, see SD FR-025 (SD OQ-7 resolved); that review
@@ -582,23 +591,26 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
   decision, 2026-11-11, decision log DL-19). A rule the sources do not state stays "not confirmed"
   until the specialist sets one at G1; code never infers one. Both rows stay "not confirmed" in the
   demo (SD OQ-2, KEY OQ-D1). **Still open:** whether the AED subscription tax follows the "tax does not
-  roll" rule (SD OQ-4, KEY OQ-D3; DL-20).
-- **OQ-8**: *Resolved by the SAD (§1, §3; SOQ-4).* The frontend framework is **Next.js (App Router)
-  with TypeScript**, confirming the operator's intent. It is an architecture choice, not a product
-  requirement: A-4 still says only "web". *(Approval map OD-12, conflict K-4.)*
+  roll" rule (SD OQ-4, KEY OQ-D3; DL-20). *2026-11-12 (operator decision, DL-37): it stays marked as
+  unconfirmed under SAD CR-027 until it is checked against the public source, and the demo shows that
+  flag.*
+- **OQ-8**: *Resolved by the SAD (§1, §3; SOQ-4), then changed by DL-33 (2026-11-12).* The MVP
+  frontend is **plain server-rendered pages** (Jinja2 templates, standard HTML forms, one shared
+  stylesheet, no JavaScript framework). **Next.js (App Router) with TypeScript is post-course future
+  scope** (SAD F-10); it was the operator's original intent. It is an architecture choice, not a
+  product requirement: A-4 still says only "web". *(Approval map OD-12, conflict K-4.)*
 - **OQ-9**: *Resolved* (operator decision, 2026-11-08). The shared-product direction does not change the
   MVP or require market research to complete it. The capstone stays an internal specialist tool designed
   for reuse; GPs are the expected future buyers; market research is revisited before commercialising.
   P-1 before marketing, client-policy changes and client-data separation are recorded in SD OQ-11 to
   OQ-13. *(SD OQ-10, §10.)*
-- **OQ-10**: **Programme submission requirements.** What the capstone programme requires for
-  submission is not yet recorded. To be confirmed by the operator before the SAD estimate.
-- **OQ-11**: **Reused prototype front end.** Its origin and the clean-up it needs are not yet
-  recorded. To be confirmed before Build. If it was built for or at an employer, it is treated like
-  employer documents (§5) and not reused.
-- **OQ-12**: **Manual-effort estimate.** The operator provides a labelled estimate of how long the five
-  demo obligations would take to interpret by hand, before the demo (§7). It is an estimate, not a
-  measurement.
+- **OQ-10**: *Closed, not needed* (operator decision, 2026-11-12, DL-37). The programme's submission
+  requirements are not important for this work, so no requirement is recorded against them.
+- **OQ-11**: *No longer arises* (SAD SOQ-6). The pages are new server-rendered templates, so there is
+  no reused prototype front end.
+- **OQ-12**: *Recorded as an assumption* (operator decision, 2026-11-12, DL-37), see A-9. It is an
+  estimate, not a measurement. **The figure itself is still to be given by the operator before the
+  demo (§7).**
 
 ## Audit
 
@@ -675,3 +687,6 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · future-scope criteria in F3, F5 and F8 marked deferred; §6 failures row notes the deferred re-run and the MVP behaviour; OQ-5 recorded as decided on scope (capacity still open); DL-02's re-run superseded for the MVP; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · OQ-6 resolved: before the first publication the GP view shows a read-only "being prepared" message; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · F8: criterion for the read-only "being prepared" empty state before the first publication; no notifications; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-37) · SOQ-6 answers recorded: OQ-1 resolved (four-eyes is future scope; one specialist per gate); OQ-10 closed as not needed; OQ-11 marked no longer arising; OQ-12 recorded as assumption A-9 with the figure still a placeholder; OQ-7 AED part stays unconfirmed under CR-027 and the demo shows the flag; §4 future-scope note updated; operator decisions
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-37, DL-32, DL-33) · four-eyes cleanup: open-question and deferred lines in US-004, US-007, US-010, the stories index, context-summary, system-description OQ-5 and approval-map (OD-10, H12, assumptions row); SAD SOQ-20 (a), (b): PRD OQ-5 records capacity (five focused days, estimate about 5.5) and OQ-8 records server-rendered pages with Next.js as post-course scope
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-20 e, f, h) · edit and re-verify marked future scope in the specialist cell, happy-path step 4 and Must-do list (DL-22)
