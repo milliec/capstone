@@ -444,6 +444,9 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   evaluation; it is not assumed.
 - **Changed**: SAD §7 (development spend cap), §9 EC-R6, SOQ-13 resolved. No Define requirement
   changes.
+- **Superseded 2026-11-12 by DL-36.** This entry is kept as the record of the earlier decision; it
+  is not deleted. DL-36 carries forward the US$50 ceiling and the 13 December 2026 date, and
+  replaces the US$25 checkpoint and the planning basis of 15 to 20 evaluation runs.
 
 ### DL-25 · OpenAI on prepaid credits, with a model chosen per role
 
@@ -468,6 +471,8 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Changed**: SAD Model and Context Strategy, §2 sampling, §4 and Production Shape variables
   (`OPENAI_API_KEY`, `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE`), §5 release rule,
   CR-021, §7 enforcement, SOQ-14 resolved, new SOQ-15. No Define requirement changes.
+- **Changed 2026-11-12 by DL-36:** the first load of prepaid credits is **US$15**, not US$25. The
+  provider, the per-role models and the US$50 ceiling stand.
 
 ### DL-26 · Verifier: a mid-tier model by default, with a measured switch rule
 
@@ -674,6 +679,35 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   passes 2 to 4, diagram views 2 and 3, the approval-map re-check; `@product-mgr`, the list in SAD
   SOQ-20.
 
+### DL-36 · Model spend: a target of about US$15, with real model calls only where they count
+
+- **Decision** (operator, 2026-11-12; supersedes DL-24):
+  1. **Per-run hard stop: US$2.50**, in place of US$4. The US$2 target per run (SD MC-002) and the
+     warning at US$2 are unchanged.
+  2. **Building and the automated tests use stand-in agents**, which return fixed outputs and call
+     no model. Stand-in is the default mode; a stand-in run is labelled wherever it appears; an
+     evaluation run refuses to start in stand-in mode.
+  3. **Real model calls are allowed for five activities only**: the measurement spike and verifier
+     bake-off (at most 70 calls), prompt tuning (at most 60 calls, as well as the half-day cap),
+     **one** evaluation cycle of three runs, one rehearsal run, and the demo run.
+  4. **One budget line: a target of about US$15 in total.** US$15 of prepaid credits is loaded, so
+     the balance enforces the target. Going past it needs a recorded operator decision; the
+     absolute ceiling stays US$50 until 13 December 2026.
+- **Why**: the earlier plan assumed several real runs a day during the build and 15 to 20
+  evaluation runs, with a worst case of US$12 a cycle. A clean run is about 18 small calls and is
+  expected to cost well under US$1, so most of that spend bought nothing the stand-ins cannot give.
+- **Trade-offs accepted**: a run that reaches US$2.50 is cut off, and every criterion it would
+  have measured counts as a miss. Problems with the real model can surface late, which is why the
+  spike stays as the first real calls. **There is one evaluation cycle: a miss is reported as it
+  stands**, and fixing and re-measuring needs a decision to spend more. The stand-in mode, its
+  label and the call counter add about an hour or two of build work.
+- **Considered**: dropping the spike (not chosen: the time limits and the verifier's model, DL-26,
+  would be unmeasured); no real rehearsal (not chosen: the demo would be the first real run with
+  the planted row); keeping US$25 loaded (not chosen: the balance would not enforce the target).
+- **Changed**: SAD CR-017, new CR-030, Production Shape, §3, §4, §5, §7, §9 (EC-R9, new EC-R10),
+  the estimate note and Known limitations · **still to do by `@product-mgr`**: US-015 criterion
+  17, change "US$4 by default" to the new per-run hard stop (SAD SOQ-20 i).
+
 ---
 
 ## Audit
@@ -721,3 +755,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · operator's review of SAD pass 1: DL-32 records the buffer decision and the drop order (visual pass first, planted demo row kept); DL-35's three simplifications accepted, with the condition that the three steps remain CrewAI agents; DL-17 carries the wording change (plain stage functions, no Flow wrapper, backend alone owns the gates)
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-32: fallback recorded for the case where the planted demo row is also cut (reject `OBL-06` at G1 only if genuinely weak, calendar stays at 22; otherwise no rejection); operator decision. Operator also confirmed the pattern stays "workflow", described as three CrewAI agents in a gated workflow (DL-17 as reworded); no text change
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-31: the verifier runs on the planted demo row and the demo script does not depend on its flag (SAD SOQ-22); DL-32: fallback wording changed to "if, on the day, the specialist judges `OBL-06` unsound"; tag `sad-full-design` pushed to the remote; operator decisions
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-36 (model spend: target about US$15; per-run hard stop US$2.50; stand-in agents for building; real calls only for the spike, capped tuning, one evaluation cycle, one rehearsal and the demo); DL-24 marked superseded by DL-36, kept and not deleted; DL-25 notes the US$15 first load; operator decision. Follow-up for `@product-mgr`: US-015 criterion 17

@@ -61,7 +61,7 @@ have already made.
     and 20). One run at a time is a rule the
     system enforces, not a convention. (SAD CR-023, PRD A-6, SAD run state model.)
 17. **Given** a run's model cost passes US$2, **then** run status shows a warning. **Given** it reaches
-    the run's cost cap (set by configuration, US$4 by default), **then** no further model calls are made
+    the run's cost cap (a hard stop of US$4, fixed in configuration), **then** no further model calls are made
     in that run, the valid units are kept, and run status states in plain words that the cost cap was
     reached and nothing further moved forward. The cost counts every call, including retries, re-runs
     and re-verifications. The specialist decides whether to start a new run. (SAD CR-017, SD MC-002;
