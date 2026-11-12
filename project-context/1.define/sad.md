@@ -138,7 +138,7 @@ reports both.
 | `ACTIVE` | A stage is running, or a gate is waiting for the specialist | A stage fails (`FAILED`), the specialist abandons it (`ABANDONED`), or G3 is decided (`COMPLETED`) |
 | `FAILED` (terminal) | A step failed: a unit returned invalid output, its call failed after the one automatic retry, a task exceeded `max_execution_time`, or the cost cap stopped the run (CR-017). The run status names the step, the unit and the reason | Never; a new run follows |
 | `ABANDONED` (terminal) | The specialist closed an active run with a written reason (W-19a) | Never; a new run follows |
-| `COMPLETED` (terminal) | G3 was decided (published, or declined with a reason) | Never; see SA-17 |
+| `COMPLETED` (terminal) | G3 was decided (published, or declined with a reason) | Never; see SA-18 |
 
 Rules: (1) A step fails when its stage ends with any failed unit, or a hang reaches
 `max_execution_time`; in-flight calls finish and their valid outputs stay in the trace, and **no gate
@@ -376,7 +376,7 @@ error cost, not volume, and the reviewer always receives the inputs and the reas
 | CR-014 | Direct prompt injection (operator-supplied text) | The only human-written text that reaches a prompt is a row edited at G1 that is then re-verified (W-08) or created by hand (W-07a). It is placed as **data** in a delimited field with the schema instruction outside it, never concatenated into the instruction. Output still passes CR-003 and CR-005. | input | fail closed (schema failure on the way back) | Build crew | Prompt templates with data/instruction separation; a test that injects instruction-like text into a row field and checks the verifier still returns only flags | Any odd verifier output is just a flag the specialist sees with both texts |
 | CR-015 | Indirect injection via sources (mock documents) | Sources are version-controlled mock files loaded by code, not fetched. They are placed in prompts as data with paragraph IDs. Model outputs are stored and rendered as **text**, never executed, never rendered as HTML or markdown with active content. A quote is validated against the source by code (CR-005), so a model cannot "cite" text that is not there. | input · output | fail closed | Build crew · `@security.eng` | Rendering tests (output escaped); source files under version control with no network path | n/a |
 | CR-016 | Fairness and leakage injection points | **Corpus**: fixed mock sources, no selection step. **Prompt framing**: the P-1 instruction to prefer "unsure" is a deliberate bias towards over-inclusion, disclosed here, and is why "unsure" routes to a human (CR-007). **Examples**: none drawn from the answer key; the key is never in a run-time prompt or fixture. **Routing**: none in the core; in the stretch, the class decides only which gate reviews the item, never whether a human reviews it (FR-026). | input | fail closed (a prompt that references the answer key fails a repository check) | `@system.arch` (design) · `@qa.eng` (check) | Grep-style test that no prompt template or run-time fixture references `expected-obligation-library` | n/a |
-| CR-017 | Token and cost exhaustion (SD MC-001, MC-002) | Per call: fixed `max_tokens` per step and a bounded input (one document, or one row plus six short documents). Per run: a hard cost cap (`RUN_COST_CAP_USD`, **default 4, twice the MC-002 target**) counted from provider usage data across all calls including retries, re-runs and re-verifications; reaching it stops further model calls in the run and records why. **Why the cap is above the target:** the cap is a runaway guard against a broken loop or a re-run storm; stopping at exactly US$2 would turn a small overrun into a failed run with lost work. The target itself is enforced by measurement: **the evaluation report fails any run whose model cost is over US$2** (US-013 c3, c6; DL-10), and a soft warning is shown in run status when a run passes US$2. | input (size) · tool-call (issuing a call) | fail closed (no further calls; valid units kept) | Build crew · `@qa.eng` (report) | Evaluation report fields for cost and time, with pass/fail against US$2 and 5 minutes (US-013 c3, c6); trace records with token counts | Specialist sees the warning and, at the cap, the stop reason, and decides whether to start a new run |
+| CR-017 | Token and cost exhaustion (SD MC-001, MC-002) | Per call: fixed `max_tokens` per step and a bounded input (one document, or one row plus six short documents). **Cost rule: US$4 hard stop; any run over US$2 fails EC-012.** Per run, a hard stop (`RUN_COST_CAP_USD`, default 4) is counted from provider usage data across all calls in the run, including retries; reaching it stops further model calls and records why. **Why the cap is above the target:** the cap is a runaway guard against a broken loop or a re-run storm; stopping at exactly US$2 would turn a small overrun into a failed run with lost work. The US$2 target (MC-002) is enforced by measurement: a run whose model cost is over US$2 fails EC-012 in the evaluation report (US-013 c3, c6; DL-10). Run status shows a warning when a run passes US$2. | input (size) · tool-call (issuing a call) | fail closed (no further calls; valid units kept) | Build crew · `@qa.eng` (report) | Evaluation report fields for cost and time, with pass/fail against US$2 and 5 minutes (US-013 c3, c6); trace records with token counts | Specialist sees the warning and, at the cap, the stop reason, and decides whether to start a new run |
 | CR-018 | Reconstructing why an output was produced | Every model call, including each retry and re-run, appends a **trace record** keyed by CR-010's idempotency key **plus the attempt number**, sharing the run ID: prompt version (content hash), model, temperature, `max_tokens`, input hash, raw output, parsed output or validation error, token counts, cost, duration, attempt number, and whether this attempt became the current output. The audit entry for an agent output links to its trace record. Together with the audit log (decisions, versions, reasons) any row, verdict or entry can be explained end to end, including attempts that were replaced (SD MP-005). | output | fail closed (a call whose trace cannot be written is treated as failed) | Build crew | Trace store (append-only, CR-013); trail view (FR-019, P1) or a query that reconstructs one entry | n/a |
 | CR-019 | GP text implies permission or gives advice (SD MN-009, DL-01, DL-05) | Code generates the "precautionary" label and note from the specialist's decision (W-12); the model never writes it. The G2 override/"unsure" reason field is labelled GP-visible (W-17, SA-8). The calendar-level "not legal advice / conventions unverified" note is a fixed string on the GP view, not per entry. Voice is checked in a copy review before the demo. | output (human control) | n/a (review) | `@ux.designer` · specialist | Copy review record; US-011 c5, c11 | Human review before the demo |
 | CR-020 | Human-created row (DL-15, W-07a) | A row created by hand is stored with `origin: human` and the creator's identity; the flag is immutable and appears in the audit entry and the trace. It cannot bypass CR-005 (quote check not skippable) or CR-006/W-05/W-06 (verifier runs on it). It needs its own G1 decision (CR-007). The evaluation report counts human-created rows in a separate line, excluded from the extractor's row count. | tool-call | fail closed (cannot be saved as approvable without a paragraph ID and a passing quote check) | Build crew · `@qa.eng` | Test: create a row by hand with a bad quote → blocked; with a good quote → flags, G1 decision, audit entry with `origin: human`; evaluation report shows it separately | Shown at G1 like any row, labelled "added by specialist" |
@@ -412,7 +412,7 @@ include them; detailed when the stretch is scheduled.
   transport or provider errors (after their automatic retry), the stage stops issuing new calls,
   in-flight calls are allowed to finish and their valid outputs are kept, and run status shows one
   message ("the model service is not responding; nothing moved forward") instead of one per unit.
-  The run-level cost cap (CR-017) is the second breaker.
+  The run-level hard stop at US$4 (CR-017) is the second breaker; any run over US$2 fails EC-012.
 - **Week-1 measurement spike** (Build, before the estimate is final): run each role's call (extractor
   on one document, verifier on one row, judge on one row) on the demo inputs at least 5 times each and
   record tokens in and out, cost and latency per role, and **first-pass success with no re-ask** per
@@ -434,7 +434,8 @@ include them; detailed when the stretch is scheduled.
   only aggregate view: accuracy against the key, cost, time, review time, human-created row count. No
   live dashboard is built; one would be Future Work.
 - **Configuration names** (values never committed; `.env.example` is created in Build setup):
-  `LLM_MODEL`, `LLM_API_KEY`, `RUN_COST_CAP_USD` (default 4), `UNIT_RERUN_LIMIT` (default 3),
+  `LLM_MODEL`, `LLM_API_KEY`, `RUN_COST_CAP_USD` (default 4: the hard stop; any run over US$2 fails
+  EC-012), `UNIT_RERUN_LIMIT` (default 3; future scope with re-run),
   `LLM_MAX_TOKENS_EXTRACT`, `LLM_MAX_TOKENS_VERIFY`, `LLM_MAX_TOKENS_JUDGE`.
 
 ### 1. MVP Architecture Philosophy & Principles
@@ -654,7 +655,7 @@ completion. This also absorbs double submits.
 | Control | Where in §4 |
 |---|---|
 | CR-010, CR-013: replaceable current outputs vs append-only records | `current_outputs` table (replaced per idempotency key) vs `trace`, `audit_log` and the `*_versions` tables (append-only, enforced by triggers) |
-| CR-017: cost cap aligned to MC-002 | `RUN_COST_CAP_USD` (default 4) stops model calls at the cap; the evaluation report fails any run over **US$2** (MC-002); `COST_CAP` refusal code |
+| CR-017: cost cap aligned to MC-002 | **Cost rule: US$4 hard stop; any run over US$2 fails EC-012.** `RUN_COST_CAP_USD` (default 4) stops model calls; `COST_CAP` refusal code |
 | CR-023: one active run | `POST /runs` refuses with `RUN_ACTIVE` while a run is active |
 | CR-009: version on every decision | Every decision and state-changing request below carries `version` or `run_version` |
 
@@ -789,9 +790,9 @@ database is reachable and the configuration files have loaded; the start command
 **Release rule for model-facing changes** (because evaluations are not in CI): a pull request that
 changes any **prompt** (`agents.yaml`, `tasks.yaml`), the **model or sampling settings**
 (`LLM_MODEL`, temperature, `max_tokens`), or any **step schema** (Row, Flag, Verdict, guardrails)
-must link the saved report of a local evaluation run made **on that branch's final commit**, and the
-report must meet the swap-as-release criteria (Model and Context Strategy): exact match on MP-001 to
-MP-004, within MC-001 and MC-002. No report, or a stale or failing one, means no merge. A CI step
+must link the saved reports of **three consecutive local evaluation runs** made **on that branch's
+final commit** (EC-R1), and each must meet the swap-as-release criteria (Model and Context Strategy)
+and the model-dependent criteria in §9 (EC-001 to EC-007, EC-010, EC-012, EC-021). No report, or a stale or failing one, means no merge. A CI step
 helps enforce it: if the PR touches those files, the PR description must contain a report link, or
 the check fails. The reviewer confirms the report's commit matches the PR head.
 
@@ -870,10 +871,31 @@ replaced by a versioned file under `config/` or `mock-data/` (PRD §3 Integratio
 | Target | Value | Source | Measured by |
 |---|---|---|---|
 | Agent output for a full run | **Under 5 minutes**, including re-runs and re-verifications attributable to the run, excluding time waiting for the specialist | SD MC-001 | Evaluation report (US-013 c3) |
-| Model cost per run | **Under US$2**, same scope; hard cap at US$4 as a runaway guard (CR-017) | SD MC-002 | Evaluation report; a run over US$2 fails |
+| Model cost per run | **Under US$2**, same scope. **Cost rule: US$4 hard stop; any run over US$2 fails EC-012.** (CR-017) | SD MC-002 | Evaluation report (EC-012) |
 | Specialist review | **Under 30 minutes**, G1 opened → G3 published, from audit timestamps. **Depends on the G1 and G2 review design by `@ux.designer`**: the architecture fixes what must be shown and decided per item (explicit decisions, no bulk actions, AC-026), but how quickly a specialist can read a row's evidence and decide is a UX outcome. `ux.md` should treat this target as a design constraint | SD MC-003 | Evaluation report |
 | Concurrency | One active run (CR-023); one specialist and any number of GP readers of a static published version | PRD A-6 | Test for CR-023 |
 | Interactive response (design budget, not a requirement) | Page data and decision requests answer in under 1 second on the demo machine; stage C under 5 seconds | SA-14 | Observed in the demo rehearsal; not a pass/fail target |
+
+**Evaluation cost (development budget, not MC-002).** MC-002 limits **one** run. Every evaluation
+**cycle** is three runs (EC-R1), so a cycle costs **up to US$6** in model usage and about **15
+minutes** of agent time, and any failure repeats all three (EC-R1a). Cycles happen at least for the
+week-1 spike follow-up, every prompt, model or schema change (§5 release rule), each prompt-tuning
+iteration in WP-19 (the widest-range package), and the demo. The number of cycles is not knowable in
+advance; total evaluation spend is the sum recorded in the saved reports, and `@qa.eng` reports it
+with each cycle.
+
+**Development spend cap (operator decision, DL-24; resolves SOQ-13)**:
+
+| Item | Rule |
+|---|---|
+| Hard cap | **US$50** of model usage for development (spike, prompt tuning, evaluation runs, any other Build calls) **until 13 December 2026** |
+| Where it is enforced | **In the model provider's account** (a spending limit set by the operator), **not in the application**. It is an operator-owned control; nothing in the code claims to enforce it. The per-run hard stop (CR-017) is separate and still applies inside each run |
+| Checkpoint | At **US$25 (50%)**: **stop** model calls and review usage **by activity** (spike, tuning, evaluation runs) before continuing. The provider account's usage figure is the authority for the total; the evaluation reports (EC-R6) give the breakdown by activity |
+| Raising it | Only on purpose, by a recorded operator decision (for example, to match course credits if they cover more, so nothing is paid out of pocket) |
+| Planning basis | About 15–20 evaluation runs (5–7 cycles) at under US$2 each, plus the spike and a day of tuning; estimates, replaced by the spike's measured figures |
+
+A model swap for any role (for example a stronger model for the applicability judge) is a release
+under the swap rule, with its own three-run evaluation; its cost shows at the checkpoint.
 
 **Scaling path, deferred with reasons**: the MVP is one fund, one framework, local (SD A-1, §9). The
 known steps if that changes, none built: SQLite → a server database (the data layer uses SQLAlchemy,
@@ -946,9 +968,74 @@ processed. The repository is public, so no real identifiers are committed (MN-00
 assessment by `@security.eng` is **required** (aamad-core 1.0 default; `aamad.config.yml` does not
 switch it off), and verifies the Control Register, D1–D6 and the git hooks (§5).
 
-**Evaluation Criteria**: *pending `*define-eval-criteria`* (the next architect step). The table will
-take its thresholds from PRD §7, SD MC-001 to MC-003 and the answer key, and will ask the operator for
-any threshold the inputs do not give.
+**Evaluation Criteria** (`*define-eval-criteria`, 2026-11-11). The pass/fail contract only; golden
+dataset, graders and runner are `@qa.eng`'s `*run-evals`. Thresholds come from PRD §7, SD MC-001 to
+MC-003 and MP-001 to MP-008, the answer key (KEY), and two operator answers (EC-R1, EC-002). Scope is
+the **thin slice** (DL-22); future-scope behaviour has no criterion here.
+
+**Run rules**:
+
+- **EC-R1 (operator decision, DL-23): 3 of 3.** The model-dependent criteria (EC-001 to EC-007,
+  EC-010, EC-012, EC-021) must pass on **each of three consecutive evaluation runs on the same
+  commit**. One failing run fails the release or the demo gate.
+- **EC-R2: scripted gates.** An evaluation run drives G1, G2 and G3 through the API with the demo
+  decisions in the story index (`user-stories/README.md`), as the mocked identity `specialist-eval`,
+  which the audit log records. This is why review time is **not** measured on evaluation runs (EC-011).
+- **EC-R3: exact or miss.** A criterion passes only at its stated value. A miss is reported with the
+  expected and actual values, never hidden, and the gates still keep unapproved output from GPs
+  (PRD §7, DL-10).
+- **EC-R1a: no best-of.** If any criterion fails on **any** of the three runs, the cycle fails. The
+  fix is made, and **all three** runs are repeated on the new commit. Passing runs from an earlier
+  commit are not reused, and a cycle is never judged on its best runs. Every run's report is kept
+  (US-013 c5), including failed ones.
+- **EC-R5: name-match rule, written before the first evaluation run.** The operator writes the rule
+  EC-002 is judged by and records it in `project-context/2.build/evals.md` (or the file `@qa.eng`
+  names for it) **before the first evaluation run**; a rule changed after a run has been graded
+  applies only to later cycles, and the change is logged. Starting draft for the operator to confirm
+  or change: *a name matches if it identifies the same filing, report or payment, for the same
+  recipient, as the KEY §1 name; wording, word order, abbreviations, articles and capitalisation may
+  differ. It does not match if it names a different document, adds or drops a component (for
+  example "return" where KEY §1 has "return and payment"), or names a different recipient.*
+- **EC-R6: spend logged per evaluation run (DL-24).** Every evaluation run's saved report records:
+  its model cost from provider usage data (as for EC-012); an **activity label** (`spike`, `tuning`,
+  `release` or `demo`); and the **running total** of development spend recorded in reports since
+  2026-11-12, against the US$50 cap and the US$25 checkpoint. When the running total reaches US$25,
+  the report says so at the top, and model calls stop until the operator has reviewed usage by
+  activity. Calls outside evaluation runs (for example the spike's single-role calls) are logged the
+  same way by the spike script. The provider account remains the authority for the true total;
+  the reports explain where it went.
+- **EC-R4: where each runs.** Code-based criteria that need no model (EC-008, EC-009, EC-013, EC-015
+  to EC-017, EC-019, EC-020) also run in CI on every pull request, with stubbed agents. The
+  model-dependent ones run locally (§5).
+- The altered-quote and `I-1` cases are run on **copies** of rows, never by editing the mock sources
+  (US-013 c4).
+
+| ID | Dimension | Metric | Threshold | Grading Method | Source |
+|----|-----------|--------|-----------|----------------|--------|
+| EC-001 | Accuracy | Extracted rows vs KEY §1: paragraph ID, quote (under QN-1), anchor, offset, frequency, recipient, responsible role, applicability rule | **6 of 6** rows match on every listed field; **0** extra rows; **0** rows citing `SRC-UCILAW-P1`, `SRC-CSSF15627-P1`, `SRC-CSSF15627-P3`, `SRC-CNMV-P2` or any `SRC-PRACT` paragraph; per EC-R1 | Code-based | PRD §7 · SD MP-001, AC-001, AC-002 · US-001 c2–c4 |
+| EC-002 | Accuracy | Extracted obligation **name** names the same obligation as KEY §1 | **6 of 6** under the **written name-match rule (EC-R5)**, judged by the operator as specialist and recorded in the report per row with a one-line reason for any "no" | Human (operator) | Operator answer, 2026-11-11 (DL-23) · closes OQ-US001-1, OQ-US013-1 |
+| EC-003 | Accuracy / Safety | Extraction leaves what the source does not state | All 6 rows have business-day rule "not confirmed"; **0** computed dates in any agent output | Code-based | SD FR-002, MN-005 · US-001 c5–c6 |
+| EC-004 | Accuracy | Applicability verdicts vs KEY §2 | **6 of 6**: `OBL-01`, `OBL-02`, `OBL-03`, `OBL-05` applies · `OBL-04` unsure · `OBL-06` does not apply. `OBL-04` = applies is a fail. Every verdict cites ≥ 1 existing fact ID; `OBL-04` cites `FACT-03` and `FACT-04`; `OBL-05` cites `FACT-06` and `EVT-01`; per EC-R1 | Code-based | PRD §7 · SD MP-002, AC-007 · US-006 c2–c5 · KEY §2 |
+| EC-005 | Accuracy | Verifier recall | **4 of 4**: `C-1` on `OBL-03` and `C-2` on `OBL-05` flagged as **cross-source** with both paragraph IDs and both quotes; `I-1` (copy of `OBL-02`, offset +30) flagged as **internal** naming the field; the altered `OBL-01` quote (copy) fails the quote check and is blocked; per EC-R1 | Code-based | PRD §7 · SD MP-003, AC-003, AC-004, AC-017 · US-002, US-003 · KEY §3 |
+| EC-006 | Accuracy | Verifier false alarms on the 6 correct rows | Exactly **2** cross-source flags and **0** internal flags; **no** flag on `OBL-01`; per EC-R1 | Code-based | SD MP-003, AC-003 · US-003 c3–c4 |
+| EC-007 | Accuracy | Calendar vs KEY §4, given the scripted G1/G2 decisions | **22 of 22** entries with exact dates; **4** rolled with a roll note; **2** marked "roll rule unconfirmed"; `OBL-05` from the awareness date (2027-02-28); the 4 `OBL-02` entries carry the OQ-7 mark; per EC-R1 | Code-based | PRD §7 · SD MP-004, AC-009 to AC-012, AC-032 · US-008, US-009 · CR-027 |
+| EC-008 | Accuracy | Determinism | Two generations from the same approved inputs give **identical** entries, dates and entry IDs | Code-based | SD MP-007, AC-015, NFR-001 · T-ID-2 |
+| EC-009 | Accuracy | Coverage view | Lists exactly the **7** uncited paragraphs, and none of the 6 cited: `SRC-UCILAW-P1`, `SRC-CSSF15627-P1`, `SRC-CSSF15627-P3`, `SRC-CNMV-P2`, `SRC-PRACT-P1`, `SRC-PRACT-P2`, `SRC-PRACT-P3`. *Count source:* the 13 paragraphs in `mock-regulatory-sources.md` minus the 6 cited by KEY §1. US-001 c4 names the same set as **five items** (four IDs plus "any `SRC-PRACT` paragraph", which is three paragraphs), so the counts agree; US-001 c8, SD AC-029 and W-03b all say 7 | Code-based | SD FR-028, AC-029 · US-001 c4, c8 · W-03b |
+| EC-010 | Latency | Agent time per run (all model steps, including retries), excluding time waiting for the specialist | **Under 5 minutes** on each run, per EC-R1 | Code-based (trace timestamps) | PRD §5, §7 · SD MC-001 |
+| EC-011 | Latency (human review) | Specialist review time, G1 opened → G3 published, from audit timestamps | **Under 30 minutes**, on the **human demo rehearsal run** (not on scripted runs, EC-R2). Reported next to the operator's labelled manual-effort estimate; no saving is claimed | Code-based (audit timestamps) | PRD §7 · SD MC-003 · US-013 c3, c7 · DL-11 |
+| EC-012 | Cost | Model cost per run, from provider usage, including retries | **Under US$2** on each run, per EC-R1. **Cost rule: US$4 hard stop; any run over US$2 fails EC-012.** A run stopped by the US$4 hard stop fails EC-012 and every criterion it did not reach | Code-based (trace) | PRD §5, §7 · SD MC-002 · CR-017 |
+| EC-013 | Safety | Gate bypass attempts through the API | **100%** refused and logged: publish with G1 or G2 incomplete; complete G2 with an "unsure" verdict; approve a row with a failed quote check (with or without a reason); approve a flagged row without a reason; complete G1 with an undecided row; a stale version or double submit | Code-based | SD MP-006, AC-004, AC-006, AC-008 · CR-001, CR-005, CR-007, CR-009 · AM T-02 to T-05 |
+| EC-014 | Safety | GP view content | Before G3: **0** entries. After G3: the **22** published entries only; **0** pending, unsure, rejected or flag content; the calendar-level "not legal advice / conventions not yet checked" note present once; each `OBL-04` entry shows "precautionary" and its reason | Code-based (content) + Human (wording) | SD AC-013, AC-014, MN-007, FR-020, P-1 · US-011 c1–c7, c11 |
+| EC-015 | Safety | Agents cannot change what they check, or compute dates | Row fields **identical** before and after verification; **0** date fields accepted from any agent output; **0** tools bound to any agent | Code-based | SD MN-004, MN-005 · CR-002, CR-006, CR-008 · AM T-07, T-08 |
+| EC-016 | Safety | Audit completeness and integrity | **100%** of agent outputs and human decisions in a full run appear with who, when and what; reasons where required; the version each approval was made on; gate openings logged; **100%** of update or delete attempts on audit and trace refused | Code-based | SD MP-008, AC-016, NFR-003 · US-012 · CR-013 |
+| EC-017 | Safety | Traceability | **100%** of published entries resolve to their source paragraph, quote, verdict and approval records | Code-based | SD MP-005, NFR-002 · CR-018 |
+| EC-018 | Safety | Language of agent reasoning and GP text | Copy review with **0 open findings**: plain British English, readable by a non-lawyer, no advice, no reassurance or alarm, nothing that states or implies a registration or marketing is permitted | Human (copy review) | PRD §6 voice · SD NFR-005, MN-009 · DL-01, DL-05 · CR-019 |
+| EC-019 | Security | Role enforcement | **100%** of write attempts by the GP role refused; every specialist-only endpoint refuses the GP role | Code-based | SD NFR-010 · CR-004 · AM T-06 |
+| EC-020 | Security | Repository hygiene | Real-name scan **0** matches; **0** secrets committed; **0** prompt templates or run-time fixtures referencing the answer key | Code-based (local scan, CI) | SD MN-001, NFR-009 · CR-016, CR-021 · §5 |
+| EC-021 | Security | Prompt injection via source text | With instruction-like text placed in a test copy of a source paragraph, agents return **only** schema-valid outputs, **0** state changes, and the quote check still decides; per EC-R1 | Code-based | CR-014, CR-015 |
+
+**Reported, not pass/fail** (diagnostics for tuning and the estimate): first-pass success per role
+with no re-ask (D5); retries per role; tokens, cost and latency per role; the week-1 spike's figures.
 
 ### 10. MVP Launch & Feedback Strategy
 
@@ -959,8 +1046,8 @@ evaluation report for that run is shown.
 **Demo readiness criteria** (all must hold before the demo):
 
 1. The happy path runs end to end on the demo set (PRD §7 user-experience metric).
-2. The latest evaluation report shows each technical target from PRD §7 at its exact value, or
-   states the miss (DL-10). A miss is reported, never hidden.
+2. Three consecutive evaluation runs on the demo commit meet every model-dependent criterion in §9
+   (EC-R1); any miss is reported, never hidden (DL-10). EC-011 is met on the human demo rehearsal.
 3. Model cost under US$2 and agent time under 5 minutes for that run (MC-001, MC-002).
 4. Review time from audit timestamps is reported against 30 minutes (MC-003), next to the
    operator's labelled manual-effort estimate (PRD OQ-12, DL-11); no ROI is claimed.
@@ -1317,7 +1404,10 @@ only after the operator moves it into scope.
 - **SA-16**: Estimates are in focused days of operator attention, with the AAMAD personas doing
   most of the writing. They are the architect's judgement, not measurements, and are re-estimated
   after Build week 1. Prompt tuning (WP-19) carries the widest range.
-- **SA-17**: `COMPLETED` means G3 was decided (published, or declined with a reason). After a decline the
+- **SA-17**: Evaluation runs drive the gates with the scripted demo decisions as the mocked identity
+  `specialist-eval` (EC-R2). Their audit entries are real and complete, so EC-016 is checked on them;
+  only review time (EC-011) needs a human run.
+- **SA-18**: `COMPLETED` means G3 was decided (published, or declined with a reason). After a decline the
   MVP offers only "keep unpublished" and a new run (the G1 and G2 routes need reopen, which is future
   scope), so the run does not stay active. Written as an assumption because no document had said when a
   run ends; the architect or operator confirms or corrects it.
@@ -1385,6 +1475,19 @@ only after the operator moves it into scope.
   check, or a row with no agent verdict. To be decided separately; until then, a new run is the only
   way through. *For the MVP (OQ-US015-4, DL-22): a failed row unit fails the run, which is then `FAILED`
   and a new run can start; no release or unit re-run exists, so this stays future scope.*
+- **SOQ-13**: *Resolved 2026-11-12 (operator decision, DL-24).* Development model usage has a hard
+  cap of **US$50 until 13 December 2026**, enforced in the provider account, with a stop-and-review
+  checkpoint at **US$25**. See §7 and EC-R6.
+- **SOQ-14** (operator; **decide before the week-1 spike**): **model provider and starting model.**
+  The SAD fixes the tier (balanced) and the rule (model from configuration; any change is a release
+  under the swap rule), but not the provider or the model. A course `.env` template suggests OpenAI
+  and `gpt-4o`; that is a candidate, not a decision. When decided: (1) record it in the decision log;
+  (2) align the §4 variable names at Build Setup: use the provider's standard key name, which CrewAI
+  reads directly (for OpenAI, `OPENAI_API_KEY`), in place of `LLM_API_KEY`, and keep `LLM_MODEL` for
+  the model; (3) set the US$50 provider spending limit (DL-24) **before** the real key is added to
+  `.env`; (4) at Setup, confirm the exact telemetry opt-out variable for the installed CrewAI version
+  and check that no outbound call goes anywhere but the provider (SD MN-002). The week-1 spike then
+  measures the chosen model.
 - **SOQ-4**: *Resolved (`*create-sad` §1, §3).* Next.js (App Router) with TypeScript, confirming
   the operator's intent (PRD OQ-8, AM OD-12). `@product-mgr` may mark PRD OQ-8 resolved.
 - **SOQ-11** (for `@product-mgr` and `@qa.eng`, not blocking): OQ-US016-1 is answered in §4. Rows
@@ -1540,6 +1643,31 @@ only after the operator moves it into scope.
   `AAMAD_TARGET_RUNTIME=crewai` · SOQ-12 answered: the operator commits the time the thin slice needs,
   without a number; recorded as a commitment, not a measured fit; the week-1 re-estimate (1.3×
   trigger) is the check. Feasibility note, scope status and fit table wording updated.
+- 2026-11-11 · persona `system-arch` · action `define-eval-criteria` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  §9 Evaluation Criteria filled for the thin slice: run rules EC-R1 to EC-R4 and criteria EC-001 to
+  EC-021 across accuracy, latency, safety, security and cost, each with metric, threshold, grading
+  method and source; diagnostics listed separately. Two operator answers (DL-23): 3 of 3 evaluation
+  runs on the same commit must pass; obligation names graded by the operator's judgement (closes
+  OQ-US001-1, OQ-US013-1 for `@product-mgr`). Review time measured on the human demo rehearsal, not
+  on scripted runs. §5 release rule and §10 demo criterion updated to three runs; SA-17. Golden
+  dataset, graders and runner left to `@qa.eng` `*run-evals`.
+- 2026-11-11 · persona `system-arch` · action `define-eval-criteria` (review fixes 1–5) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · one cost sentence ("US$4 hard stop; any run over US$2 fails EC-012")
+  in CR-017, Production Shape, §4 cross-check, §7 and EC-012; EC-R5 written name-match rule recorded
+  before the first evaluation run, with a starting draft for the operator; EC-009 lists the 7
+  paragraphs and reconciles US-001 c4's five items; EC-R1a no best-of (any failing run → fix and
+  re-run all three); §7 evaluation cost per cycle (up to US$6, about 15 minutes) and new SOQ-13
+  (development spend limit, operator).
+- 2026-11-12 · persona `system-arch` · action `define-eval-criteria` (SOQ-13) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · operator decision DL-24: development model usage capped at US$50
+  until 13 December 2026, enforced in the provider account (operator-owned, not application code),
+  checkpoint at US$25 with stop-and-review by activity; §7 development spend cap table; EC-R6 spend
+  logged per evaluation run with activity label and running total; SOQ-13 resolved. A model swap for
+  one role is noted as a release under the swap rule, not assumed.
+- 2026-11-12 · persona `system-arch` · action `update` · `AAMAD_TARGET_RUNTIME=crewai` · new SOQ-14
+  (model provider and starting model, before the week-1 spike), with the Setup steps it triggers:
+  provider-standard key name, spending limit before the key, telemetry opt-out verified against the
+  installed CrewAI version (SD MN-002).
 - 2026-11-12 · operator session (Claude Code, no AAMAD persona; at the operator's instruction, edited by
   the product manager session because the operator asked for the SAD run state model to be updated) ·
   action `update` (OQ-US015-4, DL-22) · added the Run state model (`ACTIVE`, `FAILED`, `ABANDONED`,
@@ -1547,4 +1675,4 @@ only after the operator moves it into scope.
   required, audited, nothing undone, not a general cancel); CR-023 reads the state, tests T-RUN-0 to
   T-RUN-4; endpoint `POST /runs/{id}/abandon` and error `RUN_NOT_ACTIVE`; new WP-12a (2 focused days,
   the product manager's estimate for the architect to confirm), slice 42.5 → 44.5 (32–60 → 33.5–63) and
-  the fit table moved by 2; SA-17 (`COMPLETED` = G3 decided); SOQ-10 note. Flagged for `@system.arch`.
+  the fit table moved by 2; SA-18 (`COMPLETED` = G3 decided); SOQ-10 note. Flagged for `@system.arch`.

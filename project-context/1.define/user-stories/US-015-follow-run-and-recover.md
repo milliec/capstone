@@ -146,7 +146,7 @@ have already made.
   specialist action to **abandon** a run, with a written reason and an audit entry, closes an active run
   without undoing anything (criterion 20). This is not a general cancel feature. A run ends when G3 is
   decided, fails, or is abandoned; the architect confirms that a declined G3 also ends the run (SAD
-  SA-17).
+  SA-18).
 
 ## Audit
 
