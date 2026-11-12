@@ -249,7 +249,22 @@ parts and the internals of each agent (view 3) are left out.
 
 ![Regulatory Intelligence: containers](../diagrams/system-arch/containers.svg)
 
-The editable source is `project-context/diagrams/system-arch/containers.html`. The behaviour views are owned by other personas
+The editable source is `project-context/diagrams/system-arch/containers.html`.
+
+*View 3: the agent pipeline.* The thin slice's steps in their three stages, with the specialist's
+gates as boxes between them, so the picture cannot be read as an automatic pipeline: agents only
+draft, and nothing moves on until a person decides (MN-003). Stage A: the extractor agent drafts
+rows; the code quote check (the authority that blocks G1, W-04) and the verifier agent check them;
+the code coverage view lists uncited paragraphs. G1 receives the flags and the gaps. Stage B: the
+judge agent drafts verdicts for the approved rows, then G2. Stage C: the code date engine, then G3.
+Agents and code steps have different box styles, and each agent's label names its model family and
+what it receives (DL-25, DL-26). Callouts: the verifier never sees the extractor's reasoning (W-05);
+no agent has a tool, so code builds every input from stored data (CR-002). The backend, stores and
+audit log (views 2 and 4), future-scope steps and the evaluation runner are left out.
+
+![Regulatory Intelligence: agent pipeline](../diagrams/system-arch/pipeline.svg)
+
+The editable source is `project-context/diagrams/system-arch/pipeline.html`. The behaviour views are owned by other personas
 under `.cursor/skills/draw-diagram/reference.md`, and the SAD already holds their content as text:
 
 | Diagram | Owner | Source in this SAD |
@@ -1860,3 +1875,10 @@ only after the operator moves it into scope.
   `self_check.py --offline` printed OK. Nine nodes (operator choice: model steps separate from the
   Flows; business data and audit/trace separate inside one SQLite zone), nine arrows, one callout
   (DL-17); every node and arrow traced to §1, §2, §4, CR-010 and CR-013.
+- 2026-11-12 · persona `system-arch` · action `draw-diagram` · `AAMAD_TARGET_RUNTIME=crewai` · view 3
+  of 4, agent pipeline: type `architecture` with three stage zones (structural, not a flowchart),
+  size `doc-wide`, default style, system fonts, files `project-context/diagrams/system-arch/pipeline.html`
+  and `pipeline.svg`, `diagram-design` commit `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`;
+  `self_check.py --offline` printed OK. Nine nodes (gates as boxes, architect's recommendation
+  accepted by the operator), nine arrows, two callouts (W-05, CR-002); every node and arrow traced
+  to the Delegation Map, W-03 to W-15, DL-25 and DL-26.
