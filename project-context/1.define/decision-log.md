@@ -581,6 +581,11 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   decisions in the stories index (reject the planted row at G1, with a reason). **Done 2026-11-12 by
   `@product-mgr`** (branch `sad-dl29-31`): SD FR-031 and AC-038; US-004 criterion 19; the demo decision in
   `user-stories/README.md`; approval map H0b and A26 (H3a and T-25 kept).
+- **Decided 2026-11-12 (operator, SAD SOQ-22):** **the verifier runs on the planted row**, so it
+  follows the same path as every other row and nothing is special-cased. The demo script does not
+  depend on whether the verifier flags it: the specialist rejects it at G1 either way, and
+  approving it is still refused. One extra verifier call on a demo run. **Still to do by
+  `@product-mgr`**: say so in SD FR-031 and in the demo decisions in the stories index.
 
 ### DL-32 · Capacity is five focused days; anything beyond is buffer
 
@@ -598,7 +603,7 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   the planted demo row is kept**, because the row demonstrates the human checkpoint; the visual
   pass can then be done after the course for the operator's portfolio.
 - **Fallback, decided 2026-11-12 (operator):** this applies only if the planted demo row is later
-  cut as well. The specialist rejects `OBL-06` at G1 if its row is genuinely weak on the demo run.
+  cut as well. The specialist rejects `OBL-06` at G1 if, on the day, the specialist judges `OBL-06` unsound.
   `OBL-06` produces no calendar entries, so the demo calendar stays at 22. If `OBL-06` is sound on
   the day, the demo shows no rejection and relies on the decisions already in the script: the two
   approvals over a flag and the "unsure" decision.
@@ -715,3 +720,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-32 (capacity: five focused days), DL-33 (plain server-rendered pages with a light visual pass; Next.js post-course), DL-34 (evaluations report and do not block; replaces DL-23's gate, with a superseded note on DL-23) and DL-35 (the SAD rewritten as an MVP version, full design at tag `sad-full-design`; three simplifications listed for the operator's review); operator decisions. Follow-ups for `@product-mgr` are in SAD SOQ-20
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · operator's review of SAD pass 1: DL-32 records the buffer decision and the drop order (visual pass first, planted demo row kept); DL-35's three simplifications accepted, with the condition that the three steps remain CrewAI agents; DL-17 carries the wording change (plain stage functions, no Flow wrapper, backend alone owns the gates)
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-32: fallback recorded for the case where the planted demo row is also cut (reject `OBL-06` at G1 only if genuinely weak, calendar stays at 22; otherwise no rejection); operator decision. Operator also confirmed the pattern stays "workflow", described as three CrewAI agents in a gated workflow (DL-17 as reworded); no text change
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-31: the verifier runs on the planted demo row and the demo script does not depend on its flag (SAD SOQ-22); DL-32: fallback wording changed to "if, on the day, the specialist judges `OBL-06` unsound"; tag `sad-full-design` pushed to the remote; operator decisions

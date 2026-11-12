@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="containers-title containers-desc" id="containers-root">
         <title id="containers-title">Regulatory Intelligence: containers</title>
-        <desc id="containers-desc">Inside the system, the web app calls the backend API, which owns gate state and starts a CrewAI stage Flow per stage; each Flow runs model steps that call the OpenAI API and code steps, and returns its outputs to the backend, which writes business data and an append-only audit log and trace in one SQLite file.</desc>
+        <desc id="containers-desc">Inside the system, the browser requests plain HTML pages from the backend, which owns gate state and runs one plain stage function per stage; each stage function calls the three CrewAI agents, which call the OpenAI API, and the code steps, and returns its outputs to the backend, which writes business data and an append-only audit log and trace in one SQLite file.</desc>
         <defs>
       <style>#containers-root { --color-paper:   #f5f5f5;
       --color-ink:     #2d3142;
@@ -32,23 +32,23 @@
         <text x="600" y="501" fill="#5a6580" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">SQLITE · ONE FILE</text>
 
         <!-- Arrows (behind boxes) -->
-        <!-- Config and mock files -> backend API (load): right, then down into the API's top edge -->
+        <!-- Config and mock files -> backend (load): right, then down into the backend's top edge -->
         <path d="M 216,152 H 424 Q 432,152 432,160 V 176" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#containers-arrow)"/>
-        <!-- Web app -> backend API: JSON over HTTP, contract = OpenAPI -->
+        <!-- Browser -> backend: plain HTML pages and form posts over HTTP (DL-33) -->
         <line x1="216" y1="280" x2="328" y2="280" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#containers-arrow-link)"/>
-        <!-- Backend API -> stage Flows: starts a stage -->
+        <!-- Backend -> stage functions: starts a stage -->
         <line x1="536" y1="192" x2="616" y2="192" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#containers-arrow)"/>
-        <!-- Stage Flows -> backend API: returns outputs (dashed return) -->
+        <!-- Stage functions -> backend: returns outputs (dashed return) -->
         <line x1="616" y1="208" x2="536" y2="208" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#containers-arrow)"/>
-        <!-- Stage Flows -> model steps -->
+        <!-- Stage functions -> CrewAI agents -->
         <line x1="700" y1="224" x2="700" y2="320" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#containers-arrow)"/>
-        <!-- Stage Flows -> code steps -->
+        <!-- Stage functions -> code steps -->
         <line x1="884" y1="224" x2="884" y2="320" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#containers-arrow)"/>
-        <!-- Model steps -> OpenAI API: down, then right into the API's left edge -->
+        <!-- CrewAI agents -> OpenAI API: down, then right into the API's left edge -->
         <path d="M 740,384 V 424 Q 740,432 748,432 H 1056" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#containers-arrow-link)"/>
-        <!-- Backend API -> business data: read and write -->
+        <!-- Backend -> business data: read and write -->
         <line x1="352" y1="352" x2="352" y2="520" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#containers-arrow)"/>
-        <!-- Backend API -> audit log and trace: append only -->
+        <!-- Backend -> audit log and trace: append only -->
         <line x1="512" y1="352" x2="512" y2="520" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#containers-arrow)"/>
 
         <!-- Arrow labels (opaque masks, 8px from their lines, clear of every node) -->
@@ -56,7 +56,7 @@
         <text x="256" y="141" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LOAD</text>
 
         <rect x="228" y="260" width="88" height="12" rx="2" fill="#f5f5f5"/>
-        <text x="272" y="269" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">JSON · OPENAPI</text>
+        <text x="272" y="269" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">HTML · FORMS</text>
 
         <rect x="540" y="172" width="72" height="12" rx="2" fill="#f5f5f5"/>
         <text x="576" y="181" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">START STAGE</text>
@@ -64,8 +64,8 @@
         <rect x="552" y="216" width="48" height="12" rx="2" fill="#f5f5f5"/>
         <text x="576" y="225" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">OUTPUTS</text>
 
-        <rect x="708" y="266" width="40" height="12" rx="2" fill="#f5f5f5"/>
-        <text x="728" y="275" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">MODEL</text>
+        <rect x="708" y="266" width="48" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="732" y="275" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">AGENTS</text>
 
         <rect x="892" y="266" width="32" height="12" rx="2" fill="#f5f5f5"/>
         <text x="908" y="275" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CODE</text>
@@ -87,39 +87,39 @@
         <text x="128" y="156" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Config and mock files</text>
         <text x="128" y="172" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">YAML · mock data</text>
 
-        <!-- Node: Web app (component) -->
+        <!-- Node: Browser (component): shows the pages the backend renders; no application code of its own -->
         <rect x="40" y="248" width="176" height="64" rx="6" fill="#f5f5f5"/>
         <rect x="40" y="248" width="176" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
         <rect x="48" y="256" width="28" height="12" rx="2" fill="none" stroke="#2d3142" stroke-width="0.8" stroke-opacity="0.40"/>
         <text x="62" y="265" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">WEB</text>
-        <text x="128" y="284" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Web app</text>
-        <text x="128" y="300" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Next.js · 2 surfaces</text>
+        <text x="128" y="284" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Browser</text>
+        <text x="128" y="300" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">HTML pages · no app code</text>
 
-        <!-- Node: Backend API and gate service (focal) -->
+        <!-- Node: Backend: page handlers, service layer and gate service (focal) -->
         <rect x="328" y="176" width="208" height="176" rx="6" fill="#f5f5f5"/>
         <rect x="328" y="176" width="208" height="176" rx="6" fill="#bf4520" stroke="#bf4520" stroke-width="1" fill-opacity="0.08"/>
         <rect x="336" y="184" width="28" height="12" rx="2" fill="none" stroke="#bf4520" stroke-width="0.8" stroke-opacity="0.50"/>
-        <text x="350" y="193" fill="#bf4520" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
-        <text x="432" y="252" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Backend API</text>
-        <text x="432" y="270" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">FastAPI · gate service</text>
-        <text x="432" y="284" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">gates · approvals</text>
+        <text x="350" y="193" fill="#bf4520" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">APP</text>
+        <text x="432" y="252" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Backend</text>
+        <text x="432" y="270" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">FastAPI · HTML pages</text>
+        <text x="432" y="284" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">gate service · decisions</text>
         <text x="432" y="298" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">versions · audit</text>
 
-        <!-- Node: Stage Flows (component) -->
+        <!-- Node: Stage functions (component) -->
         <rect x="616" y="160" width="352" height="64" rx="6" fill="#f5f5f5"/>
         <rect x="616" y="160" width="352" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
         <rect x="624" y="168" width="32" height="12" rx="2" fill="none" stroke="#2d3142" stroke-width="0.8" stroke-opacity="0.40"/>
-        <text x="640" y="177" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">FLOW</text>
-        <text x="792" y="192" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Stage Flows A · B · C</text>
-        <text x="792" y="208" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">CrewAI · each ends at its gate</text>
+        <text x="640" y="177" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">STAGE</text>
+        <text x="792" y="192" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Stage functions A · B · C</text>
+        <text x="792" y="208" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">plain Python · each ends at its gate</text>
 
-        <!-- Node: Model steps (component) -->
+        <!-- Node: Three CrewAI agents (component) -->
         <rect x="616" y="320" width="168" height="64" rx="6" fill="#f5f5f5"/>
         <rect x="616" y="320" width="168" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
         <rect x="624" y="328" width="28" height="12" rx="2" fill="none" stroke="#2d3142" stroke-width="0.8" stroke-opacity="0.40"/>
         <text x="638" y="337" fill="#2d3142" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">LLM</text>
-        <text x="700" y="356" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Model steps</text>
-        <text x="700" y="372" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">extract · verify · judge</text>
+        <text x="700" y="356" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Three CrewAI agents</text>
+        <text x="700" y="372" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">extractor · verifier · judge</text>
 
         <!-- Node: Code steps (component) -->
         <rect x="800" y="320" width="168" height="64" rx="6" fill="#f5f5f5"/>
@@ -143,7 +143,7 @@
         <rect x="176" y="528" width="28" height="12" rx="2" fill="none" stroke="#4f5d75" stroke-width="0.8" stroke-opacity="0.50"/>
         <text x="190" y="537" fill="#4f5d75" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
         <text x="272" y="556" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Business data</text>
-        <text x="272" y="572" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">replace per key</text>
+        <text x="272" y="572" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">rows · decisions · calendar</text>
 
         <!-- Node: Audit log and trace (store) -->
         <rect x="424" y="520" width="208" height="64" rx="6" fill="#f5f5f5"/>
@@ -154,7 +154,7 @@
         <text x="528" y="572" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">append-only · triggers</text>
 
         <!-- Callout: the one structural rule this view exists to show -->
-        <text x="968" y="148" fill="#4f5d75" font-size="13" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="end">Flows never decide or remember gate status (DL-17)</text>
+        <text x="968" y="148" fill="#4f5d75" font-size="13" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="end">Only the backend decides or remembers gate status (DL-17)</text>
 
         <!-- Legend strip -->
         <line x1="40" y1="640" x2="1240" y2="640" stroke="#2d3142" stroke-width="0.8" stroke-opacity="0.10"/>
