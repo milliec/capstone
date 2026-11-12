@@ -7,7 +7,9 @@ One fictional Luxembourg UCI Part II fund (`FND-DEMO-01`), mock data, mocked rol
 MVP scope, the decisions in force, the evaluation run rules and release rule (DL-34), the five-day
 estimate, the known limitations, Future Work and the open questions. **Pass 2 of 4 is done:** Work Ownership
 (with the quote-check rule and the run state model), the Delegation Map with its four diagrams,
-Pattern Decision, Reference Architecture and §1. A heading marked *pending*
+Pattern Decision, Reference Architecture and §1. **Pass 3 is part done:** Model and Context
+Strategy, the Control Register and Production Shape. Still to come in pass 3: §2, §4 and §6. A
+heading marked *pending*
 has not been rewritten yet. **Nothing is built from a pending heading**; passes 2 to 4 fill them.
 
 > **This document replaces the full design.** The earlier SAD (1,960 lines) described the MVP and
@@ -442,16 +444,147 @@ the personas that build the product, not the product).
 
 ### Model and Context Strategy
 
-*Pending: pass 3.*
+- **Provider and model per role** (DL-25). One provider: the **OpenAI API**, on prepaid credits. A
+  model is chosen **per role**, each from its own configuration value, never written into code:
+
+  | Role | Model tier | Variable | Why |
+  |---|---|---|---|
+  | Extractor (W-03) | A **cheaper default** model | `LLM_MODEL_EXTRACT` | Fixed-schema extraction from short mock paragraphs; the code quote check and the verifier catch its mistakes |
+  | Verifier (W-05, W-06) | **Default: a mid-tier model, different from the other two** (DL-26). **It switches to the judge's reasoning model** only if the mid-tier model misses any planted conflict in the bake-off | `LLM_MODEL_VERIFY` | Two different models are less likely to share a blind spot, which strengthens the separate verifier (SD MD-003). Same provider, so no second live service (SD MN-002) |
+  | Applicability judge (W-11) | A **reasoning** model | `LLM_MODEL_JUDGE` | Applicability is the judgement-heavy step, and a wrong "does not apply" is the costliest error (P-1) |
+
+  No other step uses a model. **Exact model IDs are checked against the provider's current list
+  before the measurement spike** (block B3) and recorded in the decision log. From then on, a
+  change to any role's model is a release (see the rule below). **Claude Code is the build tool
+  only**: no application call goes to it, and its usage is not part of the application's model
+  spend. Sampling is set for repeatability: temperature 0 where the model accepts it, and a fixed
+  `max_tokens` per step. A reasoning model may not accept a temperature setting, so the spike
+  records whether the judge's verdicts are stable across runs, and EC-R1 (3 of 3) then measures
+  it. The model, sampling settings, `max_tokens` and prompt version are logged for every call.
+- **Context strategy**: **built by code for each call.** A call receives only the stored data its
+  step needs; nothing carries over from an earlier call.
+
+  | Step | In the prompt (the minimum) | Deliberately **not** in it |
+  |---|---|---|
+  | W-03 extractor | One source document's paragraphs with their IDs; the row schema; the instruction to quote word for word, cite one ID, give no dates, and leave the business-day rule unset when the source is silent | The other documents; the answer key; any earlier run's rows |
+  | W-05, W-06 verifier | The row's fields and quote; the quote-check result (W-04); the cited paragraph; all source paragraphs with IDs (6 documents); the flag schema | The extractor's reasoning or prompt; other rows' flags; gate state |
+  | W-11 judge | The row as approved at G1 (fields, quote, business-day rule); the fund profile facts with IDs and the event log; the verdict schema; the instruction to answer "unsure" when a fact is missing (P-1) | The verifier's reasoning and flags; G1 reasons; the specialist's identity; the answer key; other rows' verdicts |
+
+  **The answer key is never in a prompt or in any fixture used at run time.** Only the evaluation
+  runner reads it (W-20). Examples in a prompt, if any, are written fresh and are not drawn from
+  the answer key (CR-016).
+- **Swap-as-release rule**: every change to a model, a prompt, a schema or a sampling setting is a
+  **release**, and follows the release rule in §5: three evaluation runs on the final commit,
+  reported in the pull request. Under DL-34 the report states the result and does not block the
+  merge. **Rollback rule, written before any swap:** the earlier prompt and model settings stay in
+  git. If the new report is worse than the one before it on any criterion, or a run costs more
+  than US$2 or takes longer than 5 minutes, the pull request says so and the operator decides
+  whether to keep the change or revert it. Each prompt version is identified by a hash of its
+  content, recorded in every trace record (CR-018), so the version behind any row or verdict can
+  always be named.
+- **Entry point**: **direct API.** The provider is called by the three CrewAI agents, which are
+  called by the stage functions the backend runs (§2). There is no hosted chat, no agent session
+  kept between calls, and no tool server. CrewAI is the library that runs each agent and makes the
+  call; it is not a separate route.
+- **Tradeoff named at decision time**: a direct API gives the application full ownership of every
+  call: the exact prompt, the settings, the cost, the trace, and the schema check on the way back.
+  In exchange the application must build what a hosted route would provide: retries, cost
+  counting, prompt versioning and tracing (Production Shape, CR-017, CR-018). For a system whose
+  claim is that every output can be traced, that is the right side of the trade.
+- **One route only**: the evaluation runner (W-20) calls the same stage functions as the
+  application, so an evaluation measures the real path, not a copy of it.
+- **Minimum data in a prompt**: as the table above. No identities, no audit-log content, no gate
+  state, no decision reasons, no other rows' outputs, and no real data (there is none).
+- **Identity**: enforced in server code. The mocked identity (specialist or GP) comes from the
+  session, is checked on every write (CR-004) and is written to the audit log by the server. No
+  model receives it, and none could act on it (no tools).
 
 ### Control Register
 
-*Pending: pass 3. The controls for the slice only. `--mvp` may defer scale, never the control
-register.*
+Nothing consequential relies on what model training already reduces (fluent text, usually
+following a schema, refusing obvious harm). Everything below is enforced by the application. There
+are three control points: **input** (what goes into a model call), **output** (what comes back
+before it is stored or shown) and **tool-call** (any action with a side effect; here, every state
+change, since agents have no tools). Side effects fail closed. A reviewer always receives the
+inputs and the reason for a flag.
+
+*Evidence column:* `AM T-nn` is a test in `approval-map.md` §7; other test IDs are defined in this
+document. *Retired from the MVP:* CR-010, CR-020, CR-022 and CR-024 to CR-026 (Future Work).
+
+| ID | Risk | Control | Control point | Failure direction | Owner | Evidence | Review routing |
+|---|---|---|---|---|---|---|---|
+| CR-001 | Gate bypass (SD MN-003, MP-006) | Gate transitions (G1 complete → stage B may run; G2 complete → stage C; G3 → publish) are a state machine in the backend. It refuses any advance without the matching recorded decisions, whoever calls it. A page can only submit a decision. **The backend is the single owner of gate state**: a stage function is started only by the backend, carries no gate state, cannot start the next stage, and ends by returning outputs that the backend validates and stores | tool-call | Fail closed: on any doubt or error, no transition | Build crew · `@security.eng` verifies | AM T-02, T-03; audit entries for refused attempts; a test that calling a stage function directly changes no gate state | Refused attempts are logged and shown to the specialist as a plain message |
+| CR-002 | Agent side effects (PRD §3; AM A13, A14) | **No agent has a tool.** Code builds the inputs; outputs are returned values that code validates and stores as proposals. No code path leads from a model output to approve, publish, write a date or advance state | tool-call | Fail closed by construction: the capability does not exist | Build crew | AM T-07; the agent definitions in §2 | Not applicable |
+| CR-003 | Invalid model output (SD NFR-004) | Every model output is parsed against its schema before it is stored: row fields present and typed; exactly one paragraph ID, which exists; no date fields; a verdict from {applies, does not apply, unsure}; every cited fact ID exists; a flag type from the allowed set. Invalid output is kept only in the trace, and the run ends as `FAILED` | output | Fail closed | Build crew | AM T-11, T-27; the schema files; trace records of refused outputs | Run status names the step, the unit and the reason; a new run follows |
+| CR-004 | Unauthorised actor (SD NFR-010) | The server checks the mocked role on every write: approve, reject, confirm, override, decide, publish, decline, abandon and start a run need `specialist`. GP routes are read-only and return published data only. Every state change is a `POST`, and the session cookie is `SameSite=Lax`. Hiding a button is not a control | tool-call | Fail closed | Build crew · `@security.eng` | AM T-06; the route list with the role each needs | Refusals are logged |
+| CR-005 | Unsourced row (SD MN-006) | The quote check W-04 under QN-1, in code. A row with no paragraph ID, an unknown ID or a quote that is not found cannot be approved. No reason unlocks it, and a verifier "pass" cannot override a code "fail" | output | Fail closed | Build crew | T-W04-1 to T-W04-6; AM T-04 | The blocked row is shown at G1 with the text that did not match (US-002 c7); it can only be rejected |
+| CR-006 | The verifier changes a row (SD MN-004) | The verifier returns flags only and has no way to write row fields. A test compares each row before and after verification | output | Fail closed: any difference fails the test and the build | Build crew | AM T-08 | Not applicable |
+| CR-007 | Approval over a flag, or a gate completed with something undecided (SD AC-006, AC-008) | A remaining flag → approval needs a written reason, stored with the decision. An undecided "unsure" → G2 cannot complete. Any undecided row or verdict → the gate is incomplete. No bulk action, no preselected decision, no decision on a timeout or on closing a page (SD AC-026) | tool-call | Fail closed | Build crew | AM T-03, T-05, T-23 | Flagged rows and "unsure" verdicts look different from the rest and are shown with both texts (flags) or the cited facts (verdicts) |
+| CR-008 | A model computes a date (SD MN-005) | The date module does not depend on any model client. The row and verdict schemas have no date fields (CR-003 refuses any). The calendar is generated only after G2 is complete, from approved rows that apply | tool-call | Fail closed | Build crew · `@qa.eng` | The date tests run with no model (US-008 c8, US-009 c6); AM T-12 | Not applicable |
+| CR-009 | A decision made twice, or on a stale page (SD MD-009) | **Decide once, and record the version.** Each row, verdict and calendar has an integer version. Nothing changes a row or a verdict after it is created, so its version stays at 1; it is still stored with every decision, so the scheme extends to edits later without a change of record format. **A row or verdict that already has a decision refuses another** (`ALREADY_DECIDED`). The run has a version that goes up at every gate event; every run-level request (complete a gate, publish, decline, abandon) carries the run version the specialist saw and is refused if it no longer matches (`VERSION_MISMATCH`). Together these cover a stale page and a double submit: one decision is recorded | tool-call | Fail closed | Build crew | AM T-15, T-32; a test that submits the same decision twice → one recorded, the second refused | The refusal tells the specialist that the item was already decided, or that the run has moved on, and shows the current state |
+| CR-011 | A partial calendar reaches G3 or GPs (SD NFR-004) | Calendar generation is all or nothing inside one database transaction: every entry of the version is written, or none. G3 offers only a complete version. Publishing is one indivisible switch of the fund's published version. Two approved rows that give the same entry ID stop generation, and both rows are named (DL-35) | tool-call | Fail closed | Build crew | AM T-12, T-13; T-ID-2 (§4): two rows that collide → no calendar, both rows named | The specialist sees which rows collided; a new run follows |
+| CR-012 | Working content shown to GPs (SD MN-007) | The GP view is built only from the published version; draft, flag, reasoning and audit data are never read for it. **Before the first publication it returns one fixed message** (DL-27), defined in code, with no count, no run or gate status and no draft content, so a blank page is never read as "no obligations" (P-1) | output (what leaves the server for a GP) | Fail closed: on an error the GP sees a plain error message, never working content | Build crew | AM T-01, T-31; US-011 c4 | Not applicable |
+| CR-013 | Audit tampering (SD NFR-003) | The **audit log** and the **trace store** accept inserts only. The data layer offers no update or delete for them, and database triggers refuse both at the storage boundary. The audit entry for a decision points at the trace record of the output it decided on | tool-call | Fail closed | Build crew · `@security.eng` | AM T-14, on both tables; the trigger definitions | Not applicable |
+| CR-014 | Direct prompt injection (text typed by a person) | **No free text typed by a person reaches a prompt in the MVP**: there is no edit and no hand-made row, and G1 reasons are not passed to the judge. The business-day rule set at G1 is a fixed choice, not text. The rule that stays for later: anything placed in a prompt is **data** in a marked field, with the instruction outside it, and the output still passes CR-003 and CR-005 | input | Fail closed (the schema check on the way back) | Build crew | Prompt templates with data and instruction separated; the input-building functions take only stored records and loaded files | Not applicable |
+| CR-015 | Indirect injection through the sources, and unsafe display | The sources are version-controlled mock files loaded by code, never fetched. They are placed in prompts as data with paragraph IDs. **Model output is stored and shown as text**: the page templates escape every value automatically, and no model output is ever marked as safe HTML. A quote is checked against its source by code (CR-005), so a model cannot cite text that is not there | input · output | Fail closed | Build crew · `@security.eng` | A display test: model output containing HTML is shown as text; the source files are under version control with no network path | Not applicable |
+| CR-016 | Fairness and leakage | **Corpus**: fixed mock sources, no selection step. **Prompt framing**: the instruction to prefer "unsure" is a deliberate bias towards over-inclusion, stated here, and is why "unsure" goes to a person (CR-007). **Examples**: none drawn from the answer key, which is never in a run-time prompt or fixture | input | Fail closed: a prompt that refers to the answer key fails a repository check | `@system.arch` (design) · `@qa.eng` (check) | A search-style test: no prompt template or run-time fixture refers to `expected-obligation-library` | Not applicable |
+| CR-017 | Token and cost exhaustion (SD MC-001, MC-002) | Per call: a fixed `max_tokens` per step and a bounded input (one document, or one row and six short documents). Per run: a **hard stop at US$4** (`RUN_COST_CAP_USD`), counted from the provider's usage data across every call, retries included. Reaching it stops further calls and ends the run as `FAILED`, with the reason recorded. **Why the cap is above the target:** it guards against a fault that keeps calling the model; stopping at exactly US$2 would turn a small overrun into a lost run. The US$2 target is measured: a run over US$2 misses EC-012 in the evaluation report. Run status shows a warning when a run passes US$2 | input (size) · tool-call (making a call) | Fail closed: no further calls | Build crew · `@qa.eng` (report) | The report's cost and time fields against US$2 and 5 minutes (US-013 c3, c6); trace records with token counts; US-015 c17 | The specialist sees the warning and, at the cap, the reason the run stopped |
+| CR-018 | Explaining why an output was produced (SD MP-005) | Every model call, including a retry, appends a **trace record** keyed by run, step, unit and attempt number: prompt version (a hash of its content), model, sampling settings, `max_tokens`, a hash of the input, the raw output, the parsed output or the validation error, token counts, cost and duration. The audit entry for an agent output links to its trace record. With the audit log, any row, verdict or entry can be explained from start to finish | output | Fail closed: a call whose trace cannot be written counts as failed | Build crew | The trace store (append-only, CR-013); a query that rebuilds the history of one calendar entry; the trace export (D4) | Not applicable |
+| CR-019 | GP text implies permission or gives advice (SD MN-009; DL-01, DL-05) | Code generates the "precautionary" label and note from the specialist's decision (W-12); no model writes it. The G2 reason field is labelled as visible to GPs (W-17, SA-8). The calendar-level "not legal advice / conventions not yet checked" note is one fixed sentence on the GP view. The wording is checked in a copy review before the demo | output (a human control) | Not applicable (a review) | `@ux.designer` · specialist | The copy review record; US-011 c5, c11 | Human review before the demo |
+| CR-021 | Secrets and real data (SD NFR-009, MN-001) | The provider key is read from `OPENAI_API_KEY` in the git-ignored `.env`; `.env.example` lists names only. The real-name scan runs before every commit. The system holds no real data | input | Fail closed: no key → no calls; a scan hit → no commit | Operator · `@security.eng` | The scan output; `.env.example` | Not applicable |
+| CR-023 | Concurrent runs, and runs that never end (PRD A-6; DL-29) | The server refuses to start a run for the fund while one is `ACTIVE` (see the run state model). **An active run always has a way out:** G3 is decided, a step fails, a time limit passes, the backend restarts mid-stage, or the specialist abandons it at a gate. There is no other cancel | tool-call | Fail closed | Build crew | **T-RUN-0**: start a second run → refused, naming the active run. **T-RUN-1**: a unit fails → the run is `FAILED`, no gate opens, a new run can start. **T-RUN-2**: a step never returns → it fails at its time limit and the run is `FAILED`. **T-RUN-3**: abandon without a reason → `REASON_REQUIRED`; with one → `ABANDONED`, one audit entry, nothing else changed, a new run can start. **T-RUN-4**: abandon or decide on a run that is not active → `RUN_NOT_ACTIVE`; a stale run version → `VERSION_MISMATCH`. **T-RUN-5**: decline G3 without a reason → `REASON_REQUIRED`; with one → `DECLINED`, the GP view unchanged, a new run can start. **T-RUN-6**: a stage passes its stage time limit → `FAILED` with the reason "stage time limit", no gate opens. **T-RUN-7**: restart the backend mid-stage → `FAILED` with the reason "service restarted"; a run waiting at a gate is still `ACTIVE`; abandon mid-stage → `RUN_STAGE_RUNNING`. (AM T-26 to T-29, T-33 to T-35) | The specialist is shown the active run, or the terminal state and its reason |
+| CR-027 | A date rule silently settled while its convention is open (PRD OQ-7; DL-20) | The regulation configuration records each convention whose application is still an open question, with the question ID and the obligations it affects (MVP: `OQ-7` → `OBL-02`). At G1, the form for that row says its business-day rule depends on the open question, and offers no preselected rule. The date code copies the dependency onto every entry from that row. At G3 those entries carry the mark, next to the "roll rule unconfirmed" and "precautionary" marks. The mark does **not** block publishing and is not shown to GPs | output (what the specialist sees at G1 and G3) | Fail safe towards the mark: if the dependency cannot be worked out, the entry is marked | Build crew · `@ux.designer` (wording) | **T-W13-1**: the demo calendar → all four `OBL-02` entries carry the mark at G3 and have the same dates under "no roll" and "roll forward"; no other entry carries it; the GP view shows no mark; publishing is not blocked. **T-W13-2**: the date module has no default rule for `OBL-02` | The specialist sees the mark at G1 and G3; answering the question happens outside the system |
+| CR-028 | Publishing without seeing what was left out (DL-30, P-1) | The G3 page lists the rows rejected at G1, each with its reason, and the paragraphs no non-rejected row cites. The publish request must carry **one explicit acknowledgement** of those two lists. The server works the lists out again and refuses the request without the acknowledgement, or with one that does not match (`ACK_REQUIRED`). Never preselected, never triggered by a timeout. The lists are stored with the acknowledgement. In the demo the three `SRC-PRACT` summaries are always uncited, so the acknowledgement appears on every publish. A decline needs none | tool-call | Fail closed | Build crew · `@ux.designer` (wording) | **T-G3ACK-1**: publish without the acknowledgement → refused; with one naming different lists → refused; with the current lists → published, and the audit entry names them; decline without one → accepted (AM T-36) | Both lists are shown in full at G3 |
+| CR-029 | The planted demo row is mistaken for real output, or reaches GPs (DL-31) | A switch on the run, `demo_planted_row`, **off by default**, set only when the run is started; turning it on is an audit entry. When on, **code** adds one row from a fixed fixture: a real quote, word for word in its paragraph, that does not support the row's rule. The row passes the quote check and **the verifier runs on it like on every other row** (SOQ-22); nothing depends on whether it raises a flag. The row has `origin: demo` and is labelled "demo" wherever it appears. **The backend refuses to approve it** (`DEMO_ROW_NOT_APPROVABLE`), logs the refusal and answers: "This is a planted demo row. It cannot be approved. Reject it with a reason." Its only decision is reject with a reason, so it never reaches a calendar. **An evaluation run refuses to start with the switch on**, and every report records the switch state (EC-R7) | tool-call | Fail closed | Build crew · `@qa.eng` | **T-DEMO-1**: switch off → 6 rows, no demo row, no switch entry in the audit log; switch on → 7 rows, the 7th marked `origin: demo`, with a quote-check pass and a verifier result, and the switch entry exists; reject it → logged, and it appears in the G3 rejected list; an evaluation run with the switch on → refused. **T-DEMO-2**: approve the demo row, with and without a reason and with each business-day rule → every request refused and logged; the row stays pending; G1 cannot complete until it is rejected (AM T-25, T-37) | Shown at G1 labelled "demo", with reject as its only action |
 
 ### Production Shape
 
-*Pending: pass 3.*
+- **Expected volume**: one run at a time. During the build, a few runs a day; for the demo, one
+  run plus the three evaluation runs. A clean run makes about 18 calls of a few thousand input
+  tokens each, so model usage is small and the US$2 target is a ceiling per run, not a scaling
+  concern. A stage takes about as long as its slowest call, because the calls of a stage run in
+  parallel; stage C has no model and takes under a second. These are estimates (SA-6) until the
+  spike measures them.
+- **Retries**: one automatic retry per call on a transport or provider error (timeout, rate limit,
+  server error), after a short wait. **None** on output that fails its schema: sending the same
+  prompt again is not a fix, and the failure should be seen. There is no re-run.
+- **Fallback chain**: **none, by rule.** Falling back to another model in the middle of a run would
+  be a model swap without its evaluation. A provider outage ends the run as `FAILED`.
+- **Circuit breaker**: **none in the MVP** (Future Work F-13). It is not needed: the first failed
+  unit ends the run, so a stage cannot go on failing. The cost cap (CR-017) and the stage time
+  limit (run state rule 6) are the two bounds on a run.
+- **Time limits**: each model task has `max_execution_time`, and each stage has
+  `STAGE_TIME_LIMIT_A`, `_B` or `_C`. Starting values are set in §2 and replaced by measured ones
+  after the spike, before the first evaluation run (EC-R8 point 5).
+- **Measurement spike** (the first real calls, in estimate block B3). Run each role's call on the
+  demo inputs at least 5 times (the extractor on one document, the verifier on one row, the judge
+  on one row), then one clean run from start to finish. Record, per role: tokens in and out, cost,
+  duration, and the share of calls whose output passes its schema on the first attempt. The
+  measured figures replace the estimates and set the time limits. **Verifier bake-off (DL-26):**
+  both candidates, the mid-tier default and the reasoning model, run at least 5 times each on the
+  planted conflicts (`C-1` on `OBL-03`, `C-2` on `OBL-05`, and `I-1` on a copy of `OBL-02`). **If
+  the mid-tier model misses any planted conflict in any run, the verifier switches to the
+  reasoning model**; otherwise the mid-tier model stays. For each candidate the spike also records
+  false alarms on the correct rows and the cost of a full run. The choice is recorded in the
+  decision log before the first evaluation run. Output: a short table under
+  `project-context/2.build/`, named in this document's Audit when it exists.
+- **The failure mode of a document pipeline, and what limits it**: **well-formed but wrong, and
+  silently missing.** A pipeline's outputs look right because they fit the schema; the dangerous
+  cases are a plausible wrong field and a row that is simply absent. What limits them: the
+  verifier's internal check for a wrong field (W-05); the coverage view for an absence (W-03b);
+  the G3 acknowledgement, which puts rejected rows and uncited paragraphs in front of the
+  specialist before publishing (CR-028); the evaluation report, which states every miss (W-20);
+  and the gates, which keep all of it away from GPs. Two rows for one obligation are **not**
+  detected (Known limitations).
+- **Per-request traces and aggregate views** are separate. **Per request**: one trace record per
+  model call (CR-018), sharing the run ID, plus the audit log; together they rebuild the history
+  of any row, verdict or entry. **Aggregate**: the evaluation report (US-013) is the only
+  aggregate view: accuracy against the key, cost, run time and review time. No live dashboard.
+- **Configuration names** (values are never committed; `.env.example` is created in Build):
+  `OPENAI_API_KEY`, `LLM_MODEL_EXTRACT`, `LLM_MODEL_VERIFY`, `LLM_MODEL_JUDGE`,
+  `LLM_MAX_TOKENS_EXTRACT`, `LLM_MAX_TOKENS_VERIFY`, `LLM_MAX_TOKENS_JUDGE`, `RUN_COST_CAP_USD`
+  (default 4), `STAGE_TIME_LIMIT_A`, `STAGE_TIME_LIMIT_B`, `STAGE_TIME_LIMIT_C`. Further names are
+  listed in §4.
 
 ### 1. MVP Architecture Philosophy & Principles
 
@@ -851,3 +984,17 @@ Two belong to this pass:*
   place of "web app"). Each SVG re-exported with `--system-fonts`; `self_check.py --offline`
   printed OK for all four. `diagram-design` commit `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`.
   The Diagrams text in the Delegation Map was rewritten to match; SOQ-21 closed.
+- 2026-11-12 · persona `system-arch` · action `create-sad --mvp` (pass 3, first part) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · sources: the Model and Context Strategy, Control Register and
+  Production Shape sections of the full design at tag `sad-full-design`; `approval-map.md` §7
+  (test IDs checked); `decision-log.md` DL-24 to DL-26, DL-29 to DL-31, DL-34, DL-35 · rewrote
+  **Model and Context Strategy** (one model per role; context built by code per call; the swap
+  rule now follows the §5 release rule, with a rollback rule in which the operator decides),
+  **Control Register** (CR-001 to CR-009, CR-011 to CR-019, CR-021, CR-023, CR-027 to CR-029; IDs
+  unchanged; CR-009 is now decide-once with the version recorded, new refusal code
+  `ALREADY_DECIDED`; CR-012 without the review notice; CR-013 without the replaceable output
+  store; CR-014 records that no typed free text reaches a prompt; CR-015 adds automatic escaping
+  in the page templates; CR-029 records that the verifier runs on the planted row) and
+  **Production Shape** (no re-run, no fallback, no circuit breaker; the measurement spike and the
+  verifier bake-off in block B3). §2, §4 and §6 remain pending. Prompt Trace not captured: no
+  model call was made by the application.

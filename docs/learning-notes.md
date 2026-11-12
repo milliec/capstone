@@ -267,6 +267,13 @@ resolve.
 section and links to the detailed documents. When something is still undecided (here, the agent
 roster, which waits for the SAD), the README says "planned, not final" instead of guessing.
 
+**A stash is a shelf, not a loss.** I switched branches in GitHub Desktop while a file had unsaved-to-git
+changes. GitHub Desktop put those changes aside as a "stash" so the switch could happen, and the file
+went back to its last committed state. It looked as if the work had vanished. It hadn't: a stash is
+changes parked on a shelf, and restoring it puts them back. Lesson: commit before switching branches,
+and if "stashed changes" appears, restore them before doing anything else. It's like Figma's version
+history: the work is still there, just not on the canvas.
+
 ## 5. Domain: fund compliance calendars
 
 **Anchor + offset.** A deadline is stored as a rule ("year-end + 6 months"), not a date, so the same
@@ -325,3 +332,4 @@ question to answer.
 - 2026-11-11 · added one note from the Define follow-up session (recount any number a document hands you before writing it into a test)
 - 2026-11-12 · added two notes from the MVP rewrite of the architecture document (cut scope by removing text; a plan needs a capacity number)
 - 2026-11-12 · added one note from the review of the MVP estimate (build last what you would cut first)
+- 2026-11-12 · added one note from a branch switch during the architecture rewrite (a stash is a shelf, not a loss)
