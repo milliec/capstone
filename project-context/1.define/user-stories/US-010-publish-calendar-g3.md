@@ -52,6 +52,17 @@ so that GPs never see unfinished work.
     changed and shows its current version. **Given** the same publish is submitted twice (for example a
     double click), **then** one version is published and the second request is refused with the same
     message. The message follows the voice rule in PRD §6. (SAD CR-009.)
+14. **When** the specialist opens G3, **then** they see every row rejected at G1, with the reason given
+    at rejection (a demo row keeps its "demo" label), and every source paragraph that no non-rejected
+    row cites, with its text. **When** they publish, **then** they give one explicit acknowledgement
+    that they have seen both lists, as part of the publish decision; it is never preselected.
+    Publishing without it is refused, and so is publishing with an acknowledgement for lists that have
+    changed since the page loaded (for example a row rejected meanwhile); a plain message shows the
+    current lists. The audit log records the acknowledgement with who, when, and the rows (with their
+    versions) and paragraphs it covered. A decline needs no acknowledgement. In the demo run the
+    rejected list is the demo row and the uncited list is 7 paragraphs, including the 3 `SRC-PRACT`
+    summaries, so the acknowledgement appears on every publish. (SD FR-030, AC-037; decision log DL-30;
+    SAD CR-028, test T-G3ACK-1.)
 
 ## 4. Scope Notes
 
@@ -66,9 +77,9 @@ so that GPs never see unfinished work.
 ## 5. Traceability
 
 - **PRD Anchors**: F7 · §2 step 8 · UN-S4, UN-G4 · AB-5
-- **System description**: FR-014, FR-022 · MD-004 · MN-003, MN-007 · AC-013, AC-032 · MP-006 · A-6
-- **Decision log**: DL-20 (criterion 12)
-- **SAD controls**: CR-009 (criterion 13)
+- **System description**: FR-014, FR-022, FR-030 · MD-004 · MN-003, MN-007 · AC-013, AC-032, AC-037 · MP-006 · A-6
+- **Decision log**: DL-20 (criterion 12) · DL-30 (criterion 14)
+- **SAD controls**: CR-009 (criterion 13) · CR-028 (criterion 14)
 - **Related SFS**: none yet
 
 ## Sources
@@ -121,3 +132,4 @@ so that GPs never see unfinished work.
   showing the current version
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-27) · criterion 6 points to the GP message in US-011 criterion 7; no behaviour changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 8–9: a decline needs a reason, is audited and ends the run as declined; no next-step choice (back to G1 or G2 is future scope); correcting means a new run; operator decision
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-30) · new criterion 14: G3 lists rejected rows and uncited paragraphs; publishing needs one explicit acknowledgement, refused without it or for changed lists; not needed to decline; traceability updated; operator decision

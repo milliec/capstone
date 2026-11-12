@@ -73,6 +73,11 @@ rule, so that only rules I trust enter the obligation library.
     shows its current version. **Given** the same decision is submitted twice (for example a double
     click), **then** one decision is recorded and the second request is refused with the same message.
     The message follows the voice rule in PRD §6: facts, without reassurance or alarm. (SAD CR-009.)
+19. **Given** a run started with the demo switch on, **when** G1 opens, **then** a seventh row marked
+    "demo" is shown, and its only decision is reject with a written reason. Approving it is refused
+    with a plain message and the refusal is logged; G1 is not complete until it is rejected. The 6
+    extracted rows are decided as in criterion 8. With the switch off (the default), no demo row
+    appears. (SD FR-031, AC-038; decision log DL-31; SAD CR-029.)
 
 ## 4. Scope Notes
 
@@ -85,9 +90,9 @@ rule, so that only rules I trust enter the obligation library.
 ## 5. Traceability
 
 - **PRD Anchors**: F3 · §2 step 4 · UN-S4, UN-S7 · AB-1, AB-4
-- **System description**: FR-005, FR-023, FR-029 · MD-004 · MN-003, MN-004, MN-006 · AC-006, AC-028, AC-032 · NFR-010
-- **Decision log**: DL-16 (criteria 14–16), DL-20 (criterion 17)
-- **SAD controls**: CR-009 (criterion 18)
+- **System description**: FR-005, FR-023, FR-029, FR-031 · MD-004 · MN-003, MN-004, MN-006 · AC-006, AC-028, AC-032, AC-038 · NFR-010
+- **Decision log**: DL-16 (criteria 14–16), DL-20 (criterion 17), DL-31 (criterion 19)
+- **SAD controls**: CR-009 (criterion 18), CR-029 (criterion 19)
 - **Answer key**: §5 (business-day rules)
 - **Related SFS**: none yet
 
@@ -127,3 +132,4 @@ rule, so that only rules I trust enter the obligation library.
 - 2026-11-11 · persona `product-mgr` · action `update` (SAD CR-009) · criterion 18: a decision made on an
   out-of-date screen, or submitted twice, is refused with a plain message showing the current version
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-22) · criteria 9–11 (reopen a rejected row; rejected rows read-only) and 14–16 (possible duplicates and the completion confirmation) marked deferred; nothing deleted
+- 2026-11-12 · persona `product-mgr` · action `update` (DL-31) · new criterion 19: a demo row (switch on) can only be rejected with a reason; approval refused and logged; no demo row with the switch off; traceability updated; operator decision
