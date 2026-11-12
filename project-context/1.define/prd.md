@@ -702,4 +702,4 @@ One operator, using the AAMAD personas. *(SRC-BRIEF)*
 - 2026-11-12 · persona `product-mgr` · action `update` (spot-check of SAD SOQ-20) · OQ-5 now opens with its answer (five focused days, DL-32) instead of "Not yet shown"; no decision changed
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-39, SAD SOQ-24 d) · F3: "who files" is set at G1 when the source does not state it
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-26 a) · F3: "who files" is chosen from the fund's filing parties
-- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-6, DL-46 handoff) · A-9 wording changed from "[X hours/days]" to "about [N hours] per fund per year" so the PRD and SAD use one phrase; the figure is still the operator's placeholder; no requirement changed
+- 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-6, DL-42 handoff) · A-9 wording changed from "[X hours/days]" to "about [N hours] per fund per year" so the PRD and SAD use one phrase; the figure is still the operator's placeholder; no requirement changed
