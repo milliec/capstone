@@ -5,9 +5,9 @@
 One fictional Luxembourg UCI Part II fund (`FND-DEMO-01`), mock data, mocked roles.
 **Status**: **Being rewritten as a lean MVP SAD (`*create-sad --mvp`). Pass 1 of 4 is done:** the
 MVP scope, the decisions in force, the evaluation run rules and release rule (DL-34), the five-day
-estimate, the known limitations, Future Work and the open questions. **Pass 2 is part done:** Work
-Ownership (with the quote-check rule and the run state model) and the Delegation Map table. Still
-to come in pass 2: the diagrams, Pattern Decision, Reference Architecture and §1. A heading marked *pending*
+estimate, the known limitations, Future Work and the open questions. **Pass 2 of 4 is done:** Work Ownership
+(with the quote-check rule and the run state model), the Delegation Map with its four diagrams,
+Pattern Decision, Reference Architecture and §1. A heading marked *pending*
 has not been rewritten yet. **Nothing is built from a pending heading**; passes 2 to 4 fill them.
 
 > **This document replaces the full design.** The earlier SAD (1,960 lines) described the MVP and
@@ -150,7 +150,11 @@ retired from the MVP (Future Work F-01, F-05, F-06, F-07, F-09).
 **The planted demo row (DL-31, CR-029).** When the specialist starts a run with the switch on,
 **code** adds one row from a fixed fixture; the extractor never does. The row carries a real quote
 that is word for word in its paragraph but does not support the row's rule, so the quote check
-passes and the judgement is left to the specialist. The row is marked `origin: demo` and labelled
+passes and the judgement is left to the specialist. **The verifier runs on it like on every other
+row** (operator decision, SOQ-22), so the planted row follows the same path as the rest and nothing
+is special-cased; a flag, if the verifier raises one, is shown at G1 as usual. **The demo does not
+depend on whether the verifier flags it:** the specialist rejects the row at G1 either way, and
+approving it is refused either way. The row is marked `origin: demo` and labelled
 "demo" everywhere it appears. The backend refuses to approve it (`DEMO_ROW_NOT_APPROVABLE`), so its
 only decision is reject with a reason, and it can never reach a calendar. SD FR-031 · AM A26, H3a.
 
@@ -270,19 +274,171 @@ role). **Backend** = the gate service, the records and the run state. Approval-m
 
 Steps that are Future Work have no row here; they are listed once, under "Future Work".
 
-**Diagrams.** *Pending: the next part of pass 2. Views 1 (context) and 4 (gates) are checked
-against this version. Views 2 (containers) and 3 (pipeline) still name Next.js and a Flow per stage
-and are redrawn for DL-33 and DL-35 (SOQ-21).*
+**Diagrams.** The four structural views the architect owns are drawn with `draw-diagram` under
+`project-context/diagrams/system-arch/`. All four were updated for DL-33 and DL-35 by changing
+labels only; no box or arrow was added or removed.
+
+*View 1: system context.* Who and what the running system touches. The specialist runs it and
+decides at G1 to G3. The GP only reads what is published. The system reads the mock data and
+configuration files, and the OpenAI API is its only live external service (SD MN-002, DL-25).
+Filing parties (no role in the MVP), Claude Code (the build tool, not part of the running system)
+and the answer key (evaluation only) are left out.
+
+![Regulatory Intelligence: system context](../diagrams/system-arch/context.svg)
+
+The editable source is `project-context/diagrams/system-arch/context.html`.
+
+*View 2: containers.* Inside the system. The browser requests plain HTML pages from the backend
+(DL-33); it runs no application code of its own. The backend owns gate state, decisions and
+versions, and runs one plain stage function per stage. Each stage function calls the three CrewAI
+agents (the only parts that call the OpenAI API) and the code steps, ends at its gate and returns
+its outputs to the backend. **Only the backend decides or remembers gate status** (DL-17). Both
+stores sit in one SQLite file. They are drawn as two boxes because they follow different rules:
+business data is ordinary records, while the audit log and trace are append-only, enforced by
+triggers (CR-013). The people (view 1), the evaluation runner and answer key, and the inside of
+each agent (view 3) are left out.
+
+![Regulatory Intelligence: containers](../diagrams/system-arch/containers.svg)
+
+The editable source is `project-context/diagrams/system-arch/containers.html`.
+
+*View 3: the agent pipeline.* The MVP's steps in their three stages, with the specialist's gates
+drawn as boxes between them, so the picture cannot be read as an automatic pipeline: agents only
+draft, and nothing moves on until a person decides (SD MN-003). Stage A: the extractor drafts
+rows; the code quote check (the authority that blocks G1, W-04) and the verifier check them; the
+code coverage view lists uncited paragraphs. Stage B: the judge drafts verdicts for the approved
+rows, then G2. Stage C: the code date engine, then G3. Agents and code steps have different box
+styles, and each agent's label names its model tier and what it receives (DL-25, DL-26). Two
+callouts: the verifier never sees the extractor's reasoning (W-05), and no agent has a tool, so
+code builds every input from stored data (CR-002). The planted demo row, the backend, the stores
+and the audit log (views 2 and 4) and the evaluation runner are left out.
+
+![Regulatory Intelligence: agent pipeline](../diagrams/system-arch/pipeline.svg)
+
+The editable source is `project-context/diagrams/system-arch/pipeline.html`.
+
+*View 4: gates and approvals.* Who may change state, and where that is enforced: one permitted
+route into a protected zone, and two blocked routes that stop at its edge. The specialist's
+decisions pass the server's role and version checks (CR-004, CR-009) into the gate service, which
+alone changes gate state, decisions and versions, refuses what the rules forbid, and appends every
+decision and every refusal to the audit log (CR-001, CR-013). Refusals at the role check and the
+version check are written through the same append path, so every refused request is recorded
+with who, when, what was asked and why it was refused (SD MD-009). The stage functions and agents
+may only return drafts; writing state is blocked (AM A13, A14: **Never**). The GP reads only the
+published calendar (CR-012); any GP write is blocked (AM G2r: **Never**). The three gates share
+one enforcement route, so they are drawn as one gate service; their separate rules are in the
+table above. The OpenAI API, the code steps, the pages and configuration are left out.
+
+![Regulatory Intelligence: gates and approvals](../diagrams/system-arch/gates.svg)
+
+The editable source is `project-context/diagrams/system-arch/gates.html`.
+
+Behaviour views (a run flowchart, a sequence of one stage, a run state diagram) belong to other
+personas under `.cursor/skills/draw-diagram/reference.md`. This document holds their content as
+text: the run state model in Work Ownership, and the data flow in §6.
 
 ### Pattern Decision
 
-*Pending: pass 2. Unchanged in substance: a workflow of three gated stages; no agent loop, no
-orchestrator, no tools.*
+- **Primary shape**: `workflow`
+- **How to describe the system**: **three CrewAI agents in a gated workflow.** "Multi-agent" here
+  means three agents with separate roles, models and prompts. It does not mean an agent that plans
+  its own steps: the order of work is written in code.
+- **Workflow sub-shape**: **chaining** between stages, with **parallelization** of the per-unit
+  model calls inside a stage. Human gates break the chain, so the product is three short workflows
+  run one after another, not one long-running process:
+
+  | Stage | Steps (Work Ownership IDs) | Model calls | Ends at |
+  |---|---|---|---|
+  | A. Extract and verify | W-02 → W-03 → W-04 → W-05 + W-06 (per row, in parallel) → W-03b | 1 extractor call per source document (6), then 1 verifier call per row (6, or 7 with the planted demo row) | **G1** (W-07), human |
+  | B. Judge applicability | W-10 → W-11 (per approved row, in parallel) | 1 judge call per approved row (up to 6) | **G2** (W-12), human |
+  | C. Generate and publish | W-13 | **None** | **G3** (W-15), human; then W-16 |
+
+  A stage is complete only when every unit has a valid output, and only then does its gate open. A
+  failed unit ends the run (Work Ownership, "Failure inside a stage").
+
+- **Deciding factor**: **predictability.** The requirements write the path in full: extract →
+  verify → G1 → judge → G2 → dates → G3 (SD FR-001 to FR-014). No step needs a model to decide
+  what happens next, and the three gates must happen at fixed points (SD MN-003). An agent that
+  plans its own steps is justified only when the path cannot be written in advance. Here it can,
+  so the first factor decides and the other four confirm it:
+
+  | Factor | Workflow | Why it also rules out the alternatives |
+  |---|---|---|
+  | Predictability | Fixed order, fixed gates, fixed outputs per step | A planning agent could reorder, repeat or skip work around a gate |
+  | Error cost | Each model output is a schema-checked draft that stops at a gate; a wrong draft costs review time, never a wrong calendar | One call that extracts and checks itself has no separate verifier (SD MD-003) and no G1 between extraction and judgement |
+  | Observability | Every step's output is a logged record with a step name and run ID (US-012 c1); run status names the step (US-015 c1) | "What should I do next" reasoning is harder to show a specialist than "step 3 of 4 finished" |
+  | Latency | About 18 small calls per run (19 with the planted demo row), per-unit calls in parallel; expected under 5 minutes (SD MC-001). *An estimate, measured by the spike in block B3 and by US-013* | An open-ended loop has no fixed upper bound |
+  | Cost | Six short documents and one fund profile; a few thousand tokens per call; expected under US$2 (SD MC-002). *An estimate, measured the same way* | Turn count, not input size, drives an agent's cost |
+
+- **Rejected alternatives and reversal cost**:
+
+  | Alternative | Why rejected | Cost to reverse later |
+  |---|---|---|
+  | **Planning agent** (a model orchestrates extraction, verification and judgement as tools) | The path can be written in advance, the gates are fixed, and no MVP requirement needs run-time planning | **Low to medium.** Each model step is a bounded, schema-validated function with no tools, so an orchestrator could call them unchanged. A tool allowlist, a turn budget, stop conditions and a human gate before any irreversible call would have to be added. The gate and date code would not change |
+  | **One augmented call** (one model call producing rows, flags and verdicts together) | Breaks SD MD-003 (the verifier is separate from the extractor) and puts G1 inside a single call. It also ties extraction errors to applicability errors | **High.** The gates and the separate verifier would have to be put back; the row schema and the audit detail would change |
+  | **Evaluator-optimizer** (the verifier's flags go back to the extractor, which revises until the verifier passes) | A model would change a row in response to a flag. SD MN-004 says the verifier never changes a row, and SD MD-004 says the specialist resolves a flag with a reason. **The human closes this loop, by design** | Not applicable: this is a requirement, not a reversible design choice |
+  | **Routing** as the primary shape | The inputs do not vary in kind: every run takes the same six documents through the same steps | Not applicable |
+
+- **Progression used**: prompt → **structured output** (every model step returns a fixed schema
+  that code validates; invalid output ends the run, SD NFR-004) → **inputs placed in the prompt by
+  code, not retrieved** (the mock corpus is small, so each call receives the documents it needs; no
+  vector search, no tools) → evaluator-optimizer **not used** (see above) → fine-tuning **not
+  used** (not needed for six documents).
+
+**Agent-only fields** (recorded for completeness; the shape is a workflow, so none applies as an
+agent control):
+
+- **Tool allowlist**: **empty.** No agent has a tool. Code reads the mock sources and the fund
+  profile and places them in the prompt. This is stronger than an allowlist. Code, never a model,
+  reads live state (gate status, versions, decisions).
+- **Turn budget**: one call per unit (document or row), plus one automatic retry on a transport or
+  provider error (D1). No re-run.
+- **Stop conditions**: a stage stops at its gate. A unit that fails, or returns output that fails
+  its schema, ends the run as `FAILED`; nothing advances.
+
+**Agent roles and who owns the sequence.** There are three CrewAI agents: the **extractor**
+(W-03), the **verifier** (W-05, W-06; its quote check W-04 is code) and the **applicability
+judge** (W-11). The sequence is written in the stage functions, and each agent is a bounded step
+with a fixed input and output schema. No agent chooses which agent runs next, and there is no
+orchestrator agent and no subagent. **Agents do not share context**: code builds each call from
+stored data (the row, the sources, the fund profile, the quote-check result). The verifier never
+sees the extractor's reasoning (W-05); the judge never sees the verifier's reasoning, only the row
+as approved at G1. The AAMAD development crew is outside this decision (`crew.autonomy` governs
+the personas that build the product, not the product).
 
 ### Reference Architecture
 
-*Pending: pass 2. Unchanged in substance: a document pipeline with a named exception route for
-every way a model step can be wrong.*
+| Shape | Use when | Known failure to prevent |
+|-------|----------|--------------------------|
+| Agent | The path cannot be written in advance | Unbounded tools |
+| Retrieval | Stable documents, not live state | Retrieval used in place of live state |
+| **Document pipeline** | Structured extraction with an exception path | No exception path |
+| Routing | Inputs vary in kind | No human escalation |
+| Coding agent | Agentic exploration, then deterministic edit, test and review | Edits without review or an evaluation |
+
+- **Selected reference architecture**: **Document pipeline.** Fixed-schema extraction from known
+  documents, checked, then judged, with a human at each hand-off. Stages A and B are the pipeline;
+  stage C is ordinary application code after it.
+- **Known failure this design prevents**: **no exception path.** Every way a model step can be
+  wrong has a named route that does not advance work:
+
+  | Exception | Route in the MVP | Trace |
+  |---|---|---|
+  | Output does not match the schema (a missing field, a verdict outside the allowed set, an unknown fact ID) | The run ends as `FAILED`; no gate opens; the status names the step, the unit and the reason; a new run follows | SD NFR-004 · US-015 c2, c19 · W-19 |
+  | The model service fails or does not answer | One automatic retry; then the run ends as `FAILED` | D1 · Run state model |
+  | Quote not found in the cited paragraph | Approval refused, with no override; the row can only be rejected | SD MN-006 · W-04, QN-1 |
+  | Flag (internal or cross-source) | Approval needs a written reason, which is logged | SD AC-006 · W-07 |
+  | Verifier false alarm | Approve with a written reason; counted by the evaluation report | SD MP-003 · W-20 |
+  | Verdict "unsure" | G2 cannot complete until the specialist decides it; the safe default is "applies (precautionary)" (P-1) | SD AC-008 · W-12 |
+  | A paragraph with an obligation has no row | Shown in the coverage view at G1 and again at G3, where it must be acknowledged before publishing; corrected by a new run; always stated in the evaluation report | W-03b · CR-028 · W-20 · DL-10 |
+  | A row is wrong in a field | Rejected at G1 with a reason; it is then listed at G3 for acknowledgement; corrected by a new run | W-07 · CR-028 · Known limitations |
+  | Two approved rows give the same calendar entry | Generation fails closed and names both rows. Two rows for one obligation with different entry IDs are **not** detected (Known limitations) | W-13 · DL-35 |
+  | The planted demo row | Approval refused; reject with a reason is its only decision | CR-029 |
+
+- **Second pattern**: **none in the MVP.** Routing was designed only for change monitoring, which
+  is Future Work (F-09).
+- **Retrieval**: not used, and never for live state. Code places whole documents in the prompt.
+  Gate status, decision versions and published state are read only by code.
 
 ### Model and Context Strategy
 
@@ -299,8 +455,37 @@ register.*
 
 ### 1. MVP Architecture Philosophy & Principles
 
-*Pending: pass 2. Principles and the technology decisions (DL-33 pages, FastAPI, SQLite). It points
-to "MVP scope" above and does not restate it.*
+**Scope** is stated once, in "MVP scope: the five-day slice". Deferred items are listed once, in
+"Future Work". This section does not restate either.
+
+**Design principles** (each traced to the decision it comes from):
+
+| Principle | What it means here | Source |
+|---|---|---|
+| Specialist feedback first | The demo asks whether a specialist can *check* rules in under 30 minutes instead of *writing* them. Anything that adds review friction is measured against that | PRD §1, §7 · SD MC-003 |
+| The simplest orchestration that delivers the value | Three CrewAI agents in a gated workflow: three stages, each run by a plain backend function. No planning agent, no orchestrator, no tools, no memory | Pattern Decision · DL-17, DL-35 |
+| Code owns state, models draft | Gates, dates, versions, IDs and the audit log are deterministic backend code. Every model output is a validated proposal | Work Ownership · CR-001, CR-002 |
+| Fail closed, stay visible | Anything with a side effect refuses on doubt. Anything uncertain is shown, not resolved: flags, "unsure", coverage gaps, rejected rows, open conventions | Control Register · P-1 |
+| One way out of a mistake | A wrong decision or a failed step is corrected by a new run. There is no edit, reopen or re-run to build or test | DL-22, DL-29 · Known limitations |
+| Observable by default | Every model call has an append-only trace record; every decision has an audit entry with the version it was made on; run status names the step and the unit | CR-013, CR-018 · US-015 |
+| Testable without a model | Gate, date, audit and access tests run with the three agents replaced by stubs | SD NFR-011 |
+| Build for reuse, build only Part II | Regulation, fund terms and client policy live in configuration files, not in code. Only the Luxembourg Part II configuration exists | SD NFR-012, §10 |
+
+**Explicit exclusions** (SD §9; kept visible because each is a tempting addition): no live
+external service except the model provider; no PDF parsing; no real data; no notifications to GPs.
+
+**Technical architecture decisions**:
+
+| Decision | Choice | Why | Trace |
+|---|---|---|---|
+| Pages | **Plain HTML pages rendered on the server** by the backend (Jinja2 templates), standard HTML forms, **one small shared stylesheet**, **no JavaScript framework** | Two sets of pages that mostly show lists and take one decision at a time do not need a separate frontend application. One process means no API client, no second build and no contract to keep in step. Next.js is post-course Future Work (F-10) | DL-33 · PRD OQ-8 (to be updated, SOQ-20) |
+| Thin page handlers | A page handler reads the request, calls a **service function** and renders a template. It holds no rule. Every check (role, gate, version, reason) is in the service layer | A JSON API can be added later by calling the same service functions, without rework. The tests exercise the service layer and the HTTP routes, not the HTML | DL-33 · CR-001, CR-004 |
+| Backend language and framework | **Python 3.12, FastAPI, Pydantic v2** | CrewAI is a Python library, so the agents run in Python. Keeping gates, dates and audit in the same process avoids a second service that must agree on state. The same Pydantic models describe the agents' structured outputs and the stored records | `AAMAD_TARGET_RUNTIME=crewai` · CR-001, CR-003 |
+| Storage | **SQLite** (one local file), through SQLAlchemy 2 | The PRD requires data to survive between sessions; one run at a time and a local demo need no database server. Append-only is enforced at the storage boundary with database triggers (CR-013) | PRD §3 Storage · SD MD-009, NFR-003 |
+| Model provider | **OpenAI API** on prepaid credits, one model per role, set in configuration | Decided in Define; the verifier's model is settled by the measured bake-off in block B3 | DL-24 to DL-26 |
+| Two sets of pages | **Specialist review pages** (runs, G1, G2, G3) and a **GP read-only calendar**. Not a chat, not a dashboard. `ux.md` is a short page-by-page note | PRD §6 names exactly these two surfaces | PRD §6 · SD §1 |
+| Running a stage | The backend runs each stage function as a **background task**. The run status page **reloads itself** every few seconds while a stage is running, and also has an ordinary refresh link | A run lasts minutes, not seconds, with one user and one run. Reloading the page shows progress with no script and no open connection | US-015 c1 · PRD A-6 |
+| Streaming | **None.** A model output is shown only after schema validation (CR-003) | Showing partial model text would display unvalidated content | SD NFR-004 |
 
 ### 2. Application Runtime Specification
 
@@ -392,7 +577,8 @@ EC-R7 are unchanged and are restated with the criteria table in pass 4.
 ### 10. MVP Launch & Feedback Strategy
 
 *Pending: pass 4. Demo readiness changes with DL-34: the three runs are made and reported, and the
-blocking checks pass.*
+blocking checks pass. The demo script is written so that it does not depend on whether the verifier
+flags the planted row (SOQ-22): the specialist rejects it at G1 either way.*
 
 ### Requirement-to-component map
 
@@ -444,7 +630,7 @@ that the block that is dropped first is also the block that is built last.
 **Fallback if the planted row is also cut** (operator decision, 2026-11-12). This applies only if
 a later operator decision drops B7 as well. The demo then shows the human checkpoint in this order:
 
-1. **Reject `OBL-06` at G1, but only if its row is genuinely weak on the demo run.** `OBL-06` is
+1. **Reject `OBL-06` at G1, but only if, on the day, the specialist judges `OBL-06` unsound.** `OBL-06` is
    the row to use because its expected verdict is "does not apply", so it produces no calendar
    entries and the demo calendar stays at **22**. The G3 acknowledgement then lists that one
    rejected row. The cost is that this demo run does not show the "does not apply" verdict at G2.
@@ -555,9 +741,9 @@ Two belong to this pass:*
   only the failed document or row is re-run; that is deferred (DL-22). (e) PRD §2, the specialist's
   "Can do in MVP" cell and happy-path step 4, still mention edit. (f) US-008 assumption: the entry-ID
   scheme no longer includes the quote position (DL-35). (g) US-015 criterion 9: "re-runnable" has no
-  meaning in the MVP; the failed unit is named and the run fails.
-- **SOQ-21** (architect, pass 2): redraw diagram views 2 (containers) and 3 (pipeline) for DL-33 and
-  DL-35. Views 1 and 4 are checked for wording only.
+  meaning in the MVP; the failed unit is named and the run fails. (h) SD FR-031 and the demo
+  decisions in the stories index: the verifier runs on the planted row, and the demo script does
+  not depend on whether it raises a flag (SOQ-22).
 - **SOQ-6** (carried from Define, operator): PRD OQ-1 four-eyes timing; OQ-10 programme submission
   requirements; OQ-12 the manual-effort estimate, needed before the demo; the AED subscription-tax
   part of OQ-7 (marked by CR-027 until answered). PRD OQ-11 (a reused prototype front end) no
@@ -581,7 +767,9 @@ Two belong to this pass:*
 | SOQ-16 | The approval map was aligned on 2026-11-12; it is re-checked against this version in pass 4 |
 | SOQ-17 | Superseded by DL-29: the start-up rule is in the MVP |
 | SOQ-18 | Approval of a demo row is refused (DL-31) |
-| SOQ-19 | **Resolved 2026-11-12 (operator):** the estimate of about 5.5 focused days stands against a capacity of 5; the half day for the visual pass and the planted demo row comes from the buffer. If the checkpoint is missed, the visual pass is dropped first and the planted row is kept. If the planted row is later cut as well, the fallback in "Estimate", under "Checkpoint", applies (reject `OBL-06` only if genuinely weak; otherwise no rejection) |
+| SOQ-19 | **Resolved 2026-11-12 (operator):** the estimate of about 5.5 focused days stands against a capacity of 5; the half day for the visual pass and the planted demo row comes from the buffer. If the checkpoint is missed, the visual pass is dropped first and the planted row is kept. If the planted row is later cut as well, the fallback in "Estimate", under "Checkpoint", applies (reject `OBL-06` only if, on the day, the specialist judges it unsound; otherwise no rejection) |
+| SOQ-22 | **Resolved 2026-11-12 (operator):** yes, the verifier runs on the planted demo row, so it follows the same path as every other row. The demo script must not depend on whether the verifier flags it: the specialist rejects it at G1 either way, and approval is still refused (CR-029; DL-31) |
+| SOQ-21 | **Done 2026-11-12 (architect):** all four diagram views updated for DL-33 and DL-35 by changing labels only. View 4 (gates) also named "Flows" and view 1 (context) named a "web app", so both were corrected, not only checked |
 
 ## Audit
 
@@ -632,3 +820,34 @@ Two belong to this pass:*
   a build-order paragraph (the planted row is built before the visual pass). Diagrams, Pattern
   Decision, Reference Architecture and §1 remain pending. Prompt Trace not captured: no model
   call was made by the application.
+- 2026-11-12 · persona `system-arch` · action `create-sad --mvp` (pass 2, second part) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · sources: the Pattern Decision, Reference Architecture and §1
+  sections of the full design at tag `sad-full-design`; SD FR-031; `decision-log.md` DL-17, DL-22,
+  DL-24 to DL-26, DL-29, DL-33, DL-35 · rewrote **Pattern Decision** (`workflow`; described as
+  three CrewAI agents in a gated workflow; chaining with per-unit parallel calls; the stretch
+  routing paragraph removed), **Reference Architecture** (document pipeline; the exception table
+  now gives the MVP route for each failure, with no re-run, edit or duplicate grouping; no second
+  pattern) and **§1** (principles; technology decisions for DL-33: server-rendered pages, thin
+  page handlers over a service layer, a status page that reloads itself). New SOQ-22 (does the
+  verifier run on the planted row). The two diagrams to redraw remain (SOQ-21). Prompt Trace not
+  captured: no model call was made by the application.
+- 2026-11-12 · persona `system-arch` · action `create-sad --mvp` (pass 2, operator review) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · operator decisions: (1) SOQ-22 resolved: the verifier runs on
+  the planted demo row, and the demo script does not depend on whether it raises a flag; recorded
+  in the planted-row note (Work Ownership), the Pattern Decision stage table, the §10 placeholder,
+  DL-31 and the list for `@product-mgr` (SOQ-20 h). (2) The fallback wording for `OBL-06` now reads
+  "if, on the day, the specialist judges `OBL-06` unsound" in the estimate, SOQ-19 and DL-32;
+  earlier Audit entries keep their original wording as history. (3) Tag `sad-full-design` pushed
+  to the GitHub remote at the operator's instruction, so the full design is reachable from the
+  public repository.
+- 2026-11-12 · persona `system-arch` · action `draw-diagram` (pass 2, diagrams) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · type **architecture**, four existing figures edited in place
+  (labels, descriptions and comments only; no geometry added or removed):
+  `project-context/diagrams/system-arch/containers.html` and `.svg` (Browser in place of the
+  Next.js web app; Backend; Stage functions A, B, C in place of Stage Flows; Three CrewAI agents;
+  business data label; callout "Only the backend decides or remembers gate status"),
+  `pipeline.html` and `.svg` (legend: "Stage (one stage function)"), `gates.html` and `.svg`
+  ("Stages and agents" in place of "Flows and agents"), `context.html` and `.svg` ("pages" in
+  place of "web app"). Each SVG re-exported with `--system-fonts`; `self_check.py --offline`
+  printed OK for all four. `diagram-design` commit `0b9b10cab3dbf695642fa1a6c4b4f60df9083689`.
+  The Diagrams text in the Delegation Map was rewritten to match; SOQ-21 closed.

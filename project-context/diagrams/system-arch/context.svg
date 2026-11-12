@@ -67,7 +67,7 @@
         <rect x="348" y="148" width="28" height="12" rx="2" fill="none" stroke="#bf4520" stroke-width="0.8" stroke-opacity="0.50"/>
         <text x="362" y="157" fill="#bf4520" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">SYS</text>
         <text x="448" y="212" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Regulatory Intelligence</text>
-        <text x="448" y="230" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">web app · backend · gates</text>
+        <text x="448" y="230" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">pages · backend · gates</text>
         <text x="448" y="244" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">3 agents · code steps</text>
 
         <!-- Node: OpenAI API (external service) -->

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pipeline-title pipeline-desc" id="pipeline-root">
         <title id="pipeline-title">Regulatory Intelligence: agent pipeline</title>
-        <desc id="pipeline-desc">The thin-slice pipeline in three stages: in stage A the extractor agent drafts rows, the code quote check and the verifier agent check them and a code coverage view lists uncited paragraphs before gate G1; in stage B the judge agent drafts verdicts before gate G2; in stage C code calculates the dates before gate G3, with a specialist deciding at every gate.</desc>
+        <desc id="pipeline-desc">The MVP pipeline in three stages: in stage A the extractor agent drafts rows, the code quote check and the verifier agent check them and a code coverage view lists uncited paragraphs before gate G1; in stage B the judge agent drafts verdicts before gate G2; in stage C code calculates the dates before gate G3, with a specialist deciding at every gate.</desc>
         <defs>
       <style>#pipeline-root { --color-paper:   #f5f5f5;
       --color-ink:     #2d3142;
@@ -185,7 +185,7 @@
         <text x="576" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Gate: the specialist decides</text>
 
         <rect x="772" y="672" width="14" height="10" rx="2" fill="#2d3142" stroke="#2d3142" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.10"/>
-        <text x="792" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Stage (one CrewAI Flow)</text>
+        <text x="792" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Stage (one stage function)</text>
 
         <line x1="972" y1="678" x2="1000" y2="678" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#pipeline-arrow)"/>
         <text x="1008" y="680" fill="#4f5d75" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Hand-off</text>
