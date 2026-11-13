@@ -139,9 +139,17 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 
 ## Open Questions
 
-- Do the variable names in `.env.example` match `sad.md` §4? (Not checked on purpose.)
-- Does the validator's hard requirement for `qa.md` once `2.build/` has content (see Audit) stay, or
-  should the hook treat it differently until `@qa.eng` writes it?
+- **Open.** Do the variable names in `.env.example` match `sad.md` §4? Checked 2026-11-13: not all
+  of them do. `CALL_TIMEOUT_*_S` should be `CALL_TIMEOUT_EXTRACT`, `_VERIFY`, `_JUDGE`, and
+  `STAGE_LIMIT_*_S` should be `STAGE_TIME_LIMIT_A`, `_B`, `_C`. §4 does not name the
+  `HTTP_TIMEOUT_*` variables (it only says the HTTP timeout sits a few seconds below the call
+  timeout). §4 also lists variables not yet in `.env.example`: `LLM_MODEL_*`, `LLM_MAX_TOKENS_*`,
+  `SESSION_SECRET` and `DATABASE_PATH`. Waiting on the operator's decision before renaming.
+- **Resolved (H-002).** Does the validator's hard requirement for `qa.md` once `2.build/` has
+  content stay, or should the hook treat it differently? Decision: the hook ignores only the one
+  finding `project-context/2.build/qa.md: Build artifact missing`. Every other validator error still
+  blocks. The exception in `scripts/git-hooks/run-checks.sh` is temporary and is removed when
+  `@qa.eng` writes `project-context/2.build/qa.md`.
 
 ## Audit
 
