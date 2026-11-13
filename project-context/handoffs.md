@@ -34,7 +34,12 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-(none yet)
+### H-001: Confirm which copy of the build order is authoritative
+- From: @project.mgr   To: @system.arch   Date: 2026-11-13
+- Touches: sad.md, Build card "Order" row and the "Order of work" table
+- Ask: Say which of the two is authoritative, and add a one-line note under the other that points to it. Do not change the order itself.
+- Why: Both list the build sequence, so they can drift apart, and Build personas work from the Build card.
+- Outcome: (the owner fills this in)
 
 ## Done
 
