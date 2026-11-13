@@ -52,6 +52,8 @@
   /* Hero */
   .hero { padding: 64px 0 56px; }
   .eyebrow { font: 400 13px/1.38 var(--font-head); letter-spacing: -0.01em; color: var(--accent-2); margin: 0 0 18px; }
+  /* Frozen-snapshot banner: shown until after the demo. Uses existing tokens only. */
+  .snapshot { font: 500 14px/1.45 var(--font-body); color: var(--ink); background: var(--warm); border-left: 3px solid var(--accent); padding: 10px 14px; margin: 0 0 24px; }
   h1 { font: 400 clamp(40px, 7vw, 66px)/0.95 var(--font-head); letter-spacing: -0.02em; color: var(--ink); margin: 0; max-width: 15ch; }
   .lede { font-size: 18px; line-height: 1.4; color: var(--ink-2); max-width: 60ch; margin: 24px 0 0; }
 
@@ -178,6 +180,7 @@
 <main>
   <section class="hero">
     <div class="wrap">
+      <p class="snapshot" role="note">Snapshot as of 12 Nov — see <a href="https://github.com/milliec/capstone/blob/main/project-context/1.define/sad.md">sad.md</a> for Build-week deltas</p>
       <p class="eyebrow">System Architecture Document · summary as of 12 November 2026</p>
       <h1>Architecture decisions, at a glance</h1>
       <p class="lede">Six questions about how the MVP is built, each answered in plain language with a diagram. The SAD (<code>project-context/1.define/sad.md</code>) and the decision log stay the source of truth.</p>
