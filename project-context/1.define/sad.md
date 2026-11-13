@@ -89,7 +89,7 @@ already failed), starts again and repeats the gate decisions. See "Known limitat
 | DL-27 | Before the first publication the GP view shows one fixed message and nothing else |
 | DL-29 | Abandon only at a gate; a stage time limit; a start-up rule that fails a run interrupted mid-stage |
 | DL-30 | Publishing needs one explicit acknowledgement of the rejected rows and uncited paragraphs |
-| DL-31 | A demo switch, off by default, adds one planted row that can only be rejected. Evaluation runs refuse to start with it on |
+| DL-31 | A demo switch, off by default, adds one planted row. Its Approve button stays visible, the server refuses the click (DL-44), and the specialist rejects it. Evaluation runs refuse to start with it on |
 | **DL-32** | **Capacity is five focused days.** Anything beyond that is the operator's buffer, not scope. *Refined by DL-42: 5 days planned, 8 days hard stop* |
 | **DL-33** | **Plain server-rendered HTML pages** served by the backend, with one small shared stylesheet (type, spacing, status colours) and **no JavaScript framework**. Page handlers stay thin: they call the same service functions a JSON API would call, so an API can be added later without rework. **Next.js is post-course Future Work** |
 | **DL-34** | **Evaluations report; they do not block** (replaces DL-23's gate). Three runs; a pass means 3 of 3; a miss is stated in the report and the demo goes ahead. Tuning is capped at half a day. A run that fails only because of a model-service timeout or outage is voided and re-run once. **The checks that use no model stay blocking** |
@@ -98,7 +98,7 @@ already failed), starts again and repeats the gate decisions. See "Known limitat
 | **DL-38** | *Parked by DL-42.* A hosted portfolio demo was a stretch goal outside the five days. It is now **Future Work (F-18)**; its design is kept in Appendix A and is not built in this plan |
 | **DL-39** | **Agent cards** (in §2). The loader strips the mock files' answers before any prompt (T-LEAK-1). The extractor sees only the primary documents and reports "who files" only when the source states it; otherwise the specialist sets it at G1. No `pattern` field; code derives it for the report. The judge's general rule is worded generally. Each card's worked example is its one-shot example, drawn from text in no demo row, planted row or evaluation case and mirroring no demo trap (T-EXAMPLE-1 and a review table). The exact model IDs are held until the operator checks them (SOQ-25) |
 | **DL-41** | **Responsible role is graded through a fixed lookup** (EC-R11), written before the first evaluation run: code maps the extractor's free text to a profile party name, then matches exactly; text that does not map is a miss (T-MAP-1). No parties list in the extractor's prompt (DL-39 stands). DL-40 is reserved for the model IDs (SOQ-25) |
-| **DL-42** | **Capacity: 5 days planned, 8 days hard stop.** The estimate now counts the hours that were noted but not added (stand-in mode and harness, the "who files" choice, the loader tests): about 6 days likely. **Tests in two tiers**: Tier 1 blocks the build, Tier 2 is done if time allows. **Day-3 tripwire**: no real Stage A rows by the end of day 3 → drop B6 and Tier 2. The hosted demo (DL-38) is parked as Future Work F-18. At least US$5 stays for the rehearsal and the demo (EC-R10 point 4). See "Estimate" |
+| **DL-42** | **Capacity: 5 days planned, 8 days hard stop.** The estimate now counts the hours that were noted but not added (stand-in mode and harness, the "who files" choice, the loader tests): about 6 days likely. **Tests in two tiers**: Tier 1 blocks the build, Tier 2 is done if time allows. **Tripwire**: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2 (moved from day 3 on 2026-11-13, SOQ-30). The hosted demo (DL-38) is parked as Future Work F-18. At least US$5 stays for the rehearsal and the demo (EC-R10 point 4). See "Estimate" |
 | **DL-43** | **One timeout rule everywhere.** Each model call has its own timeout, with the HTTP client timeout slightly below it; a timed-out call is retried once, and only a second timeout is a final failure (`model service`, voidable under EC-R8). Each stage limit is the sum of its calls with one retry each, plus about 25%: A ≈ 375 s, B ≈ 150 s, C 30 s. **The backend stage timer is the real bound**; CrewAI `max_execution_time` does not cancel a call in flight. Late results after a stage fails are discarded but count towards cost. Starting values, replaced after the spike |
 | **DL-44** | **The planted demo row keeps its Approve button.** Clicking it is refused by the server (`DEMO_ROW_NOT_APPROVABLE`), audited and shown as a plain message; the specialist then rejects the row. Replaces "offers reject only" (DL-31, SOQ-18) |
 | **DL-45** | **The evaluation's copy cases are separate harness calls** (the quote check for the altered quote, `check_conflicts` for `I-1`, `extract_rows` for the EC-021 injection), outside the run's `rows` table, labelled in the trace and scored separately. So EC-001's "0 extra rows" and EC-007's "22 entries" stay true |
@@ -287,7 +287,7 @@ proposal.
 **Load-bearing constraint: 5 days planned, 8 days hard stop, with no slack inside the estimate**
 (DL-32, DL-42). The ownership split is feasible as designed: the model steps are small, bounded and
 reviewable, and everything consequential is code. What decides the outcome is time. The estimate
-is about 6 days, and the day-3 tripwire and the drop order protect the hard stop (see
+is about 6 days, and the tripwire and the drop order protect the hard stop (see
 "Estimate").
 
 Two further constraints, named so they are not mistaken for guarantees:
@@ -640,7 +640,8 @@ built in this plan.
 
   The limits bound a hang; they are not the speed target. A run can stay within every limit and
   still miss EC-010 (under 5 minutes), which is then reported as a miss.
-- **Measurement spike** (the first real calls, in estimate block B3; **at most 70 real calls**,
+- **Measurement spike** (the first real calls, in estimate block B3, **run after B5 and B7 once the
+  first green path passes in stand-in mode and DL-40 is pinned**; **at most 70 real calls**,
   EC-R10; the plan here uses about 63). Run each role's call on the
   demo inputs 5 times (the extractor on one document, the verifier on one row, the judge
   on one row), then one clean run from start to finish. Record, per role: tokens in and out, cost,
@@ -1537,18 +1538,21 @@ and the answer key. Behaviour that is Future Work has no criterion here.
   | Publishing needs the acknowledgement | T-G3ACK-1 |
   | The planted row is labelled and cannot be approved | T-DEMO-1, T-DEMO-2 |
   | No answer reaches a prompt | T-LEAK-1 |
+  | Agents cannot change what they check, compute dates or hold tools | EC-015 (SOQ-29) |
+  | A GP cannot write; every specialist-only route refuses the GP role | EC-019 (SOQ-29) |
+  | No accidental real model calls: stand-in is the default, real mode needs `SPEND_ACTIVITY`, an evaluation run refuses stand-in mode | T-MODE-1 (SOQ-29) |
 
   **Tier 2: done if time allows (DL-42).** Written after Tier 1; it runs in CI once it exists and
-  does not block a merge: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1, the
-  per-state page tests (§9 "Pages"), and **T-MAP-1 until the evaluation cycle**: T-MAP-1 must pass
-  before the first evaluation run, because EC-001 depends on it. The day-3 tripwire (Estimate)
-  drops Tier 2.
+  does not block a merge: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1 and the
+  per-state page tests (§9 "Pages"). **T-MAP-1 is not dropped with Tier 2.** It must pass before
+  the first evaluation run, because EC-001 depends on it, even if the tripwire (Estimate) has
+  dropped the rest of Tier 2.
 
   **Not yet tiered** (SOQ-29): the other no-model tests named in this document, among them EC-009,
-  EC-015, EC-017, EC-019, EC-020, T-WHO-1, T-WHO-2, T-MODE-1, T-DEC-1, T-ID-1, T-ID-2, T-W13-1,
-  T-W13-2, T-RUN-2 and T-RUN-4 to T-RUN-8. Until the operator answers, they are written with their
-  blocks and run in CI, and a failure is reported to the operator. EC-020's real-name scan runs
-  locally in the git hooks in any case (§5).
+  EC-017, EC-020, T-WHO-1, T-WHO-2, T-DEC-1, T-ID-1, T-ID-2, T-W13-1, T-W13-2, T-RUN-2 and T-RUN-4
+  to T-RUN-8. Until the operator answers, they are written with their blocks and run in CI, and a
+  failure is reported to the operator. EC-020's real-name scan runs locally in the git hooks in any
+  case (§5).
 
 - **EC-R5: the name-match rule is written before the first evaluation run.** The operator writes
   the rule EC-002 is judged by and records it in `project-context/2.build/evals.md` (or the file
@@ -1799,7 +1803,7 @@ writing (SA-16). Figures are the architect's judgement in quarter days, not meas
 |---|---|---|---|---|
 | B1 | Setup and data: repository, FastAPI, SQLite, tables with `fund_id`, append-only audit and trace, configuration loading, lint and tests in CI, git hooks | WP-03, WP-04 | 4 | 0.5 |
 | B2 | Gates and run states: gate transitions, role checks, decide-once and version check, one active run, the five run states, abandon at a gate, stage time limit, start-up rule, error envelope | WP-05, WP-12a, WP-12b | 4.75 | 0.5 |
-| B3 | Stages A and B: loader, quote check, the three model steps as one-agent crews behind their interfaces, schema validation, trace and cost count, cost cap, **stand-in mode with its label and the role harness (CR-030)**. **The first real calls are the measurement spike**: timings set the time limits, and the verifier bake-off (DL-26) is run here | WP-00, WP-06, WP-07 | 6.5 | 1.0 |
+| B3 | Stages A and B: loader, quote check, the three model steps as one-agent crews behind their interfaces, schema validation, trace and cost count, cost cap, **stand-in mode with its label and the role harness (CR-030)**. **The first real calls are the measurement spike**: timings set the time limits, and the verifier bake-off (DL-26) is run here. **B3 is stand-in only until B5 and B7 are done and the first green path passes; the spike and bake-off then run, after DL-40 is pinned** | WP-00, WP-06, WP-07 | 6.5 | 1.0 |
 | B4 | Stage C: date engine against the 22-entry key, entry IDs, marks including OQ-7 | WP-08 | 3 | 0.5 |
 | B5 | Gate actions and pages: G1 with the coverage view, G2, G3 with the acknowledgement, run list and status, mock sign-in, GP calendar. Server-rendered, thin handlers. `ux.md` is a short page-by-page note, not a full design document | WP-01, WP-09, WP-11, WP-12, WP-12c, WP-13 to WP-17 | 17 | 1.0 |
 | B6 | Light visual pass: one shared stylesheet with clear type, spacing and status colours | New (DL-33) | — | 0.25 |
@@ -1816,19 +1820,24 @@ not done, and the demo runs on what exists.
 
 **Fit verdict: about 6 days likely, against 5 planned and 8 at the hard stop.** The likely figure is
 a day over the plan and inside the hard stop. The top of the range (8.5) passes the hard stop, which
-is why the day-3 tripwire and the drop order below exist. B6 and B7 were added to the cut by
+is why the tripwire and the drop order below exist. B6 and B7 were added to the cut by
 operator decision (SOQ-19); B11 is time the earlier notes said came "out of the same margin", now
 counted.
 
 **Tests in two tiers (DL-42; the lists are in §9, EC-R4).** **Tier 1 blocks the build**: EC-013,
-EC-014, EC-007, EC-008, EC-016, T-W04, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2 and
-T-LEAK-1. **Tier 2 is done if time allows**: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1,
-T-D4-1, the per-state page tests, and T-MAP-1 until the evaluation cycle (it must pass before the
-first evaluation run).
+EC-014, EC-007, EC-008, EC-015, EC-016, EC-019, T-W04, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1,
+T-DEMO-1, T-DEMO-2, T-LEAK-1 and T-MODE-1 (EC-015, EC-019 and T-MODE-1 added by SOQ-29).
+**Tier 2 is done if time allows**: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1 and
+the per-state page tests. **T-MAP-1 is not dropped with Tier 2**: it must pass before the first
+evaluation run, even if the tripwire has dropped the rest of Tier 2.
 
-**Day-3 tripwire (DL-42).** If there are **no real Stage A rows by the end of day 3** (rows from a
-real extractor call, stored and shown at G1), **drop B6 and Tier 2** at once, with no further
-decision needed. The architect tells the operator the same day.
+**Tripwire (DL-42, moved 2026-11-13, SOQ-30).** If the **first stand-in green path** (Build card)
+**has not passed by the end of day 4**, **drop B6 and Tier 2** at once, with no further decision
+needed. The architect tells the operator the same day. **Dropping Tier 2 never drops T-MAP-1**,
+which must still pass before the first evaluation run. The check moved from "no real Stage A rows
+by the end of day 3" because the spike now runs after B5 and B7, and B1 to B7 take about 3.5 days.
+The green path is the earliest reliable sign that the riskiest block works; it does not show how
+the real models behave, which the spike and bake-off still test.
 
 **Where 40 days went.** About half is real cuts: no separate frontend application, generated
 client, fixtures or integration step; no re-run, invalidation or duplicate-output machinery; no Flow
@@ -1839,7 +1848,7 @@ operator's buffer is the only margin.
 
 **Checkpoint.** B1 and B2 are planned at one day together. If they take more than 1.3 days, the
 architect tells the operator straight away. **Drop order (operator decision, 2026-11-12; DL-42):
-the light visual pass (B6) and Tier 2 are dropped first (at once if the day-3 tripwire fires); the
+the light visual pass (B6) and Tier 2 are dropped first (at once if the tripwire fires); the
 planted demo row (B7) is kept**, because it demonstrates the human checkpoint. If B6 is dropped, the pages stay unstyled but usable and accessible, and the
 visual pass becomes post-course work for the operator's portfolio (Future Work F-17). Nothing else
 is dropped without a new operator decision.
@@ -1850,7 +1859,9 @@ not in the drop order. Its design and estimate are kept in Appendix A.
 **Build order.** The block numbers in the table are labels, not the order of work. The planted
 demo row (B7) is built **before** the visual pass (B6), straight after the gate actions and pages
 (B5). The visual pass is the last build block, done just before the acceptance pass (B10), so
-that the block that is dropped first is also the block that is built last.
+that the block that is dropped first is also the block that is built last. **The B3 spike is not
+built in B3's place in the table.** It runs after B5 and B7, once the first green path (Build card)
+passes in stand-in mode and DL-40 is pinned.
 
 **Fallback if the planted row is also cut** (operator decision, 2026-11-12). This applies only if
 a later operator decision drops B7 as well. The demo then shows the human checkpoint in this order:
@@ -1940,13 +1951,14 @@ build instruction.
 | | |
 |---|---|
 | **What** | Three CrewAI agents (extractor, verifier, judge) in a gated workflow: stage A → **G1** → stage B → **G2** → stage C (code only) → **G3** → GP calendar. The backend alone owns gate state. 7 server-rendered pages, SQLite, one process |
-| **Time** | 5 days planned, **8 days hard stop**. About 6 days likely. **Day-3 tripwire:** no real Stage A rows by the end of day 3 → drop B6 and Tier 2 (DL-42) |
-| **Order** | B1 → B2 (checkpoint: more than 1.3 days → tell the operator) → B3 (stand-in mode first, then the spike) → B4 → B5 → B7 → B8 → B9 → B6 → B10 |
-| **Tier 1 tests (block the build)** | EC-013, EC-014, EC-007 (date test), EC-008, EC-016, T-W04-1 to T-W04-6, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2, T-LEAK-1 |
-| **Tier 2 (if time allows)** | T-EXAMPLE-1 six-word overlap, T-PROMPT-1, T-D4-1, per-state page tests, T-MAP-1 (must pass before the first evaluation run) |
+| **Time** | 5 days planned, **8 days hard stop**. About 6 days likely. **Tripwire:** the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2, never T-MAP-1 (DL-42, SOQ-30) |
+| **Order** | B1 → B2 (checkpoint: more than 1.3 days → tell the operator) → B3, **stand-in part only** → B4 → B5 → B7 → **first green path (below)** → pin DL-40 (SOQ-25) → **B3 spike** (the first paid model calls) → B8 → B9 → B6 → B10 |
+| **First green path (before any paid model call)** | With `AGENTS_MODE=stand_in`, one run must pass **end to end**: start run → stand-in Stage A → **G1**, including the planted row (Approve refused by the server, then reject) → stand-in Stage B → **G2** → Stage C dates → **G3** with the acknowledgement → the GP view shows "being prepared" and then the published calendar → the audit log shows every step. **Until this passes, DL-40 is not pinned (SOQ-25) and no paid call is made, including the B3 spike.** B3 is stand-in only until B5 and B7 are done and this path passes |
+| **Tier 1 tests (block the build)** | EC-013, EC-014, EC-007 (date test), EC-008, EC-015, EC-016, EC-019, T-W04-1 to T-W04-6, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2, T-LEAK-1, T-MODE-1 (SOQ-29) |
+| **Tier 2 (if time allows)** | T-EXAMPLE-1 six-word overlap, T-PROMPT-1, T-D4-1, per-state page tests. **T-MAP-1 is not dropped with Tier 2:** even if the tripwire drops Tier 2, T-MAP-1 must still pass before the first evaluation run (EC-R4, DL-41) |
 | **Run state** | `status` ∈ `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`; `phase` ∈ `A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`. Every guard checks the phase; abandon only in `AT_G*` (DL-46; "Transitions and guards" in Work Ownership) |
 | **Timeouts** | Per call: extract 90 s, verify 60 s, judge 60 s; HTTP client a few seconds lower; one retry; a second timeout = `model service`. Stage limits: A 375 s, B 150 s, C 30 s, on the **backend's timer**, not `max_execution_time`. Late results go to the trace only and still count towards cost (DL-43) |
-| **Models and spend** | Stand-in agents by default (`AGENTS_MODE=stand_in`). Real calls only for the spike, tuning (60 calls), one evaluation cycle, the rehearsal and the demo. US$2.50 hard stop per run. Keep US$5 for the rehearsal and the demo. Model IDs wait for DL-40 (SOQ-25) |
+| **Models and spend** | Stand-in agents by default (`AGENTS_MODE=stand_in`). Real calls only for the spike, tuning (60 calls), one evaluation cycle, the rehearsal and the demo. US$2.50 hard stop per run. Keep US$5 for the rehearsal and the demo. Model IDs wait for DL-40 (SOQ-25), which is pinned only after the first green path passes |
 | **Never** | A model computes a date, approves, publishes or holds a tool; the answer key or the mock files' notes reach a prompt; a check lives in a page handler; the planted row is approved (its Approve button stays visible and the server refuses it, DL-44) |
 | **Evaluation** | One cycle of three runs; reports, does not block. Copy cases are separate harness calls outside the run's tables (DL-45) |
 | **Not built** | Everything under "Future Work", including the hosted demo (F-18, Appendix A) |
@@ -1965,14 +1977,17 @@ field per form, and nothing else.
 | 1 | B1 Setup and data | `@project.mgr` (`setup.md`), `@backend.eng` | Install the git hooks first (§5). Record `AAMAD_TARGET_RUNTIME` and the CrewAI settings in `setup.md`. Create `.env.example` |
 | 2 | B2 Gates and run states | `@backend.eng` | The service layer and its checks before any page or agent. **Checkpoint:** if B1 and B2 together pass 1.3 days, tell the operator at once |
 | — | The page-by-page note | `@ux.designer` (`ux.md`) | Short: the seven pages of §3, with the 30-minute review target as a constraint (§7), the voice rule (DL-05) and no bulk or preselected decision (SD AC-026). Needed before B5 |
-| 3 | B3 Stages A and B | `@backend.eng` | **Stand-in mode first** (CR-030), then the three CrewAI agents behind their functions, exactly as §2 and D1 to D6. Then the spike and the verifier bake-off: the first real model calls |
+| 3 | B3 Stages A and B, **stand-in part** | `@backend.eng` | **Stand-in mode only** (CR-030): the loader, quote check, schema validation, trace and cost count, cost cap, the role harness, and the three agent functions returning their fixed outputs. The three CrewAI agents are wired behind the same functions, but **no paid call is made yet** |
 | 4 | B4 Stage C | `@backend.eng`, `@qa.eng` | The date engine against the 22-entry answer key |
 | 5 | B5 Gate actions and pages | `@backend.eng`, `@frontend.eng` | `@frontend.eng` writes the templates in `backend/web/`; there is no separate application and nothing to wire. Thin handlers only (§4) |
 | 6 | B7 Planted demo row | `@backend.eng` | Before the visual pass |
-| 7 | B8 Evaluation runner and report | `@qa.eng` | With the trace export (D4) and the void rule (EC-R8) |
-| 8 | B9 Tuning, then the evaluation cycle | `@qa.eng`, operator | Capped at half a day and 60 real calls (EC-R9). Then the one cycle (EC-R10) |
-| 9 | B6 Light visual pass | `@frontend.eng`, `@ux.designer` | The last build block; dropped first if time runs out. A stylesheet change is not model-facing, so it needs no new cycle |
-| 10 | B10 Acceptance and rehearsal | `@qa.eng`, `@security.eng`, `@devops.eng` | The security checklist, the accessibility and copy checks, run instructions, the rehearsal run, the outcome fields of §10 |
+| — | **First green path** (gate, not a block) | `@backend.eng`, `@qa.eng` | The full stand-in happy path in the Build card passes end to end with `AGENTS_MODE=stand_in`. **Nothing below this row that spends money starts before it passes** |
+| — | **Pin DL-40** (SOQ-25) | operator | The operator confirms the model IDs in their OpenAI account and DL-40 is recorded. Only after the green path |
+| 7 | **B3 spike**, then the verifier bake-off | `@backend.eng`, operator | The first real model calls (DL-26, EC-R10). Timings replace the starting limits in §2 |
+| 8 | B8 Evaluation runner and report | `@qa.eng` | With the trace export (D4) and the void rule (EC-R8) |
+| 9 | B9 Tuning, then the evaluation cycle | `@qa.eng`, operator | Capped at half a day and 60 real calls (EC-R9). Then the one cycle (EC-R10) |
+| 10 | B6 Light visual pass | `@frontend.eng`, `@ux.designer` | The last build block; dropped first if time runs out. A stylesheet change is not model-facing, so it needs no new cycle |
+| 11 | B10 Acceptance and rehearsal | `@qa.eng`, `@security.eng`, `@devops.eng` | The security checklist, the accessibility and copy checks, run instructions, the rehearsal run, the outcome fields of §10 |
 
 `@integration.eng` has no separate epic in the MVP: the pages and the backend are one process, so
 its work is the acceptance test of the happy path, inside block B10.
@@ -1986,6 +2001,15 @@ its work is the acceptance test of the happy path, inside block B10.
 - A check belongs in a service function, never in a page handler or a template (§4).
 - If something needed is not described here, stop and ask the architect; do not look it up in the
   full design and build from there.
+
+**Scope guardrails (for `@project.mgr`, block B1).** On commit 1, put these in `setup.md` and in
+the agent rules, so every Build persona starts with them:
+
+1. Build strictly from the Build card and its **Never** row.
+2. Ignore `sad-full-design`, Appendix A and every parked F-ID.
+3. Keep `AGENTS_MODE=stand_in` until the first green path passes and DL-40 is pinned.
+4. Either update `docs/architecture-decisions-summary` with every DL change, or freeze it with a
+   banner: "as of 12 Nov — see SAD for deltas".
 
 ## Architecture Validation Checklist
 
@@ -2087,7 +2111,8 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
   (Spain)", which the source does not literally say; it should point to the same mapping. (c) The
   **answer key §1** column heading "Responsible role (as the source states it)" should say the
   value is the profile's party name after mapping.
-- **SOQ-25** (operator, **before the spike**, block B3): **the exact model IDs and each role's
+- **SOQ-25** (operator, **before the spike**, block B3, which now runs after B5 and B7 and the
+  first green path): **the exact model IDs and each role's
   reasoning setting. DL-40 is held** until the operator has confirmed the IDs in their own OpenAI
   account's model list, with its pricing. *Note from the final review (operator):* OpenAI lists
   `gpt-5.6-terra` as the official replacement for `gpt-5-mini`; confirm it in the account along
@@ -2135,18 +2160,20 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
   drafts only (DL-17; the figure's own callout says only the backend decides or remembers gate
   status). So the label was **not changed**. Recommended: relabel it "DRAFTS", as in view 4, or
   name the arrow that was meant.
-- **SOQ-29** (operator; DL-42): **tests in neither tier.** DL-42 names Tier 1 and Tier 2. These
-  no-model tests are in neither list: EC-009, EC-015, EC-017, EC-019, EC-020, T-WHO-1, T-WHO-2,
-  T-MODE-1, T-DEC-1, T-ID-1, T-ID-2, T-W13-1, T-W13-2, T-RUN-2 and T-RUN-4 to T-RUN-8. Until the
-  operator answers, they are written and run in CI, and a failure is reported but does not block
-  (§9, EC-R4). **Recommendation:** EC-015 (agents cannot change rows, compute dates or hold tools),
-  EC-019 (a GP cannot write) and T-MODE-1 (no accidental real model calls) join Tier 1, because each
-  protects a safety claim and each is small; the rest are Tier 2.
+- **SOQ-29, one part left** (operator; DL-42): **tests in neither tier.** *Answered 2026-11-13
+  (operator): EC-015 (agents cannot change rows, compute dates or hold tools), EC-019 (a GP cannot
+  write) and T-MODE-1 (no accidental real model calls) are now **Tier 1**, in the Build card, the
+  Estimate and EC-R4. T-MAP-1 must pass before the first evaluation run even if the tripwire
+  drops Tier 2.* **Still open:** these no-model tests are in neither tier: EC-009, EC-017, EC-020,
+  T-WHO-1, T-WHO-2, T-DEC-1, T-ID-1, T-ID-2, T-W13-1, T-W13-2, T-RUN-2 and T-RUN-4 to T-RUN-8. Until
+  the operator answers, they are written and run in CI, and a failure is reported but does not
+  block (§9, EC-R4). **Recommendation:** they are Tier 2.
 
 **Resolved or superseded** (kept so references still resolve; the full text is at the tag)
 
 | ID | Outcome |
 |---|---|
+| SOQ-30 | **Resolved 2026-11-13 (operator, DL-42 item 9):** the spike runs after B7, so the tripwire no longer asks for real Stage A rows by the end of day 3. It is now: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2, never T-MAP-1. The green path does not test real-model behaviour; the spike and bake-off still do |
 | SOQ-1 | Answered by the estimate above: about 6 focused days against 5 planned and an 8-day hard stop (DL-42; it was 5.5 before the uncounted hours were added) |
 | SOQ-2 | One automatic transport retry per call. Manual re-runs are Future Work (F-05) |
 | SOQ-3 | Integer versions on rows, verdicts and calendars, recorded on every decision (SD MD-009). In the MVP nothing changes an item after it is created, so a version stays at 1. The idempotency key is Future Work (F-05) |
@@ -2616,7 +2643,7 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
   map, at the operator's instruction) · `AAMAD_TARGET_RUNTIME=crewai` · targeted edits, no redesign;
   five new decisions recorded in `decision-log.md`. **DL-42** (capacity 5 days planned, 8 days hard
   stop; new estimate row B11 for the hours noted but not added, so about 6 days (5–8.5); tests in
-  Tier 1 and Tier 2, with EC-R4 now Tier 1; day-3 tripwire; hosted demo parked as F-18 and its
+  Tier 1 and Tier 2, with EC-R4 now Tier 1; day-3 tripwire [superseded 2026-11-13: the tripwire is now "the first stand-in green path has not passed by the end of day 4", SOQ-30; see the 2026-11-13 entry]; hosted demo parked as F-18 and its
   section moved to Appendix A; US$5 kept for the rehearsal and demo in EC-R10 point 4). **DL-43**
   (one timeout rule: per-call timeouts with the HTTP client slightly lower, one retry, a second
   timeout is `model service`; stage limits A 375 s, B 150 s, C 30 s on the backend timer;
@@ -2644,3 +2671,26 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
   blocks approval"). `self_check.py --offline` printed OK for all three. The Audit history was left
   in place under "## Audit" (optional item 11), so the Audit stays the last heading for new
   entries. Prompt Trace not captured: no model call was made by the application.
+- 2026-11-13 · persona `system-arch` · action `update` (final pre-Build polish, at the operator's
+  instruction) · `AAMAD_TARGET_RUNTIME=crewai` · targeted edits, no redesign, no new decision
+  numbers. (1) **First green path before any paid call:** the Build card, "Order of work" and the
+  Estimate now require the full stand-in happy path (start run → Stage A → G1 with the planted row
+  refused and rejected → Stage B → G2 → Stage C dates → G3 acknowledgement → GP "being prepared",
+  then the published calendar → audit log) to pass with `AGENTS_MODE=stand_in` before DL-40 is
+  pinned (SOQ-25) or the B3 spike runs. B3 is stand-in only until B5 and B7 are done; the spike and
+  bake-off moved after B7 in the order of work (§6 and SOQ-25 carry the same wording). (2) **SOQ-29
+  partly answered:** EC-015, EC-019 and T-MODE-1 are Tier 1 in the Build card, the Estimate and
+  EC-R4; the Build card, the Estimate and EC-R4 state that T-MAP-1 must still pass before the first
+  evaluation run even if the day-3 tripwire drops Tier 2. The remaining untiered tests stay open
+  under SOQ-29. (3) **Manual-effort wording:** "about [N hours] per fund per year", recorded as an
+  assumption, was already in SOQ-6, §10 and demo script step 10, so no text changed. (4) **Scope
+  guardrails** for `@project.mgr` added under Implementation Guidance (build from the Build card and
+  Never row; ignore `sad-full-design`, Appendix A and parked F-IDs; keep stand-in until the green
+  path passes and DL-40 is pinned; update or freeze `docs/architecture-decisions-summary`). (5) The
+  DL-31 line in "Decisions in force" now matches DL-44 (Approve stays visible, the server refuses
+  it, the specialist rejects). **SOQ-30 (raised, then resolved the same day on the operator's agreement):** moving the spike
+  after B7 means real Stage A rows cannot exist by the end of day 3, so the tripwire (DL-42) now
+  reads: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2
+  (never T-MAP-1). Changed in the Build card, the Estimate, "Decisions in force" (DL-42) and
+  "Resolved or superseded". `decision-log.md` was updated in a separate step (DL-31 wording; DL-42
+  items 7 to 9). The PRD was not edited. Prompt Trace not captured: no model call was made by the application.

@@ -580,8 +580,9 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Design** (SAD CR-029): `demo_planted_row` on `POST /runs`; row `origin: demo`; evaluation runs
   refuse to start with the switch on and each report records the switch state (EC-R7).
 - **Decided 2026-11-12 (operator, SAD SOQ-18):** the backend **refuses approval of any `demo` row**,
-  records the refusal in the audit log and shows a plain message; demo rows can only be rejected.
-  Test T-DEMO-2 (SAD CR-029); approval map H3a (**Never**) and T-25.
+  records the refusal in the audit log and shows a plain message; the only decision that can be
+  recorded on a demo row is reject. **Its Approve button stays visible and the server refuses the
+  click (DL-44).** Test T-DEMO-2 (SAD CR-029); approval map H3a (**Never**) and T-25.
 - **Cost**: about 0.5 focused day (SAD WP-12d).
 - **Changed**: SAD `POST /runs`, row origin values, new CR-029, EC-R7, EC-013 · **still to do by
   `@product-mgr`**: a requirement and acceptance criterion for the switch and the demo row; the demo
@@ -871,10 +872,26 @@ or adds to a Define document, so it is logged here as DL-13 requires.
      time allows**: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1, the per-state page
      tests, and T-MAP-1 until the evaluation cycle.
   4. **Day-3 tripwire.** If there are no real Stage A rows by the end of day 3, drop B6 (the visual
-     pass) and Tier 2.
+     pass) and Tier 2. *Replaced by item 9 on 2026-11-13.*
   5. **The hosted demo stretch goal (DL-38) is parked as Future Work** (SAD F-18).
   6. **Budget:** before the evaluation cycle, the operator confirms at least US$5 will be left for
      the rehearsal and the demo (SAD EC-R10 point 4).
+  7. **Refined 2026-11-13 (operator, final pre-Build polish; SAD SOQ-29, partly):** EC-015, EC-019
+     and T-MODE-1 join **Tier 1**. **T-MAP-1 is not dropped with Tier 2**: it must pass before the
+     first evaluation run even if the day-3 tripwire drops Tier 2. This supersedes the Tier lists
+     in item 3.
+  8. **Refined 2026-11-13 (operator): first green path before any paid model call.** With
+     `AGENTS_MODE=stand_in`, the full happy path must pass end to end (start run → stand-in Stage A
+     → G1, including the planted row refused and rejected → stand-in Stage B → G2 → Stage C dates →
+     G3 acknowledgement → GP "being prepared", then the published calendar → audit log) **before
+     DL-40 is pinned and before the B3 measurement spike**. B3 is stand-in only until B5 and B7 are
+     done; the spike moves after B7.
+  9. **Tripwire moved 2026-11-13 (operator agreed the architect's recommendation; SAD SOQ-30,
+     resolved):** item 4 assumed the spike runs early, and with item 8 it would fire on plan (B1 to
+     B7 take about 3.5 days). The tripwire is now: **the first stand-in green path has not passed
+     by the end of day 4 → drop B6 and Tier 2, never T-MAP-1.** The green path is the earliest
+     reliable sign that the riskiest block works; it does not test real-model behaviour, which the
+     spike and bake-off still do.
 - **Why**: the estimate left about half a day "in the same margin" without counting it, and a
   five-day plan with no hard stop has no point at which scope is cut. Real extractor output by day 3
   is the earliest reliable sign that the riskiest block (B3) works.
@@ -882,7 +899,10 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   that protect the gates, dates, audit log and prompts stay blocking.
 - **Changed**: SAD "Decisions in force", feasibility constraint, Estimate (B11, capacity, tiers,
   tripwire, drop order), §5 CI, §9 EC-R4, EC-R10 point 4, EC-R11, F-18 and Appendix A, build card,
-  SOQ-1, SOQ-23, new SOQ-29 (tests in neither tier, for the operator).
+  SOQ-1, SOQ-23, new SOQ-29 (tests in neither tier, for the operator). **Items 7 to 9 (2026-11-13):**
+  SAD build card, "Order of work", Estimate (B3 row, tiers, tripwire, build order), §6 spike, EC-R4,
+  SOQ-25, SOQ-29, SOQ-30 (raised and resolved), "Implementation Guidance" scope guardrails, DL-31 line in "Decisions
+  in force".
 
 ### DL-43 · One timeout rule everywhere
 
@@ -1006,4 +1026,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-41 (responsible role graded through a fixed lookup to the profile's party names before the exact match; unmapped text is a miss; test T-MAP-1; table fixed before the first evaluation run; DL-39 stands, no parties list in the extractor's prompt); recorded before any evaluation run exists. DL-40 stays reserved for the model IDs
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-41 confirmed by the operator: item 5 (lookup table fixed before the first evaluation run, never from model output, not changed mid-cycle), new item 6 (extractor wording: party name as written, no explanation, no parties list), new item 7 (one name, "Local reporting agent (Spain)"). DL-39 item 2's note now uses that name
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · US-013 criterion 11, US-001 criterion 2 and the answer key's §1 heading and notes now agree: responsible role is mapped to the profile's party name by a fixed lookup, then matched exactly (SOQ-27 a to c)
-- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-42 (capacity 5 days planned, 8 days hard stop; test tiers; day-3 tripwire; hosted demo parked; US$5 kept for rehearsal and demo), DL-43 (one timeout rule), DL-44 (demo row Approve stays visible and is refused by the server), DL-45 (evaluation copy cases as separate harness calls), DL-46 (run phase); operator decisions from the final SAD review. Follow-up for `@product-mgr`: PRD A-9 wording (SAD SOQ-6)
+- 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-42 (capacity 5 days planned, 8 days hard stop; test tiers; day-3 tripwire [superseded 2026-11-13: the tripwire is now "the first stand-in green path has not passed by the end of day 4", SOQ-30; see the 2026-11-13 entry]; hosted demo parked; US$5 kept for rehearsal and demo), DL-43 (one timeout rule), DL-44 (demo row Approve stays visible and is refused by the server), DL-45 (evaluation copy cases as separate harness calls), DL-46 (run phase); operator decisions from the final SAD review. Follow-up for `@product-mgr`: PRD A-9 wording (SAD SOQ-6)
+- 2026-11-13 · persona `system-arch` (at the operator's instruction, final pre-Build polish) · action `update` · DL-42 refined: items 7 (EC-015, EC-019 and T-MODE-1 to Tier 1; T-MAP-1 not dropped with Tier 2), 8 (first stand-in green path before DL-40 is pinned and before the B3 spike, which moves after B7) and 9 (tripwire moved from day 3 real Stage A rows to day 4 green path, SAD SOQ-30 resolved); DL-31 now states that the planted row's Approve button stays visible and the server refuses it (DL-44). No new DL number
