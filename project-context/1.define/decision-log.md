@@ -958,6 +958,17 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   T-RUN-7. **Still to do**: the run-state diagram, a type the diagram skill gives to `@backend.eng`
   (SAD SOQ-28).
 
+### DL-47 · Approving a row with no business-day rule is refused
+
+- **Decision** (operator, 2026-11-13; raised in `2.build/ux.md` Open Question 5): a G1 **Approve
+  with no business-day rule chosen** is refused with the new code **`BUSINESS_DAY_RULE_REQUIRED`**
+  (422). The refusal is written to the audit log, the page shows a plain message, and the row
+  stays undecided. "Not confirmed" counts as a choice; an empty selection does not.
+- **Why**: DL-19 says a rule is never guessed or defaulted by code. Without a refusal, a missing
+  selection would either block silently or be filled in by default, which is a guess.
+- **Changed**: SAD §4 refusal-code table; `approval-map.md` new row H2a (**Never**). The message
+  wording stays in `2.build/ux.md`.
+
 ---
 
 ## Audit
@@ -1028,3 +1039,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · US-013 criterion 11, US-001 criterion 2 and the answer key's §1 heading and notes now agree: responsible role is mapped to the profile's party name by a fixed lookup, then matched exactly (SOQ-27 a to c)
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-42 (capacity 5 days planned, 8 days hard stop; test tiers; day-3 tripwire [superseded 2026-11-13: the tripwire is now "the first stand-in green path has not passed by the end of day 4", SOQ-30; see the 2026-11-13 entry]; hosted demo parked; US$5 kept for rehearsal and demo), DL-43 (one timeout rule), DL-44 (demo row Approve stays visible and is refused by the server), DL-45 (evaluation copy cases as separate harness calls), DL-46 (run phase); operator decisions from the final SAD review. Follow-up for `@product-mgr`: PRD A-9 wording (SAD SOQ-6)
 - 2026-11-13 · persona `system-arch` (at the operator's instruction, final pre-Build polish) · action `update` · DL-42 refined: items 7 (EC-015, EC-019 and T-MODE-1 to Tier 1; T-MAP-1 not dropped with Tier 2), 8 (first stand-in green path before DL-40 is pinned and before the B3 spike, which moves after B7) and 9 (tripwire moved from day 3 real Stage A rows to day 4 green path, SAD SOQ-30 resolved); DL-31 now states that the planted row's Approve button stays visible and the server refuses it (DL-44). No new DL number
+- 2026-11-13 · persona `system-arch` (at the operator's instruction; ux.md Open Question 5) · action `update` · DL-47 (approving a row with no business-day rule is refused as `BUSINESS_DAY_RULE_REQUIRED`, audited, plain message); operator decision

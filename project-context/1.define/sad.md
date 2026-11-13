@@ -1201,6 +1201,7 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
   | `GATE_INCOMPLETE` | Something at this gate is still undecided | 409 |
   | `QUOTE_CHECK_FAILED` | The row failed the quote check and cannot be approved | 409 |
   | `WHO_FILES_REQUIRED` | The source does not say who files, and no choice was made (DL-39) | 422 |
+  | `BUSINESS_DAY_RULE_REQUIRED` | A row was approved with no business-day rule chosen; "not confirmed" counts as a choice, an empty selection does not (DL-19, DL-47) | 422 |
   | `DEMO_ROW_NOT_APPROVABLE` | The planted demo row cannot be approved | 409 |
   | `ACK_REQUIRED` | The publish acknowledgement is missing or does not match | 409 |
   | `RUN_ACTIVE` | A run is already active for the fund | 409 |
@@ -2700,3 +2701,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
   (never T-MAP-1). Changed in the Build card, the Estimate, "Decisions in force" (DL-42) and
   "Resolved or superseded". `decision-log.md` was updated in a separate step (DL-31 wording; DL-42
   items 7 to 9). The PRD was not edited. Prompt Trace not captured: no model call was made by the application.
+- 2026-11-13 · persona `system-arch` (at the operator's instruction; ux.md Open Question 5) · action `update` · DL-47: new refusal code `BUSINESS_DAY_RULE_REQUIRED` (422) added to the §4 refusal-code table. No other section changed; the "DL-01 to DL-46" source references were not renumbered. `AAMAD_TARGET_RUNTIME=crewai`. No model call.
