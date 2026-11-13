@@ -37,6 +37,18 @@ it, DL-44).
 | `runtime.target` | `crewai` | `aamad.config.yml` (already set) |
 | `project.mode` | `greenfield` | `aamad.config.yml` |
 
+## Python environment
+
+| Setting | Value | Why |
+|---|---|---|
+| Python | 3.12.16 (installed with `uv python install 3.12`) | CrewAI 1.15.x requires Python >=3.10, <3.14 (PyPI metadata and docs.crewai.com install page, checked 13 Nov 2026). The operator's default Python 3.15.2 cannot install CrewAI. |
+| Virtualenv | `.venv/` at the repo root (git-ignored), made with `uv venv --python 3.12 .venv` | The git hooks call `.venv/bin/aamad`, so the name must stay `.venv`. |
+| Dev tooling | `uv pip install --python .venv -r requirements-dev.txt` (aamad 1.0.1) | Restores the framework validator used by the hooks. |
+
+The previous Python 3.15 `.venv` was moved outside the repo as a backup on 13 Nov 2026 and can be
+deleted once B2 installs CrewAI cleanly. `@backend.eng` installs CrewAI into this `.venv` in B2 and
+pins the exact version here.
+
 ## CrewAI settings (D1 to D6)
 
 Recorded as given by the operator. The per-item D-numbers are not mapped here because the SAD uses
