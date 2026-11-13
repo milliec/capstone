@@ -44,6 +44,11 @@ This repository is **public**. Anything committed should be treated as published
 
 2. **Framework validator**: `.venv/bin/aamad validate`
 
+- Never commit or push with `--no-verify`. If a hook blocks you, stop and report it to the operator
+  instead of bypassing it. An agent that used `--no-verify` must say so at once.
+- The `qa.md` exception in `scripts/git-hooks/run-checks.sh` is temporary. It ends when `@qa.eng`
+  writes `project-context/2.build/qa.md` (H-002).
+
 ## Working with the operator
 
 - Personal learning-mode preferences live in the operator's global `~/.claude/CLAUDE.md`.

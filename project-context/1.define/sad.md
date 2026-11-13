@@ -1863,6 +1863,9 @@ that the block that is dropped first is also the block that is built last. **The
 built in B3's place in the table.** It runs after B5 and B7, once the first green path (Build card)
 passes in stand-in mode and DL-40 is pinned.
 
+This paragraph explains the order. The Build card "Order" row is authoritative (H-001); if the
+two differ, the row wins.
+
 **Fallback if the planted row is also cut** (operator decision, 2026-11-12). This applies only if
 a later operator decision drops B7 as well. The demo then shows the human checkpoint in this order:
 
@@ -1991,6 +1994,9 @@ field per form, and nothing else.
 
 `@integration.eng` has no separate epic in the MVP: the pages and the backend are one process, so
 its work is the acceptance test of the happy path, inside block B10.
+
+**Authority (H-001).** The Build card "Order" row is the authoritative build order. If this table and
+that row ever differ, the row wins. This table adds the "Who" and "Notes" detail only.
 
 **Rules every Build persona follows:**
 
