@@ -1,0 +1,4 @@
+# Dev and CI tooling only. Not application dependencies (those come in with B2).
+# Install with: pip install -r requirements-dev.txt
+# Pinned to the version in the operator's local .venv so CI and the git hooks agree.
+aamad==1.0.1
