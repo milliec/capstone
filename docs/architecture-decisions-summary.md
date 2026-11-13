@@ -1,5 +1,7 @@
 # Architecture decisions at a glance
 
+> **Snapshot as of 12 Nov — see [sad.md](../project-context/1.define/sad.md) for Build-week deltas**
+
 A plain-language summary of the System Architecture Document (`project-context/1.define/sad.md`)
 and the decision log, as of 2026-11-12. The SAD is the source of truth; this page only summarises it.
 

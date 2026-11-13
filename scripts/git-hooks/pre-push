@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Runs the shared checks before every push (CLAUDE.md: "before every commit and push").
+exec "$(git rev-parse --show-toplevel)/scripts/git-hooks/run-checks.sh"
