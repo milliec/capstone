@@ -101,6 +101,31 @@ stand-in agents costs nothing, and real calls are kept for measuring, tuning, ev
 The total is enforced by the one thing that can enforce it, the prepaid balance. Lesson: set a cap for
 the worst case, a call count for each activity, and let the money you load be the budget.
 
+**Not every file needs to stay in sync: sort them into three tiers.** The architecture document grew
+past 2,600 lines, and keeping every file up to date with it is not realistic. Sort files into
+*sources of truth* (the PRD and the SAD; each fact lives in exactly one), *derived* files (the Build
+card, the setup notes, the public summary; they point at the source by ID such as DL-40 instead of
+re-explaining it) and *logs* (like this one; they only grow). A derived file may also be frozen on
+purpose with a banner ("as of 12 Nov, see the SAD for changes"), which is better than a copy that is
+quietly wrong. Also, a long reference document needs a one-page working copy. The Build card is
+that copy, and agents should be pointed at it plus one named section, not the whole file.
+
+**Personas that may not edit each other's files need a message board.** The product manager persona
+cannot change the SAD, and the architect persona cannot invent requirements. That is a good
+boundary, but it left the operator copy-pasting text between chats. The fix is one shared file,
+`project-context/handoffs.md`: a persona asks for a change by writing a short entry (who it is for,
+which IDs it touches, what should change, why), and the owner of the file makes the change and
+records the outcome. A table of who owns which file keeps this working as more personas join.
+Entries refer to IDs and never copy the text of a decision.
+
+**Put decisions in files, not in the chat, especially if you switch models.** Switching the model
+in the middle of a session keeps the conversation history, but a different model can read the same
+vague instruction differently, and the first message after a switch is slower and costs more. A
+decision that exists only in the chat is the one most likely to be misread or lost. Write it into
+the file that owns it, and look at the diff after a model switch before accepting edits. This is
+about the tool used to build the project, which is separate from the model the product itself will
+call (DL-40).
+
 ## 2. Designing AI agent systems
 
 **Use AI where judgement is needed, plain code where correctness is needed.** Agents read text and
@@ -387,4 +412,6 @@ question to answer.
 - 2026-11-12 · added one note from the model spend decision (a cap is not a budget)
 - 2026-11-12 · added one note from the agent card template session (a backstory is for reasons, not a
   résumé)
+- 2026-11-13 · added three notes from the documentation-sync session (three tiers of files; a message
+  board between personas; decisions go in files, not chat)
 - 2026-11-12 · added one note from the final SAD review (a time limit must cover its own retries)
