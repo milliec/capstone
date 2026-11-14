@@ -133,18 +133,20 @@ def yeargrid(specialist):
             cell = ""
             for k, d, mark, _, frm in E:
                 if k == key and d.month == m:
-                    cls = mark
+                    # Moved marks are specialist-only (CR-012): the GP's tile shows no "moved" colour.
+                    cls = "" if (mark == "moved" and not specialist) else mark
                     cell = f'<span class="day {cls}" title="{fmt(d)}"><small>{DOW[d.weekday()]}</small><b class="num">{d.day}</b></span>'
             h.append(f'<div class="{last.strip()}">{cell}</div>')
+    moved_key = '<span><i class="moved"></i>Moved off a weekend</span>' if specialist else ""  # specialist-only
     legend = ('<div class="legend"><span><i></i>Due on the calculated date</span>'
-              '<span><i class="moved"></i>Moved off a weekend</span>'
+              + moved_key +
               '<span><i class="prec"></i>May not be required</span>' + "</div>")
     return f'<div class="yeargrid">{"".join(h)}</div>{legend}'
 
 
 def entry_marks(key, d, mark, frm, specialist):
     marks = []
-    if frm:
+    if frm and specialist:  # the "Moved from" chip is specialist-only (CR-012)
         marks.append(chip(f"Moved from {DOW[date(d.year, d.month, frm).weekday()]} {frm} {MONTHS[d.month - 1]}", "agent"))
     if mark == "prec":
         marks.append(chip("May not be required", "you"))
@@ -181,15 +183,24 @@ def dotchart(mode="specialist"):
         for level, (key, d, mark, period, frm) in enumerate([e for e in E if e[1].month == m]):
             o = OBL[key]
             note, look = "", 'fill="var(--brass)"'
-            if frm:
+            if frm and mode == "specialist":  # the GP's chart shows no moved dots (CR-012, DL-49)
                 note, look = " · moved off a weekend", 'fill="var(--orange)"'
             elif mark == "prec":
                 note, look = " · may not be required", 'fill="#fff" stroke="var(--brass)" stroke-width="1.6"'
             out.append(f'<circle class="dot" cx="{x}" cy="{84 - level * 22}" r="7" {look} style="animation-delay:{n * 40}ms"><title>{o["name"]} · due {fmt(d)}{note}</title></circle>')
             n += 1
         out.append(f'<text x="{x}" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">{MONTHS[m - 1][0]}</text>')
-    legend = '<span><i class="k1"></i>Due date</span><span><i class="k2"></i>Moved off a weekend</span><span><i class="k3"></i>May not be required</span>'
-    return (f'<svg class="dots" viewBox="0 0 372 124" role="img" aria-label="22 filing dates across 2027, one to three in each month">{"".join(out)}</svg>'
+    moved_key = '<span><i class="k2"></i>Moved off a weekend</span>' if mode == "specialist" else ""
+    legend = '<span><i class="k1"></i>Due date</span>' + moved_key + '<span><i class="k3"></i>May not be required</span>'
+    # Spoken description: count the dots the same way they are coloured above, so screen-reader
+    # users get the same information as the key (moved dots are counted for the specialist only).
+    n_moved = sum(1 for e in E if e[4] and mode == "specialist")
+    n_prec = sum(1 for e in E if e[2] == "prec" and not (e[4] and mode == "specialist"))
+    label = f"{len(E)} filing dates across 2027, one to three in each month"
+    if n_moved:
+        label += f"; {n_moved} moved off a weekend"
+    label += f"; {n_prec} may not be required (hollow dots)"
+    return (f'<svg class="dots" viewBox="0 0 372 124" role="img" aria-label="{label}">{"".join(out)}</svg>'
             f'<div class="dots-key">{legend}</div>')
 
 
@@ -223,8 +234,9 @@ LEGAL = '<p class="note" style="margin-top:20px">This calendar is not legal advi
 SHORT = {"u11": "U1.1", "tax": "Sub. tax", "annual": "Annual", "a01": "A01", "rbe": "Owners"}
 
 
-def month_view():
-    """January 2027 with the chosen day explained beside it. Shared by both roles."""
+def month_view(specialist=True):
+    """January 2027 with the chosen day explained beside it. Shared by both roles;
+    the "Why this date" (moved) line is specialist-only (CR-012)."""
     jan = [(n, e) for n, e in enumerate(E) if e[1].month == 1]
     cells = "".join(f'<div class="dow">{d}</div>' for d in DOW)
     cells += "".join(f'<div class="cell out">{d}</div>' for d in (28, 29, 30, 31))  # 1 Jan 2027 is a Friday
@@ -239,7 +251,7 @@ def month_view():
     panels = ""
     for n, (key, d, mark, period, frm) in jan:
         o = OBL[key]
-        moved = '<div><dt>Why this date</dt><dd>The deadline fell on Sunday 10 January, so it moves to the next working day.</dd></div>' if frm else ""
+        moved = '<div><dt>Why this date</dt><dd>The deadline fell on Sunday 10 January, so it moves to the next working day.</dd></div>' if (frm and specialist) else ""
         panels += f"""<div class="dayp{" default" if n == 0 else ""}" id="d{d.day}">
             <div class="id">{fmt(d)}{" · due next" if n == 0 else ""}</div><h3>{o["name"]}</h3><p class="small muted">{period}</p>
             <dl><div><dt>Who files it</dt><dd>{o["who"]}, with the {o["to"]}.</dd></div>{moved}
@@ -271,10 +283,10 @@ def calendar_page(specialist):
     </header>
     {FACTS}
     {LEGAL if specialist else GP_LEGAL}
-    <div class="kpis" aria-label="Summary">
+    <div class="kpis{"" if specialist else " three"}" aria-label="Summary">
       {kpi("Due next", "Mon 11 Jan", "Monthly financial report U1.1, filed by the fund administrator", "next", "dark", text=True, href="#d11")}
       <div class="kpi"><div class="k">Filings in 2027: 22</div>{dotchart("specialist" if specialist else "public")}</div>
-      {kpi("Moved off a weekend", "6", "4 to the Monday after, 2 to the Friday before", "move")}
+      {kpi("Moved off a weekend", "6", "4 to the Monday after, 2 to the Friday before", "move") if specialist else ""}
       {kpi("May not be required", "4", "Spain report A01. Nobody has confirmed the fund must file it.", "care", "you")}
     </div>
 
@@ -284,7 +296,7 @@ def calendar_page(specialist):
           <label><input class="sr" type="radio" name="view" id="v-month" checked>Month</label>
           <label><input class="sr" type="radio" name="view" id="v-year">Year</label>
           <label><input class="sr" type="radio" name="view" id="v-list">List</label></div></div>
-      <div class="view month card">{month_view()}</div>
+      <div class="view month card">{month_view(specialist)}</div>
       <div class="view year card scroll">{yeargrid(specialist)}</div>
       <div class="view list card">
         <form class="filters" method="get" action="#entries">

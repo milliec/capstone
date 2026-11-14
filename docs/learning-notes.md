@@ -390,6 +390,13 @@ instead of drifting away from a Figma library. A bonus: the spacing scale (8, 12
 means visitors' browsers never contact a font service. Pages load faster and there is one less privacy
 question to answer.
 
+**Hidden is not absent.** An "answer first, then show its fields" form (CSS `:has()`) only *hides*
+the other answer's fields; the browser still sends them when the form is submitted. So the server
+must read the chosen answer and ignore everything that belongs to the other one, and two fields that
+mean different things (an approve reason and a reject reason) need different names, or one quietly
+overwrites the other. The rule for the app lives on the server, never in what the page shows (SAD
+DL-48).
+
 ---
 
 ## Audit
@@ -424,3 +431,4 @@ question to answer.
   board between personas; decisions go in files, not chat)
 - 2026-11-12 · added one note from the final SAD review (a time limit must cover its own retries)
 - 2026-11-13 · added two notes from the G1 / GP mock-ups session (a more specific CSS rule beats a later one; set the viewport, not the window, for phone screenshots)
+- 2026-11-14 · added one note from the design-exploration SAD update (a field hidden by CSS is still submitted)
