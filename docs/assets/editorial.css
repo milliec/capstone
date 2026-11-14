@@ -13,8 +13,9 @@
  *   4. Figures and the diagram vocabulary (classes used inside inline SVG diagrams).
  *   5. Small-screen rules.
  *
- * Rules of the style: near-monochrome; orange (--accent) only for gates, links and things that need
- * attention; headings at weight 400; no shadows; cards rounded at the top-left corner only.
+ * Rules of the style: near-monochrome; orange (`--accent`) is decoration only (gates, underlines, bars,
+ * focus); any orange text uses `--accent-text`; headings at weight 400; no shadows; cards rounded at the
+ * top-left corner only.
  */
 
 /* Design tokens: an editorial, near-monochrome palette with one warm accent.
@@ -23,7 +24,7 @@
   color-scheme: light;
   --ink: #202020;          /* text, headings, strokes */
   --ink-2: #4d4d4d;        /* body copy */
-  --muted: #828282;        /* helper text */
+  --muted: #5c5c5c;        /* helper text (was #828282, which failed WCAG AA contrast) */
   --paper: #ffffff;        /* page and figure cards */
   --band: #efefef;         /* section bands and accordion panels */
   --nest: #f5f5f5;         /* nested surfaces */
@@ -31,6 +32,7 @@
   --rule: #e8e8e8;         /* hairlines */
   --accent: #ff682c;       /* gates, links, attention */
   --accent-2: #816729;     /* secondary accent: tags, future or optional items */
+  --accent-text: #b33d12;  /* the only orange allowed for text */
 
   --font-head: "Inter Tight", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -66,8 +68,8 @@ h1 { font: 400 clamp(40px, 7vw, 66px)/0.95 var(--font-head); letter-spacing: -0.
 
 /* Tags */
 .tag { display: inline-block; font: 500 12px/1 var(--font-body); padding: 6px 10px; border-radius: var(--r-tag); white-space: nowrap; }
-.tag.ok { background: var(--warm); color: var(--accent-2); }
-.tag.hold { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tag.ok { background: var(--band); color: var(--accent-2); }   /* was --warm: --accent-2 on --warm fails AA */
+.tag.hold { background: transparent; color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* At-a-glance band */
 .band { background: var(--band); padding: 56px 0; }
@@ -104,7 +106,7 @@ details[open] .s-side::after { content: "–"; }
 .s-body li::marker { color: var(--accent-2); }
 .src { font-size: 13px; color: var(--muted); margin-top: 22px; }
 .hold-note { background: var(--paper); border-left: 2px solid var(--accent); padding: 12px 16px; margin: 16px 0; max-width: 72ch; }
-.hold-note b { color: var(--accent); font-weight: 600; }
+.hold-note b { color: var(--accent-text); font-weight: 600; }
 
 /* Figures: white data cards with diagrams */
 figure.fig { background: var(--paper); border-radius: var(--r-figure); margin: 20px 0 24px; padding: 24px 24px 16px; }
@@ -124,7 +126,7 @@ figcaption { font-size: 14px; line-height: 1.43; color: var(--ink-2); margin-top
 .d-t { font: 400 12.5px var(--font-body); fill: var(--ink-2); }
 .d-s { font: 400 11.5px var(--font-body); fill: var(--muted); }
 .d-acc { fill: var(--accent); }
-.d-acc-t { font: 500 12.5px var(--font-body); fill: var(--accent); }
+.d-acc-t { font: 500 12.5px var(--font-body); fill: var(--accent-text); }
 .d-brass { font: 400 12px var(--font-body); fill: var(--accent-2); }
 .d-inv { font: 400 15px var(--font-head); letter-spacing: -0.02em; fill: var(--paper); }
 .d-inv-s { font: 400 12px var(--font-body); fill: #cfcfcf; }
