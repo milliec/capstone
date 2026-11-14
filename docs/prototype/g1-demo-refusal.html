@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Design mock-up only. The G1 page as the server returns it after refusing "Approve row" on the
+     planted demo row (DEMO_ROW_NOT_APPROVABLE). ux.md page 4 and §5; style-note.md "Refusal / error alerts". -->
+<!-- After a refusal the title starts "Not done: " so a screen reader announces it on load (ux.md §1.3). -->
+<title>Not done: Rule review (G1) · Obligations calendar (demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/editorial.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="app">
+
+<div class="demo-strip">
+  <span class="demo-label">Demo with mock data</span>
+</div>
+
+<header class="app-head">
+  <div><span class="brand">Obligations calendar</span><span class="fund">Bramblegate Credit Opportunities SICAV</span></div>
+  <div class="who">
+    <span>Signed in as <b>Compliance specialist (mock)</b></span>
+    <form method="post" action="#"><button class="ghost small" type="submit">Sign out</button></form>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Main">
+    <ul>
+      <li><a href="#" aria-current="page">Runs</a></li>
+      <li><a href="gp-calendar.html">GP calendar (read-only)</a></li>
+    </ul>
+  </nav>
+
+  <main class="main" id="main">
+    <div class="main-inner">
+
+      <div class="page-head">
+        <h1>Step 1 of 3: Rule review (G1)</h1>
+
+        <!-- Refusal about one row (ux.md §5): only a short line at the top; the full sentence is
+             beside the row, and the page lands on that row (#row-7). -->
+        <p class="alert top short" role="alert">Not done. The reason is shown beside row 7. <a href="#row-7">Go to row 7</a></p>
+
+        <div class="title-row" style="margin-top:24px">
+          <span class="meta">Run 4</span>
+          <span class="run-labels"><span class="label">Stand-in agents</span><span class="label">Demo row on</span></span>
+        </div>
+
+        <ol class="stepper" aria-label="Run progress">
+          <li class="done"><a href="#">Stage A</a> <span class="state">done</span></li>
+          <li aria-current="step"><a href="#">1. Rule review (G1)</a> <span class="state">now</span></li>
+          <li>Stage B <span class="state">to do</span></li>
+          <li>2. Applicability (G2) <span class="state">to do</span></li>
+          <li>Stage C <span class="state">to do</span></li>
+          <li>3. Calendar (G3) <span class="state">to do</span></li>
+        </ol>
+
+        <p class="intro">Decide each row once. Approving lets the rule into this run's calendar. Rejecting keeps it out. Each decision is recorded with your name and the time, and cannot be changed in this run.</p>
+
+        <div class="kpis" aria-label="Summary">
+          <div class="kpi"><div class="k">Rows</div><div class="v num">7</div></div>
+          <div class="kpi"><div class="k">Decided</div><div class="v num">6</div></div>
+          <div class="kpi"><div class="k">To decide</div><div class="v num">1</div></div>
+          <div class="kpi"><div class="k">Verifier flags</div><div class="v num">2</div></div>
+        </div>
+
+      </div>
+
+      <section aria-labelledby="index-h">
+        <h2 id="index-h" style="margin-bottom:16px">Rows</h2>
+        <div class="table-card"><div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th scope="col">Row</th><th scope="col">Obligation</th><th scope="col">Needs attention</th><th scope="col">Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><a href="g1-review-queue.html#row-1">Row 1 · OBL-01</a></td><td>Monthly financial report U1.1</td><td></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#">Row 2 · OBL-02</a></td><td>Subscription tax return and payment</td><td><span class="chip flag">Depends on open question OQ-7</span></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#">Row 3 · OBL-03</a></td><td>Audited annual report</td><td><span class="chip flag">Flag</span></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#">Row 4 · OBL-04</a></td><td>Statistical report A01 (Spain)</td><td></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#">Row 5 · OBL-05</a></td><td>Beneficial-owner information update</td><td><span class="chip flag">Flag</span></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#">Row 6 · OBL-06</a></td><td>Annual VAT return</td><td></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#row-7">Row 7 · OBL-07</a></td><td>Quarterly IT security attestation</td><td><span class="chip demo">Demo</span></td><td><span class="chip wait">To decide</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </section>
+
+      <div class="mock-note"><b>Mock-up note:</b> the decided cards for rows 1 to 6 sit here in the real page. They are left out so the mock-up shows the refusal. The page opens scrolled to row 7.</div>
+
+      <!-- ===== Row 7: the planted demo row, after the refused approval ===== -->
+      <article class="row-card" id="row-7" aria-labelledby="row-7-h">
+        <p class="eyebrow-line">Row 7 of 7 · OBL-07</p>
+        <h2 id="row-7-h">Quarterly IT security attestation</h2>
+        <div class="tags"><span class="chip demo">Demo</span></div>
+
+        <!-- Refusal message (b): inside the card it concerns. -->
+        <div class="alert in-card">
+          <p class="alert-title">Not done</p>
+          <p>This is a planted demo row. It cannot be approved. Reject it with a reason.</p>
+        </div>
+
+        <div class="part">
+          <blockquote class="quote">The report shall be transmitted through the CSSF's secure electronic reporting channel.</blockquote>
+          <p class="meta quote-cap">Quote from paragraph SRC-CSSF15627-P3</p>
+        </div>
+
+        <!-- The planted row passes the quote check by design: the quote is real, it just does not support the rule. -->
+        <div class="part check">
+          <span class="chip ok">Passed</span>
+          <p>Quote check: passed. The quote appears word for word in paragraph SRC-CSSF15627-P3.</p>
+        </div>
+
+        <div class="part">
+          <h3 class="part-title">Paragraph SRC-CSSF15627-P3, CSSF Circular 15/627 (mock excerpt)</h3>
+          <div class="para"><p>The report shall be transmitted through the CSSF's secure electronic reporting channel. The fund administrator may transmit the report on behalf of the undertaking.</p></div>
+        </div>
+
+        <div class="part">
+          <p>No verifier flags.</p>
+        </div>
+
+        <div class="part">
+          <h3 class="part-title">Row fields</h3>
+          <dl class="fields">
+            <dt>What must be done</dt><dd>Send a quarterly IT security attestation to the CSSF</dd>
+            <dt>Frequency</dt><dd>Quarterly</dd>
+            <dt>Due relative to</dt><dd>Calendar quarter-end</dd>
+            <dt>Offset</dt><dd>+30 calendar days</dd>
+            <dt>Recipient</dt><dd>CSSF</dd>
+            <dt>Who files, as the source says</dt><dd>Not stated in source</dd>
+            <dt>Business-day rule, as the source says</dt><dd>Not stated</dd>
+          </dl>
+        </div>
+
+        <!-- The same two forms as every row. Approve stays visible and enabled (DL-44).
+             After a refusal, radio choices are shown empty again (ux.md §5). -->
+        <div class="decide">
+          <form method="post" action="#" aria-labelledby="row-7-approve">
+            <input type="hidden" name="row_version" value="1">
+            <input type="hidden" name="decision" value="approve">
+            <fieldset>
+              <legend id="row-7-approve">Approve this row</legend>
+
+              <fieldset class="q-group">
+                <legend class="q-label">Business-day rule</legend>
+                <div class="radios">
+                  <label><input type="radio" name="bdr-7" value="roll_forward"> Roll forward to the next business day</label>
+                  <label><input type="radio" name="bdr-7" value="no_roll"> No roll: keep the date</label>
+                  <label><input type="radio" name="bdr-7" value="not_confirmed"> Not confirmed: keep the earlier date and mark it</label>
+                </div>
+              </fieldset>
+
+              <fieldset class="q-group" aria-describedby="who-7-hint">
+                <legend class="q-label">Who files</legend>
+                <p class="hint" id="who-7-hint">The source does not say who files. Choose the party, or 'Not known'. The compliance specialist and the GP are not filing parties.</p>
+                <div class="radios cols">
+                  <label><input type="radio" name="who-7" value="aifm"> AIFM</label>
+                  <label><input type="radio" name="who-7" value="fund_administrator"> Fund administrator</label>
+                  <label><input type="radio" name="who-7" value="auditor"> Auditor</label>
+                  <label><input type="radio" name="who-7" value="local_reporting_agent_es"> Local reporting agent (Spain)</label>
+                  <label><input type="radio" name="who-7" value="tax_advisor"> Tax advisor</label>
+                  <label><input type="radio" name="who-7" value="not_known"> Not known</label>
+                </div>
+              </fieldset>
+
+              <div class="actions"><button class="btn" type="submit">Approve row</button></div>
+            </fieldset>
+          </form>
+
+          <form method="post" action="#" aria-labelledby="row-7-reject">
+            <input type="hidden" name="row_version" value="1">
+            <input type="hidden" name="decision" value="reject">
+            <fieldset>
+              <legend id="row-7-reject">Reject this row</legend>
+              <div class="q-group">
+                <label class="q-label" for="reject-reason-7">Reason for rejecting</label>
+                <p class="hint" id="reject-reason-7-hint">Required. Shown again at G3 and kept in the audit log. Specialists only.</p>
+                <textarea id="reject-reason-7" name="reason" aria-describedby="reject-reason-7-hint"></textarea>
+              </div>
+              <div class="actions"><button class="ghost" type="submit">Reject row</button></div>
+            </fieldset>
+          </form>
+        </div>
+      </article>
+
+      <section class="section" aria-labelledby="cov-h">
+        <h2 id="cov-h">Paragraphs no row cites</h2>
+        <p class="intro">These 3 paragraphs were loaded but no approved or undecided row cites them. This list does not say whether they contain obligations. If one does, the run missed it: reject or finish as usual, then start a new run. You will see this list again at G3.</p>
+        <div class="table-card"><div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Paragraph ID</th><th scope="col">Source document</th><th scope="col">Text</th></tr></thead>
+            <tbody>
+              <tr><td>SRC-CSSF15627-P1</td><td>CSSF Circular 15/627 (mock excerpt)</td><td>This circular applies to all undertakings for collective investment subject to Part II of the Law of 17 December 2010, including those structured as investment companies with variable capital.</td></tr>
+              <tr><td>SRC-UCILAW-P1</td><td>Law of 17 December 2010 (mock excerpt)</td><td>For the purposes of this excerpt, “financial year-end” means the last day of the financial year stated in the constitutive documents of the undertaking for collective investment.</td></tr>
+              <tr><td>SRC-CNMV-P2</td><td>CNMV statistical reporting for foreign UCIs (mock excerpt)</td><td>The report may be submitted by a local reporting agent appointed by the undertaking.</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </section>
+
+      <section class="section" id="finish" aria-labelledby="finish-h">
+        <h2 id="finish-h">Finish the rule review</h2>
+        <form method="post" action="#">
+          <input type="hidden" name="run_version" value="18">
+          <p class="intro">When every row is decided, Stage B checks whether each approved rule applies to the fund. You cannot change rule decisions after this.</p>
+          <div class="actions"><button class="btn" type="submit">Finish rule review and start Stage B</button></div>
+        </form>
+      </section>
+
+      <p style="margin-top:40px"><a href="#">Abandon this run</a></p>
+
+      <div class="mock-note"><b>Mock-up note:</b> the planted row's content is invented for this mock-up. The real one comes from the backend's fixture (SAD CR-029), which does not exist yet. It keeps the rule from the SAD: a real quote, word for word in its paragraph, that does not support the row's rule.</div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

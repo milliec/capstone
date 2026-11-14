@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Design mock-up only. Static HTML, fictional data from project-context/1.define/mock-data/.
+     Behaviour and wording: project-context/2.build/ux.md (page 4). Look: project-context/2.build/style-note.md. -->
+<title>Rule review (G1) · Obligations calendar (demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/editorial.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="app">
+
+<!-- 1. Demo label: always first (ux.md §1.3). -->
+<div class="demo-strip">
+  <span class="demo-label">Demo with mock data</span>
+</div>
+
+<!-- 2. Header -->
+<header class="app-head">
+  <div><span class="brand">Obligations calendar</span><span class="fund">Bramblegate Credit Opportunities SICAV</span></div>
+  <div class="who">
+    <span>Signed in as <b>Compliance specialist (mock)</b></span>
+    <form method="post" action="#"><button class="ghost small" type="submit">Sign out</button></form>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- 3. Navigation (specialist only) -->
+  <nav class="side" aria-label="Main">
+    <ul>
+      <li><a href="#" aria-current="page">Runs</a></li>
+      <li><a href="gp-calendar.html">GP calendar (read-only)</a></li>
+    </ul>
+  </nav>
+
+  <main class="main" id="main">
+    <div class="main-inner">
+
+      <!-- Page head: title, run labels, stepper, intro -->
+      <div class="page-head">
+        <div class="title-row">
+          <h1>Step 1 of 3: Rule review (G1)</h1>
+        </div>
+        <div class="title-row" style="margin-top:12px">
+          <span class="meta">Run 4</span>
+          <span class="run-labels"><span class="label">Stand-in agents</span><span class="label">Demo row on</span></span>
+        </div>
+
+        <ol class="stepper" aria-label="Run progress">
+          <li class="done"><a href="#">Stage A</a> <span class="state">done</span></li>
+          <li aria-current="step"><a href="#">1. Rule review (G1)</a> <span class="state">now</span></li>
+          <li>Stage B <span class="state">to do</span></li>
+          <li>2. Applicability (G2) <span class="state">to do</span></li>
+          <li>Stage C <span class="state">to do</span></li>
+          <li>3. Calendar (G3) <span class="state">to do</span></li>
+        </ol>
+
+        <p class="intro">Decide each row once. Approving lets the rule into this run's calendar. Rejecting keeps it out. Each decision is recorded with your name and the time, and cannot be changed in this run.</p>
+
+        <!-- Summary cards: the style note's "row of three or four above a queue". -->
+        <div class="kpis" aria-label="Summary">
+          <div class="kpi"><div class="k">Rows</div><div class="v num">7</div></div>
+          <div class="kpi"><div class="k">Decided</div><div class="v num">2</div></div>
+          <div class="kpi"><div class="k">To decide</div><div class="v num">5</div></div>
+          <div class="kpi"><div class="k">Verifier flags</div><div class="v num">2</div></div>
+        </div>
+
+      </div>
+
+      <!-- Row index: the shape of the work in one glance (ux.md page 4, item 4). -->
+      <section aria-labelledby="index-h">
+        <h2 id="index-h" style="margin-bottom:16px">Rows</h2>
+        <div class="table-card"><div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th scope="col">Row</th><th scope="col">Obligation</th><th scope="col">Needs attention</th><th scope="col">Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><a href="#row-1">Row 1 · OBL-01</a></td><td>Monthly financial report U1.1</td><td></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#row-2">Row 2 · OBL-02</a></td><td>Subscription tax return and payment</td><td><span class="chip flag">Depends on open question OQ-7</span></td><td><span class="chip ok">Approved</span></td></tr>
+              <tr><td><a href="#row-3">Row 3 · OBL-03</a></td><td>Audited annual report</td><td><span class="chip flag">Flag</span></td><td><span class="chip wait">To decide</span></td></tr>
+              <tr><td><a href="#row-4">Row 4 · OBL-04</a></td><td>Statistical report A01 (Spain)</td><td></td><td><span class="chip wait">To decide</span></td></tr>
+              <tr><td><a href="#row-5">Row 5 · OBL-05</a></td><td>Beneficial-owner information update</td><td><span class="chip flag">Flag</span></td><td><span class="chip wait">To decide</span></td></tr>
+              <tr><td><a href="#row-6">Row 6 · OBL-06</a></td><td>Annual VAT return</td><td></td><td><span class="chip wait">To decide</span></td></tr>
+              <tr><td><a href="g1-demo-refusal.html#row-7">Row 7 · OBL-07</a></td><td>Quarterly IT security attestation</td><td><span class="chip demo">Demo</span></td><td><span class="chip wait">To decide</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </section>
+
+      <!-- ===== Row 1: decided ===== -->
+      <article class="row-card" id="row-1" aria-labelledby="row-1-h">
+        <p class="eyebrow-line">Row 1 of 7 · OBL-01</p>
+        <h2 id="row-1-h">Monthly financial report U1.1</h2>
+
+        <div class="part">
+          <blockquote class="quote">no later than 10 calendar days after the end of each month</blockquote>
+          <p class="meta quote-cap">Quote from paragraph SRC-CSSF15627-P2</p>
+        </div>
+
+        <div class="part check">
+          <span class="chip ok">Passed</span>
+          <p>Quote check: passed. The quote appears word for word in paragraph SRC-CSSF15627-P2.</p>
+        </div>
+
+        <div class="decided">
+          <p><b>Approved</b> by Compliance specialist (mock) at 14:08. Business-day rule: Roll forward. Who files: Fund administrator.</p>
+          <p><a href="#row-3">Next row to decide</a></p>
+        </div>
+      </article>
+
+      <div class="mock-note"><b>Mock-up note:</b> in the real page, row 1 also shows its cited paragraph, flags and fields above the decision, as row 3 does. Row 2 sits here and is decided in the same way. They are shortened here to keep the mock-up short.</div>
+
+      <!-- ===== Row 3: undecided, with a verifier flag, source silent on who files ===== -->
+      <article class="row-card" id="row-3" aria-labelledby="row-3-h">
+        <p class="eyebrow-line">Row 3 of 7 · OBL-03</p>
+        <h2 id="row-3-h">Audited annual report</h2>
+        <div class="tags"><span class="chip flag">Flag</span></div>
+
+        <!-- 1. Quote -->
+        <div class="part">
+          <blockquote class="quote">within six months of the end of the period to which it relates</blockquote>
+          <p class="meta quote-cap">Quote from paragraph SRC-UCILAW-P3</p>
+        </div>
+
+        <!-- 2. Quote check -->
+        <div class="part check">
+          <span class="chip ok">Passed</span>
+          <p>Quote check: passed. The quote appears word for word in paragraph SRC-UCILAW-P3.</p>
+        </div>
+
+        <!-- 3. Cited paragraph -->
+        <div class="part">
+          <h3 class="part-title">Paragraph SRC-UCILAW-P3, Law of 17 December 2010 (mock excerpt)</h3>
+          <div class="para"><p>An undertaking for collective investment subject to Part II of this law shall publish an audited annual report and file it with the CSSF within six months of the end of the period to which it relates.</p></div>
+        </div>
+
+        <!-- 4. Flags: both texts, side by side -->
+        <div class="part">
+          <div class="flag-box">
+            <h3><span class="chip flag">Flag</span> Verifier flag: against another source</h3>
+            <div class="compare">
+              <div><b>The row says:</b> File the audited annual report with the CSSF within six months of the financial year-end.</div>
+              <div><b>The source says:</b> “Funds must publish their audited annual report within four months of financial year-end.” Practitioner guide (fictional), paragraph SRC-PRACT-P1.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Row fields -->
+        <div class="part">
+          <h3 class="part-title">Row fields</h3>
+          <dl class="fields">
+            <dt>What must be done</dt><dd>Publish an audited annual report and file it with the CSSF</dd>
+            <dt>Frequency</dt><dd>Annually</dd>
+            <dt>Due relative to</dt><dd>Financial year-end</dd>
+            <dt>Offset</dt><dd>+6 months</dd>
+            <dt>Recipient</dt><dd>CSSF</dd>
+            <dt>Who files, as the source says</dt><dd>Not stated in source</dd>
+            <dt>Business-day rule, as the source says</dt><dd>Not stated</dd>
+          </dl>
+        </div>
+
+        <!-- 6. Decision: two separate forms, nothing preselected, no required/disabled attributes -->
+        <div class="decide">
+          <form method="post" action="#" aria-labelledby="row-3-approve">
+            <input type="hidden" name="row_version" value="1">
+            <input type="hidden" name="decision" value="approve">
+            <fieldset>
+              <legend id="row-3-approve">Approve this row</legend>
+
+              <fieldset class="q-group">
+                <legend class="q-label">Business-day rule</legend>
+                <div class="radios">
+                  <label><input type="radio" name="bdr-3" value="roll_forward"> Roll forward to the next business day</label>
+                  <label><input type="radio" name="bdr-3" value="no_roll"> No roll: keep the date</label>
+                  <label><input type="radio" name="bdr-3" value="not_confirmed"> Not confirmed: keep the earlier date and mark it</label>
+                </div>
+              </fieldset>
+
+              <fieldset class="q-group" aria-describedby="who-3-hint">
+                <legend class="q-label">Who files</legend>
+                <p class="hint" id="who-3-hint">The source does not say who files. Choose the party, or 'Not known'. The compliance specialist and the GP are not filing parties.</p>
+                <div class="radios cols">
+                  <label><input type="radio" name="who-3" value="aifm"> AIFM</label>
+                  <label><input type="radio" name="who-3" value="fund_administrator"> Fund administrator</label>
+                  <label><input type="radio" name="who-3" value="auditor"> Auditor</label>
+                  <label><input type="radio" name="who-3" value="local_reporting_agent_es"> Local reporting agent (Spain)</label>
+                  <label><input type="radio" name="who-3" value="tax_advisor"> Tax advisor</label>
+                  <label><input type="radio" name="who-3" value="not_known"> Not known</label>
+                </div>
+              </fieldset>
+
+              <div class="q-group">
+                <label class="q-label" for="flag-reason-3">Reason for approving over the flag</label>
+                <p class="hint" id="flag-reason-3-hint">Required because the verifier raised a flag. Specialists only.</p>
+                <textarea id="flag-reason-3" name="reason" aria-describedby="flag-reason-3-hint"></textarea>
+              </div>
+
+              <div class="actions"><button class="btn" type="submit">Approve row</button></div>
+            </fieldset>
+          </form>
+
+          <form method="post" action="#" aria-labelledby="row-3-reject">
+            <input type="hidden" name="row_version" value="1">
+            <input type="hidden" name="decision" value="reject">
+            <fieldset>
+              <legend id="row-3-reject">Reject this row</legend>
+              <div class="q-group">
+                <label class="q-label" for="reject-reason-3">Reason for rejecting</label>
+                <p class="hint" id="reject-reason-3-hint">Required. Shown again at G3 and kept in the audit log. Specialists only.</p>
+                <textarea id="reject-reason-3" name="reason" aria-describedby="reject-reason-3-hint"></textarea>
+              </div>
+              <div class="actions"><button class="ghost" type="submit">Reject row</button></div>
+            </fieldset>
+          </form>
+        </div>
+      </article>
+
+      <div class="mock-note"><b>Mock-up note:</b> rows 4 to 6 follow as full cards in the same pattern. Row 5 carries the second verifier flag. Row 7 is the planted demo row: see <a href="g1-demo-refusal.html#row-7">the refusal mock-up</a>.</div>
+
+      <!-- Coverage view (W-03b) -->
+      <section class="section" aria-labelledby="cov-h">
+        <h2 id="cov-h">Paragraphs no row cites</h2>
+        <p class="intro">These 3 paragraphs were loaded but no approved or undecided row cites them. This list does not say whether they contain obligations. If one does, the run missed it: reject or finish as usual, then start a new run. You will see this list again at G3.</p>
+        <div class="table-card"><div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Paragraph ID</th><th scope="col">Source document</th><th scope="col">Text</th></tr></thead>
+            <tbody>
+              <tr><td>SRC-CSSF15627-P1</td><td>CSSF Circular 15/627 (mock excerpt)</td><td>This circular applies to all undertakings for collective investment subject to Part II of the Law of 17 December 2010, including those structured as investment companies with variable capital.</td></tr>
+              <tr><td>SRC-UCILAW-P1</td><td>Law of 17 December 2010 (mock excerpt)</td><td>For the purposes of this excerpt, “financial year-end” means the last day of the financial year stated in the constitutive documents of the undertaking for collective investment.</td></tr>
+              <tr><td>SRC-CNMV-P2</td><td>CNMV statistical reporting for foreign UCIs (mock excerpt)</td><td>The report may be submitted by a local reporting agent appointed by the undertaking.</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </section>
+
+      <!-- Finish the rule review: button always shown; server refuses with GATE_INCOMPLETE while rows are open -->
+      <section class="section" id="finish" aria-labelledby="finish-h">
+        <h2 id="finish-h">Finish the rule review</h2>
+        <form method="post" action="#">
+          <input type="hidden" name="run_version" value="12">
+          <p class="intro">When every row is decided, Stage B checks whether each approved rule applies to the fund. You cannot change rule decisions after this.</p>
+          <div class="actions"><button class="btn" type="submit">Finish rule review and start Stage B</button></div>
+        </form>
+      </section>
+
+      <p style="margin-top:40px"><a href="#">Abandon this run</a></p>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>
