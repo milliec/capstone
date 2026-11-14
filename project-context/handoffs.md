@@ -34,6 +34,20 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-030: ux.md follow-ups from the SAD update (DL-48, DL-19, DL-44)
+- From: @system.arch   To: @ux.designer   Date: 2026-11-14
+- Touches: 2.build/ux.md §5 (new `VALIDATION` sentence), page 4 items 3 and 8, page 6 item 6, page 7, UX-003, Open Questions 5, 6, 8 and 15, "Where ux.md and sad.md now disagree" D1 to D5
+- Ask: (1) Add a plain sentence for a decision submitted with no answer chosen (`VALIDATION`, DL-48), shown beside the form and in the top line. (2) With H-028, note the built field names (`decision`; `approve_reason` and `reject_reason`; one reason field per answer at G2; `decline_reason`) and that G3's two buttons post to their own routes with `formaction`. (3) Close Open Question 5 (DL-47 updated), Open Question 6 (DL-48: the server ignores the other answer's fields) and mark D1 to D5 as resolved in sad.md. (4) **D5, decided by the operator 2026-11-14:** show the quote-check result on **every** G1 rule, the demo rule included (SAD §3 page 4); change page 4 and UX-003, which say the demo rule shows no quote-check line. (5) **Open Question 15, decided by the operator 2026-11-14:** moved marks stay specialist-only; the General Partner's calendar has no "Moved off a weekend" card, chip, chart colour or legend entry, and the B12 charts follow the same rule (SAD §3 page 7, DL-49 update). The mock-up is already changed (`build.py`, `gp-calendar.html`); close the question.
+- Why: sad.md now matches the accepted decisions, so ux.md's disagreement list and open questions are out of date.
+- Outcome: (the owner fills this in)
+
+### H-029: Answer key: business-day conventions and G1 settings after the DL-19 update
+- From: @system.arch   To: @qa.eng   Date: 2026-11-14
+- Touches: 1.define/mock-data/expected-obligation-library.md §4, §5, conventions `D-4` and `D-6`; SAD EC-007; linked to H-024
+- Ask: Alongside H-024: (1) `D-4` lists three rules: roll forward, **roll backward** (to the preceding Luxembourg business day, skipping mock holidays) and no roll; "not confirmed" is only what the extractor reports for a silent source. (2) `D-6` is no longer reached by an approved row; mark it retired, or say so. (3) §5's expected G1 setting for `OBL-04` and `OBL-05` is "move to the preceding working day". (4) Counts: 22 entries, 6 moved off a weekend, 0 marked "roll rule unconfirmed" (SAD EC-007). **Must be done before the first evaluation run**, and before the B4 date test is written.
+- Why: SAD DL-19 (updated 2026-11-14) adds `roll_backward` and removes "not confirmed" as a G1 choice; the answer key is the evaluation's ground truth.
+- Outcome: (the owner fills this in)
+
 ### H-028: Update ux.md to the answer-first decision form (A9 reversed)
 - From: operator   To: @ux.designer   Date: 2026-11-14
 - Touches: 2.build/ux.md page 4 item 8 ("two separate forms side by side … no 'choose an answer first' control, no CSS `:has()` reveal"), page 5 item 7, page 6 item 6, and the component table row "Decision form"; H-011
@@ -83,78 +97,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Decision (operator, 2026-11-14): **In MVP, with limits.** U7 and U8 together get half a day of styling in total; drop anything that doesn't fit.
 - Outcome: **Partly done, stays open.** 2026-11-14, `@ux.designer`: `2.build/ux.md` §6 records the accepted look and points to `docs/prototype/app.css` as the look reference until the style note is updated. `style-note.md` itself is not updated yet (the operator asked for it to be left alone in this pass). Close this when it is.
 
-### H-012: Calendar has Month, Year and List views plus charts (A10)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: sad.md §3 page 7; estimate blocks B5, B6; see H-026 for scope
-- Ask: Decide whether the calendar page gains Month, Year and List views plus small charts (dot chart, bars, ring), or stays one read-only page for this build, with the extra views deferred.
-- Why: The SAD has one read-only calendar page, and the extra views don't fit the B5/B6 estimate.
-- Decision (operator, 2026-11-14): **In MVP, with limits.** Month and Year views and the charts are built last (after the first green path and B10), with a one-day timebox. Anything not done in that day is parked.
-- Outcome: (the owner fills this in)
-
-### H-011: Decision form: one form with two answers, revealed by CSS `:has()` (A9)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: 2.build/ux.md §4 "Decision form"; sad.md §3
-- Ask: Decide whether a decision may be one form with two answers whose fields appear after an answer is chosen (CSS `:has()`, no script), and what the fallback is where `:has()` is unsupported (HANDOVER suggests showing both answers' fields open).
-- Why: ux.md specifies a separate explicit form per action, and the server must still check that each submission carries only the chosen answer's fields.
-- Decision (operator, 2026-11-14): **Rejected, then reversed the same day.** First decision: keep one separate form per action; the mock-ups were changed to two forms side by side. After reviewing that layout, the operator **reversed it and adopted the answer-first pattern**: one form, the specialist picks the answer (Approve or Reject, Yes or No), and only that answer's fields appear (CSS `:has()`). Fallback: where `:has()` is unsupported, both answers' fields stay visible (`@supports` in `app.css`). Still no browser `required`: a missing field is refused by the server on the page (`BUSINESS_DAY_RULE_REQUIRED`, `REASON_REQUIRED`). Mock-ups updated (`build.py`, `app.css`): `review-rules.html`, `applicability.html`, `publish.html`; `add-fund.html` already used it. **For @system.arch:** a CSS-hidden field is still submitted, so the server must act on the chosen answer only and ignore the other answer's fields. In the mock-up both reason boxes are named `reason`, so the built forms need distinct field names. ux.md now disagrees again; see H-028.
-- Outcome: (the owner fills this in)
-
-### H-010: Calendar entries show the period they cover (A8)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: sad.md calendar entry data; 2.build/ux.md Open Question 8
-- Ask: Decide whether a calendar entry carries the period it covers (for example "For December 2026") as a new field, and where it comes from.
-- Why: It isn't a field on a calendar entry today, so showing it needs a data change, not just a template change.
-- Decision (operator, 2026-11-14): **Post-MVP stretch, after A10** (H-012). No sad.md change now.
-- Outcome: (the owner fills this in)
-
-### H-009: "Start a new review" is hidden while a review is open (A7)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: 2.build/ux.md §1.2; CR-004; `RUN_ACTIVE`
-- Ask: Decide whether the start control may be hidden (with an explanation) while a review is open, or must stay visible with the server refusing it (`RUN_ACTIVE`).
-- Why: ux.md §1.2 says controls are never hidden, and the server-side refusal must stay either way.
-- Decision (operator, 2026-11-14): **Fix in the mock-up (done for rule 7).** Nothing is pre-selected on any row, including the demo row. Approve is always visible and enabled. Clicking Approve on the demo row is refused by the server, which shows the message beside the row plus a top line with "Go to rule 7" and records the attempt in the audit trail, on the page and never as a browser pop-up. **"Start a new review" (decided 2026-11-14, same rule):** it stays visible. While a review is in progress the server refuses it (`RUN_ACTIVE`), shows the reason beside the button and records the attempt in the audit trail. This keeps ux.md §1.2 and CR-004 as they are, so no sad.md change. Mock-up updated (`build.py`, `frameworks.html`), with the refusal wording from ux.md §5 `RUN_ACTIVE` adjusted for U2 and U4.
-- Outcome: (the owner fills this in)
-
-### H-008: Two sources disagree: the specialist picks which one the rule follows (A5)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: SD AC-006; CR-007; `REASON_REQUIRED`; DL-22 (F-01)
-- Ask: Decide whether, when two sources disagree, the specialist may pick which source the rule follows (with a written reason) and then approve.
-- Why: Today, approving over a flag only needs a reason, and changing a rule's deadline counts as an edit, which DL-22 defers (F-01). Picking a source may be that deferred edit.
-- Decision (operator, 2026-11-14): **Post-MVP.** Choosing a source stays out (DL-22). When sources disagree, the specialist approves with a written reason despite the flag (the current rule) or rejects with a reason. Mock-up updated: rule 3's source picker is removed from `review-rules.html`, and the two quotes are shown read-only.
-- Outcome: (the owner fills this in)
-
-### H-007: Planted row shows "Quote found in the source" (A4)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: CR-029; linked to H-006 (A3)
-- Ask: Resolve the contradiction on rule 7: the mock-up shows a "Quote found in the source" chip and also says the rule "doesn't appear in the regulation text". Choose either the chip or the wording.
-- Why: The planted row passes the quote check by design (CR-029), so A3's wording may be what has to change.
-- Decision (operator, 2026-11-14): **Accepted.** The chip on the demo row says "Approval blocked", matching the refusal message. Already done in the mock-up (`build.py`, `review-rules.html`); record it with the DL-44 update in H-006.
-- Outcome: (the owner fills this in)
-
-### H-006: New wording for the planted row's refusal (A3)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: CR-029; DL-44; 2.build/ux.md §5 `DEMO_ROW_NOT_APPROVABLE`; linked to H-007 (A4)
-- Ask: Decide whether the refusal on rule 7 reads "Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason. Recorded in the audit trail." in place of the fixed sentence in DL-44.
-- Why: The sentence is fixed by DL-44 (an operator decision) and is probably checked by a test, and the new wording no longer says the row is a planted demo.
-- Decision (operator, 2026-11-14): **Accepted.** Use the plain refusal copy from the mock-ups. Log it as a DL-44 update (through the operator).
-- Outcome: (the owner fills this in)
-
-### H-005: No demo-row switch on the start form and no "Demo row on" tag (A2)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: CR-029; sad.md §3 page 2; `POST /specialist/runs`; T-DEMO-1
-- Ask: Decide whether the start form drops the demo-row switch (off by default) and run pages drop the "Demo row on" tag. If so, say how the planted row is switched on instead, since the counts in H-025 assume it is present.
-- Why: The switch and tag are part of the run-start contract and the demo path.
-- Decision (operator, 2026-11-14): **Prototype only, no rule change.** The prototype has the demo row on by default with no switch shown. The built app keeps the demo-row switch on the run-start form. No sad.md change; close with Outcome "no change".
-- Outcome: (the owner fills this in)
-
-### H-004: No "Stand-in agents" label (A1)
-- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
-- Touches: CR-030; 2.build/ux.md §1.3 item 4; UX-002
-- Ask: Decide whether the "Stand-in agents" label can be dropped from run pages and the GP calendar, or must stay while `AGENTS_MODE=stand_in`.
-- Why: CR-030 requires the label on every page showing a stand-in run, so the demo doesn't present stand-in output as real AI output.
-- Decision (operator, 2026-11-14): **Prototype only, no rule change.** The prototype omits the label. The built app must show it whenever `AGENTS_MODE=stand_in`, as sad.md says today. No sad.md change; close with Outcome "no change".
-- Outcome: (the owner fills this in)
-
 ### H-003: Add `aamad validate` to CI, and make `--no-verify` a stop-and-report
 - From: @system.arch (operator request)   To: @project.mgr   Date: 2026-11-13
 - Touches: setup.md (Git hooks section, and the "no CI code" line in the B1 scope), `.github/workflows/` (new), `requirements-dev.txt` (new, already created by @system.arch at the operator's request), `scripts/git-hooks/run-checks.sh`
@@ -170,6 +112,78 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-012: Calendar has Month, Year and List views plus charts (A10)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: sad.md §3 page 7; estimate blocks B5, B6; see H-026 for scope
+- Ask: Decide whether the calendar page gains Month, Year and List views plus small charts (dot chart, bars, ring), or stays one read-only page for this build, with the extra views deferred.
+- Why: The SAD has one read-only calendar page, and the extra views don't fit the B5/B6 estimate.
+- Decision (operator, 2026-11-14): **In MVP, with limits.** Month and Year views and the charts are built last (after the first green path and B10), with a one-day timebox. Anything not done in that day is parked.
+- Outcome: Done 2026-11-14 by `@system.arch`: DL-49; SAD §3 page 7 (List view default; Month and Year views and charts front end only), new block B12 after B10 with a one-day timebox, Build card "Time" and "Order" rows, "Order of work", build and drop order, F-19 for anything left over.
+
+### H-011: Decision form: one form with two answers, revealed by CSS `:has()` (A9)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: 2.build/ux.md §4 "Decision form"; sad.md §3
+- Ask: Decide whether a decision may be one form with two answers whose fields appear after an answer is chosen (CSS `:has()`, no script), and what the fallback is where `:has()` is unsupported (HANDOVER suggests showing both answers' fields open).
+- Why: ux.md specifies a separate explicit form per action, and the server must still check that each submission carries only the chosen answer's fields.
+- Decision (operator, 2026-11-14): **Rejected, then reversed the same day.** First decision: keep one separate form per action; the mock-ups were changed to two forms side by side. After reviewing that layout, the operator **reversed it and adopted the answer-first pattern**: one form, the specialist picks the answer (Approve or Reject, Yes or No), and only that answer's fields appear (CSS `:has()`). Fallback: where `:has()` is unsupported, both answers' fields stay visible (`@supports` in `app.css`). Still no browser `required`: a missing field is refused by the server on the page (`BUSINESS_DAY_RULE_REQUIRED`, `REASON_REQUIRED`). Mock-ups updated (`build.py`, `app.css`): `review-rules.html`, `applicability.html`, `publish.html`; `add-fund.html` already used it. **For @system.arch:** a CSS-hidden field is still submitted, so the server must act on the chosen answer only and ignore the other answer's fields. In the mock-up both reason boxes are named `reason`, so the built forms need distinct field names. ux.md now disagrees again; see H-028.
+- Outcome: Done 2026-11-14 by `@system.arch`: DL-48; SAD §3 shared decision form (answer-first, `:has()` with all-fields fallback, nothing preselected, no browser `required`, no pop-ups) and §4 (the server acts only on the chosen `decision` and ignores the other answer's fields; reason fields `approve_reason`, `reject_reason`, `<answer>_reason`, `decline_reason`; G3 buttons use `formaction` and must match `decision`; no answer → `VALIDATION`). ux.md follow-up in H-028 and H-030.
+
+### H-010: Calendar entries show the period they cover (A8)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: sad.md calendar entry data; 2.build/ux.md Open Question 8
+- Ask: Decide whether a calendar entry carries the period it covers (for example "For December 2026") as a new field, and where it comes from.
+- Why: It isn't a field on a calendar entry today, so showing it needs a data change, not just a template change.
+- Decision (operator, 2026-11-14): **Post-MVP stretch, after A10** (H-012). No sad.md change now.
+- Outcome: Done 2026-11-14 by `@system.arch`: no field added. Recorded as a post-MVP stretch after A10 in DL-49 and new Future Work F-19; this closes the period-field question (ux.md Open Question 8).
+
+### H-009: "Start a new review" is hidden while a review is open (A7)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: 2.build/ux.md §1.2; CR-004; `RUN_ACTIVE`
+- Ask: Decide whether the start control may be hidden (with an explanation) while a review is open, or must stay visible with the server refusing it (`RUN_ACTIVE`).
+- Why: ux.md §1.2 says controls are never hidden, and the server-side refusal must stay either way.
+- Decision (operator, 2026-11-14): **Fix in the mock-up (done for rule 7).** Nothing is pre-selected on any row, including the demo row. Approve is always visible and enabled. Clicking Approve on the demo row is refused by the server, which shows the message beside the row plus a top line with "Go to rule 7" and records the attempt in the audit trail, on the page and never as a browser pop-up. **"Start a new review" (decided 2026-11-14, same rule):** it stays visible. While a review is in progress the server refuses it (`RUN_ACTIVE`), shows the reason beside the button and records the attempt in the audit trail. This keeps ux.md §1.2 and CR-004 as they are, so no sad.md change. Mock-up updated (`build.py`, `frameworks.html`), with the refusal wording from ux.md §5 `RUN_ACTIVE` adjusted for U2 and U4.
+- Outcome: Done 2026-11-14 by `@system.arch`: confirmed, no rule change. The demo-row rule is now written out in CR-029 and DL-44's update (nothing preselected, Approve visible and enabled, `DEMO_ROW_NOT_APPROVABLE`, message beside the row plus a top line, audited, no browser pop-up). "Start a new review": CR-004, CR-023, `RUN_ACTIVE` and the §3 refusal rule already covered it; §3 page 2 now says it in one sentence.
+
+### H-008: Two sources disagree: the specialist picks which one the rule follows (A5)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: SD AC-006; CR-007; `REASON_REQUIRED`; DL-22 (F-01)
+- Ask: Decide whether, when two sources disagree, the specialist may pick which source the rule follows (with a written reason) and then approve.
+- Why: Today, approving over a flag only needs a reason, and changing a rule's deadline counts as an edit, which DL-22 defers (F-01). Picking a source may be that deferred edit.
+- Decision (operator, 2026-11-14): **Post-MVP.** Choosing a source stays out (DL-22). When sources disagree, the specialist approves with a written reason despite the flag (the current rule) or rejects with a reason. Mock-up updated: rule 3's source picker is removed from `review-rules.html`, and the two quotes are shown read-only.
+- Outcome: Done 2026-11-14 by `@system.arch`: DL-22 update (no choosing a source; approve over the flag with a reason, or reject and start a new review); SAD "Decisions in force", §3 page 4 (both quotes read-only), Future Work F-01.
+
+### H-007: Planted row shows "Quote found in the source" (A4)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: CR-029; linked to H-006 (A3)
+- Ask: Resolve the contradiction on rule 7: the mock-up shows a "Quote found in the source" chip and also says the rule "doesn't appear in the regulation text". Choose either the chip or the wording.
+- Why: The planted row passes the quote check by design (CR-029), so A3's wording may be what has to change.
+- Decision (operator, 2026-11-14): **Accepted.** The chip on the demo row says "Approval blocked", matching the refusal message. Already done in the mock-up (`build.py`, `review-rules.html`); record it with the DL-44 update in H-006.
+- Outcome: Done 2026-11-14 by `@system.arch`: recorded with the DL-44 update; CR-029 and §3 page 4 say the chip reads "Approval blocked" after a refused approval. The "demo" label stays (CR-029).
+
+### H-006: New wording for the planted row's refusal (A3)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: CR-029; DL-44; 2.build/ux.md §5 `DEMO_ROW_NOT_APPROVABLE`; linked to H-007 (A4)
+- Ask: Decide whether the refusal on rule 7 reads "Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason. Recorded in the audit trail." in place of the fixed sentence in DL-44.
+- Why: The sentence is fixed by DL-44 (an operator decision) and is probably checked by a test, and the new wording no longer says the row is a planted demo.
+- Decision (operator, 2026-11-14): **Accepted.** Use the plain refusal copy from the mock-ups. Log it as a DL-44 update (through the operator).
+- Outcome: Done 2026-11-14 by `@system.arch`: DL-44 update; CR-029 now carries the plain copy plus the line "Recorded in the audit trail." The old sentence is gone from sad.md.
+
+### H-005: No demo-row switch on the start form and no "Demo row on" tag (A2)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: CR-029; sad.md §3 page 2; `POST /specialist/runs`; T-DEMO-1
+- Ask: Decide whether the start form drops the demo-row switch (off by default) and run pages drop the "Demo row on" tag. If so, say how the planted row is switched on instead, since the counts in H-025 assume it is present.
+- Why: The switch and tag are part of the run-start contract and the demo path.
+- Decision (operator, 2026-11-14): **Prototype only, no rule change.** The prototype has the demo row on by default with no switch shown. The built app keeps the demo-row switch on the run-start form. No sad.md change; close with Outcome "no change".
+- Outcome: No change (as decided). SAD §3 now has one line confirming the built app keeps the demo-row switch on the run-start form.
+
+### H-004: No "Stand-in agents" label (A1)
+- From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
+- Touches: CR-030; 2.build/ux.md §1.3 item 4; UX-002
+- Ask: Decide whether the "Stand-in agents" label can be dropped from run pages and the GP calendar, or must stay while `AGENTS_MODE=stand_in`.
+- Why: CR-030 requires the label on every page showing a stand-in run, so the demo doesn't present stand-in output as real AI output.
+- Decision (operator, 2026-11-14): **Prototype only, no rule change.** The prototype omits the label. The built app must show it whenever `AGENTS_MODE=stand_in`, as sad.md says today. No sad.md change; close with Outcome "no change".
+- Outcome: No change (as decided). SAD §3 now has one line confirming the built app shows "Stand-in agents" whenever `AGENTS_MODE=stand_in`.
 
 ### H-013: Product name "Compliance calendar" under an "acme" wordmark (U1)
 - From: operator (design exploration)   To: @ux.designer   Date: 2026-11-14

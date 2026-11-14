@@ -28,6 +28,11 @@ The operator reviewed the PRD from a user-experience point of view.
 - **Considered**: having the agent assign the label. Rejected: the agent's verdict is "unsure"; only the
   specialist turns it into "applies (precautionary)".
 - **Changed**: PRD F5, F8 · US-011 criterion 5 (US-007 criteria 5 and 6 already covered G2).
+- **Amendment 2026-11-14 (operator, U5, H-017): on-screen wording only.** The label's on-screen
+  text is **"May not be required"**, and its reason is still shown. The documents, code and tests
+  keep the internal name "precautionary". The rule itself is unchanged: code applies the label
+  from the specialist's decision, never the model, and GP text must not imply permission.
+  **Changed**: SAD glossary (§3), CR-019, EC-014.
 
 ### DL-02 · Run status, and re-running a failed step
 
@@ -291,6 +296,23 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   here (confirmed by the operator; see DL-20). **Done 2026-11-11 by `@product-mgr`:** SD OQ-2 and
   KEY OQ-D1 resolved; US-009 OQ-US009-1 resolved. PRD OQ-7 and US-008 OQ-US008-1 are marked resolved
   for `OBL-04` and `OBL-05` only; their AED subscription-tax part stays open.
+- **Update 2026-11-14 (operator, U9 and Q1; H-021, H-024): "not confirmed" is no longer a G1
+  choice.** Approving a row needs one of three business-day rules: **move to the following working
+  day** (`roll_forward`), **move to the preceding working day** (`roll_backward`, new) or **keep
+  the date** (`no_roll`). Approving with none, or with `not_confirmed`, is refused
+  (`BUSINESS_DAY_RULE_REQUIRED`, DL-47 as updated). The principle stands: code never guesses or
+  defaults a rule; the specialist chooses it. The extractor may still report `not_confirmed` when
+  the source is silent (EC-003); the page shows that as "Not stated", never as a choice. Because
+  every approved row now has a rule, `D-6` (keep the earlier date and mark it) is no longer
+  reached, there is no "roll rule unconfirmed" mark, and the date code fails closed if an approved
+  row ever has no rule.
+- **Effect on expected results (replaces "none" above):** the specialist's scripted G1 choice for
+  `OBL-04` and `OBL-05` is "move to the preceding working day", so their two filings due
+  **Sun 28 Feb 2027 move to Fri 26 Feb 2027**. Still **22** entries; **6** moved off a weekend
+  (was 4); **0** marked "roll rule unconfirmed" (was 2). **Changed**: SAD W-07, W-13, CR-027,
+  agent card 1 enum, §3 pages 4 and 6, §4 `row_decisions` and refusal table, policy file, EC-007,
+  demo script step 4. **Still to do by `@qa.eng`** (H-024, H-029): answer key §4, §5 and
+  conventions `D-4`, `D-6`, before the first evaluation run.
 
 ### DL-20 · An open convention is marked, never silently resolved
 
@@ -400,6 +422,12 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   starting list, these were also marked: FR-005 and FR-006 edit parts, AC-030's re-run part, US-001
   criterion 9, and US-015 criteria 11–13 and 18 and the restart note. Kept in the MVP: US-015 criteria 9
   and 10 (a failed unit is named, the gate stays closed).
+- **Update 2026-11-14 (operator, A5, H-008): no choosing a source.** When two sources disagree,
+  the specialist cannot pick which source a rule follows: that would change the rule, which is the
+  deferred edit (FR-006 edit part). The specialist approves over the flag with a written reason
+  (CR-007, as today), or rejects with a reason and starts a new review. Picking a source is
+  **Future scope**. Both quotes stay read-only at G1. **Changed**: SAD "Decisions in force"
+  (DL-22 line), Future Work F-01.
 
 ### DL-23 · Evaluation: three passing runs, and names graded by the specialist
 
@@ -934,6 +962,16 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   keeps the same decision form (the SAD allows no disabled buttons).
 - **Changed**: SAD planted-row note, §3 page 4, CR-029, demo script step 5, SOQ-18;
   `approval-map.md` Card G1 and §6 recovery row.
+- **Update 2026-11-14 (operator, A3, A4, A7; H-006, H-007, H-009): plain refusal copy.** The
+  refusal sentence becomes **"Approval blocked: no legal basis. This rule doesn't appear in the
+  regulation text. Reject it with a reason."** followed by the line **"Recorded in the audit
+  trail."** It replaces "This is a planted demo row. It cannot be approved. Reject it with a
+  reason." After a refused approval the row's status chip reads **"Approval blocked"**, matching
+  the message; the "demo" label stays (CR-029). Confirmed rule (A7): nothing is preselected on
+  any row, the demo row included; Approve is always visible and enabled; the server refuses with
+  `DEMO_ROW_NOT_APPROVABLE`; the message appears beside the row and as a short line at the top of
+  the page; the attempt is audited; no browser pop-up is used. **Changed**: SAD CR-029, §3
+  page 4, "Decisions in force".
 
 ### DL-45 · Evaluation copy cases are separate harness calls
 
@@ -968,6 +1006,51 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   selection would either block silently or be filled in by default, which is a guess.
 - **Changed**: SAD §4 refusal-code table; `approval-map.md` new row H2a (**Never**). The message
   wording stays in `2.build/ux.md`.
+- **Update 2026-11-14 (operator, U9; H-021; closes ux.md Open Question 5):** "not confirmed" **no
+  longer counts as a choice** (DL-19 as updated). The only accepted rules are `roll_forward`,
+  `roll_backward` and `no_roll`; an empty selection or `not_confirmed` on Approve is refused. On
+  Reject, any business-day field is ignored (DL-48). **Changed**: SAD §4 refusal table, the AT_G1
+  row of "Transitions and guards"; `approval-map.md` H2a.
+
+### DL-48 · Decision forms are answer-first: one form per item, the answer chosen first
+
+- **Decision** (operator, 2026-11-14; A9 reversed, H-011): each row, verdict and calendar has
+  **one** decision form. The specialist first chooses the answer (for example Approve or Reject),
+  and only that answer's fields and button are shown (CSS `:has()`, no script). **Fallback**: where
+  `:has()` is unsupported, every answer's fields stay visible. Nothing is preselected, and there are
+  no browser `required` checks: a missing field is refused by the server on the page.
+- **Rules for the server**, because a field hidden by CSS is still submitted:
+  1. The chosen answer is the form's `decision` value. The server **acts only on that answer and
+     ignores the other answer's fields**. No `decision` → `VALIDATION`, audited, shown on the page.
+  2. Each answer's reason field has its **own name** (`approve_reason`, `reject_reason`; at G2
+     one per answer), so the two cannot overwrite each other. The mock-ups name both `reason`;
+     the built forms must not.
+  3. G3 keeps its two routes. Each button posts to its own route (`formaction`, plain HTML), and
+     the form's `decision` must match the route, or the request is refused (`VALIDATION`).
+- **Why**: the operator preferred the answer-first layout after reviewing two forms side by side.
+  The rules keep a hidden field from ever deciding anything.
+- **Considered**: two separate forms side by side (decided first on 2026-11-14, then reversed).
+- **Changed**: SAD §3 (shared decision form part, pages 4 to 6), §4 routes and validation.
+  `2.build/ux.md` is updated by `@ux.designer` (H-028).
+
+### DL-49 · The calendar's Month and Year views and charts are in the MVP, built last
+
+- **Decision** (operator, 2026-11-14; A10, H-012): the calendar page gains **Month and Year views
+  and small charts** (dot chart, bars, ring). **Front end only**: templates and the stylesheet, no
+  new table, field, service function or model call. They are **built last**, after the first green
+  path and B10, with a **one-day timebox**; anything not done in that day is parked. The List view
+  stays the default and is the one every test and the demo rely on.
+- **Not now** (A8, H-010): a "period covered" line on calendar entries (for example "For December
+  2026") needs a new data field. It is a **post-MVP stretch, after A10**. No field is added now.
+- **Why**: the operator wants the richer calendar in the demo, but not at the cost of the green
+  path or the acceptance pass.
+- **Update 2026-11-14 (operator, second pass):** moved marks stay specialist-only, so the GP
+  calendar shows no "Moved off a weekend" card, count, chip or chart colour, and the B12 charts
+  follow the same rule (CR-012). The mock-up `gp-calendar.html` was changed to match (`build.py`).
+  Separately, block **B6 rises from 0.25 to 0.5 days** for the new shell and look (U7, U8; H-019,
+  H-020), so the estimate is about 6.25 days likely, about 7.25 with B12 (refines DL-42).
+- **Changed**: SAD §3 page 7, Estimate (new block B12, build order, drop order), Build card
+  "Order" row, "Order of work", Future Work F-19.
 
 ---
 
@@ -1040,3 +1123,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-12 · persona `system-arch` (at the operator's instruction) · action `update` · DL-42 (capacity 5 days planned, 8 days hard stop; test tiers; day-3 tripwire [superseded 2026-11-13: the tripwire is now "the first stand-in green path has not passed by the end of day 4", SOQ-30; see the 2026-11-13 entry]; hosted demo parked; US$5 kept for rehearsal and demo), DL-43 (one timeout rule), DL-44 (demo row Approve stays visible and is refused by the server), DL-45 (evaluation copy cases as separate harness calls), DL-46 (run phase); operator decisions from the final SAD review. Follow-up for `@product-mgr`: PRD A-9 wording (SAD SOQ-6)
 - 2026-11-13 · persona `system-arch` (at the operator's instruction, final pre-Build polish) · action `update` · DL-42 refined: items 7 (EC-015, EC-019 and T-MODE-1 to Tier 1; T-MAP-1 not dropped with Tier 2), 8 (first stand-in green path before DL-40 is pinned and before the B3 spike, which moves after B7) and 9 (tripwire moved from day 3 real Stage A rows to day 4 green path, SAD SOQ-30 resolved); DL-31 now states that the planted row's Approve button stays visible and the server refuses it (DL-44). No new DL number
 - 2026-11-13 · persona `system-arch` (at the operator's instruction; ux.md Open Question 5) · action `update` · DL-47 (approving a row with no business-day rule is refused as `BUSINESS_DAY_RULE_REQUIRED`, audited, plain message); operator decision
+- 2026-11-14 · persona `system-arch` (at the operator's instruction; design exploration, `project-context/handoffs.md` H-004 to H-012, H-017, H-021, H-024) · action `update` · DL-01 amendment (on-screen "May not be required", U5); DL-19 update (no "not confirmed" at G1, new `roll_backward`, the two 28 Feb 2027 filings move to Fri 26 Feb; U9, Q1); DL-22 update (no choosing a source, A5); DL-44 update (plain refusal copy, "Approval blocked" chip, confirmed A7 rule); DL-47 update ("not confirmed" no longer a choice); new DL-48 (answer-first decision forms, A9 reversed) and DL-49 (Month and Year views and charts last, one-day timebox, A10; period line post-MVP, A8). A1 and A2 are prototype-only and need no entry; operator decisions
+- 2026-11-14 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-49 update: moved marks specialist-only on the GP calendar and in the B12 charts; B6 0.25 → 0.5 days for U7 and U8 (refines DL-42). D5 (quote-check result shown on every G1 row, the demo row included) is recorded in the SAD §3 page 4 and handed to `@ux.designer` (H-030); no DL entry, as it restores what the SAD already said; operator decisions
