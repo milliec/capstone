@@ -1,0 +1,298 @@
+/* app.css: app sheet for the design mock-ups in docs/prototype/.
+ *
+ * Load order (from project-context/2.build/style-note.md):
+ *   1. Inter + Inter Tight from Google Fonts
+ *   2. ../assets/editorial.css   (shared tokens and base)
+ *   3. this file                 (app tokens + app components)
+ *
+ * Design mock-ups only. No JavaScript, no logic. Every button is visible and enabled;
+ * in the real app the server refuses a click it does not allow (ux.md §1.2).
+ *
+ * Sections:
+ *   1. App tokens (copied from the style note)
+ *   2. Shell: demo strip, header, sidebar, main
+ *   3. Type and page furniture: titles, run labels, stepper, intro text
+ *   4. Chips (status words on pale washes)
+ *   5. Summary cards and tables
+ *   6. Row card (G1): quote, check, paragraph, flag, fields, decision forms
+ *   7. Forms and buttons
+ *   8. Refusal alert ("Not done")
+ *   9. Month grid and GP entries table
+ *  10. Mock-up notes (not product UI)
+ *  11. Small screens
+ */
+
+/* 1. App tokens ---------------------------------------------------------- */
+:root {
+  /* Contrast fixes. Also applied in editorial.css; kept here as the style note asks. */
+  --muted: #5c5c5c;
+  --accent-text: #b33d12;
+
+  --status-approved-text: #1f5a32;
+  --status-approved-bg: #e6efe8;
+  --status-published-text: #1b4d30;
+  --status-published-bg: #e7f0ea;
+  --status-rejected-text: #8a2c18;
+  --status-rejected-bg: #f8e6e0;
+  --status-waiting-text: #5c5c5c;
+  --status-waiting-bg: #f5f5f5;
+  --status-flag-text: #6b5420;
+  --status-flag-bg: #f3ead4;
+  --status-refused-text: #8b1e12;
+  --status-refused-bg: #f3d8d1;
+
+  --r-input: 3px;
+  --sidebar-width: 240px;
+  --page-max-width: 1200px;
+  --button-padding: 10px 20px;
+}
+
+/* 2. Shell --------------------------------------------------------------- */
+
+/* Demo strip: always the first thing on the page (ux.md §1.3, item 1). */
+.demo-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding: 10px 24px; background: var(--paper); border-bottom: 1px solid var(--rule);
+  font-size: 14px; line-height: 1.43; color: var(--ink-2);
+}
+.demo-label {
+  display: inline-block; font: 500 13px/1 var(--font-body); color: var(--accent-2);
+  background: var(--band); border-radius: var(--r-tag); padding: 6px 12px; white-space: nowrap;
+}
+
+/* Header: product name, fund, who is signed in, sign out. */
+.app-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+  padding: 16px 24px; border-bottom: 1px solid var(--rule); background: var(--paper);
+}
+.app-head .brand { font-size: 18px; }
+.app-head .fund { font-size: 14px; color: var(--muted); margin-left: 12px; }
+.app-head .who { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--ink-2); }
+.app-head .who b { font-weight: 500; color: var(--ink); }
+.app-head form { margin: 0; }
+
+/* Two-column shell: sidebar + main. The GP page uses .shell.no-side. */
+.shell { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: calc(100vh - 110px); }
+.shell.no-side { grid-template-columns: minmax(0, 1fr); }
+.side { background: var(--band); padding: 32px 24px; }
+.side ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.side a { font: 400 16px/1.25 var(--font-head); letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
+.side a:hover, .side a[aria-current="page"] {
+  text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 5px;
+}
+.main { padding: 40px 40px 96px; min-width: 0; }
+.main-inner { max-width: var(--page-max-width); margin: 0 auto; }
+.no-side .main-inner { max-width: 1040px; }
+
+/* 3. Type and page furniture --------------------------------------------- */
+
+/* Override editorial's hero-sized h1 with the app scale (32px / 1.19). */
+.app h1 { font: 400 32px/1.19 var(--font-head); letter-spacing: -0.02em; color: var(--ink); margin: 0; max-width: none; }
+.app h2 { font: 400 22px/1.2 var(--font-head); letter-spacing: -0.02em; color: var(--ink); margin: 0; }
+.app h3 { font: 400 18px/1.25 var(--font-head); letter-spacing: -0.01em; color: var(--ink); margin: 0; }
+.app p { margin: 0; }
+
+.title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.run-labels { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Run labels are neutral text tags ("Stand-in agents", "Demo row on"). */
+.label { display: inline-block; font: 500 13px/1 var(--font-body); color: var(--ink-2); background: var(--nest); box-shadow: inset 0 0 0 1px var(--rule); border-radius: var(--r-tag); padding: 6px 12px; white-space: nowrap; }
+
+/* Stepper: quiet typographic steps. Current step = ink + accent underline. */
+.stepper { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 4px; font: 400 15px/1.3 var(--font-head); letter-spacing: -0.01em; }
+.stepper li { display: inline-flex; align-items: baseline; gap: 6px; color: var(--muted); }
+.stepper li + li::before { content: "→"; color: var(--muted); margin: 0 6px 0 2px; }
+.stepper .state { font: 500 12px/1 var(--font-body); color: var(--muted); }
+.stepper .done a, .stepper .done { color: var(--ink-2); }
+.stepper [aria-current="step"] { color: var(--ink); }
+.stepper [aria-current="step"] a { text-decoration-thickness: 2px; text-underline-offset: 5px; }
+.stepper [aria-current="step"] .state { color: var(--ink); }
+
+.page-head { padding-bottom: 32px; border-bottom: 1px solid var(--rule); margin-bottom: 32px; }
+.intro { max-width: 72ch; margin-top: 24px !important; color: var(--ink-2); }
+.meta { font-size: 14px; line-height: 1.43; color: var(--muted); }
+.section { margin-top: 56px; }
+.section > h2 { margin-bottom: 8px; }
+.section > .intro { margin-top: 8px !important; margin-bottom: 20px; }
+
+/* 4. Chips: always a word, dark text on a pale wash ----------------------- */
+.chip { display: inline-block; font: 500 12px/1.2 var(--font-body); padding: 4px 10px; border-radius: var(--r-tag); white-space: nowrap; border: 1px solid transparent; vertical-align: 1px; }
+.chip.wait    { color: var(--status-waiting-text);  background: var(--status-waiting-bg);  border-color: var(--rule); }
+.chip.ok      { color: var(--status-approved-text); background: var(--status-approved-bg); }
+.chip.pub     { color: var(--status-published-text); background: var(--status-published-bg); }
+.chip.rej     { color: var(--status-rejected-text); background: var(--status-rejected-bg); }
+.chip.flag    { color: var(--status-flag-text);     background: var(--status-flag-bg); }
+.chip.refused { color: var(--status-refused-text);  background: var(--status-refused-bg); }
+/* The "Demo" row tag matches the demo label: --accent-2 on --band. */
+.chip.demo    { color: var(--accent-2); background: var(--band); }
+
+/* 5. Summary cards and tables -------------------------------------------- */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); margin-top: 32px; }
+.kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-figure); padding: 20px 24px 22px; }
+.kpi .k { font-size: 14px; line-height: 1.43; color: var(--muted); }
+.kpi .v { font: 400 32px/1.19 var(--font-head); letter-spacing: -0.02em; color: var(--ink); margin-top: 8px; }
+.kpi .v.small { font-size: 22px; line-height: 1.3; }
+
+.table-card { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-card); overflow: hidden; }
+.table-card .table-wrap { margin: 0; }
+.app table { font-size: 14px; line-height: 1.43; }
+.app th { font: 500 14px/1.43 var(--font-body); color: var(--ink-2); letter-spacing: 0; background: var(--nest); }
+.app th, .app td { padding: 12px 16px; }
+.app tbody tr:last-child td { border-bottom: 0; }
+.app td a { font-weight: 500; }
+.num { font-variant-numeric: tabular-nums; }
+
+.progress b { font-weight: 500; color: var(--ink); }
+
+/* 6. Row card ------------------------------------------------------------ */
+.row-card { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-card); padding: 32px 36px 36px; margin-top: var(--gap); scroll-margin-top: 24px; }
+.row-card .eyebrow-line { font: 400 14px/1.43 var(--font-body); color: var(--muted); margin-bottom: 6px; }
+.row-card .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.row-card .part { margin-top: 28px; }
+.app .part-title { font: 500 14px/1.43 var(--font-body); letter-spacing: 0; color: var(--muted); margin-bottom: 8px; } /* small label, not a heading-sized h3 */
+
+/* The quote: evidence, set apart from interface text by size and a thin rule. */
+.quote { margin: 0; padding: 4px 0 4px 20px; border-left: 2px solid var(--ink); font: 400 20px/1.4 var(--font-head); letter-spacing: -0.01em; color: var(--ink); max-width: 60ch; }
+.quote-cap { margin-top: 8px; }
+
+.check { display: flex; gap: 12px; align-items: baseline; max-width: 80ch; }
+
+.para { background: var(--nest); border-radius: var(--r-card); padding: 16px 20px; max-width: 80ch; }
+.para p { color: var(--ink-2); }
+
+/* Flag: the two texts side by side so the conflict reads at a glance (DL-03). */
+.flag-box { border: 1px solid var(--rule); border-radius: var(--r-card); padding: 18px 20px 20px; max-width: 80ch; }
+.flag-box h3 { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 16px; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+.compare > div { background: var(--nest); border-radius: var(--r-card); padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+.compare b { display: block; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+
+.fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 32px; margin: 0; max-width: 80ch; }
+.fields dt { font-size: 14px; color: var(--muted); padding-top: 1px; }
+.fields dd { margin: 0; color: var(--ink); }
+
+.oq-note { border-left: 3px solid var(--accent); background: var(--nest); padding: 12px 16px; max-width: 80ch; border-radius: var(--r-card); color: var(--ink); }
+
+/* Decision: two separate forms side by side; approve wider than reject. */
+.decide { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 0; margin-top: 32px; border-top: 1px solid var(--ink); }
+.decide form { margin: 0; padding: 24px 28px 0 0; }
+.decide form + form { padding: 24px 0 0 28px; border-left: 1px solid var(--rule); }
+
+.decided { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--rule); display: grid; gap: 10px; }
+.decided p { color: var(--ink-2); }
+.decided b { font-weight: 500; color: var(--ink); }
+
+/* 7. Forms and buttons --------------------------------------------------- */
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { font: 400 18px/1.25 var(--font-head); letter-spacing: -0.01em; color: var(--ink); padding: 0; margin-bottom: 16px; }
+.q-group { margin-top: 18px; }
+.q-group:first-of-type { margin-top: 0; }
+.q-label { display: block; font: 500 16px/1.5 var(--font-body); color: var(--ink); margin-bottom: 4px; }
+legend.q-label { font: 500 16px/1.5 var(--font-body); letter-spacing: 0; margin-bottom: 4px; } /* a question inside a form, not the form's title */
+.hint { font-size: 14px; line-height: 1.43; color: var(--muted); margin: 0 0 8px; max-width: 60ch; }
+.radios { display: grid; gap: 4px; }
+.radios label { display: flex; gap: 10px; align-items: flex-start; min-height: 28px; padding: 2px 0; cursor: pointer; color: var(--ink); }
+.radios input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--ink); flex: none; }
+.radios.cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
+textarea {
+  display: block; width: 100%; min-height: 96px; resize: vertical;
+  font: 400 16px/1.5 var(--font-body); color: var(--ink);
+  background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-input); padding: 10px 12px;
+}
+textarea:hover { border-color: var(--muted); }
+.actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+/* Primary button: ink fill, paper text, sharp corners. Secondary = editorial .ghost. */
+.btn { font: 400 16px/1 var(--font-head); letter-spacing: -0.02em; color: var(--paper); background: var(--ink); border: 1px solid var(--ink); border-radius: 0; padding: var(--button-padding); cursor: pointer; }
+.btn:hover { background: #000; }
+.ghost.small, .btn.small { padding: 8px 14px; font-size: 15px; }
+.btn, .ghost { white-space: nowrap; } /* "Sign out" wrapped onto two lines at phone width */
+
+/* 8. Refusal alert ------------------------------------------------------- */
+.alert { background: var(--warm); border-radius: var(--r-card); box-shadow: inset 3px 0 0 var(--accent); padding: 16px 20px 18px 24px; color: var(--ink); max-width: 80ch; }
+.alert h2, .alert .alert-title { font: 400 18px/1.25 var(--font-head); letter-spacing: -0.01em; color: var(--accent-text); margin: 0 0 6px; }
+.alert p + p { margin-top: 8px; }
+.alert.top { margin-top: 28px; }
+/* Short top line for a refusal about one card: one line, same accent bar, less weight than the full box. */
+.alert.short { padding: 10px 16px 10px 20px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.alert.in-card { margin-top: 24px; }
+
+/* Plain notes (calendar note, info lines): neutral, no accent. */
+.note { background: var(--nest); border-radius: var(--r-card); padding: 14px 18px; color: var(--ink); max-width: 80ch; }
+
+/* 9. Month grid and GP entries ------------------------------------------- */
+/* One month per row: two side by side made day cells ~67px wide and entries wrapped word by word. */
+.months { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); margin-top: 20px; }
+figure.month { margin: 0; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-figure); padding: 20px 20px 16px; }
+.month table { table-layout: fixed; background: transparent; }
+.month caption { text-align: left; font: 400 18px/1.25 var(--font-head); letter-spacing: -0.01em; color: var(--ink); padding: 0 0 12px; }
+.month th { background: transparent; font: 500 12px/1.2 var(--font-body); color: var(--muted); padding: 6px 6px; text-align: left; border-bottom: 1px solid var(--rule); }
+.month td { padding: 6px; height: 74px; border: 1px solid var(--rule); border-width: 0 0 1px 0; vertical-align: top; }
+.month td + td { border-left: 1px solid var(--rule); }
+.month tbody tr:last-child td { border-bottom: 0; }
+.month .d { font: 400 14px/1 var(--font-head); color: var(--ink-2); }
+.month .dow { display: none; }
+.month .out .d { color: transparent; }
+.month .due-next { background: var(--warm); }
+.month .due-next .d { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.month .next-word { display: block; font: 500 11px/1.2 var(--font-body); color: var(--ink); margin-top: 4px; }
+.month .e { display: block; margin-top: 6px; font-size: 12px; line-height: 1.3; color: var(--ink); }
+.month .e small { display: block; font-size: 11px; color: var(--muted); }
+.month .e .chip { font-size: 11px; padding: 2px 6px; margin-top: 3px; }
+
+.entries tbody th[scope="rowgroup"] { background: var(--paper); font: 400 18px/1.25 var(--font-head); letter-spacing: -0.01em; color: var(--ink); padding-top: 28px; border-bottom: 1px solid var(--ink); }
+.entries tbody:first-of-type th[scope="rowgroup"] { padding-top: 16px; }
+.entries td { vertical-align: top; }
+.entries .when { white-space: nowrap; font-weight: 500; color: var(--ink); }
+.entries .why p + p { margin-top: 6px; }
+.entries .src { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.entries blockquote { margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--rule); font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.entries .precaution { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+.entries tbody tr:last-child td { border-bottom: 1px solid var(--rule); }
+
+/* 10. Mock-up notes: dashed, so nobody mistakes them for product UI ------- */
+.mock-note { border: 1px dashed var(--muted); border-radius: var(--r-card); padding: 12px 16px; margin-top: var(--gap); font-size: 14px; line-height: 1.43; color: var(--muted); max-width: 80ch; }
+.mock-note b { font-weight: 500; color: var(--ink-2); }
+
+/* 11. Small screens ------------------------------------------------------ */
+@media (max-width: 1100px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .decide { grid-template-columns: minmax(0, 1fr); }
+  .decide form + form { padding: 24px 0 0; border-left: 0; border-top: 1px solid var(--rule); margin-top: 28px; }
+  .decide form { padding-right: 0; }
+}
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .side { padding: 12px 20px; }
+  .side ul { display: flex; gap: 20px; }
+  .main { padding: 28px 20px 72px; }
+  .months { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .compare, .radios.cols, .kpis, .kpis.three { grid-template-columns: minmax(0, 1fr); }
+  .row-card { padding: 24px 18px 28px; }
+  .fields { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .fields dd { margin-bottom: 10px; }
+}
+/* Phone (≤ 480px): GP calendar tables stack, each row a block with visible labels (ux.md page 7). */
+@media (max-width: 480px) {
+  .demo-strip, .app-head { padding-left: 16px; padding-right: 16px; }
+  .main { padding: 24px 16px 64px; }
+  .app h1 { font-size: 28px; }
+
+  .entries thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .entries, .entries tbody, .entries tr, .entries td, .entries th { display: block; width: 100%; }
+  .entries tr { padding: 14px 16px; border-bottom: 1px solid var(--rule); }
+  .entries td { padding: 4px 0; border: 0; }
+  .entries td::before { content: attr(data-label); display: block; font: 500 12px/1.3 var(--font-body); color: var(--muted); }
+  .entries td.when { font-size: 16px; }
+  .entries tbody th[scope="rowgroup"] { padding: 20px 16px 8px; }
+
+  /* Month grid becomes a list of the days that have entries. */
+  .month thead { display: none; }
+  .month table, .month tbody, .month tr, .month td { display: block; width: 100%; height: auto; }
+  .month td { border: 0 !important; border-top: 1px solid var(--rule) !important; padding: 10px 4px; }
+  .month td:not(.has) { display: none; }
+  .month caption { display: block; width: 100%; } /* otherwise it shrinks and "January 2027" wraps */
+  .month .dow { display: inline; }
+}

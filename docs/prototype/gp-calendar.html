@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Design mock-up only. GP calendar, published state. ux.md page 7; style-note.md "Week-grid calendar".
+     Dates and parties from project-context/1.define/mock-data/expected-obligation-library.md §4 and §5. -->
+<title>Compliance calendar · Obligations calendar (demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/editorial.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="app">
+
+<div class="demo-strip">
+  <span class="demo-label">Demo with mock data</span>
+</div>
+
+<header class="app-head">
+  <div><span class="brand">Obligations calendar</span><span class="fund">Bramblegate Credit Opportunities SICAV</span></div>
+  <div class="who">
+    <span>Signed in as <b>GP, Bramblegate Partners (mock)</b></span>
+    <form method="post" action="#"><button class="ghost small" type="submit">Sign out</button></form>
+  </div>
+</header>
+
+<!-- The GP has no navigation: the calendar is their only page. -->
+<div class="shell no-side">
+  <main class="main" id="main">
+    <div class="main-inner">
+
+      <div class="page-head">
+        <h1>Compliance calendar</h1>
+        <p class="intro" style="margin-top:16px !important">Published on Fri 13 Nov 2026. Made with stand-in agents (fixed test outputs, no AI model).</p>
+
+        <!-- DL-12 calendar note: one fixed sentence. -->
+        <p class="note" style="margin-top:20px">This calendar is not legal advice, and its date conventions have not yet been checked against the legal texts.</p>
+
+        <div class="kpis three" aria-label="Summary">
+          <div class="kpi"><div class="k">Entries in 2027</div><div class="v num">22</div></div>
+          <div class="kpi"><div class="k">Due next</div><div class="v small">Mon 11 Jan 2027</div></div>
+          <div class="kpi"><div class="k">Precautionary</div><div class="v num">4</div></div>
+        </div>
+      </div>
+
+      <!-- Week grid: the next two months (style note). Status is in words; "Due next" is a word plus a warm wash. -->
+      <section aria-labelledby="months-h">
+        <h2 id="months-h">The next two months</h2>
+        <div class="months">
+
+          <figure class="month">
+            <table>
+              <caption>January 2027</caption>
+              <thead><tr>
+                <th scope="col" abbr="Monday">Mon</th><th scope="col" abbr="Tuesday">Tue</th><th scope="col" abbr="Wednesday">Wed</th><th scope="col" abbr="Thursday">Thu</th><th scope="col" abbr="Friday">Fri</th><th scope="col" abbr="Saturday">Sat</th><th scope="col" abbr="Sunday">Sun</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="out"><span class="d">28</span></td><td class="out"><span class="d">29</span></td><td class="out"><span class="d">30</span></td><td class="out"><span class="d">31</span></td><td><span class="d">1</span></td><td><span class="d">2</span></td><td><span class="d">3</span></td></tr>
+                <tr><td><span class="d">4</span></td><td><span class="d">5</span></td><td><span class="d">6</span></td><td><span class="d">7</span></td><td><span class="d">8</span></td><td><span class="d">9</span></td><td><span class="d">10</span></td></tr>
+                <tr>
+                  <td class="has due-next"><span class="d"><span class="dow">Mon </span>11<span class="dow"> Jan</span></span><span class="next-word">Due next</span><span class="e">Monthly report U1.1<small>Fund administrator</small></span></td>
+                  <td><span class="d">12</span></td><td><span class="d">13</span></td><td><span class="d">14</span></td><td><span class="d">15</span></td><td><span class="d">16</span></td><td><span class="d">17</span></td>
+                </tr>
+                <tr>
+                  <td><span class="d">18</span></td><td><span class="d">19</span></td>
+                  <td class="has"><span class="d"><span class="dow">Wed </span>20<span class="dow"> Jan</span></span><span class="e">Subscription tax return and payment<small>Fund administrator</small></span></td>
+                  <td><span class="d">21</span></td><td><span class="d">22</span></td><td><span class="d">23</span></td><td><span class="d">24</span></td>
+                </tr>
+                <tr><td><span class="d">25</span></td><td><span class="d">26</span></td><td><span class="d">27</span></td><td><span class="d">28</span></td><td><span class="d">29</span></td><td><span class="d">30</span></td><td><span class="d">31</span></td></tr>
+              </tbody>
+            </table>
+          </figure>
+
+          <figure class="month">
+            <table>
+              <caption>February 2027</caption>
+              <thead><tr>
+                <th scope="col" abbr="Monday">Mon</th><th scope="col" abbr="Tuesday">Tue</th><th scope="col" abbr="Wednesday">Wed</th><th scope="col" abbr="Thursday">Thu</th><th scope="col" abbr="Friday">Fri</th><th scope="col" abbr="Saturday">Sat</th><th scope="col" abbr="Sunday">Sun</th>
+              </tr></thead>
+              <tbody>
+                <tr><td><span class="d">1</span></td><td><span class="d">2</span></td><td><span class="d">3</span></td><td><span class="d">4</span></td><td><span class="d">5</span></td><td><span class="d">6</span></td><td><span class="d">7</span></td></tr>
+                <tr>
+                  <td><span class="d">8</span></td><td><span class="d">9</span></td>
+                  <td class="has"><span class="d"><span class="dow">Wed </span>10<span class="dow"> Feb</span></span><span class="e">Monthly report U1.1<small>Fund administrator</small></span></td>
+                  <td><span class="d">11</span></td><td><span class="d">12</span></td><td><span class="d">13</span></td><td><span class="d">14</span></td>
+                </tr>
+                <tr><td><span class="d">15</span></td><td><span class="d">16</span></td><td><span class="d">17</span></td><td><span class="d">18</span></td><td><span class="d">19</span></td><td><span class="d">20</span></td><td><span class="d">21</span></td></tr>
+                <tr>
+                  <td><span class="d">22</span></td><td><span class="d">23</span></td><td><span class="d">24</span></td><td><span class="d">25</span></td><td><span class="d">26</span></td><td><span class="d">27</span></td>
+                  <td class="has"><span class="d"><span class="dow">Sun </span>28<span class="dow"> Feb</span></span>
+                    <span class="e">Beneficial-owner update<small>AIFM</small></span>
+                    <span class="e">Statistical report A01 (Spain)<small>Local reporting agent (Spain)</small><span class="chip flag">Precautionary</span></span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </figure>
+
+        </div>
+      </section>
+
+      <!-- Entries: a real table sorted by due date, grouped by month. Stacks into blocks at ≤ 480px. -->
+      <section class="section" aria-labelledby="entries-h">
+        <h2 id="entries-h" style="margin-bottom:16px">All entries for 2027</h2>
+        <div class="table-card"><div class="table-wrap">
+          <table class="entries">
+            <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Who files</th><th scope="col">Why</th></tr></thead>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">January 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Mon 11 Jan 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For December 2026</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Wed 20 Jan 2027</td>
+                <td data-label="What">Subscription tax return and payment to the AED<div class="meta">For October to December 2026</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is established in Luxembourg.</p><p class="src">Source: Law of 17 December 2010 (mock excerpt), paragraph SRC-UCILAW-P2</p><blockquote>within 20 calendar days following the end of each calendar quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">February 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Wed 10 Feb 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For January 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Sun 28 Feb 2027</td>
+                <td data-label="What">Beneficial-owner information update to the Luxembourg Business Registers</td>
+                <td data-label="Who files">AIFM</td>
+                <td class="why" data-label="Why"><p>The fund is a registered entity. A new investor's holding crossed the 25% beneficial-ownership threshold, and the fund became aware of it on Sun 31 Jan 2027.</p><p class="src">Source: Law of 13 January 2019 on the Register of Beneficial Owners (mock excerpt), paragraph SRC-RBELAW-P1</p><blockquote>within one month of becoming aware of the event that made the change necessary</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Sun 28 Feb 2027</td>
+                <td data-label="What">Statistical report A01 to the CNMV (Spain)<div class="meta">For October to December 2026</div><div style="margin-top:6px"><span class="chip flag">Precautionary</span></div></td>
+                <td data-label="Who files">Local reporting agent (Spain)</td>
+                <td class="why" data-label="Why"><p>The fund is marketed in Spain. This report is needed only if the fund is registered with the CNMV for marketing in Spain, and the fund's records do not confirm that registration.</p><p class="precaution">Precautionary: it is not yet confirmed that this applies to the fund. It is listed so that it is not missed. It does not mean that any registration or marketing is permitted.</p><p class="src">Source: CNMV statistical reporting for foreign UCIs (mock excerpt), paragraph SRC-CNMV-P1</p><blockquote>within two months after the last calendar day of the quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">March 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Wed 10 Mar 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For February 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">April 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Mon 12 Apr 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For March 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Tue 20 Apr 2027</td>
+                <td data-label="What">Subscription tax return and payment to the AED<div class="meta">For January to March 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is established in Luxembourg.</p><p class="src">Source: Law of 17 December 2010 (mock excerpt), paragraph SRC-UCILAW-P2</p><blockquote>within 20 calendar days following the end of each calendar quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">May 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Mon 10 May 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For April 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Mon 31 May 2027</td>
+                <td data-label="What">Statistical report A01 to the CNMV (Spain)<div class="meta">For January to March 2027</div><div style="margin-top:6px"><span class="chip flag">Precautionary</span></div></td>
+                <td data-label="Who files">Local reporting agent (Spain)</td>
+                <td class="why" data-label="Why"><p>The fund is marketed in Spain. This report is needed only if the fund is registered with the CNMV for marketing in Spain, and the fund's records do not confirm that registration.</p><p class="precaution">Precautionary: it is not yet confirmed that this applies to the fund. It is listed so that it is not missed. It does not mean that any registration or marketing is permitted.</p><p class="src">Source: CNMV statistical reporting for foreign UCIs (mock excerpt), paragraph SRC-CNMV-P1</p><blockquote>within two months after the last calendar day of the quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">June 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Thu 10 Jun 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For May 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Wed 30 Jun 2027</td>
+                <td data-label="What">Audited annual report, filed with the CSSF<div class="meta">For the financial year 2026</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: Law of 17 December 2010 (mock excerpt), paragraph SRC-UCILAW-P3</p><blockquote>within six months of the end of the period to which it relates</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">July 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Mon 12 Jul 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For June 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Tue 20 Jul 2027</td>
+                <td data-label="What">Subscription tax return and payment to the AED<div class="meta">For April to June 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is established in Luxembourg.</p><p class="src">Source: Law of 17 December 2010 (mock excerpt), paragraph SRC-UCILAW-P2</p><blockquote>within 20 calendar days following the end of each calendar quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">August 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Tue 10 Aug 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For July 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Tue 31 Aug 2027</td>
+                <td data-label="What">Statistical report A01 to the CNMV (Spain)<div class="meta">For April to June 2027</div><div style="margin-top:6px"><span class="chip flag">Precautionary</span></div></td>
+                <td data-label="Who files">Local reporting agent (Spain)</td>
+                <td class="why" data-label="Why"><p>The fund is marketed in Spain. This report is needed only if the fund is registered with the CNMV for marketing in Spain, and the fund's records do not confirm that registration.</p><p class="precaution">Precautionary: it is not yet confirmed that this applies to the fund. It is listed so that it is not missed. It does not mean that any registration or marketing is permitted.</p><p class="src">Source: CNMV statistical reporting for foreign UCIs (mock excerpt), paragraph SRC-CNMV-P1</p><blockquote>within two months after the last calendar day of the quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">September 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Fri 10 Sep 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For August 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">October 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Mon 11 Oct 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For September 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Wed 20 Oct 2027</td>
+                <td data-label="What">Subscription tax return and payment to the AED<div class="meta">For July to September 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is established in Luxembourg.</p><p class="src">Source: Law of 17 December 2010 (mock excerpt), paragraph SRC-UCILAW-P2</p><blockquote>within 20 calendar days following the end of each calendar quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">November 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Wed 10 Nov 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For October 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+              <tr>
+                <td class="when" data-label="When">Tue 30 Nov 2027</td>
+                <td data-label="What">Statistical report A01 to the CNMV (Spain)<div class="meta">For July to September 2027</div><div style="margin-top:6px"><span class="chip flag">Precautionary</span></div></td>
+                <td data-label="Who files">Local reporting agent (Spain)</td>
+                <td class="why" data-label="Why"><p>The fund is marketed in Spain. This report is needed only if the fund is registered with the CNMV for marketing in Spain, and the fund's records do not confirm that registration.</p><p class="precaution">Precautionary: it is not yet confirmed that this applies to the fund. It is listed so that it is not missed. It does not mean that any registration or marketing is permitted.</p><p class="src">Source: CNMV statistical reporting for foreign UCIs (mock excerpt), paragraph SRC-CNMV-P1</p><blockquote>within two months after the last calendar day of the quarter</blockquote></td>
+              </tr>
+            </tbody>
+
+            <tbody>
+              <tr><th scope="rowgroup" colspan="4">December 2027</th></tr>
+              <tr>
+                <td class="when" data-label="When">Fri 10 Dec 2027</td>
+                <td data-label="What">Monthly financial report U1.1 to the CSSF<div class="meta">For November 2027</div></td>
+                <td data-label="Who files">Fund administrator</td>
+                <td class="why" data-label="Why"><p>The fund is subject to Part II of the Law of 17 December 2010.</p><p class="src">Source: CSSF Circular 15/627 (mock excerpt), paragraph SRC-CSSF15627-P2</p><blockquote>no later than 10 calendar days after the end of each month</blockquote></td>
+              </tr>
+            </tbody>
+          </table>
+        </div></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

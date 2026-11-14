@@ -42,19 +42,21 @@ states, what each action does, and the exact words.
 
 Top to bottom, on every page:
 
-1. **Demo label** (plain text strip, always first): **"Demo with mock data. The fund, the people and
-   the documents are fictional."**
+1. **Demo label** (always first): a pill reading exactly **"Demo with mock data"**, and nothing
+   else (operator decision, 2026-11-13). Its look is in `style-note.md`.
    This is static text only. It is *not* the F-18 hosted-demo banner: no Reset button, no "someone
    may be mid-run" line.
-2. **Header**: product name **"Obligations calendar"**, then on the right
-   "Signed in as **Compliance specialist (mock)**" or "Signed in as **GP, Bramblegate Partners
-   (mock)**", and a **"Sign out"** button (a form, `POST /sign-out`).
+2. **Header**: product name **"Obligations calendar"** and the fund name **"Bramblegate Credit
+   Opportunities SICAV"**, then on the right "Signed in as **Compliance specialist (mock)**" or
+   "Signed in as **GP, Bramblegate Partners (mock)**", and a **"Sign out"** button (a form,
+   `POST /sign-out`).
 3. **Navigation** (specialist only): **"Runs"** · **"GP calendar (read-only)"**. The GP has no
    navigation; the calendar is their only page.
 4. **Run labels** (any page that shows a run): **"Stand-in agents"** when the run used them
    (CR-030), and **"Demo row on"** when the planted-row switch was on. Both as text tags next to the
    run title, never colour alone.
-5. **Refusal message** (only after a refused request, §5).
+5. **Refusal message** (only after a refused request, §5: the full sentence, or a short line with a
+   "Go to row {i}" link when the refusal is about one card).
 6. The page content.
 
 Page `<title>` pattern: `<Page name> · Obligations calendar (demo)`. After a refusal, prefix it with
@@ -321,11 +323,15 @@ row (DL-22), bulk approve. See §9.
 2. Intro: **"Decide each row once. Approving lets the rule into this run's calendar. Rejecting
    keeps it out. Each decision is recorded with your name and the time, and cannot be changed in
    this run."**
-3. **Progress**: "**{d} of {n} rows decided.** {n−d} to decide."
-4. **Row index** (a short list of jump links, one per row): "Row 3 · OBL-03 · Monthly report ·
-   **To decide**" / "… · **Approved**" / "… · **Rejected**". Rows with a flag, a failed quote
-   check or the demo tag show it here too, in words. This gives the specialist the shape of the
-   work in one glance.
+3. **Summary cards** (a row of four, values from the server): **Rows** {n} · **Decided** {d} ·
+   **To decide** {n−d} · **Verifier flags** {f}. There is no separate progress sentence (operator
+   decision, 2026-11-13).
+4. **Row index** (H2 **"Rows"**, a real table, one line per row, each row cell a jump link to its
+   card). Columns: **Row** ("Row 3 · OBL-03") · **Obligation** ("Audited annual report") ·
+   **Needs attention** · **Status** (**"To decide"**, **"Approved"** or **"Rejected"**).
+   "Needs attention" shows, in words, **"Flag"**, **"Quote check failed"**, **"Depends on open
+   question OQ-7"** or **"Demo"**, and is empty otherwise. This gives the specialist the shape of
+   the work in one glance.
 5. **One card per row** (shared "row card" part, §3 of the SAD), each with its own `id` anchor, in
    this order:
    1. H2: "**Row {i} of {n}**: {obligation summary}" plus tags: **"Demo"** (planted row),
@@ -397,8 +403,9 @@ row (DL-22), bulk approve. See §9.
 |---|---|
 | Not yet at G1 (`A_RUNNING`) | Short page: **"Stage A is still running. The rows will be here when it finishes."** Link: **"Watch progress on the run status page"** |
 | At G1, rows to decide | Full page as above |
-| At G1, all decided | Every card shows its decision; progress says **"All {n} rows decided."**; the finish section is the next thing to do |
-| Refused | Same page; message at the top **and** inside the row card it concerns (the page scrolls to it via the anchor) |
+| At G1, all decided | Every card shows its decision; the summary cards show **To decide 0**; the finish section is the next thing to do |
+| Refused, about one row | Same page, landing on that row's card: the full message sits inside the card, and the top shows the short line and **"Go to row {i}"** (§5) |
+| Refused, about the page (`GATE_INCOMPLETE`, `VERSION_MISMATCH`, …) | Same page; the full message at the top and next to the button it concerns |
 | After G1 (`B_RUNNING` onward, or ended) | Read-only record: every card shows its decision, no forms, no finish button. Line under H1: **"The rule review is finished. This is the record of the decisions."** |
 
 **After each action**
@@ -406,7 +413,7 @@ row (DL-22), bulk approve. See §9.
 | Action | Then |
 |---|---|
 | Approve row / Reject row | Success: redirect to G1 at that row's anchor, now showing the decision and the "Next row to decide" link |
-| Approve on the demo row | Refused: same page, message `DEMO_ROW_NOT_APPROVABLE` at the top and in the demo row card, the row still undecided, the refusal logged. The specialist then uses Reject |
+| Approve on the demo row | Refused: same page, landing on the demo row card (`#row-{i}`). The `DEMO_ROW_NOT_APPROVABLE` sentence sits in the card; the top shows the short line and "Go to row {i}". The row stays undecided and the refusal is logged. The specialist then uses Reject |
 | Finish rule review | Success: redirect to run status (Stage B running, auto-refresh) |
 
 **Review-time budget (§7, 30 minutes from G1 open to G3 published).** Target about 2 minutes per
@@ -491,7 +498,7 @@ the SAD (§3 page 5, W-12): **confirm**, **override with a reason**, **decide an
 | Not yet at G2 | **"Stage B has not finished yet. The verdicts will be here when it does."** Link to run status |
 | At G2 | Full page |
 | All decided | Progress **"All {n} verdicts decided."** |
-| Refused | Same page, message at the top and in the card |
+| Refused | Same page, as §5: about one verdict, land on its card with the short top line and "Go to verdict {i}"; about the page, the full message at the top |
 | After G2 | Read-only record, no forms. **"Applicability is finished. This is the record of the decisions."** |
 
 **After each action**
@@ -583,32 +590,42 @@ read-only. **Must work at phone width.**
 **On screen, in order (before the first publication)**
 
 1. Shared frame.
-2. H1 **"Obligations calendar"**
-3. The fixed message (DL-27, word for word), **and nothing else**: no count, no run, no status:
+2. H1 **"Compliance calendar"**
+3. The fixed message (DL-27, word for word), **and nothing else**: no count, no run, no status, no
+   summary cards, no week grid:
    **"Your obligations calendar is being prepared and checked by a specialist. Nothing has been
    published yet."**
 
 **On screen, in order (published)**
 
 1. Shared frame.
-2. H1 **"Obligations calendar: Bramblegate Credit Opportunities SICAV"**
+2. H1 **"Compliance calendar"** (operator decision, 2026-11-13; the fund name is in the header).
 3. Line: **"Published on {date}."** Plus **"Made with stand-in agents (fixed test outputs, no AI
    model)."** when the published run used them (CR-030).
 4. **Calendar note** (one fixed sentence, DL-12): **"This calendar is not legal advice, and its
    date conventions have not yet been checked against the legal texts."**
-5. **Entries**: a real table sorted by due date. Columns: **When** (due date) · **What** ·
+5. **Summary cards** (a row of three; operator decision, 2026-11-13): **Entries in {year}** {n} ·
+   **Due next** {date} · **Precautionary** {p}. Every value is a fact of the published calendar,
+   computed by the server.
+6. **Week grid** (H2 **"The next two months"**): the two calendar months from the next due date,
+   seven columns Mon to Sun. Each entry shows What and Who files in words, and "Precautionary"
+   where it applies. The next due date carries the word **"Due next"**. Published entries only:
+   nothing a GP cannot also read in the table below.
+7. **Entries** (H2 **"All entries for {year}"**): a real table sorted by due date, grouped by
+   month. Columns: **When** (due date) · **What** ·
    **Who files** ("Not confirmed" for "not known") · **Why** (the reason, then "Source: {document},
    paragraph {id}" and the quote in a smaller blockquote).
    Precautionary entries carry the label **"Precautionary"** (word, not just colour) and this
    code-generated note under the reason: **"Precautionary: it is not yet confirmed that this
    applies to the fund. It is listed so that it is not missed. It does not mean that any
    registration or marketing is permitted."**
-6. Nothing else: no draft, flag, other mark, run status, or link to a failed, abandoned or declined
-   run.
+8. Nothing else: no draft, flag, other mark, run status, or link to a failed, abandoned or declined
+   run. The summary cards and the week grid show published facts only.
 
 **Phone width (≤ 480 px).** The table keeps its table markup but each row stacks as a block:
 "When" first in bold, then What, Who files, Why, each with its column name as a visible label.
-No horizontal page scroll.
+The week grid becomes a list of the days that have entries ("Mon 11 Jan"). No horizontal page
+scroll.
 
 **States**
 
@@ -639,9 +656,18 @@ specialist.
 
 ## 5. Refusal messages
 
-**Where.** The same page is shown again. The sentence appears (a) in a box at the top under the
-H1, headed **"Not done"**, and (b) next to the control it concerns, inside the row or verdict card
-when it is about one. The `<title>` starts with "Not done: ". Any text the specialist typed in a
+**Where** (operator decision, 2026-11-13). The same page is shown again. The `<title>` starts with
+"Not done: " in every case.
+
+- **About one row or verdict card** (for example `DEMO_ROW_NOT_APPROVABLE`, `QUOTE_CHECK_FAILED`,
+  `REASON_REQUIRED` on a row): the page lands on that card (the redirect carries its anchor,
+  `#row-{i}` or `#verdict-{i}`). The full sentence sits **inside the card, beside the decision
+  forms**, headed **"Not done"**. The top of the page, under the H1, shows only a short line:
+  **"Not done. The reason is shown beside row {i}."** (or "… beside verdict {i}.") with the link
+  **"Go to row {i}"** (or **"Go to verdict {i}"**).
+- **About the page or the run** (for example `GATE_INCOMPLETE`, `VERSION_MISMATCH`, `RUN_ACTIVE`,
+  `ACK_REQUIRED`): the full sentence in a box at the top under the H1, headed **"Not done"**, and
+  again next to the control it concerns. Any text the specialist typed in a
 reason field is shown again so it is not lost; radio choices and the G3 checkbox are shown
 **empty** again (nothing preselected).
 
@@ -673,25 +699,14 @@ for that sentence. `{…}` are values the server fills in.
 | `FORBIDDEN` | GP on a specialist action | **"This page is for the compliance specialist. You are signed in as a GP, so you can view the published calendar only."** |
 | `VALIDATION` | Malformed form, or a "who files" value not offered | **"Part of this form was not valid ({field}), so nothing was saved. Check the form and try again."** |
 
-## 6. Light visual pass (B6 input, `create` mode)
+## 6. Visual style
 
-No design-system source is configured (`aamad.config.yml` has no `ui` block), so this is `create`
-at the smallest useful size. One stylesheet, `backend/web/static/site.css`, as CSS custom
-properties. B6 is the first block dropped if time runs out; every page must stay usable and
-accessible unstyled.
+The look (tokens, type, spacing, components, status chips, contrast) is in
+**`project-context/2.build/style-note.md`** (operator decision, 2026-11-13). This note does not
+repeat it. Design mock-ups of three screens that apply it are in `docs/prototype/`.
 
-- **Type**: system font stack; body 16 px / 1.5; H1 28 px, H2 21 px; quotes in a serif or with a
-  left rule so evidence reads differently from interface text.
-- **Spacing**: 4 / 8 / 16 / 24 / 40 px. Cards 16 px padding, 24 px apart. Max content width 72rem
-  for specialist pages (desktop), 40rem for the GP calendar.
-- **Colour roles** (each with text at 4.5:1 contrast or better, and always paired with a word):
-  `--text`, `--muted`, `--surface`, `--border`, `--focus` (a thick visible outline),
-  `--info` (running), `--action` (waiting for you), `--success` (published, passed),
-  `--problem` (failed, quote check failed, refusal box), `--caution` (flag, unsure, precautionary,
-  open question), `--demo` (demo label and the "Demo" tag; distinct from `--problem`).
-- **Buttons**: one primary style (the next step on each page), one secondary (reject, decline,
-  abandon). No icon-only buttons.
-- **Focus**: visible on every control; never removed.
+B6 is still the first block dropped if time runs out: every page must stay usable and accessible
+unstyled.
 
 ## 7. Accessibility (WCAG 2.2 AA, PRD §6)
 
@@ -713,7 +728,7 @@ accessible unstyled.
 |---|---|---|
 | UX-001 | Every page shows the demo label as text | operator brief |
 | UX-002 | Every specialist page showing a stand-in run shows "Stand-in agents"; so does the GP calendar when that run's calendar is published | CR-030 |
-| UX-003 | The planted row at G1 is tagged "Demo" and its "Approve row" button is visible and active; clicking it shows the CR-029 sentence at the top and in the card; the row stays undecided | DL-44, CR-029 |
+| UX-003 | The planted row at G1 is tagged "Demo" and its "Approve row" button is visible and active; clicking it lands on that row, shows the CR-029 sentence in the card and the short top line with "Go to row {i}"; the row stays undecided | DL-44, CR-029 |
 | UX-004 | No radio, checkbox or select is preselected on any page, including after a refusal | SD AC-026 |
 | UX-005 | No page has a bulk action, a disabled button or a "coming soon" | §3, AC-026 |
 | UX-006 | Run status refreshes every 3 s only while a stage runs, and "Stop automatic refresh" stops it | §3 Freshness, WCAG 2.2.1 |
@@ -755,8 +770,12 @@ accessible unstyled.
   CR-009, CR-012, CR-019, CR-027 to CR-030, and "The planted demo row".
 - `project-context/1.define/decision-log.md`: DL-01, DL-05, DL-12, DL-27 (cited by the pages).
 - `project-context/1.define/mock-data/mock-fund-profile.md`: fictional fund name, filing parties.
+- `project-context/1.define/mock-data/expected-obligation-library.md` and
+  `mock-regulatory-sources.md`: rows, quotes, verdicts, flags and the 22 calendar dates used in the
+  mock-ups.
+- `project-context/2.build/style-note.md`: the visual style (§6).
 - `.cursor/templates/ux-template.md`, `.cursor/skills/product-design/SKILL.md`.
-- The operator's B5 brief (this session).
+- The operator's B5 brief, and the operator's decisions on the mock-up review (2026-11-13).
 
 Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story files.
 
@@ -765,9 +784,11 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
 - **File location.** The operator asked for `project-context/2.build/ux.md`. The framework's
   default is `project-context/1.define/ux.md`, and the validator only checks the approval status
   there, so it will not see this file's status. See Open questions.
-- **No prototype.** The persona normally prototypes the hardest screen; the brief said no HTML, so
-  none was made. G1 would be the screen to prototype.
-- **The demo label** is a static line of text in the base template, asked for in the brief. It is
+- **Mock-ups, not templates.** Static design mock-ups of three screens are in `docs/prototype/`
+  (G1 review, the demo-row refusal, the GP calendar), with hard-coded fictional data. They are a
+  reference for `@frontend.eng`, not code to copy: no logic, no JavaScript. The planted row's
+  content in them is invented, because the backend fixture (SAD CR-029) does not exist yet.
+- **The demo label** is a static pill reading "Demo with mock data" in the base template. It is
   not the parked F-18 banner (no Reset, no extra behaviour).
 - **Hidden-but-enforced vs shown-and-refused.** The Approve button is always shown (rule of the
   page). Two controls are shown only in the phase where they belong, following the SAD's wording:
@@ -810,6 +831,20 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    service ignores or refuses stray fields on reject.
 7. **Closed 2026-11-13 (operator).** The page uses "Local reporting agent (Spain)", exactly as
    the mock fund profile and the SAD (DL-39) have it. No display label is needed.
+8. **For `@system.arch`: a period field for each calendar entry.** On the GP calendar, twelve
+   entries read "Monthly financial report U1.1 to the CSSF" and cannot be told apart. The mock-ups
+   add a line such as "For December 2026" (the period the filing covers). The pages must not work
+   this out themselves (§1.2), so the server would need to send it. Add a field to the calendar
+   entry in the SAD, or drop the line?
+9. **For `@qa.eng`: a Sunday due date with no explanation for GPs.** `OBL-04` and `OBL-05` fall
+   on Sun 28 Feb 2027 because their business-day rule is "not confirmed" (`D-6`, the earlier date
+   is kept). The "Rule not confirmed" mark is specialist-only (CR-012), so a GP sees a Sunday
+   deadline with no reason given and may read it as an error. Confirm this is acceptable for the
+   demo, or say what a GP should see.
+10. **For `@qa.eng`: an event date after the publication date.** The demo calendar is published on
+   Fri 13 Nov 2026, but the `OBL-05` entry rests on `EVT-01`, which the fund "became aware of" on
+   31 Jan 2027 (`mock-fund-profile.md`). A published calendar cites an event that has not
+   happened yet. Check whether the demo date or the event date should change.
 
 ## Audit
 
@@ -829,3 +864,14 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
   "Local reporting agent (Spain)" to match the profile and the SAD; closed Open Question 7. Open
   Question 5 stays open while `@system.arch` adds `BUSINESS_DAY_RULE_REQUIRED` to SAD §4.
   Approval status left `pending`.
+- 2026-11-13 · persona `ux-designer` · action `design-ux` (prototype + revision, operator review of
+  the mock-ups) · branch `ux-mockups-g1-gp` · static mock-ups of G1 review, the demo-row refusal
+  and the GP calendar in `docs/prototype/`; `editorial.css` contrast fixes from `style-note.md`.
+  Operator decisions applied: §6 replaced by a pointer to `style-note.md`; demo label is the pill
+  "Demo with mock data" only; header carries the fund name; GP H1 is "Compliance calendar"; GP page
+  may show summary cards and a week grid (published facts only); a refusal about one card lands on
+  that card, with a short top line and "Go to row {i}" (extended to G2 verdict cards, as §5 covers
+  both); G1 row index is a table with "Needs attention", and its progress sentence is replaced by
+  summary cards; G1 row-index example corrected (OBL-03 is the audited annual report). Open
+  Questions 8 (period field, `@system.arch`), 9 (Sunday due date) and 10 (event after publication,
+  both `@qa.eng`) added. Approval status left `pending`.

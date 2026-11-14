@@ -369,8 +369,16 @@ annotation feature) reset its `position`. A panel stopped breaking out of the co
 `margin` shorthand reset its side margins. The fix both times: keep each property in one place, and
 let add-on features (like annotations) live in their own layer instead of restyling the page.
 
+**…but a more specific rule beats a later one.** Order only decides a tie. In the G1 mock-ups,
+`.app p { margin: 0 }` (a class plus a tag) beat a later `.progress { margin-top: 24px }` (one class),
+so the progress line was jammed under the summary cards. The fix is to match the specificity
+(`.app .progress`), not to add `!important`.
+
 **Check a design in the browser, not just in the code.** Screenshots at desktop and phone widths
 caught colliding cards, clipped tables and wrong text sizes that looked fine when reading the code.
+One catch: a headless browser's *window* cannot be made narrower than about 500px, so a "375px"
+screenshot can quietly skip the phone rules. Set the *viewport* to 375px instead, and check that the
+page is no wider than the screen (`scrollWidth` equals `innerWidth`).
 
 **Design tokens: one source of truth.** Colours, type sizes, spacing and corners live in one file
 (`@theme` in Tailwind v4). Each value becomes both a CSS variable and a class name, such as `text-brass`
@@ -415,3 +423,4 @@ question to answer.
 - 2026-11-13 · added three notes from the documentation-sync session (three tiers of files; a message
   board between personas; decisions go in files, not chat)
 - 2026-11-12 · added one note from the final SAD review (a time limit must cover its own retries)
+- 2026-11-13 · added two notes from the G1 / GP mock-ups session (a more specific CSS rule beats a later one; set the viewport, not the window, for phone screenshots)
