@@ -11,6 +11,12 @@ Future Work, Appendix A or the tag `sad-full-design`.
 This note writes no HTML, template or code. It says what each page shows, in what order, in which
 states, what each action does, and the exact words.
 
+**Two references, two jobs** (operator decision, 2026-11-14). The mock-ups in `docs/prototype/` are
+the reference for **layout and look**. This note is the reference for **behaviour, states, wording
+and refusals**. Where they differ on behaviour or wording, this note wins. The mock-ups leave out
+the "Stand-in agents" label and the demo-row switch (H-004, H-005): that is prototype-only, and the
+built app keeps both (§1.3, page 2).
+
 **Approval status**: `pending`
 
 ---
@@ -22,15 +28,17 @@ states, what each action does, and the exact words.
 | Role (mock identity) | Pages | Can change anything? |
 |---|---|---|
 | **Compliance specialist** | 1 to 7 | Yes: starts runs, decides rows and verdicts, publishes or declines, abandons |
-| **GP** (Bramblegate Partners, fictional) | 1 and 7 only | No. Sees only the published calendar. Never sees a draft, failed, abandoned or declined run, a flag, a mark other than "precautionary", or any run status |
+| **GP** (Bramblegate Partners, fictional; on screen **"General Partner / Fund Manager"**, §1.8) | 1 and 7 only | No. Sees only the published calendar. Never sees a draft, failed, abandoned or declined run, a flag, a mark other than "May not be required", or any run status |
 
 ### 1.2 The page never decides
 
 - Every status, count, flag, date, mark and decision on a page comes from the server.
   The templates only show it.
 - **No button is hidden or disabled to enforce a rule.** If an action is not allowed, the server
-  refuses it and the page shows why (§5). This is why the demo row and a row that failed the quote
-  check both keep their Approve button.
+  refuses it and the page shows why (§5), on the page and never as a browser pop-up. The refusal is
+  recorded in the audit log (W-18). This is why the demo row and a row that failed the quote check
+  both keep their Approve button, and why "Start a new review" stays visible while a review is in
+  progress (H-009).
 - No HTML `required`, `disabled` or `pattern` attributes on decision forms. A missing reason is
   refused by the server with `REASON_REQUIRED`, not stopped in the browser.
 - No placeholders: no "coming soon", no disabled future feature, no greyed-out control (§3,
@@ -40,45 +48,79 @@ states, what each action does, and the exact words.
 
 ### 1.3 The shared frame (base template)
 
-Top to bottom, on every page:
+A white **sidebar** on the left of a grey page, and the page content in the main column (U7,
+H-019; layout as in `docs/prototype/`). U7 and U8 together get half a day of styling; anything that
+does not fit is dropped (H-019, H-020), and the page must still work as plain, ordered HTML (§6).
 
-1. **Demo label** (always first): a pill reading exactly **"Demo with mock data"**, and nothing
-   else (operator decision, 2026-11-13). Its look is in `style-note.md`.
-   This is static text only. It is *not* the F-18 hosted-demo banner: no Reset button, no "someone
-   may be mid-run" line.
-2. **Header**: product name **"Obligations calendar"** and the fund name **"Bramblegate Credit
-   Opportunities SICAV"**, then on the right "Signed in as **Compliance specialist (mock)**" or
-   "Signed in as **GP, Bramblegate Partners (mock)**", and a **"Sign out"** button (a form,
+**Sidebar**, top to bottom, on every page except sign-in:
+
+1. **Wordmark and product name**: the placeholder wordmark **"acme"**, then the product name
+   **"Compliance calendar"** (U1, H-013).
+2. **Fund**: label **"Fund"**, the fund name **"Bramblegate Credit Opportunities SICAV"**, and one
+   small line **"Luxembourg UCI Part II · year end 31 Dec"**.
+3. **Navigation** (a `<nav>` with `aria-current="page"` on the current item):
+   - Specialist: **"Calendar"** · **"Filing rules"**. "Filing rules" is the review list (page 2)
+     and carries a **"Your turn"** tag while a review waits for the specialist. The mock-ups also
+     show **"Funds"**; it is not in this build (see Open Question 11).
+   - GP: **"Calendar"** only; the calendar is their only page.
+4. **Who is signed in** (at the foot): **"Compliance specialist"** with the line **"Demo with mock
+   data"** under it, or **"General Partner / Fund Manager"** with the line **"Bramblegate Partners ·
+   view only · demo with mock data"** (U6, H-018). Then a **"Sign out"** button (a form,
    `POST /sign-out`).
-3. **Navigation** (specialist only): **"Runs"** · **"GP calendar (read-only)"**. The GP has no
-   navigation; the calendar is their only page.
-4. **Run labels** (any page that shows a run): **"Stand-in agents"** when the run used them
+
+**The demo label** is the text **"Demo with mock data"** in the identity block (item 4), on every
+page, as text (UX-001). It is static text only. It is *not* the F-18 hosted-demo banner: no Reset
+button, no "someone may be mid-run" line.
+
+**Main column**, top to bottom:
+
+1. **Breadcrumb** (pages about one review, 3 to 6): **"Filing rules › Luxembourg UCI Part II ›
+   Review {n}"**, the first item a link to page 2.
+2. **H1** and a one-line lead (wording per page, §3).
+3. **Run labels** (any page that shows a review): **"Stand-in agents"** when the review used them
    (CR-030), and **"Demo row on"** when the planted-row switch was on. Both as text tags next to the
-   run title, never colour alone.
-5. **Refusal message** (only after a refused request, §5: the full sentence, or a short line with a
-   "Go to row {i}" link when the refusal is about one card).
+   H1, never colour alone. The mock-ups leave both out; the built app keeps them (H-004, H-005).
+4. **Refusal message** (only after a refused request, §5: the full sentence, or a short line with a
+   "Go to rule {i}" link when the refusal is about one card).
+5. The stepper (§1.4), on pages 3 to 6.
 6. The page content.
 
-Page `<title>` pattern: `<Page name> · Obligations calendar (demo)`. After a refusal, prefix it with
-`Not done: ` so a screen reader announces the refusal when the page loads.
+Page `<title>` pattern: `<Page name> · ACME Compliance calendar (demo)`. After a refusal, prefix it
+with `Not done: ` so a screen reader announces the refusal when the page loads.
 
-### 1.4 The three-step stepper (one sitting, not three interruptions)
+### 1.4 The four-step stepper (one sitting, not three interruptions)
 
-Every specialist page about one run (3 to 6) shows the same stepper under the run title:
+Every specialist page about one review (3 to 6) shows the same stepper under the H1 (U3, U4,
+H-015, H-016). No "Stage", "G1/G2/G3" or "gate" is shown; those stay in the documents and tests.
 
-> **Stage A** → **1. Rule review (G1)** → **Stage B** → **2. Applicability (G2)** → **Stage C** →
-> **3. Calendar (G3)**
+> **Step 1 · AI drafts the rules** → **Step 2 · You check the rules** → **Step 3 · You confirm
+> what applies** → **Step 4 · You publish the calendar**
 
-Each step carries a word, not just a colour: **"done"**, **"now"**, **"running"** or **"to do"**.
-Steps that are done or now link to their page. It is an ordered list (`<ol>`) with
-`aria-current="step"` on the current one.
+| Server phase | Step 1 | Step 2 | Step 3 | Step 4 |
+|---|---|---|---|---|
+| `A_RUNNING` | In progress | Not started | Not started | Not started |
+| `AT_G1` | Done | Your turn | Not started | Not started |
+| `B_RUNNING` | Done | Done | In progress | Not started |
+| `AT_G2` | Done | Done | Your turn | Not started |
+| `C_RUNNING` | Done | Done | Done | In progress |
+| `AT_G3` | Done | Done | Done | Your turn |
+
+Stage B (AI checks what applies) is shown as the start of step 3, and Stage C (code works out the
+dates) as the start of step 4, so the specialist sees four steps, not six (see Assumptions).
+
+Each step carries a word, not just a colour: **"Done"**, **"In progress"**, **"Your turn"** or
+**"Not started"**. Steps that are done or "Your turn" link to their page. It is an ordered list
+(`<ol>`) with `aria-current="step"` on the current one.
 
 How the flow feels like one sitting:
 
-- Each gate page ends with one primary button that finishes the step and starts the next stage.
-- Finishing a gate takes the specialist to run status, which refreshes itself while the stage runs
-  and then shows one big link straight into the next gate. No hunting, no extra clicks.
-- Stage C (dates, code only) is expected to take a few seconds, so G2 → G3 feels immediate.
+- Each step page ends with one primary button that finishes the step and lets AI or code start
+  the next one.
+- Finishing a step takes the specialist to the review status page, which refreshes itself while AI
+  or code works and then shows one big link straight into the next step. No hunting, no extra
+  clicks.
+- Working out the dates (code only) is expected to take a few seconds, so step 3 → step 4 feels
+  immediate.
 
 ### 1.5 Status words
 
@@ -86,16 +128,18 @@ A status is always a word first; colour only supports it.
 
 | Server value | Words shown | Tone (colour role) |
 |---|---|---|
-| `ACTIVE` · `A_RUNNING` | **Running: Stage A** (reading the sources and checking each row) | info |
-| `ACTIVE` · `AT_G1` | **Waiting for you: rule review (G1)** | action |
-| `ACTIVE` · `B_RUNNING` | **Running: Stage B** (checking whether each rule applies to the fund) | info |
-| `ACTIVE` · `AT_G2` | **Waiting for you: applicability (G2)** | action |
-| `ACTIVE` · `C_RUNNING` | **Running: Stage C** (working out the dates) | info |
-| `ACTIVE` · `AT_G3` | **Waiting for you: calendar (G3)** | action |
+| `ACTIVE` · `A_RUNNING` | **AI is drafting the rules** | info |
+| `ACTIVE` · `AT_G1` | **Your turn: check the rules** | action |
+| `ACTIVE` · `B_RUNNING` | **AI is checking what applies** | info |
+| `ACTIVE` · `AT_G2` | **Your turn: confirm what applies** | action |
+| `ACTIVE` · `C_RUNNING` | **Working out the dates** | info |
+| `ACTIVE` · `AT_G3` | **Your turn: publish the calendar** | action |
 | `FAILED` | **Failed** | problem |
 | `ABANDONED` | **Abandoned** | neutral |
-| `DECLINED` | **Declined at G3** | neutral |
+| `DECLINED` | **Closed without publishing** (U10, H-022) | neutral |
 | `COMPLETED` | **Published** | success |
+
+"Working out the dates" does not say "AI": the dates are computed by code, never by a model.
 
 ### 1.6 Voice (DL-05)
 
@@ -103,7 +147,7 @@ A status is always a word first; colour only supports it.
 - No reassurance ("Don't worry"), no alarm ("Error!"), no advice, no "please". No exclamation marks.
 - Cite the source (paragraph ID, fact ID) wherever text makes a claim.
 - GP text is for a non-lawyer, stays neutral, and never implies that anything is permitted (DL-01).
-- Buttons say what they do: verb + object ("Approve row", "Publish calendar"), never "OK" or
+- Buttons say what they do: verb + object ("Approve rule", "Publish calendar"), never "OK" or
   "Submit".
 - Dates in full: "Mon 2 Feb 2027". Times: "14:02".
 
@@ -114,30 +158,51 @@ All wording in this note goes through the copy review before the demo (CR-019).
 | Case | What happens | Words |
 |---|---|---|
 | Not signed in, any page | Redirect to `/sign-in` | — |
-| GP opens a specialist page | 403 page in the shared frame | **"This page is for the compliance specialist. You are signed in as a GP, so you can view the published calendar only."** Link: **"Go to the calendar"** |
-| Run ID does not exist | 404 page | **"There is no run with this number."** Link: **"Go to the run list"** |
-| Unexpected server error, specialist | Plain page | **"Something went wrong on the server. Nothing was changed by this request. Go back to the run list and try again."** |
+| GP opens a specialist page | 403 page in the shared frame | **"This page is for the compliance specialist. You are signed in as the General Partner, so you can view the published calendar only."** Link: **"Go to the calendar"** |
+| Run ID does not exist | 404 page | **"There is no review with this number."** Link: **"Go to Filing rules"** |
+| Unexpected server error, specialist | Plain page | **"Something went wrong on the server. Nothing was changed by this request. Go back to Filing rules and try again."** |
 | Unexpected server error, GP | Plain page, no working content (CR-012) | **"The calendar could not be shown just now. Try again in a few minutes."** |
+
+The mock-ups do not design these pages (H-026, still open). The wording above stands until they do.
+
+### 1.8 Words on screen and words in the documents
+
+The documents, routes, codes and tests keep their internal names. Only what a user reads changes.
+
+| In the documents and code | On screen | Decision |
+|---|---|---|
+| Run, "Run 4" | Review, "Review 4" | U2, H-014 |
+| Agents; Stage A / B / C | "AI" as the actor ("AI drafts the rules"). On the step 1 page only: "the first AI" (extract) and "a second, separate AI" (verify) | U3, H-015 |
+| Stage A, G1, Stage B + G2, Stage C + G3 | Step 1 · AI drafts the rules; Step 2 · You check the rules; Step 3 · You confirm what applies; Step 4 · You publish the calendar | U4, H-016 |
+| Row (at G1 and in the G3 rejected list) | Rule ("Rule 3 of 7", "Approve rule", "Go to rule 7") | U4, H-009 |
+| GP | "General Partner / Fund Manager" as the role name (sign-in, sidebar); "the General Partner" in other text | U6, H-018 |
+| Precautionary | "May not be required" | U5, H-017 |
+| Decline (G3) | "Close without publishing" | U10, H-022 |
+| Roll forward / No roll / Not confirmed | Move to the following working day / Move to the preceding working day / Keep the date | U9, H-021 |
+| Run list | Filing rules | U7, H-019 |
+| Obligations calendar | Compliance calendar | U1, H-013 |
+
+"Stand-in agents" stays as the label's exact text (CR-030), even though other text says "AI".
 
 ---
 
 ## 2. Flow
 
 ```text
-Sign-in ─┬─ specialist ─> Run list ─(Start run)─> Run status [Stage A running, auto-refresh]
-         │                                            │
-         │                                            v
-         │                         G1 rule review ─(Finish rule review)─> Run status [Stage B running]
+Sign-in ─┬─ specialist ─> Filing rules ─(Start a new review)─> Review status [step 1: AI drafts, auto-refresh]
+         │                                                    │
+         │                                                    v
+         │             Check the rules (G1) ─(Finish checking)─> Review status [step 3: AI checks what applies]
          │                                                                    │
          │                                                                    v
-         │                         G2 applicability ─(Finish applicability)─> Run status [Stage C running]
+         │             Confirm what applies (G2) ─(Finish and calculate dates)─> Review status [step 4: dates]
          │                                                                    │
          │                                                                    v
-         │                         G3 calendar ─(Publish)─> Run status [Published] ─> GP calendar
-         │                                    └(Decline)─> Run status [Declined]
-         │   (At any gate: Abandon on run status → Run status [Abandoned])
+         │             Publish (G3) ─(Publish calendar)─> Review status [Published] ─> Calendar
+         │                          └(Close without publishing)─> Review status [Closed without publishing]
+         │   (At any step that waits for you: Abandon on review status → Review status [Abandoned])
          │
-         └─ GP ─────────> GP calendar ("being prepared" message, or the published calendar)
+         └─ GP ─────────> Calendar ("being prepared" message, or the published calendar)
 ```
 
 After every form: on success, redirect to the page that shows the result; on refusal, the same
@@ -154,102 +219,120 @@ role's first page when already signed in.
 
 **On screen, in order**
 
-1. Shared frame (demo label; no header identity, no navigation).
+1. No sidebar (no identity, no navigation). The "acme" wordmark at the top.
 2. H1 **"Sign in to the demo"**
-3. Line: **"There are no passwords. Choose who you want to be."**
+3. Line: **"Choose a role to explore the demo with mock data. You don't need a password."** This
+   line carries the demo label on this page (UX-001), since there is no sidebar.
 4. Two buttons, each its own form (`POST /sign-in`), equal weight, nothing preselected:
-   - **"Sign in as the compliance specialist"**, with hint below: "Runs the agents, reviews each
-     step and publishes the calendar."
-   - **"Sign in as a GP"**, with hint below: "Sees the published calendar only. Cannot change
-     anything."
+   - **"Sign in as the compliance specialist"**, with hint below: "Checks the rules AI drafts,
+     then publishes the calendar."
+   - **"Sign in as the General Partner / Fund Manager"** (U6, H-018), with hint below: "Sees the
+     published calendar only. Cannot change anything."
+5. Line: **"The fund and the firm are fictional."**
 
 **Actions**
 
 | Action | Then |
 |---|---|
-| Sign in as the compliance specialist | Redirect to `/specialist/runs` |
-| Sign in as a GP | Redirect to `/calendar` |
+| Sign in as the compliance specialist | Redirect to `/specialist/runs` (Filing rules) |
+| Sign in as the General Partner / Fund Manager | Redirect to `/calendar` |
 | Sign out (any page) | Redirect to `/sign-in` |
 
 **States.** Only the default state. A malformed request gets `VALIDATION` (§5).
 
 ---
 
-### Page 2 · Run list (`/specialist/runs`)
+### Page 2 · Filing rules: the review list (`/specialist/runs`)
 
-**Purpose.** See every run and its state; start a new run. **Who:** specialist.
+**Purpose.** See every review and its state; start a new review. **Who:** specialist. The route
+keeps its name; on screen this is **"Filing rules"** (U2, U7).
 
 **On screen, in order**
 
-1. Shared frame.
-2. H1 **"Runs"**
-3. **Active-run notice** (only when a run is `ACTIVE`): "**Run {n} is active.** {status words}."
-   Link: **"Open run {n}"**.
-4. **Start a new run** (H2), one form (`POST /specialist/runs`):
-   - Text: "Fund: **Bramblegate Credit Opportunities SICAV** (fictional, `FND-DEMO-01`)".
-   - Text: "Agents: **stand-in agents** (fixed test outputs, no AI model is called)" or
-     "Agents: **real model**", from the server setting.
-   - Checkbox, **unticked**: **"Add the planted demo row"**. Hint: "Adds one row that looks
-     plausible but must not be approved. Use it only to show the review in a demo. The choice is
-     recorded in the audit log."
-   - Button: **"Start run"**.
-   - The form is always shown, even while a run is active. The server refuses a second run (§5,
-     `RUN_ACTIVE`).
-5. **All runs** (H2): a real table, newest first.
+1. Shared frame; "Filing rules" is the current navigation item.
+2. Small label **"Regulatory framework"**, then H1 **"Luxembourg UCI Part II"**.
+3. **Active-review notice** (only when a review is `ACTIVE`): label **"Waiting for you"** at a
+   step, or **"AI is working"** while AI or code works; then "**Review {n}:** {status words}." and
+   one primary link: **"Continue checking"** (at a step) or **"Open review {n}"** (while working).
+4. **Reviews** (H2): a real table, newest first.
 
    | Column | Content |
    |---|---|
-   | Run | "Run 4", links to run status |
+   | Review | "Review 4", links to review status |
    | Started | "Fri 13 Nov 2026, 14:00" |
    | Agents | "Stand-in agents" or "Real model" |
    | Demo row | "On" or "Off" |
    | Status | Status words (§1.5) |
    | Ended because | For `FAILED`, the reason in words (page 3); for `ABANDONED` and `DECLINED`, the first line of the written reason; otherwise empty |
 
+5. **Start a new review** (under the table), one form (`POST /specialist/runs`):
+   - Text: "Fund: **Bramblegate Credit Opportunities SICAV** (fictional, `FND-DEMO-01`)".
+   - Text: "Agents: **stand-in agents** (fixed test outputs, no AI model is called)" or
+     "Agents: **real model**", from the server setting (CR-030).
+   - Checkbox, **unticked**: **"Add the planted demo row"**. Hint: "Adds one row that looks
+     plausible but must not be approved. Use it only to show the review in a demo. The choice is
+     recorded in the audit log." The built app keeps this switch; the mock-ups leave it out (H-005).
+   - Button: **"Start a new review"**.
+   - The form and its button are **always shown**, even while a review is in progress (H-009).
+     The server refuses a second review (`RUN_ACTIVE`, §5): the reason is shown beside the button,
+     the top of the page shows the short line, and the attempt is recorded in the audit log.
+
 **States**
 
 | State | What shows |
 |---|---|
-| Empty (no runs yet) | Table replaced by: **"No runs yet. Start the first run above."** |
+| Empty (no reviews yet) | Table replaced by: **"No reviews yet. Start the first review below."** |
 | Populated | Table as above |
-| Run active | Active-run notice at the top |
-| Refused (`RUN_ACTIVE`, `VALIDATION`) | Same page, refusal at the top and next to "Start run" |
+| Review active | Active-review notice at the top |
+| Refused (`RUN_ACTIVE`) | Same page. Beside "Start a new review": the full `RUN_ACTIVE` sentence (§5). At the top: **"Not done. A new review can't start while review {n} is in progress."** and the link **"Go to 'Start a new review'"** |
+| Refused (`VALIDATION`) | Same page, the full sentence at the top and next to "Start a new review" |
 
 **Actions**
 
 | Action | Then |
 |---|---|
-| Start run | Success: redirect to that run's status page (Stage A running). Refused: §5 |
-| Open a run | Go to its run status page |
+| Start a new review | Success: redirect to that review's status page (step 1, AI drafting). Refused: §5 |
+| Open a review | Go to its review status page |
 
 ---
 
-### Page 3 · Run status (`/specialist/runs/{run_id}`)
+### Page 3 · Review status (`/specialist/runs/{run_id}`)
 
-**Purpose.** The only place the specialist waits. Shows where the run is, each unit, the cost,
+**Purpose.** The only place the specialist waits. Shows where the review is, each unit, the cost,
 and what to do next. **Who:** specialist. **No re-run action, ever.**
 
 **On screen, in order**
 
-1. Shared frame.
-2. H1 **"Run {n}"** with the run labels (Stand-in agents, Demo row on).
+1. Shared frame; breadcrumb ending **"Review {n}"**.
+2. H1 for the state (see the states table), with the run labels (Stand-in agents, Demo row on).
 3. Stepper (§1.4).
 4. **Status line** (large text): the status words (§1.5) plus the sentence for the state below.
-5. **Next step** (only at a gate, or when ended): one primary link (see states).
-6. **Refresh controls** (only while a stage is running, see below).
-7. **Units** (H2) table: Unit · Stage · Status. Unit names, for example "Extract: source document
-   SRC-A", "Verify: row OBL-03", "Judge: row OBL-04", "Work out dates". Status words: **"Waiting"**,
+5. **Next step** (only at a step that waits for the specialist, or when ended): one primary link
+   (see states).
+6. **Refresh controls** (only while AI or code is working, see below).
+7. **Units**, as a real table per group: Unit · Status. Status words: **"Waiting"**,
    **"Running"**, **"Done"**, **"Failed"**.
-8. **Cost so far**: "Model cost so far: **US$0.00**." For stand-in runs add: "(stand-in agents
-   make no model calls)". For real runs add: "The run stops at US$2.50."
-9. Run details: "Started Fri 13 Nov 2026, 14:00, by Compliance specialist (mock). Fund
+   - While step 1 runs, and in its record afterwards, two groups, each with its one-line
+     intro. This is the **only** page that names the two AI roles (U3, H-015):
+     - **"Drafting the rules"**: "The first AI reads each source and writes a rule, quoting the
+       exact words it relied on." One unit per source document, for example "CSSF Circular
+       15/627".
+     - **"Checking the drafts"**: "A second, separate AI compares every draft with all the sources
+       and tells you where they disagree. It never changes a rule." One unit per rule, for example
+       "Audited annual report".
+   - Step 3: **"Checking what applies"**, one unit per approved rule.
+   - Step 4: **"Working out the dates"**, one unit ("Code, no AI model").
+8. **Cost so far**: "Model cost so far: **US$0.00**." For stand-in reviews add: "(stand-in agents
+   make no model calls)". For real reviews add: "The review stops at US$2.50."
+9. Review details: "Started Fri 13 Nov 2026, 14:00, by Compliance specialist (mock). Fund
    FND-DEMO-01."
-10. **Abandon this run** (H2), only when the run waits at a gate (see below).
+10. **Abandon this review** (H2), only when the review waits for the specialist (see below).
 
 **Automatic refresh (running only).** While the phase is `A_RUNNING`, `B_RUNNING` or `C_RUNNING`,
 the page reloads itself every 3 seconds (§3 Freshness). Next to the status line:
 
-- Text: **"This page refreshes every 3 seconds while the stage runs."**
+- Text: **"This page refreshes every 3 seconds while AI is working."** (In step 4: "… while the
+  dates are worked out.")
 - Link: **"Refresh now"** (reloads the same page).
 - Link: **"Stop automatic refresh"** (reloads the page with refresh off, for example
   `?refresh=off`; a display choice in the URL, not stored anywhere).
@@ -257,164 +340,193 @@ the page reloads itself every 3 seconds (§3 Freshness). Next to the status line
 With refresh off: **"Automatic refresh is off."** Links: **"Refresh now"** · **"Turn automatic
 refresh back on"**. "Refresh now" keeps refresh off.
 
-At a gate or in an ended state the page does not refresh and these controls are not shown.
+At a step that waits for the specialist, or in an ended state, the page does not refresh and these
+controls are not shown.
 
 **States and their words**
 
-| State | Status line sentence | Next step link |
-|---|---|---|
-| `A_RUNNING` | "Stage A is running: the agents read the sources, quote each rule and check it. Units finish one by one below." | — |
-| `AT_G1` | "Stage A is finished. **{n} rows** are waiting for your review." | **"Review the rows (step 1 of 3)"** → G1 |
-| `B_RUNNING` | "Rule review is finished. Stage B is running: an agent checks whether each approved rule applies to the fund." | — |
-| `AT_G2` | "Stage B is finished. **{n} verdicts** are waiting for your review, **{u} of them 'unsure'**." | **"Check applicability (step 2 of 3)"** → G2 |
-| `C_RUNNING` | "Applicability is finished. Stage C is working out the dates. This takes a few seconds." | — |
-| `AT_G3` | "The calendar is ready: **{n} entries**." | **"Review the calendar (step 3 of 3)"** → G3 |
-| `COMPLETED` | "Published on {date} at {time}. GPs now see this calendar." | **"See the calendar as GPs see it"** → `/calendar` |
-| `DECLINED` | "Declined at G3 on {date} at {time}. Nothing was published. GPs still see what they saw before." Then: "Your reason: {reason}" | **"Go to the run list"** |
-| `ABANDONED` | "Abandoned at {gate} on {date} at {time}. Nothing was published, and the decisions made so far stay in the audit log." Then: "Your reason: {reason}" | **"Go to the run list"** |
-| `FAILED` | "This run failed in **{stage}**, at unit **{unit}**. {reason sentence}. No gate opened and nothing moved forward. Start a new run from the run list." | **"Go to the run list"** |
+| State | H1 | Status line sentence | Next step link |
+|---|---|---|---|
+| `A_RUNNING` | **"Nothing for you to do yet"** | "AI is drafting the rules and checking each one against the sources. You check the rules when it finishes. Units finish one by one below." | — |
+| `AT_G1` | **"The rules are ready for you to check"** | "AI drafted **{n} rules** and checked each one against the sources. Nothing reaches the calendar until you approve it." | **"Check the rules"** → page 4 |
+| `B_RUNNING` | **"Nothing for you to do yet"** | "You've finished checking the rules. AI is now checking whether each approved rule applies to the fund." | — |
+| `AT_G2` | **"Ready for you to confirm what applies"** | "AI checked **{n} rules** against the fund's facts. **{u} of them** need your decision because AI can't tell." | **"Confirm what applies"** → page 5 |
+| `C_RUNNING` | **"Nothing for you to do yet"** | "You've confirmed what applies. The dates are being worked out by code. This takes a few seconds." | — |
+| `AT_G3` | **"The calendar is ready to check"** | "The calendar is ready: **{n} dates**." | **"Check the calendar and publish"** → page 6 |
+| `COMPLETED` | **"Published"** | "Published on {date} at {time}. The General Partner now sees this calendar." | **"See the calendar as the General Partner sees it"** → `/calendar` |
+| `DECLINED` | **"Closed without publishing"** | "Closed without publishing on {date} at {time}. Nothing was published. The General Partner still sees what they saw before." Then: "What needs to change: {reason}" | **"Go to Filing rules"** |
+| `ABANDONED` | **"Abandoned"** | "Abandoned at step {k} ({step name}) on {date} at {time}. Nothing was published, and the decisions made so far stay in the audit log." Then: "Your reason: {reason}" | **"Go to Filing rules"** |
+| `FAILED` | **"This review failed"** | "This review failed at step {k} ({step name}), at unit **{unit}**. {reason sentence}. Nothing moved forward. Start a new review from Filing rules." | **"Go to Filing rules"** |
 
 **Failure reason sentences** (from the six reasons in §4):
 
 | Reason code | Sentence |
 |---|---|
 | `model service` | "The model service did not answer in time, or returned an error, twice" |
-| `stage time limit` | "The stage took longer than its time limit" |
-| `invalid output` | "An agent returned output in the wrong format, so it was not used" |
-| `cost cap` | "The run reached its cost limit of US$2.50" |
-| `service restarted` | "The application restarted while the stage was running" |
+| `stage time limit` | "This step took longer than its time limit" |
+| `invalid output` | "The AI returned output in the wrong format, so it was not used" |
+| `cost cap` | "The review reached its cost limit of US$2.50" |
+| `service restarted` | "The application restarted while AI was working" |
 | `calendar generation` | "The dates could not be worked out into one complete calendar" |
 
-**Abandon this run** (only in `AT_G1`, `AT_G2`, `AT_G3`). One form,
+**Abandon this review** (only in `AT_G1`, `AT_G2`, `AT_G3`). One form,
 `POST /specialist/runs/{run_id}/abandon`, with the run version as a hidden field:
 
-- Text: **"Abandoning ends this run. Nothing is published and nothing is undone: decisions made so
-  far stay in the audit log. You can then start a new run. Use this, for example, after rejecting a
-  row by mistake."**
+- Text: **"Abandoning ends this review. Nothing is published and nothing is undone: decisions made
+  so far stay in the audit log. You can then start a new review. Use this, for example, after
+  rejecting a rule by mistake."**
 - Field: **"Reason for abandoning"** (multi-line). Hint: "Recorded in the audit log. Specialists
   only."
-- Button: **"Abandon run"** (secondary style, not the primary colour).
+- Button: **"Abandon review"** (secondary style, not the primary colour).
 
-While a stage is running the form is not shown; instead: **"You can abandon this run once it
-reaches a gate. A running stage always ends by itself."** If an old page sends the form anyway,
-the server answers `RUN_STAGE_RUNNING` (§5).
+While AI or code is working the form is not shown; instead: **"You can abandon this review once it
+is waiting for you. While AI is working, it always finishes by itself."** If an old page sends the
+form anyway, the server answers `RUN_STAGE_RUNNING` (§5).
+
+The mock-ups do not design the abandon control or the failed, abandoned and closed states
+(H-026, still open). The behaviour and wording above stand until they do.
 
 **Actions**
 
 | Action | Then |
 |---|---|
 | Refresh now / Stop / Turn back on | Same page, refresh on or off |
-| Next step link | The gate page, or the calendar, or the run list |
-| Abandon run | Success: same page, `ABANDONED` state. Refused: `REASON_REQUIRED`, `VERSION_MISMATCH`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE` |
+| Next step link | The step page, or the calendar, or Filing rules |
+| Abandon review | Success: same page, `ABANDONED` state. Refused: `REASON_REQUIRED`, `VERSION_MISMATCH`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE` |
 
 ---
 
-### Page 4 · G1 rule review (`/specialist/runs/{run_id}/g1`)
+### Page 4 · Check the rules (G1) (`/specialist/runs/{run_id}/g1`)
 
-**Purpose.** Decide each extracted row once: approve it (setting its business-day rule, and who
-files when the source is silent) or reject it with a reason. **Who:** specialist.
+**Purpose.** Decide each extracted row (on screen, a "rule") once: approve it (setting what
+happens on a weekend or holiday, and who files when the source is silent) or reject it with a
+reason. **Who:** specialist.
 
-**Not on this page** (not in the Build card): editing a row, adding a row, reopening a decided
-row (DL-22), bulk approve. See §9.
+**Not on this page** (not in the Build card): editing a rule, adding a rule, reopening a decided
+rule (DL-22), choosing which source a rule follows when two disagree (DL-22, H-008), bulk approve.
+See §9.
 
 **On screen, in order**
 
-1. Shared frame; H1 **"Step 1 of 3: Rule review (G1)"**; run labels; stepper.
-2. Intro: **"Decide each row once. Approving lets the rule into this run's calendar. Rejecting
-   keeps it out. Each decision is recorded with your name and the time, and cannot be changed in
-   this run."**
-3. **Summary cards** (a row of four, values from the server): **Rows** {n} · **Decided** {d} ·
-   **To decide** {n−d} · **Verifier flags** {f}. There is no separate progress sentence (operator
+1. Shared frame; breadcrumb; H1 **"Check the rules"**; run labels; stepper (step 2 is "Your
+   turn").
+2. Lead: **"AI drafted {n} rules from the sources. Check each one against the words it came from,
+   then approve or reject it. Nothing reaches the calendar until you approve it."** Then: **"Each
+   decision is recorded with your name and the time, and cannot be changed in this review."**
+3. **Summary cards** (a row of four, values from the server): **Rules** {n} · **Decided** {d} ·
+   **To decide** {n−d} · **Checker flags** {f}. There is no separate progress sentence (operator
    decision, 2026-11-13).
-4. **Row index** (H2 **"Rows"**, a real table, one line per row, each row cell a jump link to its
-   card). Columns: **Row** ("Row 3 · OBL-03") · **Obligation** ("Audited annual report") ·
-   **Needs attention** · **Status** (**"To decide"**, **"Approved"** or **"Rejected"**).
-   "Needs attention" shows, in words, **"Flag"**, **"Quote check failed"**, **"Depends on open
-   question OQ-7"** or **"Demo"**, and is empty otherwise. This gives the specialist the shape of
-   the work in one glance.
-5. **One card per row** (shared "row card" part, §3 of the SAD), each with its own `id` anchor, in
-   this order:
-   1. H2: "**Row {i} of {n}**: {obligation summary}" plus tags: **"Demo"** (planted row),
-      **"Flag"**, **"Quote check failed"**, **"Depends on open question OQ-7"** as applicable.
+4. **Rule index** (H2 **"Rules"**, a real table, one line per rule, each rule cell a jump link to
+   its card). Columns: **Rule** ("Rule 3 · OBL-03") · **Obligation** ("Audited annual report") ·
+   **Needs attention** · **Status** (**"To decide"**, **"Approved"**, **"Rejected"**, or
+   **"Approval blocked"** on the demo rule after a refused approval, H-007).
+   "Needs attention" shows, in words, **"Sources disagree"** or **"Checker flag"** (a flag),
+   **"Quote check failed"**, **"Depends on open question OQ-7"** or **"Demo"**, and is empty
+   otherwise. This gives the specialist the shape of the work in one glance.
+5. **One card per rule** (shared "row card" part, §3 of the SAD), each with its own `id` anchor
+   (`#row-{i}`), in this order:
+   1. H2: "**Rule {i} of {n}**: {obligation summary}" plus tags: **"Demo"** (planted row),
+      **"Sources disagree"** / **"Checker flag"**, **"Quote check failed"**, **"Depends on open
+      question OQ-7"** as applicable, and the status tag (**"To decide"**, or **"Approval
+      blocked"** on the demo rule after a refused approval).
    2. **Quote** (blockquote): the word-for-word quote. Caption: "Quote from paragraph {para_id}".
-   3. **Quote check**, one line:
+   3. **Quote check**, one line (not on the demo rule, see below):
       - pass: **"Quote check: passed. The quote appears word for word in paragraph {para_id}."**
       - fail: **"Quote check: failed. The quote does not appear word for word in paragraph
-        {para_id}. This row can only be rejected."**
+        {para_id}. This rule can only be rejected."**
+      - **Demo rule** (A4, H-007): no quote-check line and no "quote found" tag, because the
+        refusal says the rule has no legal basis. Before the click its status tag reads **"To
+        decide"**; after a refused approval it reads **"Approval blocked"**, matching the refusal.
+        The server still runs and records the quote check on it (CR-029, T-DEMO-1).
    4. **Cited paragraph** (full text, headed "Paragraph {para_id}, {source document}").
    5. **Flags** (shared "flag" part), one box per flag, each with both texts (DL-03):
-      - Heading: **"Verifier flag: inside the same document"** (`internal`) or **"Verifier flag:
-        against another source"** (`cross_source`).
-      - "**The row says:** {row text}"
+      - Heading: **"Flagged by the AI checker: inside the same document"** (`internal`) or
+        **"Flagged by the AI checker: two sources disagree"** (`cross_source`).
+      - One line: **"The checker points out disagreements but never settles them. Approve it with
+        a reason despite the flag, or reject it with a reason."**
+      - "**The rule says:** {row text}"
       - "**The source says:** {source text}, paragraph {id}"
-      - If no flag: **"No verifier flags."** (so absence is stated, not implied)
-   6. **Row fields** (definition list): What must be done · Frequency · Due relative to · Offset ·
+      - Both quotes are read-only. There is no control to choose which source the rule follows
+        (H-008, post-MVP).
+      - If no flag: **"No checker flags."** (so absence is stated, not implied)
+   6. **Rule fields** (definition list): What must be done · Frequency · Due relative to · Offset ·
       Recipient · **Who files, as the source says** (a party, or "Not stated in source") ·
-      **Business-day rule, as the source says** ("Roll forward", "No roll" or "Not stated").
-   7. **Open question mark** (only for rows the server marks, MVP: `OBL-02`): **"The business-day
-      rule for this row depends on open question OQ-7, which is not yet answered. No rule is
-      chosen for you. Whatever you choose, the entries will carry the OQ-7 mark at G3."**
-   8. **Decision** (only while the row is undecided): two separate forms side by side, both
-      `POST /specialist/rows/{row_id}/decision` with the row version as a hidden field.
+      **Weekend or holiday, as the source says** ("Following working day", "Preceding working
+      day", "Keep the date" or "Not stated").
+   7. **Open question mark** (only for rows the server marks, MVP: `OBL-02`): **"What happens on a
+      weekend or holiday for this rule depends on open question OQ-7, which is not yet answered.
+      Nothing is chosen for you. Whatever you choose, the dates will carry the OQ-7 mark when you
+      publish."**
+   8. **Decision** (only while the rule is undecided): two separate forms side by side, both
+      `POST /specialist/rows/{row_id}/decision` with the row version as a hidden field. One form
+      per action, each with its own fields always visible and its own button: no "choose an answer
+      first" control, no CSS `:has()` reveal, no browser `required` (A9, H-011 rejected).
 
-      **Approve** (fieldset legend **"Approve this row"**):
-      - **"Business-day rule"** (radio group, nothing chosen):
-        "Roll forward to the next business day" · "No roll: keep the date" ·
-        "Not confirmed: keep the earlier date and mark it".
-        If none is chosen, the server refuses with `BUSINESS_DAY_RULE_REQUIRED` (§5).
-      - **"Who files"** (radio group, nothing chosen), **only when the source says "Not stated in
-        source"**. The options, exactly and in this order: **"AIFM"** · **"Fund administrator"** ·
-        **"Auditor"** · **"Local reporting agent (Spain)"** · **"Tax advisor"** · **"Not known"**.
-        Hint: "The source does not say who files. Choose the party, or 'Not known'. The
-        compliance specialist and the GP are not filing parties."
-      - **"Reason for approving over the flag"** (multi-line), **only when the row has a flag**.
-        Hint: "Required because the verifier raised a flag. Specialists only."
-      - Button: **"Approve row"** (primary).
+      **Approve** (heading **"Approve this rule"**):
+      - Radio group (nothing chosen), legend **"If the deadline falls on a weekend or holiday
+        (choose one to approve)"** (U9, H-021). The options, exactly and in this order:
+        **"Move to the following working day"** · **"Move to the preceding working day"** ·
+        **"Keep the date"**. There is no "not confirmed" option. If none is chosen, the server
+        refuses with `BUSINESS_DAY_RULE_REQUIRED` (§5).
+      - **"Who files this? The source doesn't say."** (radio group, nothing chosen), **only when
+        the source says "Not stated in source"**. The options, exactly and in this order:
+        **"AIFM"** · **"Fund administrator"** · **"Auditor"** · **"Local reporting agent
+        (Spain)"** · **"Tax advisor"** · **"Not known"**. Hint: "Choose the party, or 'Not
+        known'. The compliance specialist and the General Partner are not filing parties."
+      - **"Why are you approving it although the checker flagged it?"** (multi-line), **only when
+        the rule has a flag**. Hint: "Required because the checker raised a flag. Saved in the
+        audit log with your name and the time. Specialists only."
+      - Button: **"Approve rule"** (primary).
 
-      **Reject** (fieldset legend **"Reject this row"**):
-      - **"Reason for rejecting"** (multi-line). Hint: "Required. Shown again at G3 and kept in the
-        audit log. Specialists only."
-      - Button: **"Reject row"** (secondary).
+      **Reject** (heading **"Reject this rule"**):
+      - **"Why are you rejecting it?"** (multi-line). Hint: "Required. If you reject it, no filing
+        dates are created from this rule. Shown again when you publish and kept in the audit log.
+        Specialists only."
+      - Button: **"Reject rule"** (secondary).
 
-      The demo row and a quote-check-failed row show **exactly the same two forms**, with the
-      Approve button visible and active. The server refuses the approval (§5).
+      The demo rule and a quote-check-failed rule show **exactly the same two forms**, with the
+      Approve button visible and active and nothing preselected. The server refuses the approval
+      (§5) on the page, never as a browser pop-up, and records the attempt in the audit log
+      (H-009).
    9. **Decided** (replaces the forms once decided):
-      - "**Approved** by Compliance specialist (mock) at 14:02. Business-day rule: Roll forward.
-        Who files: Fund administrator." (+ "Reason: {reason}" if over a flag)
+      - "**Approved** by Compliance specialist (mock) at 14:02. Weekend or holiday: move to the
+        following working day. Who files: Fund administrator." (+ "Reason: {reason}" if over a
+        flag)
       - "**Rejected** by Compliance specialist (mock) at 14:05. Reason: {reason}"
-      - Link: **"Next row to decide"** (to the next undecided card), or **"All rows are decided.
-        Finish the rule review"** (to the finish section).
-6. **Paragraphs no row cites** (H2, the coverage view, W-03b):
-   - Intro: **"These {k} paragraphs were loaded but no approved or undecided row cites them. This
-     list does not say whether they contain obligations. If one does, the run missed it: reject or
-     finish as usual, then start a new run. You will see this list again at G3."**
+      - Link: **"Next rule to decide"** (to the next undecided card), or **"All rules are
+        decided. Finish checking"** (to the finish section).
+6. **Check nothing was missed: paragraphs that no rule uses** (H2, the coverage view, W-03b):
+   - Intro: **"These {k} paragraphs were loaded but no approved or undecided rule uses them. This
+     list does not say whether they contain obligations. If one does, the review missed it: reject
+     or finish as usual, then start a new review. You will see this list again when you
+     publish."**
    - A real table: Paragraph ID · Source document · Text.
-7. **Finish the rule review** (H2), one form, `POST /specialist/runs/{run_id}/g1/complete`, with
-   the run version:
-   - Text: **"When every row is decided, Stage B checks whether each approved rule applies to the
-     fund. You cannot change rule decisions after this."**
-   - Button: **"Finish rule review and start Stage B"** (primary). Always shown; the server refuses
-     it while a row is undecided (`GATE_INCOMPLETE`).
-8. Link at the bottom: **"Abandon this run"** → run status `#abandon`.
+7. **Finish checking** (H2: **"{x} rules left to decide"**, or **"All rules decided"**), one form,
+   `POST /specialist/runs/{run_id}/g1/complete`, with the run version:
+   - Text: **"Decide every rule to move on. AI then works out which rules apply to the fund. You
+     cannot change rule decisions after this."**
+   - Button: **"Finish checking"** (primary). Always shown; the server refuses it while a rule is
+     undecided (`GATE_INCOMPLETE`).
+8. Link at the bottom: **"Abandon this review"** → review status `#abandon`.
 
 **States**
 
 | State | What shows |
 |---|---|
-| Not yet at G1 (`A_RUNNING`) | Short page: **"Stage A is still running. The rows will be here when it finishes."** Link: **"Watch progress on the run status page"** |
-| At G1, rows to decide | Full page as above |
+| Not yet at G1 (`A_RUNNING`) | Short page: **"AI is still drafting the rules. They will be here when it finishes."** Link: **"Watch progress on the review status page"** |
+| At G1, rules to decide | Full page as above |
 | At G1, all decided | Every card shows its decision; the summary cards show **To decide 0**; the finish section is the next thing to do |
-| Refused, about one row | Same page, landing on that row's card: the full message sits inside the card, and the top shows the short line and **"Go to row {i}"** (§5) |
+| Refused, about one rule | Same page, landing on that rule's card: the full message sits inside the card, and the top shows the short line and **"Go to rule {i}"** (§5) |
 | Refused, about the page (`GATE_INCOMPLETE`, `VERSION_MISMATCH`, …) | Same page; the full message at the top and next to the button it concerns |
-| After G1 (`B_RUNNING` onward, or ended) | Read-only record: every card shows its decision, no forms, no finish button. Line under H1: **"The rule review is finished. This is the record of the decisions."** |
+| After G1 (`B_RUNNING` onward, or ended) | Read-only record: every card shows its decision, no forms, no finish button. Line under H1: **"You've finished checking the rules. This is the record of the decisions."** |
 
 **After each action**
 
 | Action | Then |
 |---|---|
-| Approve row / Reject row | Success: redirect to G1 at that row's anchor, now showing the decision and the "Next row to decide" link |
-| Approve on the demo row | Refused: same page, landing on the demo row card (`#row-{i}`). The `DEMO_ROW_NOT_APPROVABLE` sentence sits in the card; the top shows the short line and "Go to row {i}". The row stays undecided and the refusal is logged. The specialist then uses Reject |
-| Finish rule review | Success: redirect to run status (Stage B running, auto-refresh) |
+| Approve rule / Reject rule | Success: redirect to G1 at that rule's anchor, now showing the decision and the "Next rule to decide" link |
+| Approve on the demo rule | Refused: same page, landing on the demo rule card (`#row-{i}`). The `DEMO_ROW_NOT_APPROVABLE` sentence sits in the card; its status tag changes to "Approval blocked"; the top shows the short line and "Go to rule {i}". The rule stays undecided, nothing is preselected, and the refusal is recorded in the audit log. The specialist then uses Reject |
+| Finish checking | Success: redirect to review status (step 3, AI checking what applies, auto-refresh) |
 
 **Review-time budget (§7, 30 minutes from G1 open to G3 published).** Target about 2 minutes per
 row, so G1 takes about 15 minutes for 7 rows. Supporting decisions:
@@ -426,50 +538,58 @@ row, so G1 takes about 15 minutes for 7 rows. Supporting decisions:
 
 ---
 
-### Page 5 · G2 applicability (`/specialist/runs/{run_id}/g2`)
+### Page 5 · Confirm what applies (G2) (`/specialist/runs/{run_id}/g2`)
 
-**Purpose.** For each approved row, confirm the agent's verdict, override it with a reason, or
-decide an "unsure". Every "unsure" must be decided. **Who:** specialist. Three decisions, as in
-the SAD (§3 page 5, W-12): **confirm**, **override with a reason**, **decide an "unsure"**.
+**Purpose.** For each approved rule, confirm AI's answer, overrule it with a reason, or decide
+where AI can't tell ("unsure"). Every "unsure" must be decided. **Who:** specialist. Three
+decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reason**, **decide an
+"unsure"**.
 
 **On screen, in order**
 
-1. Shared frame; H1 **"Step 2 of 3: Applicability (G2)"**; run labels; stepper.
-2. Intro: **"For each approved rule, an agent checked the fund's facts and gave a verdict. Decide
-   each verdict once. Every 'unsure' needs your decision."**
-3. **Progress**: "**{d} of {n} verdicts decided.** {u} 'unsure' still to decide."
-4. **Verdict index** (jump links): "OBL-04 · Spain annual return · **Unsure, to decide**". "Unsure"
-   verdicts are listed first in the index, so the hardest decisions are visible early. Cards keep
-   the row order.
-5. **One card per verdict**:
+1. Shared frame; breadcrumb; H1 **"Confirm what applies"**; run labels; stepper (step 3 is "Your
+   turn").
+2. Lead: **"AI checked the {n} rules you approved against the fund's facts. Confirm each answer or
+   overrule it. Where AI can't tell, you decide."**
+3. **Progress**: "**{d} of {n} answers decided.** {u} where AI can't tell still to decide."
+4. **Rule index** (jump links): "OBL-04 · Statistical report A01 (Spain) · **AI can't tell, to
+   decide**". "Can't tell" answers are listed first in the index, so the hardest decisions are
+   visible early. Cards keep the rule order.
+5. **One card per answer**:
    1. H2: "{obligation summary}" with row ID.
-   2. **Agent's verdict** (big, in words): **"Applies"**, **"Does not apply"** or **"Unsure: needs
-      your decision"**. "Unsure" has its own visual treatment and the word, not colour alone.
-   3. **Agent's reasoning** (2 to 3 sentences), captioned "Agent's reasoning".
-   4. **Missing information** (unsure only): "**What is missing:** {text}".
+   2. **AI's answer** (big, in words): **"AI: applies"**, **"AI: doesn't apply"** or **"AI: can't
+      tell"**. "Can't tell" has its own visual treatment and the words, not colour alone.
+   3. **AI's reasoning** (2 to 3 sentences), captioned **"Why AI says this"** (for "can't tell":
+      **"Why AI couldn't decide"**).
+   4. **Missing information** (can't tell only): "**What is missing:** {text}".
    5. **Cited facts** (real table, read-only): Fact ID · Fact · Value. Example row: "FACT-04 ·
       Registered for marketing in the second country · Unknown, not confirmed in fund records".
    6. **The rule** (collapsed under a `<details>` element, "Show the approved rule and quote"): the
       rule, quote and paragraph ID as approved at G1.
-   7. **Decision** (undecided only). Separate forms, each
+   7. **Decision** (undecided only). Separate forms, one per action, each with its own fields
+      always visible and its own button (A9, H-011), each
       `POST /specialist/verdicts/{verdict_id}/decision` with the verdict version:
 
-      When the agent said **"Applies"** or **"Does not apply"**:
-      - **Confirm** form: text **"If you confirm, GPs will read the agent's reasoning above as the
-        explanation."** (only shown when the verdict is "Applies"; for "Does not apply" the text is
-        **"If you confirm, this obligation is left off the calendar."**). Button: **"Confirm:
-        applies"** or **"Confirm: does not apply"**.
-      - **Override** form (legend **"Override the verdict"**): text "Your verdict: **Does not
-        apply**" (or **Applies**, the opposite of the agent's). Field **"Reason for overriding"**
-        with the hint for that outcome (below). Button: **"Override: does not apply"** /
-        **"Override: applies"**.
+      When AI said **"applies"** or **"doesn't apply"**:
+      - **Confirm** form: text **"If you confirm, the General Partner will read AI's reasoning
+        above as the explanation."** (only shown when the answer is "applies"; for "doesn't
+        apply" the text is **"If you confirm, this obligation is left off the calendar."**).
+        Button: **"Confirm: applies"** or **"Confirm: doesn't apply"**.
+      - **Override** form (legend **"Overrule AI's answer"**): text "Your answer: **Doesn't
+        apply**" (or **Applies**, the opposite of AI's). Field **"Reason for overruling"** with
+        the hint for that outcome (below). Button: **"Overrule: doesn't apply"** /
+        **"Overrule: applies"**.
 
-      When the agent said **"Unsure"**: no Confirm. Two forms:
-      - **"Applies (precautionary)"**: field **"Reason"** with the GP hint; button **"Decide:
-        applies (precautionary)"**. Extra line: "GPs will see this entry labelled
-        'Precautionary'."
-      - **"Does not apply"**: field **"Reason"** with the audit-only hint; button **"Decide: does
-        not apply"**.
+      When AI **can't tell**: no Confirm. A question first, then two forms (U5, H-017):
+      - Question: **"Nobody has confirmed {the missing fact}. Should this rule go on the
+        calendar?"**
+      - **"Yes, add it until someone confirms"**: text **"Choose this if you can't confirm it.
+        The filings are added to the calendar, each marked 'May not be required'."**; field
+        **"Why are you adding it?"** with the "creates an entry" hint; button **"Add to the
+        calendar"**.
+      - **"No, leave it off"**: text **"Choose this only if you know it doesn't apply. No filings
+        are added for this rule."**; field **"How do you know it doesn't apply?"** with the
+        audit-only hint; button **"Leave it off"**.
       - Neither is preselected or styled as the default.
 
       **Reason hints depend on whether the decision creates a calendar entry** (W-17, SA-8). Each
@@ -477,112 +597,130 @@ the SAD (§3 page 5, W-12): **confirm**, **override with a reason**, **decide an
 
       | Decision | Creates an entry? | Hint next to the reason field |
       |---|---|---|
-      | Override to **applies** | Yes | **"GPs will read this reason as the explanation for the entry. Write it for a non-lawyer: state the condition and the fact. No advice."** |
-      | Unsure decided as **applies (precautionary)** | Yes | Same as above |
-      | Override to **does not apply** | No | **"This obligation will not be on the calendar, so GPs will not see this reason. It is kept in the audit log for specialists."** |
-      | Unsure decided as **does not apply** | No | Same as above |
+      | Overrule to **applies** | Yes | **"The General Partner will read this reason as the explanation for the entry. Write it for a non-lawyer: state the condition and the fact. No advice."** |
+      | Can't tell, decided as **add it** ("May not be required") | Yes | Same as above |
+      | Overrule to **doesn't apply** | No | **"This obligation will not be on the calendar, so the General Partner will not see this reason. It is kept in the audit log for specialists."** |
+      | Can't tell, decided as **leave it off** | No | Same as above |
    8. **Decided** (replaces the forms): "**Confirmed: applies** by Compliance specialist (mock) at
-      14:21." / "**Overridden: does not apply** … Reason: …" / "**Decided: applies (precautionary)**
-      … Reason: …", then **"Next verdict to decide"** link.
-6. **Finish applicability** (H2), one form, `POST /specialist/runs/{run_id}/g2/complete`, run
-   version:
-   - Text: **"When every verdict is decided, the dates are worked out by code (no AI model). This
-     takes a few seconds. You cannot change these decisions after this."**
-   - Button: **"Finish applicability and work out the dates"** (primary). Always shown.
-7. Link: **"Abandon this run"** → run status `#abandon`.
+      14:21." / "**Overruled: doesn't apply** … Reason: …" / "**Added, marked 'May not be
+      required'** … Reason: …", then **"Next answer to decide"** link.
+6. **Finish** (H2: **"{x} answers left to confirm"**, or **"All answers decided"**), one form,
+   `POST /specialist/runs/{run_id}/g2/complete`, run version:
+   - Text: **"Once you've confirmed them all, the dates are calculated by code. No AI works out a
+     date. This takes a few seconds. You cannot change these decisions after this."**
+   - Button: **"Finish and calculate dates"** (primary). Always shown.
+7. Link: **"Abandon this review"** → review status `#abandon`.
 
 **States**
 
 | State | What shows |
 |---|---|
-| Not yet at G2 | **"Stage B has not finished yet. The verdicts will be here when it does."** Link to run status |
+| Not yet at G2 | **"AI has not finished checking what applies. The answers will be here when it does."** Link to review status |
 | At G2 | Full page |
-| All decided | Progress **"All {n} verdicts decided."** |
-| Refused | Same page, as §5: about one verdict, land on its card with the short top line and "Go to verdict {i}"; about the page, the full message at the top |
-| After G2 | Read-only record, no forms. **"Applicability is finished. This is the record of the decisions."** |
+| All decided | Progress **"All {n} answers decided."** |
+| Refused | Same page, as §5: about one answer, land on its card with the short top line and "Go to rule {i}"; about the page, the full message at the top |
+| After G2 | Read-only record, no forms. **"You've confirmed what applies. This is the record of the decisions."** |
+
+The mock-ups design only the "AI can't tell" case. Overruling an ordinary answer stays as written
+above until H-026 decides it.
 
 **After each action**
 
 | Action | Then |
 |---|---|
-| Confirm / Override / Decide | Success: redirect to G2 at that card. Refused: `REASON_REQUIRED`, `ALREADY_DECIDED`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE`, `VALIDATION` |
-| Finish applicability | Success: redirect to run status (Stage C running; usually at G3 within one refresh). Refused: `GATE_INCOMPLETE`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE` |
+| Confirm / Overrule / Decide | Success: redirect to G2 at that card. Refused: `REASON_REQUIRED`, `ALREADY_DECIDED`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE`, `VALIDATION` |
+| Finish and calculate dates | Success: redirect to review status (step 4, dates being worked out; usually ready within one refresh). Refused: `GATE_INCOMPLETE`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE` |
 
 **Budget:** about 1 minute per verdict, 6 minutes for G2.
 
 ---
 
-### Page 6 · G3 calendar (`/specialist/runs/{run_id}/g3`)
+### Page 6 · Check the calendar and publish (G3) (`/specialist/runs/{run_id}/g3`)
 
-**Purpose.** See the whole calendar and what was left out, then publish it all at once or decline
-it with a reason. **Who:** specialist.
+**Purpose.** See the whole calendar and what was left out, then publish it all at once or close
+the review without publishing, with a reason. **Who:** specialist.
 
 **On screen, in order**
 
-1. Shared frame; H1 **"Step 3 of 3: Calendar (G3)"**; run labels; stepper.
-2. Intro: **"This is the whole calendar as GPs would see it, plus marks only you can see. Publish
-   it all at once, or decline it."**
-3. **Date conventions note** (DL-12, specialist version, a boxed note): **"The date conventions
-   used here have not yet been checked against the legal texts. This does not stop you
-   publishing. GPs see a note saying the same."**
+1. Shared frame; breadcrumb; H1 **"Check the calendar and publish"**; run labels; stepper (step 4
+   is "Your turn").
+2. Lead: **"These {n} dates were calculated from the rules you approved. Check them, read what was
+   left out, then publish for the General Partner. Some marks are shown only to you."**
+3. **Date conventions note** (DL-12, specialist version, a boxed note): **"Before anyone relies on
+   these dates: the way deadlines are counted (for example, the day 'six months after year end'
+   falls on) has not yet been checked against the legal texts. This does not stop you publishing.
+   The General Partner sees a short note saying the same."**
 4. **Calendar** (H2), a real table sorted by due date:
 
    | Column | Content |
    |---|---|
-   | Due date | "Mon 2 Feb 2027" |
+   | Due date | "Mon 11 Jan 2027" |
    | What | Obligation summary |
    | Who files | Party, or **"Not confirmed"** for "not known" |
-   | Recipient | Recipient name |
+   | Sent to | Recipient name |
    | Marks | Mark labels, in words (below). Empty when none |
-   | Why (GPs see this) | The GP-facing reason, plus "Source: paragraph {id}" |
+   | Why (the General Partner sees this) | The GP-facing reason, plus "Source: paragraph {id}" |
 
    **Mark labels** (shared "mark label" part):
-   - **"Rolled"**: "Moved from Sat 31 Jan to Mon 2 Feb (roll forward)."
-   - **"Rule not confirmed"**: "Business-day rule not confirmed. The earlier date is kept."
-   - **"Precautionary"**: "Decided as applies, to be safe. GPs see this label."
-   - **"Open question OQ-7"**: "The business-day rule depends on an unanswered question. Same
-     date with or without a roll."
-   Only "Precautionary" reaches the GP view.
-5. **Rows you rejected at G1** (H2): table Row · Summary · Your reason. The demo row appears here
-   tagged **"Demo"**. If none: **"No rows were rejected."**
-6. **Paragraphs no approved row cites** (H2): table Paragraph ID · Source · Text. Intro: **"No
-   approved row cites these paragraphs. The calendar has nothing from them."**
-7. **Publish** (H2), one form, `POST /specialist/calendars/{calendar_id}/publish`, with the run
-   version and the two ID lists exactly as shown above as hidden fields:
-   - Checkbox, **unticked**: **"I have read the {r} rejected rows and the {k} uncited paragraphs
-     listed above. Nothing from them will be on the published calendar."**
-   - Text: **"Publishing shows this calendar to GPs straight away and replaces anything they saw
-     before. It cannot be withdrawn in this version. A later run can publish a new calendar."**
-   - Button: **"Publish calendar to GPs"** (primary).
-8. **Decline** (H2), one form, `POST /specialist/calendars/{calendar_id}/decline`, run version:
-   - Text: **"Declining ends this run without publishing. GPs keep seeing what they see now. You
-     can start a new run."**
-   - Field: **"Reason for declining"**. Hint: "Recorded in the audit log. Specialists only."
-   - Button: **"Decline calendar"** (secondary).
-9. Link: **"Abandon this run"** → run status `#abandon`.
+   - **"Moved off a weekend"**: "Moved from Sun 10 Jan to Mon 11 Jan (following working day)."
+     or "… (preceding working day)." Only you see this.
+   - **"May not be required"** (U5, H-017): "Added because nobody has confirmed it applies. The
+     General Partner sees this label."
+   - **"Depends on open question OQ-7"**: "What happens on a weekend or holiday depends on an
+     unanswered question. The date is the same whether or not it moves." Only you see this.
+   There is no "Rule not confirmed" mark any more: every approved rule has one of the three
+   weekend-or-holiday choices (U9, H-021; Q1, H-024). Only "May not be required" reaches the
+   General Partner view.
+5. **What's not in this calendar** (H2), intro **"Read both lists before you publish."**, then two
+   real tables:
+   - **Rules you rejected**: Rule · Your reason. The demo rule appears here tagged **"Demo"**. If
+     none: **"No rules were rejected."**
+   - **Paragraphs no rule uses**: Paragraph ID · Source · What it says. Line: **"No approved rule
+     uses these paragraphs. The calendar has nothing from them."**
+6. **Decision** (H2 **"Is this calendar ready for the General Partner?"**). Two separate forms
+   side by side, each with its own fields always visible and its own button (A9, H-011):
+
+   **"Yes, publish it"**, one form, `POST /specialist/calendars/{calendar_id}/publish`, with the
+   run version and the two ID lists exactly as shown above as hidden fields:
+   - Text: **"The General Partner will see these {n} dates straight away, in place of anything
+     they saw before. It cannot be withdrawn in this version. A later review can publish a new
+     calendar."** (When a calendar is already published: "… in place of the calendar published on
+     {date}.")
+   - Checkbox, **unticked**: **"I've read the {r} rejected rules and the {k} unused paragraphs
+     above. Nothing from them will be on the published calendar."**
+   - Button: **"Publish calendar"** (primary).
+
+   **"No, don't publish"** (U10, H-022), one form,
+   `POST /specialist/calendars/{calendar_id}/decline`, run version:
+   - Text: **"Nothing changes for the General Partner. They keep seeing what they see now, and
+     this review closes. You can start a new review."**
+   - Field: **"What needs to change before it can be published?"**. Hint: "Recorded in the audit
+     log with your name and the time. Specialists only."
+   - Button: **"Close without publishing"** (secondary).
+7. Link: **"Abandon this review"** → review status `#abandon`.
 
 **States**
 
 | State | What shows |
 |---|---|
-| Not yet at G3 (`C_RUNNING` or earlier) | **"The calendar is not ready yet."** Link: **"Watch progress on the run status page"** |
+| Not yet at G3 (`C_RUNNING` or earlier) | **"The calendar is not ready yet."** Link: **"Watch progress on the review status page"** |
 | At G3 | Full page |
 | Refused | Same page, message at the top and next to the checkbox (`ACK_REQUIRED`) or the reason field (`REASON_REQUIRED`). The checkbox is shown **unticked** again |
-| After G3 | Read-only calendar with **"Published on {date} at {time}."** or **"Declined on {date} at {time}. Reason: {reason}"**, no forms |
+| After G3 | Read-only calendar with **"Published on {date} at {time}."** or **"Closed without publishing on {date} at {time}. What needs to change: {reason}"**, no forms |
 
 **After each action**
 
 | Action | Then |
 |---|---|
-| Publish calendar to GPs | Success: redirect to run status, `COMPLETED`, with the link to the GP view. Refused: `ACK_REQUIRED`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE` |
-| Decline calendar | Success: redirect to run status, `DECLINED`. Refused: `REASON_REQUIRED`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE` |
+| Publish calendar | Success: redirect to review status, `COMPLETED`, with the link to the General Partner view. Refused: `ACK_REQUIRED`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE` |
+| Close without publishing | Success: redirect to review status, `DECLINED` ("Closed without publishing"). Refused: `REASON_REQUIRED`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE` |
 
 **Budget:** about 5 minutes to read and publish. Total G1 + G2 + G3 ≈ 26 minutes, under the
 30-minute target.
 
 ---
 
-### Page 7 · GP calendar (`/calendar`)
+### Page 7 · Calendar (`/calendar`)
 
 **Purpose.** The published calendar, read-only. **Who:** GP; the specialist sees the same page,
 read-only. **Must work at phone width.**
@@ -591,36 +729,42 @@ read-only. **Must work at phone width.**
 
 1. Shared frame.
 2. H1 **"Compliance calendar"**
-3. The fixed message (DL-27, word for word), **and nothing else**: no count, no run, no status, no
-   summary cards, no week grid:
+3. The fixed message (DL-27, word for word), **and nothing else**: no count, no review, no status,
+   no summary cards, no week grid:
    **"Your obligations calendar is being prepared and checked by a specialist. Nothing has been
-   published yet."**
+   published yet."** The mock-up's empty state uses other words; DL-27 wins (see Open Question 12).
 
 **On screen, in order (published)**
 
 1. Shared frame.
-2. H1 **"Compliance calendar"** (operator decision, 2026-11-13; the fund name is in the header).
-3. Line: **"Published on {date}."** Plus **"Made with stand-in agents (fixed test outputs, no AI
-   model)."** when the published run used them (CR-030).
-4. **Calendar note** (one fixed sentence, DL-12): **"This calendar is not legal advice, and its
-   date conventions have not yet been checked against the legal texts."**
+2. H1 **"Compliance calendar"** (operator decision, 2026-11-13; the fund name is in the sidebar).
+3. Line: **"Published on {date}."** Plus **"Made with stand-in agents (fixed test outputs, no AI model)."** when the published review used them
+   (CR-030). The mock-ups leave this line out; the built app keeps it (H-004).
+4. **Calendar note** (DL-12, SD FR-020), different by role (U11, H-023):
+   - **General Partner** (short line, small grey text): **"These dates are the specialist's
+     approved reading of the rules. Not legal advice. Date counting hasn't yet been checked
+     against the legal texts."**
+   - **Specialist** (the longer boxed note): **"This calendar is not legal advice. Before anyone
+     relies on these dates: the way deadlines are counted (for example, the day 'six months after
+     year end' falls on) has not yet been checked against the legal texts."**
 5. **Summary cards** (a row of three; operator decision, 2026-11-13): **Entries in {year}** {n} ·
-   **Due next** {date} · **Precautionary** {p}. Every value is a fact of the published calendar,
-   computed by the server.
+   **Due next** {date} · **May not be required** {p}. Every value is a fact of the published
+   calendar, computed by the server.
 6. **Week grid** (H2 **"The next two months"**): the two calendar months from the next due date,
-   seven columns Mon to Sun. Each entry shows What and Who files in words, and "Precautionary"
-   where it applies. The next due date carries the word **"Due next"**. Published entries only:
-   nothing a GP cannot also read in the table below.
+   seven columns Mon to Sun. Each entry shows What and Who files in words, and "May not be
+   required" where it applies. The next due date carries the word **"Due next"**. Published
+   entries only: nothing the General Partner cannot also read in the table below.
 7. **Entries** (H2 **"All entries for {year}"**): a real table sorted by due date, grouped by
    month. Columns: **When** (due date) · **What** ·
    **Who files** ("Not confirmed" for "not known") · **Why** (the reason, then "Source: {document},
    paragraph {id}" and the quote in a smaller blockquote).
-   Precautionary entries carry the label **"Precautionary"** (word, not just colour) and this
-   code-generated note under the reason: **"Precautionary: it is not yet confirmed that this
-   applies to the fund. It is listed so that it is not missed. It does not mean that any
-   registration or marketing is permitted."**
-8. Nothing else: no draft, flag, other mark, run status, or link to a failed, abandoned or declined
-   run. The summary cards and the week grid show published facts only.
+   Entries the specialist added without confirmation carry the label **"May not be required"**
+   (word, not just colour; U5, H-017) and this code-generated note under the reason: **"May not be
+   required: it is not yet confirmed that this applies to the fund. It is listed so that it is not
+   missed. It does not mean that any registration or marketing is permitted."** The specialist's
+   reason is still shown as the "Why".
+8. Nothing else: no draft, flag, other mark, review status, or link to a failed, abandoned or
+   closed review. The summary cards and the week grid show published facts only.
 
 **Phone width (≤ 480 px).** The table keeps its table markup but each row stacks as a block:
 "When" first in bold, then What, Who files, Why, each with its column name as a visible label.
@@ -632,7 +776,7 @@ scroll.
 | State | What shows |
 |---|---|
 | Nothing published yet | The fixed DL-27 message only |
-| Published | As above. A later declined, failed or abandoned run changes nothing here |
+| Published | As above. A later review that is closed without publishing, failed or abandoned changes nothing here |
 | Error | **"The calendar could not be shown just now. Try again in a few minutes."** (never working content, CR-012) |
 
 **Actions.** None, apart from "Sign out". The specialist's navigation is still shown to the
@@ -644,13 +788,13 @@ specialist.
 
 | Part | Used on | Contains |
 |---|---|---|
-| Base frame | All | Demo label, header, navigation, run labels, refusal slot (§1.3) |
+| Base frame | All | Sidebar (wordmark, product name, fund, navigation, identity with the demo label, sign out), breadcrumb, run labels, refusal slot (§1.3) |
 | Stepper | 3 to 6 | §1.4 |
 | Status words | 2, 3 | §1.5 |
 | Row card | 4 (and the rejected list on 6) | Quote, check result, paragraph, flags, fields, decision or decision forms |
 | Flag | 4 | Type heading and both texts |
-| Decision form | 4, 5 | Separate explicit forms, nothing preselected, reason fields with their audience hint |
-| Mark label | 6, 7 (precautionary only) | Word + one-line explanation |
+| Decision form | 4, 5, 6 | Separate explicit forms, one per action, each with its own fields always visible and its own button; nothing preselected; no `:has()` reveal and no browser `required` (A9, H-011); reason fields with their audience hint |
+| Mark label | 6, 7 ("May not be required" only) | Word + one-line explanation |
 | Refusal message | All forms | §5 |
 | Refresh controls | 3 | §3 page 3 |
 
@@ -659,51 +803,61 @@ specialist.
 **Where** (operator decision, 2026-11-13). The same page is shown again. The `<title>` starts with
 "Not done: " in every case.
 
-- **About one row or verdict card** (for example `DEMO_ROW_NOT_APPROVABLE`, `QUOTE_CHECK_FAILED`,
-  `REASON_REQUIRED` on a row): the page lands on that card (the redirect carries its anchor,
-  `#row-{i}` or `#verdict-{i}`). The full sentence sits **inside the card, beside the decision
-  forms**, headed **"Not done"**. The top of the page, under the H1, shows only a short line:
-  **"Not done. The reason is shown beside row {i}."** (or "… beside verdict {i}.") with the link
-  **"Go to row {i}"** (or **"Go to verdict {i}"**).
-- **About the page or the run** (for example `GATE_INCOMPLETE`, `VERSION_MISMATCH`, `RUN_ACTIVE`,
+- **About one rule card** at G1 or G2 (for example `DEMO_ROW_NOT_APPROVABLE`,
+  `QUOTE_CHECK_FAILED`, `REASON_REQUIRED` on a rule): the page lands on that card (the redirect
+  carries its anchor, `#row-{i}` or `#verdict-{i}`). The full sentence sits **inside the card,
+  beside the decision forms**, headed **"Not done"**. The top of the page, under the H1, shows
+  only a short line: **"Not done. The reason is shown beside rule {i}."** with the link **"Go to
+  rule {i}"** (H-009).
+- **`RUN_ACTIVE`** (start a new review): the same pattern, about the button (H-009). The full
+  sentence sits beside **"Start a new review"**; the top shows the short line and **"Go to 'Start
+  a new review'"** (page 2).
+- **About the page or the review** (for example `GATE_INCOMPLETE`, `VERSION_MISMATCH`,
   `ACK_REQUIRED`): the full sentence in a box at the top under the H1, headed **"Not done"**, and
-  again next to the control it concerns. Any text the specialist typed in a
-reason field is shown again so it is not lost; radio choices and the G3 checkbox are shown
-**empty** again (nothing preselected).
+  again next to the control it concerns.
+- **Always:** on the page, never as a browser pop-up, and recorded in the audit log (W-18,
+  H-009). Any text the specialist typed in a reason field is shown again so it is not lost; radio
+  choices and the G3 checkbox are shown **empty** again (nothing preselected).
 
 **What.** The backend returns the code and the sentence (§4 of the SAD); this table is the wording
 for that sentence. `{…}` are values the server fills in.
 
 | Code | Context | Sentence |
 |---|---|---|
-| `DEMO_ROW_NOT_APPROVABLE` | Approve on the planted row | **"This is a planted demo row. It cannot be approved. Reject it with a reason."** (word for word from CR-029) |
-| `QUOTE_CHECK_FAILED` | Approve on a row that failed the check | **"This row failed the quote check: its quote does not appear word for word in paragraph {para_id}. It cannot be approved. Reject it with a reason."** |
-| `ALREADY_DECIDED` | Row | **"This row was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
-| `ALREADY_DECIDED` | Verdict | **"This verdict was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
-| `REASON_REQUIRED` | Reject a row | **"Write a reason to reject this row."** |
-| `REASON_REQUIRED` | Approve over a flag | **"This row has a verifier flag. Write a reason to approve it over the flag."** |
-| `REASON_REQUIRED` | G2 override to applies, or "unsure" decided as precautionary | **"Write a reason. GPs will read it as the explanation for this entry."** |
-| `REASON_REQUIRED` | G2 override to does not apply, or "unsure" decided as does not apply | **"Write a reason. It is kept in the audit log; GPs will not see it."** |
-| `BUSINESS_DAY_RULE_REQUIRED` | Approve without a business-day rule | **"Choose a business-day rule to approve this row: roll forward, no roll, or not confirmed."** (new code, see Open Questions) |
-| `REASON_REQUIRED` | Abandon | **"Write a reason to abandon this run."** |
-| `REASON_REQUIRED` | Decline | **"Write a reason to decline this calendar."** |
-| `WHO_FILES_REQUIRED` | Approve, source silent | **"The source does not say who files this. Choose a filing party, or 'Not known', to approve the row."** |
-| `GATE_INCOMPLETE` | Finish G1 | **"{x} rows are still undecided. Decide every row before finishing the rule review."** |
-| `GATE_INCOMPLETE` | Finish G2 | **"{x} verdicts are still undecided, {u} of them 'unsure'. Decide every verdict before finishing."** |
-| `ACK_REQUIRED` | Publish, box not ticked | **"Tick the box to confirm you have read the rejected rows and the uncited paragraphs. Then publish again."** |
-| `ACK_REQUIRED` | Publish, lists changed | **"The lists of rejected rows or uncited paragraphs are not the ones shown when you ticked the box. Read the lists below and tick the box again."** |
-| `VERSION_MISMATCH` | Any run-level action | **"This run has moved on since the page was opened. The page now shows where it is. Check it, then try again if you still need to."** |
-| `RUN_ACTIVE` | Start run | **"Run {n} is still active, so a new run cannot start. Finish it, or abandon it at its gate, first."** + link **"Open run {n}"** |
-| `RUN_NOT_ACTIVE` | Any decision on an ended run | **"This run has ended ({status words}), so it cannot take more decisions. Start a new run from the run list."** |
-| `RUN_STAGE_RUNNING` | Abandon or decide during a stage | **"{Stage} is still running, so this cannot be done yet. It ends by itself; follow it on the run status page."** |
-| `FORBIDDEN` | GP on a specialist action | **"This page is for the compliance specialist. You are signed in as a GP, so you can view the published calendar only."** |
+| `DEMO_ROW_NOT_APPROVABLE` | Approve on the planted row | **"Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason."** Then the line **"Recorded in the audit trail."** (A3, H-006; replaces the CR-029 sentence, pending the DL-44 update) |
+| `QUOTE_CHECK_FAILED` | Approve on a rule that failed the check | **"This rule failed the quote check: its quote does not appear word for word in paragraph {para_id}. It cannot be approved. Reject it with a reason."** |
+| `ALREADY_DECIDED` | Rule (G1) | **"This rule was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
+| `ALREADY_DECIDED` | Answer (G2) | **"This answer was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
+| `REASON_REQUIRED` | Reject a rule | **"Write a reason to reject this rule."** |
+| `REASON_REQUIRED` | Approve over a flag | **"The AI checker flagged this rule. Write a reason to approve it despite the flag."** |
+| `REASON_REQUIRED` | G2 overrule to applies, or "can't tell" decided as add it | **"Write a reason. The General Partner will read it as the explanation for this entry."** |
+| `REASON_REQUIRED` | G2 overrule to doesn't apply, or "can't tell" decided as leave it off | **"Write a reason. It is kept in the audit log; the General Partner will not see it."** |
+| `BUSINESS_DAY_RULE_REQUIRED` | Approve without a weekend-or-holiday choice | **"Choose what happens if the deadline falls on a weekend or holiday to approve this rule: move to the following working day, move to the preceding working day, or keep the date."** (U9, H-021) |
+| `REASON_REQUIRED` | Abandon | **"Write a reason to abandon this review."** |
+| `REASON_REQUIRED` | Close without publishing | **"Write what needs to change before this calendar can be published."** (U10, H-022) |
+| `WHO_FILES_REQUIRED` | Approve, source silent | **"The source does not say who files this. Choose a filing party, or 'Not known', to approve the rule."** |
+| `GATE_INCOMPLETE` | Finish G1 | **"{x} rules are still undecided. Decide every rule before you finish checking."** |
+| `GATE_INCOMPLETE` | Finish G2 | **"{x} answers are still undecided, {u} of them where AI can't tell. Decide every answer before you finish."** |
+| `ACK_REQUIRED` | Publish, box not ticked | **"Tick the box to confirm you have read the rejected rules and the unused paragraphs. Then publish again."** |
+| `ACK_REQUIRED` | Publish, lists changed | **"The lists of rejected rules or unused paragraphs are not the ones shown when you ticked the box. Read the lists above and tick the box again."** |
+| `VERSION_MISMATCH` | Any review-level action | **"This review has moved on since the page was opened. The page now shows where it is. Check it, then try again if you still need to."** |
+| `RUN_ACTIVE` | Start a new review | **"Review {n} is still in progress, so a new review can't start. Finish it, or abandon it at its step, first."** + link **"Open review {n}"**, then the line **"Recorded in the audit trail."** (H-009) |
+| `RUN_NOT_ACTIVE` | Any decision on an ended review | **"This review has ended ({status words}), so it cannot take more decisions. Start a new review from Filing rules."** |
+| `RUN_STAGE_RUNNING` | Abandon or decide while AI or code works | **"AI is still working on step {k}, so this cannot be done yet. It finishes by itself; follow it on the review status page."** (step 4: "The dates are still being worked out, …") |
+| `FORBIDDEN` | GP on a specialist action | **"This page is for the compliance specialist. You are signed in as the General Partner, so you can view the published calendar only."** |
 | `VALIDATION` | Malformed form, or a "who files" value not offered | **"Part of this form was not valid ({field}), so nothing was saved. Check the form and try again."** |
 
 ## 6. Visual style
 
 The look (tokens, type, spacing, components, status chips, contrast) is in
 **`project-context/2.build/style-note.md`** (operator decision, 2026-11-13). This note does not
-repeat it. Design mock-ups of three screens that apply it are in `docs/prototype/`.
+repeat it.
+
+**Pending (U8, H-020).** The operator accepted a new look for the MVP: Lexend headings, Inter
+body, 6px corners on cards and buttons, pill chips and Iconoir icons (MIT licence, inline SVG), as
+in `docs/prototype/app.css`. `style-note.md` has not been updated yet, so until it is, the
+mock-ups are the look reference (see the top of this note). U7 and U8 together get half a day;
+anything that does not fit is dropped.
 
 B6 is still the first block dropped if time runs out: every page must stay usable and accessible
 unstyled.
@@ -726,17 +880,20 @@ unstyled.
 
 | ID | Check | Trace |
 |---|---|---|
-| UX-001 | Every page shows the demo label as text | operator brief |
-| UX-002 | Every specialist page showing a stand-in run shows "Stand-in agents"; so does the GP calendar when that run's calendar is published | CR-030 |
-| UX-003 | The planted row at G1 is tagged "Demo" and its "Approve row" button is visible and active; clicking it lands on that row, shows the CR-029 sentence in the card and the short top line with "Go to row {i}"; the row stays undecided | DL-44, CR-029 |
+| UX-001 | Every page shows the demo label as text ("Demo with mock data" in the sidebar; in the intro line on sign-in) | operator brief |
+| UX-002 | Every specialist page showing a stand-in review shows "Stand-in agents"; so does the calendar when that review's calendar is published. Applies to the built app even though the mock-ups leave it out | CR-030, H-004 |
+| UX-003 | The planted rule at G1 is tagged "Demo", shows no quote-check line, and its "Approve rule" button is visible and active with nothing preselected; clicking it lands on that rule, shows the `DEMO_ROW_NOT_APPROVABLE` sentence (§5) in the card, changes its status tag to "Approval blocked", shows the short top line with "Go to rule {i}", and records the attempt in the audit log; no browser pop-up; the rule stays undecided | DL-44, CR-029, H-006, H-007, H-009 |
 | UX-004 | No radio, checkbox or select is preselected on any page, including after a refusal | SD AC-026 |
 | UX-005 | No page has a bulk action, a disabled button or a "coming soon" | §3, AC-026 |
-| UX-006 | Run status refreshes every 3 s only while a stage runs, and "Stop automatic refresh" stops it | §3 Freshness, WCAG 2.2.1 |
+| UX-006 | Review status refreshes every 3 s only while AI or code works, and "Stop automatic refresh" stops it | §3 Freshness, WCAG 2.2.1 |
 | UX-007 | Every status is readable with colour removed | §3 Accessibility |
 | UX-008 | Before the first publication, `/calendar` shows only the DL-27 message | DL-27, CR-012 |
-| UX-009 | A GP never sees a flag, an unsure verdict, a mark other than "Precautionary", or a run | CR-012 |
-| UX-010 | G2 reason fields that create an entry say GPs will read the reason; "does not apply" fields say it is for the audit log only | SA-8, W-17 |
-| UX-015 | Approving a row with no business-day rule chosen shows the `BUSINESS_DAY_RULE_REQUIRED` sentence in that row's card; the row stays undecided | §5 |
+| UX-009 | A GP never sees a flag, a "can't tell" answer, a mark other than "May not be required", or a review | CR-012 |
+| UX-010 | G2 reason fields that create an entry say the General Partner will read the reason; "doesn't apply" and "leave it off" fields say it is for the audit log only | SA-8, W-17 |
+| UX-015 | Approving a rule with no weekend-or-holiday choice shows the `BUSINESS_DAY_RULE_REQUIRED` sentence in that rule's card; the rule stays undecided. The options read exactly: Move to the following working day, Move to the preceding working day, Keep the date; there is no "not confirmed" | §5, H-021 |
+| UX-017 | "Start a new review" is visible while a review is in progress; clicking it shows the `RUN_ACTIVE` sentence beside the button and the short top line, and records the attempt in the audit log | CR-004, H-009 |
+| UX-018 | The General Partner's calendar note reads exactly the U11 sentence (page 7); the specialist sees the longer note | SD FR-020, H-023 |
+| UX-019 | No user-facing text says "run", "Stage A/B/C", "G1/G2/G3", "gate" or "precautionary" (except the exact label "Stand-in agents") | §1.8 |
 | UX-016 | The "who files" options read exactly: AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor, Not known | DL-39 |
 | UX-011 | The G3 acknowledgement checkbox is unticked on every load | CR-028 |
 | UX-012 | The GP calendar has no horizontal scroll at 360 px | §3 |
@@ -774,6 +931,9 @@ unstyled.
   `mock-regulatory-sources.md`: rows, quotes, verdicts, flags and the 22 calendar dates used in the
   mock-ups.
 - `project-context/2.build/style-note.md`: the visual style (§6).
+- `project-context/handoffs.md`: the operator's decisions of 2026-11-14 on the design exploration
+  (H-004 to H-026; this revision applies U1 to U11, A3, A4, A7, A9, H-009, H-023 and U9/Q1).
+- `docs/prototype/HANDOVER.md` and `docs/prototype/build.py` (the mock-up wording and layout).
 - `.cursor/templates/ux-template.md`, `.cursor/skills/product-design/SKILL.md`.
 - The operator's B5 brief, and the operator's decisions on the mock-up review (2026-11-13).
 
@@ -784,23 +944,36 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
 - **File location.** The operator asked for `project-context/2.build/ux.md`. The framework's
   default is `project-context/1.define/ux.md`, and the validator only checks the approval status
   there, so it will not see this file's status. See Open questions.
-- **Mock-ups, not templates.** Static design mock-ups of three screens are in `docs/prototype/`
-  (G1 review, the demo-row refusal, the GP calendar), with hard-coded fictional data. They are a
-  reference for `@frontend.eng`, not code to copy: no logic, no JavaScript. The planted row's
-  content in them is invented, because the backend fixture (SAD CR-029) does not exist yet.
-- **The demo label** is a static pill reading "Demo with mock data" in the base template. It is
-  not the parked F-18 banner (no Reset, no extra behaviour).
+- **Mock-ups, not templates.** Static design mock-ups of every in-scope screen are in
+  `docs/prototype/` (generated by `build.py`), with hard-coded fictional data. They are the layout
+  and look reference for `@frontend.eng`, not code to copy: no logic, no JavaScript. The planted
+  row's content in them is invented, because the backend fixture (SAD CR-029) does not exist yet.
+  The Funds pages in the same folder are future scope and are not described here.
+- **The demo label** is the static text "Demo with mock data" in the sidebar's identity block
+  (and in the sign-in intro line). It is not the parked F-18 banner (no Reset, no extra
+  behaviour).
+- **Stepper mapping.** The mock-ups only show step 1 in progress and steps 2 to 4 waiting for the
+  specialist. Showing Stage B as "In progress" on step 3 and Stage C on step 4 (§1.4) is this
+  note's reading of U4.
+- **Wording this note had to add.** The mock-ups do not show every state. Where a decision changed
+  a word but no mock-up shows the screen, this note writes the new sentence in the same style:
+  the H1s for `B_RUNNING` to `FAILED` on page 3, the failure and abandon sentences, and the §5
+  refusals other than `DEMO_ROW_NOT_APPROVABLE` and `RUN_ACTIVE`. All of it goes through the copy
+  review (CR-019).
 - **Hidden-but-enforced vs shown-and-refused.** The Approve button is always shown (rule of the
   page). Two controls are shown only in the phase where they belong, following the SAD's wording:
   the abandon form (gates only) and the decision forms (undecided items only). The server still
   enforces both.
 - **"Stop automatic refresh"** is a query parameter on the run status URL. It stores nothing.
-- **G2 "unsure"** can be decided as "Applies (precautionary)" or "Does not apply", both with a
-  reason. The SAD names the precautionary choice; it does not say "does not apply" is ruled out.
+- **G2 "can't tell"** ("unsure") can be decided as "Yes, add it until someone confirms" (the SAD's
+  precautionary choice, labelled "May not be required") or "No, leave it off", both with a reason.
+  The SAD names the precautionary choice; it does not say "does not apply" is ruled out.
 - **Override** at G2 flips the verdict to its opposite; there is no third value.
-- **"Rolled" mark** text assumes the server gives the original and the rolled date.
-- **Business-day rule at approve** offers all three values, including "Not confirmed", which the
-  SAD names as a valid outcome (W-13, `D-6`). A choice is always required (operator decision,
+- **"Moved off a weekend" mark** text assumes the server gives the original and the moved date,
+  and which direction it moved.
+- **Weekend-or-holiday choice at approve** offers three values: move to the following working day,
+  move to the preceding working day, keep the date. "Not confirmed" is no longer offered (U9,
+  H-021, a DL-19 change through the operator). A choice is always required (operator decision,
   2026-11-13); a missing one is refused with `BUSINESS_DAY_RULE_REQUIRED`.
 - **Names checked against `mock-fund-profile.md`**: fund "Bramblegate Credit Opportunities SICAV",
   GP "Bramblegate Partners", fund ID `FND-DEMO-01`, all fictional. They match.
@@ -824,9 +997,9 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    demo run is theirs to confirm.
 4. **G2 "unsure" → "Does not apply".** Allowed? Assumed yes (see Assumptions).
 5. **New refusal code `BUSINESS_DAY_RULE_REQUIRED`.** Added at the operator's request
-   (2026-11-13). It is not in the SAD §4 refusal-code table yet. Proposed row: "A business-day
-   rule was not chosen on approve · 422". `@system.arch` to add it to §4 so `@backend.eng` builds
-   from the SAD.
+   (2026-11-13). `@system.arch` has since added it to SAD §4 (DL-47). That row still says "'not
+   confirmed' counts as a choice", which U9 (H-021) removes: see "Where ux.md and sad.md now
+   disagree" below.
 6. **Reject a row with a business-day rule chosen.** Separate forms avoid this, but confirm the
    service ignores or refuses stray fields on reject.
 7. **Closed 2026-11-13 (operator).** The page uses "Local reporting agent (Spain)", exactly as
@@ -835,16 +1008,60 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    entries read "Monthly financial report U1.1 to the CSSF" and cannot be told apart. The mock-ups
    add a line such as "For December 2026" (the period the filing covers). The pages must not work
    this out themselves (§1.2), so the server would need to send it. Add a field to the calendar
-   entry in the SAD, or drop the line?
-9. **For `@qa.eng`: a Sunday due date with no explanation for GPs.** `OBL-04` and `OBL-05` fall
-   on Sun 28 Feb 2027 because their business-day rule is "not confirmed" (`D-6`, the earlier date
-   is kept). The "Rule not confirmed" mark is specialist-only (CR-012), so a GP sees a Sunday
-   deadline with no reason given and may read it as an error. Confirm this is acceptable for the
-   demo, or say what a GP should see.
+   entry in the SAD, or drop the line? **Decided 2026-11-14 (operator, H-010):** post-MVP
+   stretch, after the extra calendar views (H-012). No line in this build.
+9. **Closed 2026-11-14 (operator, H-021 and H-024).** With no "not confirmed" option, the two
+   filings that fell on Sun 28 Feb 2027 move to the preceding working day, Fri 26 Feb. No GP sees a
+   Sunday deadline. `@qa.eng` updates the answer key (H-024).
 10. **For `@qa.eng`: an event date after the publication date.** The demo calendar is published on
    Fri 13 Nov 2026, but the `OBL-05` entry rests on `EVT-01`, which the fund "became aware of" on
    31 Jan 2027 (`mock-fund-profile.md`). A published calendar cites an event that has not
    happened yet. Check whether the demo date or the event date should change.
+11. **For the operator: the "Funds" item in the sidebar.** The mock-ups show "Calendar · Funds ·
+   Filing rules". There is no Funds page in this build, and §1.2 allows no placeholder, so this
+   note leaves "Funds" out until H-026 says whether Funds stays future scope.
+12. **For the operator: the empty calendar's words.** The mock-up's empty state reads "No calendar
+   has been published yet. You'll see deadlines here once compliance has signed them off." DL-27
+   fixes the message word for word (EC-014 checks it), so this note keeps DL-27. Change DL-27, or
+   update the mock-up?
+13. **For the operator: "General Partner" or "General Partner / Fund Manager".** H-018 says
+   "General Partner" in the UI. The mock-ups use "General Partner / Fund Manager" for the role name
+   on sign-in and in the sidebar. This note uses the long form for the role name and "the General
+   Partner" in running text. Confirm.
+14. **For the operator: the "Demo" tag on the planted rule.** The mock-ups show no "Demo" tag on
+   rule 7. CR-029 says the row is labelled "demo" wherever it appears, and no decision changed
+   that, so this note keeps the tag (like A1 and A2, treated as prototype-only). Confirm.
+15. **For the operator: weekend moves on the General Partner's calendar.** The mock-ups show
+   "Moved from Sun 10 Jan" tags, and a "Moved off a weekend" summary card, on the General
+   Partner's calendar. CR-012 and UX-009 allow only the "May not be required" mark there, and no
+   decision changed that, so this note keeps the moved mark specialist-only. Confirm.
+
+## Mock-up differences this revision does not apply
+
+These are in `docs/prototype/` but are not among the decisions applied here, so ux.md does not
+follow them yet: the calendar's Month and Year views and charts (A10, H-012: built last, one-day
+timebox); the "For December 2026" period line (A8, H-010: post-MVP); the Funds pages (future
+scope, H-026); the summary cards and Sources table on Filing rules; the fund facts strip on the
+calendar; the "Why" expand link and the filters on the calendar list; and the left-hand panel on
+sign-in. Items 11, 12, 14 and 15 above are also mock-up differences.
+
+## Where ux.md and sad.md now disagree
+
+`sad.md` was not edited (operator rule). These need `@system.arch`, or the operator for DL rows:
+
+| # | ux.md now says | sad.md still says | Where in sad.md | Decision |
+|---|---|---|---|---|
+| D1 | The demo-row refusal reads "Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason." | "This is a planted demo row. It cannot be approved. Reject it with a reason." | CR-029 (and DL-44 by reference); T-DEMO-2 may check the text | A3, H-006 (DL-44 update pending) |
+| D2 | Three weekend-or-holiday choices: following working day, preceding working day, keep the date. No "not confirmed" | `business_day_rule` is `roll_forward`, `no_roll`, `not_confirmed`; "'not confirmed' counts as a choice" | Data model enum; §4 `BUSINESS_DAY_RULE_REQUIRED` row; DL-19, DL-47. (The extractor may still output `not_confirmed` when the source is silent, EC-003; ux.md shows that as "Not stated", never as a choice) | U9, H-021 (DL-19 change pending) |
+| D3 | No "Rule not confirmed" mark; the marks are moved, may not be required, open question | Marks are "roll, rule unconfirmed, precautionary, open question" | §3 page 6 and "Shared template parts" (mark label) | U9 / Q1, H-021, H-024 |
+| D4 | "May not be required" in place of "Precautionary" | "precautionary" label, generated by code | CR-019, W-12, §3 page 6; also DL-01, PRD F5/F8, SD P-1 | U5, H-017 (DL-01 amendment pending) |
+| D5 | The demo rule shows no quote-check line; its status tag reads "Approval blocked" after the refusal | "Each row with its quote, the cited paragraph, the quote-check result" | §3 page 4 (T-DEMO-1 still checks a pass is recorded, which ux.md keeps) | A4, H-007 |
+| D6 | Users read "review", "AI", four named steps, "General Partner", "Close without publishing" | "run", "Stage A/B/C", "G1/G2/G3", "GP", "decline" | Throughout (allowed: the documents keep the internal names, §1.8) | U2, U3, U4, U6, U10 |
+| D7 | The General Partner's note: "These dates are the specialist's approved reading of the rules. Not legal advice. Date counting hasn't yet been checked against the legal texts." The specialist sees a longer note | One calendar-level "not legal advice / conventions not yet checked" note | W-16, DM-14 (wording only; H-023 says no FR-020 change) | U11, H-023 |
+| D8 | The specialist's navigation is "Calendar · Filing rules" in a sidebar | Not specified beyond the seven pages | §3 (no conflict; noted for completeness) | U7, H-019 |
+
+D6 and D8 need no SAD change. D1 to D5 do, through `@system.arch` (and the operator for DL-01,
+DL-19 and DL-44). D7 is wording only.
 
 ## Audit
 
@@ -875,3 +1092,13 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
   summary cards; G1 row-index example corrected (OBL-03 is the audited annual report). Open
   Questions 8 (period field, `@system.arch`), 9 (Sunday due date) and 10 (event after publication,
   both `@qa.eng`) added. Approval status left `pending`.
+- 2026-11-14 · persona `ux-designer` · action `design-ux` (revision, operator decisions on the
+  design exploration in `handoffs.md`) · branch `ux-mockups-exploration-handover` · applied U1 to
+  U11 (H-013 to H-023), A3 (H-006), A4 (H-007), A7 (H-009), A9 (H-011, rejected: separate forms
+  kept) and U9/Q1 (H-021, H-024). The mock-ups are now the layout and look reference; this note
+  stays the reference for behaviour, states, wording and refusals. Kept the "Stand-in agents"
+  label and the demo-row switch (A1, A2: prototype-only, H-004, H-005). Added §1.8 (words on
+  screen), UX-017 to UX-019, Open Questions 11 to 15, and the "Mock-up differences" and "Where
+  ux.md and sad.md now disagree" sections. Closed Open Question 9; recorded the H-010 decision on
+  Open Question 8; updated Open Question 5. Did not edit `sad.md` or `style-note.md`. No code. No
+  model call. Approval status left `pending`.
