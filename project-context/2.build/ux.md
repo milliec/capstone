@@ -38,7 +38,9 @@ built app keeps both (§1.3, page 2).
   refuses it and the page shows why (§5), on the page and never as a browser pop-up. The refusal is
   recorded in the audit log (W-18). This is why the demo row and a row that failed the quote check
   both keep their Approve button, and why "Start a new review" stays visible while a review is in
-  progress (H-009).
+  progress (H-009). The answer-first decision form (§4, DL-48) is not an exception: it shows each
+  answer's button once that answer is chosen, every answer can always be chosen, and the server
+  still decides whether the action is allowed.
 - No HTML `required`, `disabled` or `pattern` attributes on decision forms. A missing reason is
   refused by the server with `REASON_REQUIRED`, not stopped in the browser.
 - No placeholders: no "coming soon", no disabled future feature, no greyed-out control (§3,
@@ -430,14 +432,15 @@ See §9.
       question OQ-7"** as applicable, and the status tag (**"To decide"**, or **"Approval
       blocked"** on the demo rule after a refused approval).
    2. **Quote** (blockquote): the word-for-word quote. Caption: "Quote from paragraph {para_id}".
-   3. **Quote check**, one line (not on the demo rule, see below):
+   3. **Quote check**, one line, on **every** rule, the demo rule included (D5, operator decision
+      2026-11-14; SAD §3 page 4; H-030):
       - pass: **"Quote check: passed. The quote appears word for word in paragraph {para_id}."**
       - fail: **"Quote check: failed. The quote does not appear word for word in paragraph
         {para_id}. This rule can only be rejected."**
-      - **Demo rule** (A4, H-007): no quote-check line and no "quote found" tag, because the
-        refusal says the rule has no legal basis. Before the click its status tag reads **"To
-        decide"**; after a refused approval it reads **"Approval blocked"**, matching the refusal.
-        The server still runs and records the quote check on it (CR-029, T-DEMO-1).
+      - **Demo rule** (CR-029, T-DEMO-1): its quote passes by design, so it shows the "passed"
+        line like any other rule. There is still no "quote found" tag (A4, H-007). Before the click
+        its status tag reads **"To decide"**; after a refused approval it reads **"Approval
+        blocked"**, matching the refusal.
    4. **Cited paragraph** (full text, headed "Paragraph {para_id}, {source document}").
    5. **Flags** (shared "flag" part), one box per flag, each with both texts (DL-03):
       - Heading: **"Flagged by the AI checker: inside the same document"** (`internal`) or
@@ -457,12 +460,15 @@ See §9.
       weekend or holiday for this rule depends on open question OQ-7, which is not yet answered.
       Nothing is chosen for you. Whatever you choose, the dates will carry the OQ-7 mark when you
       publish."**
-   8. **Decision** (only while the rule is undecided): two separate forms side by side, both
-      `POST /specialist/rows/{row_id}/decision` with the row version as a hidden field. One form
-      per action, each with its own fields always visible and its own button: no "choose an answer
-      first" control, no CSS `:has()` reveal, no browser `required` (A9, H-011 rejected).
+   8. **Decision** (only while the rule is undecided): one answer-first form (§4 "Decision form";
+      A9 reversed, H-011, H-028), `POST /specialist/rows/{row_id}/decision` with the row version as
+      a hidden field.
 
-      **Approve** (heading **"Approve this rule"**):
+      - Radio question **"What's your decision on this rule?"** (named `decision`, nothing
+        chosen): **"Approve"** · **"Reject"**. Only the chosen answer's fields and button show
+        below it; where `:has()` is unsupported, both answers' fields show.
+
+      **If "Approve" is chosen:**
       - Radio group (nothing chosen), legend **"If the deadline falls on a weekend or holiday
         (choose one to approve)"** (U9, H-021). The options, exactly and in this order:
         **"Move to the following working day"** · **"Move to the preceding working day"** ·
@@ -474,21 +480,25 @@ See §9.
         (Spain)"** · **"Tax advisor"** · **"Not known"**. Hint: "Choose the party, or 'Not
         known'. The compliance specialist and the General Partner are not filing parties."
       - **"Why are you approving it although the checker flagged it?"** (multi-line), **only when
-        the rule has a flag**. Hint: "Required because the checker raised a flag. Saved in the
-        audit log with your name and the time. Specialists only."
+        the rule has a flag**, field name `approve_reason`. Hint: "Required because the checker
+        raised a flag. Saved in the audit log with your name and the time. Specialists only."
       - Button: **"Approve rule"** (primary).
 
-      **Reject** (heading **"Reject this rule"**):
-      - **"Why are you rejecting it?"** (multi-line). Hint: "Required. If you reject it, no filing
-        dates are created from this rule. Shown again when you publish and kept in the audit log.
-        Specialists only."
+      **If "Reject" is chosen:**
+      - **"Why are you rejecting it?"** (multi-line), field name `reject_reason`. Hint:
+        "Required. If you reject it, no filing dates are created from this rule. Shown again when
+        you publish and kept in the audit log. Specialists only."
       - Button: **"Reject rule"** (secondary).
 
-      The demo rule and a quote-check-failed rule show **exactly the same two forms**, with the
-      Approve button visible and active and nothing preselected. The server refuses the approval
-      (§5) on the page, never as a browser pop-up, and records the attempt in the audit log
-      (H-009).
-   9. **Decided** (replaces the forms once decided):
+      The server reads only the chosen answer's fields: on Reject it ignores any weekend-or-holiday
+      or "who files" choice left over from Approve (SAD §4, DL-48). Submitting with no answer chosen
+      is refused with `VALIDATION` (§5).
+
+      The demo rule and a quote-check-failed rule show **exactly the same form**: both answers, and
+      after choosing "Approve" its button is visible and active, with nothing preselected. The
+      server refuses the approval (§5) on the page, never as a browser pop-up, and records the
+      attempt in the audit log (H-009).
+   9. **Decided** (replaces the form once decided):
       - "**Approved** by Compliance specialist (mock) at 14:02. Weekend or holiday: move to the
         following working day. Who files: Fund administrator." (+ "Reason: {reason}" if over a
         flag)
@@ -566,21 +576,25 @@ decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reas
       Registered for marketing in the second country · Unknown, not confirmed in fund records".
    6. **The rule** (collapsed under a `<details>` element, "Show the approved rule and quote"): the
       rule, quote and paragraph ID as approved at G1.
-   7. **Decision** (undecided only). Separate forms, one per action, each with its own fields
-      always visible and its own button (A9, H-011), each
-      `POST /specialist/verdicts/{verdict_id}/decision` with the verdict version:
+   7. **Decision** (undecided only). One answer-first form (§4 "Decision form"; A9 reversed,
+      H-011, H-028), `POST /specialist/verdicts/{verdict_id}/decision` with the verdict version.
+      A radio question named `decision` comes first, with nothing chosen; only the chosen answer's
+      text, field and button show (all of them where `:has()` is unsupported). Each answer's reason
+      field has its own name (`<answer>_reason`, SAD §4), and only the chosen answer's field is
+      read. No answer chosen → `VALIDATION`.
 
-      When AI said **"applies"** or **"doesn't apply"**:
-      - **Confirm** form: text **"If you confirm, the General Partner will read AI's reasoning
-        above as the explanation."** (only shown when the answer is "applies"; for "doesn't
-        apply" the text is **"If you confirm, this obligation is left off the calendar."**).
+      When AI said **"applies"** or **"doesn't apply"** (not in the mock-ups, see H-026; the
+      question is wording this note adds):
+      - Question: **"What's your answer on this rule?"**
+      - **"Confirm: applies"** (or **"Confirm: doesn't apply"**): text **"If you confirm, the
+        General Partner will read AI's reasoning above as the explanation."** (for "doesn't
+        apply": **"If you confirm, this obligation is left off the calendar."**). No reason field.
         Button: **"Confirm: applies"** or **"Confirm: doesn't apply"**.
-      - **Override** form (legend **"Overrule AI's answer"**): text "Your answer: **Doesn't
-        apply**" (or **Applies**, the opposite of AI's). Field **"Reason for overruling"** with
-        the hint for that outcome (below). Button: **"Overrule: doesn't apply"** /
-        **"Overrule: applies"**.
+      - **"Overrule: doesn't apply"** (or **"Overrule: applies"**, the opposite of AI's): field
+        **"Reason for overruling"** with the hint for that outcome (below). Button: **"Overrule:
+        doesn't apply"** / **"Overrule: applies"**.
 
-      When AI **can't tell**: no Confirm. A question first, then two forms (U5, H-017):
+      When AI **can't tell** (U5, H-017; `applicability.html`): no Confirm.
       - Question: **"Nobody has confirmed {the missing fact}. Should this rule go on the
         calendar?"**
       - **"Yes, add it until someone confirms"**: text **"Choose this if you can't confirm it.
@@ -601,7 +615,7 @@ decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reas
       | Can't tell, decided as **add it** ("May not be required") | Yes | Same as above |
       | Overrule to **doesn't apply** | No | **"This obligation will not be on the calendar, so the General Partner will not see this reason. It is kept in the audit log for specialists."** |
       | Can't tell, decided as **leave it off** | No | Same as above |
-   8. **Decided** (replaces the forms): "**Confirmed: applies** by Compliance specialist (mock) at
+   8. **Decided** (replaces the form): "**Confirmed: applies** by Compliance specialist (mock) at
       14:21." / "**Overruled: doesn't apply** … Reason: …" / "**Added, marked 'May not be
       required'** … Reason: …", then **"Next answer to decide"** link.
 6. **Finish** (H2: **"{x} answers left to confirm"**, or **"All answers decided"**), one form,
@@ -677,11 +691,16 @@ the review without publishing, with a reason. **Who:** specialist.
      none: **"No rules were rejected."**
    - **Paragraphs no rule uses**: Paragraph ID · Source · What it says. Line: **"No approved rule
      uses these paragraphs. The calendar has nothing from them."**
-6. **Decision** (H2 **"Is this calendar ready for the General Partner?"**). Two separate forms
-   side by side, each with its own fields always visible and its own button (A9, H-011):
+6. **Decision**: one answer-first form (§4 "Decision form"; A9 reversed, H-011, H-028;
+   `publish.html`), with the run version and the two ID lists exactly as shown above as hidden
+   fields. Radio question **"Is this calendar ready for the General Partner?"** (named `decision`,
+   nothing chosen): **"Yes, publish it"** · **"No, don't publish"**. Only the chosen answer's text,
+   fields and button show (all of them where `:has()` is unsupported). **Each button posts to its
+   own route with `formaction`**; the form's `decision` must match that route, or the server
+   refuses with `VALIDATION`, and each route ignores the other answer's fields (SAD §4, DL-48).
 
-   **"Yes, publish it"**, one form, `POST /specialist/calendars/{calendar_id}/publish`, with the
-   run version and the two ID lists exactly as shown above as hidden fields:
+   **If "Yes, publish it" is chosen**, the button posts to
+   `POST /specialist/calendars/{calendar_id}/publish`:
    - Text: **"The General Partner will see these {n} dates straight away, in place of anything
      they saw before. It cannot be withdrawn in this version. A later review can publish a new
      calendar."** (When a calendar is already published: "… in place of the calendar published on
@@ -690,11 +709,12 @@ the review without publishing, with a reason. **Who:** specialist.
      above. Nothing from them will be on the published calendar."**
    - Button: **"Publish calendar"** (primary).
 
-   **"No, don't publish"** (U10, H-022), one form,
-   `POST /specialist/calendars/{calendar_id}/decline`, run version:
+   **If "No, don't publish" is chosen** (U10, H-022), the button posts to
+   `POST /specialist/calendars/{calendar_id}/decline`:
    - Text: **"Nothing changes for the General Partner. They keep seeing what they see now, and
      this review closes. You can start a new review."**
-   - Field: **"What needs to change before it can be published?"**. Hint: "Recorded in the audit
+   - Field: **"What needs to change before it can be published?"**, field name
+     `decline_reason`. Hint: "Recorded in the audit
      log with your name and the time. Specialists only."
    - Button: **"Close without publishing"** (secondary).
 7. Link: **"Abandon this review"** → review status `#abandon`.
@@ -765,6 +785,10 @@ read-only. **Must work at phone width.**
    reason is still shown as the "Why".
 8. Nothing else: no draft, flag, other mark, review status, or link to a failed, abandoned or
    closed review. The summary cards and the week grid show published facts only.
+   **Moved marks are specialist-only** (operator decision 2026-11-14, Open Question 15; SAD §3
+   page 7, DL-49): this page has no "Moved off a weekend" card, count, chip, chart colour or legend
+   entry, and no open-question mark. The Month and Year views and charts (block B12) follow the
+   same rule.
 
 **Phone width (≤ 480 px).** The table keeps its table markup but each row stacks as a block:
 "When" first in bold, then What, Who files, Why, each with its column name as a visible label.
@@ -793,7 +817,7 @@ specialist.
 | Status words | 2, 3 | §1.5 |
 | Row card | 4 (and the rejected list on 6) | Quote, check result, paragraph, flags, fields, decision or decision forms |
 | Flag | 4 | Type heading and both texts |
-| Decision form | 4, 5, 6 | Separate explicit forms, one per action, each with its own fields always visible and its own button; nothing preselected; no `:has()` reveal and no browser `required` (A9, H-011); reason fields with their audience hint |
+| Decision form | 4, 5, 6 | **Answer-first** (A9 reversed, H-011, H-028; SAD DL-48): one form per rule, answer or calendar. First a radio question named `decision`, nothing chosen; only the chosen answer's fields and button then show (CSS `:has()`, no script). **Fallback:** where `:has()` is unsupported, every answer's fields and buttons stay visible (`@supports` in `docs/prototype/app.css`). No browser `required`, `disabled` or `pattern`: a missing field is refused by the server on the page. Each answer's reason field has its own name (G1 `approve_reason`, `reject_reason`; G2 `<answer>_reason`; G3 `decline_reason`), and the server ignores the fields of the answer not chosen. No answer chosen → `VALIDATION` (§5). Reason fields carry their audience hint |
 | Mark label | 6, 7 ("May not be required" only) | Word + one-line explanation |
 | Refusal message | All forms | §5 |
 | Refresh controls | 3 | §3 page 3 |
@@ -824,7 +848,7 @@ for that sentence. `{…}` are values the server fills in.
 
 | Code | Context | Sentence |
 |---|---|---|
-| `DEMO_ROW_NOT_APPROVABLE` | Approve on the planted row | **"Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason."** Then the line **"Recorded in the audit trail."** (A3, H-006; replaces the CR-029 sentence, pending the DL-44 update) |
+| `DEMO_ROW_NOT_APPROVABLE` | Approve on the planted row | **"Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason."** Then the line **"Recorded in the audit trail."** (A3, H-006; now the CR-029 sentence, DL-44 updated 2026-11-14) |
 | `QUOTE_CHECK_FAILED` | Approve on a rule that failed the check | **"This rule failed the quote check: its quote does not appear word for word in paragraph {para_id}. It cannot be approved. Reject it with a reason."** |
 | `ALREADY_DECIDED` | Rule (G1) | **"This rule was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
 | `ALREADY_DECIDED` | Answer (G2) | **"This answer was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
@@ -845,7 +869,8 @@ for that sentence. `{…}` are values the server fills in.
 | `RUN_NOT_ACTIVE` | Any decision on an ended review | **"This review has ended ({status words}), so it cannot take more decisions. Start a new review from Filing rules."** |
 | `RUN_STAGE_RUNNING` | Abandon or decide while AI or code works | **"AI is still working on step {k}, so this cannot be done yet. It finishes by itself; follow it on the review status page."** (step 4: "The dates are still being worked out, …") |
 | `FORBIDDEN` | GP on a specialist action | **"This page is for the compliance specialist. You are signed in as the General Partner, so you can view the published calendar only."** |
-| `VALIDATION` | Malformed form, or a "who files" value not offered | **"Part of this form was not valid ({field}), so nothing was saved. Check the form and try again."** |
+| `VALIDATION` | Decision submitted with no answer chosen (G1, G2 or G3; DL-48, H-030). Shown beside the form (inside the card at G1 and G2, with the short top line; at G3 next to the question) and at the top | **"Choose an answer first, then use its button. Nothing was saved."** |
+| `VALIDATION` | Malformed form, a "who files" value not offered, or a G3 answer that doesn't match the button used | **"Part of this form was not valid ({field}), so nothing was saved. Check the form and try again."** |
 
 ## 6. Visual style
 
@@ -882,7 +907,7 @@ unstyled.
 |---|---|---|
 | UX-001 | Every page shows the demo label as text ("Demo with mock data" in the sidebar; in the intro line on sign-in) | operator brief |
 | UX-002 | Every specialist page showing a stand-in review shows "Stand-in agents"; so does the calendar when that review's calendar is published. Applies to the built app even though the mock-ups leave it out | CR-030, H-004 |
-| UX-003 | The planted rule at G1 is tagged "Demo", shows no quote-check line, and its "Approve rule" button is visible and active with nothing preselected; clicking it lands on that rule, shows the `DEMO_ROW_NOT_APPROVABLE` sentence (§5) in the card, changes its status tag to "Approval blocked", shows the short top line with "Go to rule {i}", and records the attempt in the audit log; no browser pop-up; the rule stays undecided | DL-44, CR-029, H-006, H-007, H-009 |
+| UX-003 | The planted rule at G1 is tagged "Demo", shows the quote-check line ("passed") like every rule, and offers the same answer-first form; after choosing "Approve", its "Approve rule" button is visible and active with nothing preselected; clicking it lands on that rule, shows the `DEMO_ROW_NOT_APPROVABLE` sentence (§5) in the card, changes its status tag to "Approval blocked", shows the short top line with "Go to rule {i}", and records the attempt in the audit log; no browser pop-up; the rule stays undecided | DL-44, CR-029, H-006, H-007, H-009, D5 (H-030) |
 | UX-004 | No radio, checkbox or select is preselected on any page, including after a refusal | SD AC-026 |
 | UX-005 | No page has a bulk action, a disabled button or a "coming soon" | §3, AC-026 |
 | UX-006 | Review status refreshes every 3 s only while AI or code works, and "Stop automatic refresh" stops it | §3 Freshness, WCAG 2.2.1 |
@@ -894,6 +919,7 @@ unstyled.
 | UX-017 | "Start a new review" is visible while a review is in progress; clicking it shows the `RUN_ACTIVE` sentence beside the button and the short top line, and records the attempt in the audit log | CR-004, H-009 |
 | UX-018 | The General Partner's calendar note reads exactly the U11 sentence (page 7); the specialist sees the longer note | SD FR-020, H-023 |
 | UX-019 | No user-facing text says "run", "Stage A/B/C", "G1/G2/G3", "gate" or "precautionary" (except the exact label "Stand-in agents") | §1.8 |
+| UX-020 | Every decision form (G1, G2, G3) opens with its answer question and nothing chosen; choosing an answer shows only that answer's fields and button; with `:has()` unsupported, every answer's fields show; submitting with no answer shows the `VALIDATION` "Choose an answer first" sentence (§5) and saves nothing | DL-48, H-028, H-030 |
 | UX-016 | The "who files" options read exactly: AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor, Not known | DL-39 |
 | UX-011 | The G3 acknowledgement checkbox is unticked on every load | CR-028 |
 | UX-012 | The GP calendar has no horizontal scroll at 360 px | §3 |
@@ -932,7 +958,10 @@ unstyled.
   mock-ups.
 - `project-context/2.build/style-note.md`: the visual style (§6).
 - `project-context/handoffs.md`: the operator's decisions of 2026-11-14 on the design exploration
-  (H-004 to H-026; this revision applies U1 to U11, A3, A4, A7, A9, H-009, H-023 and U9/Q1).
+  (H-004 to H-026; this revision applies U1 to U11, A3, A4, A7, A9, H-009, H-023 and U9/Q1), and
+  H-028 and H-030 (answer-first form; follow-ups from the SAD update).
+- `project-context/1.define/sad.md` DL-47, DL-48, DL-49, §3 pages 4 and 7, §3 "Decision form",
+  §4 routes and validation (read for H-030).
 - `docs/prototype/HANDOVER.md` and `docs/prototype/build.py` (the mock-up wording and layout).
 - `.cursor/templates/ux-template.md`, `.cursor/skills/product-design/SKILL.md`.
 - The operator's B5 brief, and the operator's decisions on the mock-up review (2026-11-13).
@@ -943,7 +972,8 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
 
 - **File location.** The operator asked for `project-context/2.build/ux.md`. The framework's
   default is `project-context/1.define/ux.md`, and the validator only checks the approval status
-  there, so it will not see this file's status. See Open questions.
+  there, so it will not see this file's status. The operator confirmed `2.build/` (Open Question
+  2, closed).
 - **Mock-ups, not templates.** Static design mock-ups of every in-scope screen are in
   `docs/prototype/` (generated by `build.py`), with hard-coded fictional data. They are the layout
   and look reference for `@frontend.eng`, not code to copy: no logic, no JavaScript. The planted
@@ -986,8 +1016,8 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
 
 1. **Closed 2026-11-13 (operator).** Reopen a rejected row stays out of the MVP (DL-22). It is
    listed under Post-MVP ideas.
-2. **File location.** Keep `ux.md` in `2.build/`, or move it to `1.define/ux.md` so the validator
-   tracks its approval?
+2. **Closed 2026-11-14 (operator).** `ux.md` stays in `2.build/`. The validator does not track its
+   approval status there, so the operator records approval in this file by hand.
 3. **Closed 2026-11-13 (operator).** No new page. The demo shows the audit log through what the
    SAD already provides: the append-only `audit_log` table (CR-013), read with the query that
    rebuilds the history of one calendar entry (CR-018), and the trace export (D4, block B8), which
@@ -996,15 +1026,13 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    `@backend.eng`: the SAD defines the export for evaluation runs; whether it is also run for the
    demo run is theirs to confirm.
 4. **G2 "unsure" → "Does not apply".** Allowed? Assumed yes (see Assumptions).
-5. **New refusal code `BUSINESS_DAY_RULE_REQUIRED`.** Added at the operator's request
-   (2026-11-13). `@system.arch` has since added it to SAD §4 (DL-47). That row still says "'not
-   confirmed' counts as a choice", which U9 (H-021) removes: see "Where ux.md and sad.md now
-   disagree" below.
-6. **Reject a row with a business-day rule chosen.** Separate forms avoid this, but confirm the
-   service ignores or refuses stray fields on reject.
+5. **Closed 2026-11-14 (`@system.arch`, H-030).** `BUSINESS_DAY_RULE_REQUIRED` is in SAD §4
+   (DL-47), and DL-47's update says "not confirmed" no longer counts as a choice.
+6. **Closed 2026-11-14 (`@system.arch`, H-030).** On reject, the server reads only
+   `reject_reason` and ignores any weekend-or-holiday or "who files" choice (SAD §4, DL-48).
 7. **Closed 2026-11-13 (operator).** The page uses "Local reporting agent (Spain)", exactly as
    the mock fund profile and the SAD (DL-39) have it. No display label is needed.
-8. **For `@system.arch`: a period field for each calendar entry.** On the GP calendar, twelve
+8. **Closed 2026-11-14 (H-010, H-030; DL-49, F-19).** A period field for each calendar entry. On the GP calendar, twelve
    entries read "Monthly financial report U1.1 to the CSSF" and cannot be told apart. The mock-ups
    add a line such as "For December 2026" (the period the filing covers). The pages must not work
    this out themselves (§1.2), so the server would need to send it. Add a field to the calendar
@@ -1031,10 +1059,10 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
 14. **For the operator: the "Demo" tag on the planted rule.** The mock-ups show no "Demo" tag on
    rule 7. CR-029 says the row is labelled "demo" wherever it appears, and no decision changed
    that, so this note keeps the tag (like A1 and A2, treated as prototype-only). Confirm.
-15. **For the operator: weekend moves on the General Partner's calendar.** The mock-ups show
-   "Moved from Sun 10 Jan" tags, and a "Moved off a weekend" summary card, on the General
-   Partner's calendar. CR-012 and UX-009 allow only the "May not be required" mark there, and no
-   decision changed that, so this note keeps the moved mark specialist-only. Confirm.
+15. **Closed 2026-11-14 (operator, H-030).** Moved marks stay specialist-only. The General
+   Partner's calendar has no "Moved off a weekend" card, count, chip, chart colour or legend
+   entry, and the B12 views and charts follow the same rule (SAD §3 page 7, DL-49 update; page 7
+   item 8). The mock-up is already changed (`build.py`, `gp-calendar.html`).
 
 ## Mock-up differences this revision does not apply
 
@@ -1047,21 +1075,23 @@ sign-in. Items 11, 12, 14 and 15 above are also mock-up differences.
 
 ## Where ux.md and sad.md now disagree
 
-`sad.md` was not edited (operator rule). These need `@system.arch`, or the operator for DL rows:
+`sad.md` was not edited by this persona (operator rule). **D1 to D5 are resolved:** `@system.arch`
+updated sad.md on 2026-11-14 (H-030), so the "sad.md still says" column for those rows records the
+old text. D6 to D8 stay as notes:
 
-| # | ux.md now says | sad.md still says | Where in sad.md | Decision |
+| # | ux.md now says | sad.md said | Where in sad.md | Decision |
 |---|---|---|---|---|
-| D1 | The demo-row refusal reads "Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason." | "This is a planted demo row. It cannot be approved. Reject it with a reason." | CR-029 (and DL-44 by reference); T-DEMO-2 may check the text | A3, H-006 (DL-44 update pending) |
-| D2 | Three weekend-or-holiday choices: following working day, preceding working day, keep the date. No "not confirmed" | `business_day_rule` is `roll_forward`, `no_roll`, `not_confirmed`; "'not confirmed' counts as a choice" | Data model enum; §4 `BUSINESS_DAY_RULE_REQUIRED` row; DL-19, DL-47. (The extractor may still output `not_confirmed` when the source is silent, EC-003; ux.md shows that as "Not stated", never as a choice) | U9, H-021 (DL-19 change pending) |
-| D3 | No "Rule not confirmed" mark; the marks are moved, may not be required, open question | Marks are "roll, rule unconfirmed, precautionary, open question" | §3 page 6 and "Shared template parts" (mark label) | U9 / Q1, H-021, H-024 |
-| D4 | "May not be required" in place of "Precautionary" | "precautionary" label, generated by code | CR-019, W-12, §3 page 6; also DL-01, PRD F5/F8, SD P-1 | U5, H-017 (DL-01 amendment pending) |
-| D5 | The demo rule shows no quote-check line; its status tag reads "Approval blocked" after the refusal | "Each row with its quote, the cited paragraph, the quote-check result" | §3 page 4 (T-DEMO-1 still checks a pass is recorded, which ux.md keeps) | A4, H-007 |
+| D1 | The demo-row refusal reads "Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason." | "This is a planted demo row. It cannot be approved. Reject it with a reason." | CR-029 (and DL-44 by reference); T-DEMO-2 may check the text | A3, H-006 (DL-44 update pending). **Resolved 2026-11-14:** sad.md updated (H-030) |
+| D2 | Three weekend-or-holiday choices: following working day, preceding working day, keep the date. No "not confirmed" | `business_day_rule` is `roll_forward`, `no_roll`, `not_confirmed`; "'not confirmed' counts as a choice" | Data model enum; §4 `BUSINESS_DAY_RULE_REQUIRED` row; DL-19, DL-47. (The extractor may still output `not_confirmed` when the source is silent, EC-003; ux.md shows that as "Not stated", never as a choice) | U9, H-021 (DL-19 change pending). **Resolved 2026-11-14:** sad.md updated (H-030) |
+| D3 | No "Rule not confirmed" mark; the marks are moved, may not be required, open question | Marks are "roll, rule unconfirmed, precautionary, open question" | §3 page 6 and "Shared template parts" (mark label) | U9 / Q1, H-021, H-024. **Resolved 2026-11-14:** sad.md updated (H-030) |
+| D4 | "May not be required" in place of "Precautionary" | "precautionary" label, generated by code | CR-019, W-12, §3 page 6; also DL-01, PRD F5/F8, SD P-1 | U5, H-017 (DL-01 amendment pending). **Resolved 2026-11-14:** sad.md updated (H-030) |
+| D5 | The quote-check line shows on every rule, the demo rule included; the demo rule's status tag reads "Approval blocked" after the refusal | The quote-check result "on **every** row, the demo row included" | §3 page 4 | A4, H-007. **Resolved 2026-11-14:** the operator chose sad.md's reading; ux.md page 4 item 3 and UX-003 changed to match (H-030) |
 | D6 | Users read "review", "AI", four named steps, "General Partner", "Close without publishing" | "run", "Stage A/B/C", "G1/G2/G3", "GP", "decline" | Throughout (allowed: the documents keep the internal names, §1.8) | U2, U3, U4, U6, U10 |
 | D7 | The General Partner's note: "These dates are the specialist's approved reading of the rules. Not legal advice. Date counting hasn't yet been checked against the legal texts." The specialist sees a longer note | One calendar-level "not legal advice / conventions not yet checked" note | W-16, DM-14 (wording only; H-023 says no FR-020 change) | U11, H-023 |
 | D8 | The specialist's navigation is "Calendar · Filing rules" in a sidebar | Not specified beyond the seven pages | §3 (no conflict; noted for completeness) | U7, H-019 |
 
-D6 and D8 need no SAD change. D1 to D5 do, through `@system.arch` (and the operator for DL-01,
-DL-19 and DL-44). D7 is wording only.
+D6 and D8 need no SAD change. D1 to D5 were changed in sad.md by `@system.arch` (H-030). D7 is
+wording only.
 
 ## Audit
 
@@ -1102,3 +1132,13 @@ DL-19 and DL-44). D7 is wording only.
   ux.md and sad.md now disagree" sections. Closed Open Question 9; recorded the H-010 decision on
   Open Question 8; updated Open Question 5. Did not edit `sad.md` or `style-note.md`. No code. No
   model call. Approval status left `pending`.
+- 2026-11-14 · persona `ux-designer` · action `design-ux` (revision, H-028 and H-030) · branch
+  `ux-answer-first-form` · replaced the separate side-by-side decision forms with the answer-first
+  form on pages 4, 5 and 6 and in §4 (A9 reversed, DL-48), with the `:has()` fallback and the built
+  field names (`decision`, `approve_reason`, `reject_reason`, `<answer>_reason`, `decline_reason`;
+  G3 `formaction`); added the G2 question for an ordinary answer as new wording (H-026 still open);
+  added the `VALIDATION` "no answer chosen" sentence (§5) and UX-020; quote-check line now on every
+  G1 rule, the demo rule included (D5), page 4 and UX-003; moved marks specialist-only on page 7,
+  B12 included; closed Open Questions 2 (file stays in `2.build/`), 5, 6, 8 and 15; marked D1 to D5
+  resolved. Did not edit `sad.md`, `style-note.md` or the mock-ups. No code. No model call.
+  Approval status left `pending`.

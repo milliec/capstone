@@ -390,6 +390,14 @@ instead of drifting away from a Figma library. A bonus: the spacing scale (8, 12
 means visitors' browsers never contact a font service. Pages load faster and there is one less privacy
 question to answer.
 
+**Revealing is not blocking.** The spec says "no button is hidden to enforce a rule", yet the
+answer-first form hides the Approve button until "Approve" is chosen. These don't clash: the form
+hides a button only until you pick its answer, and every answer can always be picked, so nothing
+is kept out of reach. Hiding *to stop someone* (for example, no Approve on the demo row) is what the
+rule forbids; that case keeps the button and lets the server refuse with a reason. When a new
+pattern seems to break a written rule, add one sentence saying why it doesn't, before a builder
+reads the two as a contradiction (ux.md §1.2, H-028).
+
 **Hidden is not absent.** An "answer first, then show its fields" form (CSS `:has()`) only *hides*
 the other answer's fields; the browser still sends them when the form is submitted. So the server
 must read the chosen answer and ignore everything that belongs to the other one, and two fields that
