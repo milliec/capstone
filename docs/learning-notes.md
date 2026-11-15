@@ -289,6 +289,15 @@ better than the model is. The rule was written generally, then checked mechanica
 material for shared wording. Lesson: when an instruction exists because of a known test case, word
 it so it would make sense without that case, and check.
 
+**Changing a rule moves the wrong answers too.** When the specialist's weekend choice for two filings
+became "move to the preceding working day", the two right answers changed (Sun 28 Feb → Fri 26 Feb), as
+expected. So did a wrong answer the key keeps on purpose: counting from the event date instead of the
+awareness date used to give 20 Feb, which is a Saturday, so under the new rule it gives 19 Feb. A test
+that looks for the old wrong value would quietly stop catching the mistake. Lesson: after a rule change,
+recompute the deliberate mistakes as well as the correct results. Then prove a new test can fail: put
+the old value back in a throwaway copy and watch the test go red. A test that has never failed hasn't
+shown it can catch anything.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -432,3 +441,4 @@ DL-48).
 - 2026-11-12 · added one note from the final SAD review (a time limit must cover its own retries)
 - 2026-11-13 · added two notes from the G1 / GP mock-ups session (a more specific CSS rule beats a later one; set the viewport, not the window, for phone screenshots)
 - 2026-11-14 · added one note from the design-exploration SAD update (a field hidden by CSS is still submitted)
+- 2026-11-14 · added one note from the answer-key update for Q1 and Q2 (a rule change moves the wrong answers too; prove a test can fail)

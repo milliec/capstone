@@ -41,13 +41,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: sad.md now matches the accepted decisions, so ux.md's disagreement list and open questions are out of date.
 - Outcome: (the owner fills this in)
 
-### H-029: Answer key: business-day conventions and G1 settings after the DL-19 update
-- From: @system.arch   To: @qa.eng   Date: 2026-11-14
-- Touches: 1.define/mock-data/expected-obligation-library.md §4, §5, conventions `D-4` and `D-6`; SAD EC-007; linked to H-024
-- Ask: Alongside H-024: (1) `D-4` lists three rules: roll forward, **roll backward** (to the preceding Luxembourg business day, skipping mock holidays) and no roll; "not confirmed" is only what the extractor reports for a silent source. (2) `D-6` is no longer reached by an approved row; mark it retired, or say so. (3) §5's expected G1 setting for `OBL-04` and `OBL-05` is "move to the preceding working day". (4) Counts: 22 entries, 6 moved off a weekend, 0 marked "roll rule unconfirmed" (SAD EC-007). **Must be done before the first evaluation run**, and before the B4 date test is written.
-- Why: SAD DL-19 (updated 2026-11-14) adds `roll_backward` and removes "not confirmed" as a G1 choice; the answer key is the evaluation's ground truth.
-- Outcome: (the owner fills this in)
-
 ### H-028: Update ux.md to the answer-first decision form (A9 reversed)
 - From: operator   To: @ux.designer   Date: 2026-11-14
 - Touches: 2.build/ux.md page 4 item 8 ("two separate forms side by side … no 'choose an answer first' control, no CSS `:has()` reveal"), page 5 item 7, page 6 item 6, and the component table row "Decision form"; H-011
@@ -73,22 +66,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Decision (operator, 2026-11-14): **Partly decided.** Scope: A10 is in the MVP, built last with a one-day timebox (H-012); U7 and U8 get half a day in total (H-019, H-020); A5 is post-MVP (H-008). **Still open:** the five "Not designed" gaps, whether Funds and adding a second fund stay future scope, and whether rows A6 and A11 exist.
 - Outcome: (the owner fills this in)
 
-### H-025: Answer key: state that 7 rows are drafted, including the planted row (Q2)
-- From: operator (design exploration)   To: @qa.eng   Date: 2026-11-14
-- Touches: 1.define/mock-data/expected-obligation-library.md §1; CR-029; T-DEMO-1
-- Ask: Add one line to the answer key saying that 7 rows are drafted at rule approval (6 genuine rows plus the planted row) and that the planted row must be rejected, so the counts read 7 drafted → 6 approved → 6 checked for applicability → 5 apply → 22 dates. **Must be done before the first evaluation run.**
-- Why: The key says 6 rows today and doesn't mention the planted row, so someone could later "correct" a count that is right by design. The operator confirmed this on 2026-11-14.
-- Decision (operator, 2026-11-14): **Accepted.** Add the line "7 drafted, 6 genuine; the planted row must be rejected" to the answer key. **Must be done before the first evaluation run.**
-- Outcome: (the owner fills this in)
-
-### H-024: Answer key: the two Sun 28 Feb 2027 filings move to Fri 26 Feb (Q1)
-- From: operator (design exploration)   To: @qa.eng   Date: 2026-11-14
-- Touches: 1.define/mock-data/expected-obligation-library.md §4, §5 (D-6); SD AC-011; CR-027; depends on H-021 (U9)
-- Ask: With no "not confirmed" business-day option, show the Spain report A01 and the beneficial-owner update as moved to the preceding working day (Fri 26 Feb 2027). The total stays at 22 dates, 6 are now moved off a weekend (was 4), and no entry carries a "rule unconfirmed" mark. **Must be done before the first evaluation run.**
-- Why: The answer key is the evaluation's ground truth and has to match the screens. The operator confirmed this on 2026-11-14.
-- Decision (operator, 2026-11-14): **Accepted.** Both 28 Feb filings move to the preceding working day, Fri 26 Feb (DL-19 change, see H-021). "Moved off a weekend" becomes 6. **Must be done before the first evaluation run.**
-- Outcome: (the owner fills this in)
-
 ### H-020: New visual style: Lexend, Inter, rounded corners, Iconoir (U8)
 - From: operator (design exploration)   To: @ux.designer   Date: 2026-11-14
 - Touches: 2.build/style-note.md; docs/prototype/app.css tokens
@@ -112,6 +89,37 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-031: The G3 publish mock-up does not show the OQ-7 mark
+- From: @qa.eng   To: operator   Date: 2026-11-14
+- Touches: docs/prototype/publish.html (and `build.py`); SAD CR-027, §3 page 6; T-W13-1; answer key §4
+- Ask: Decide whether `publish.html` should show "Depends on open question OQ-7" on the `OBL-02` entries, as SAD CR-027 and §3 page 6 require at G3. Today the mark appears on the G1 page (`review-rules.html`) and the specialist calendar (`calendar.html`), but not on the G3 page. The built app follows sad.md either way.
+- Why: The mock-ups are the layout reference, so a builder copying `publish.html` could leave the mark off G3, and T-W13-1 would then fail.
+- Decision (operator, 2026-11-15): **Accepted.** Show the mark on the 4 `OBL-02` entries at G3, styled as on G1 and the specialist calendar; it must not block publishing.
+- Outcome: Done 2026-11-15 by `@qa.eng` (uncommitted). `build.py` `yeargrid()`: in specialist mode only, the `OBL-02` row label carries the same `chip plain` "Depends on open question OQ-7" as G1 and the specialist calendar (a year-grid tile is too small for a chip), and each of the 4 `OBL-02` tiles carries the mark as screen-reader text and in its hover title. `app.css`: one rule so that chip keeps its normal text colour inside the row label. Pages rebuilt with the build date pinned to 14 Nov, so the only real page changes are `publish.html` and the specialist `calendar.html` Year view (the same grid); the other 12 pages change only the stylesheet version number. The GP grid is unchanged, and the Publish button and form are untouched. New mock-up tests in `tests/test_answer_key.py`: the 4 `OBL-02` tiles (and no other) carry the mark, the chip appears once, and the Publish button is present, not disabled, with no OQ-7 condition in the form. 25 tests pass; each new test was shown failing on the old page and on a disabled button.
+
+### H-029: Answer key: business-day conventions and G1 settings after the DL-19 update
+- From: @system.arch   To: @qa.eng   Date: 2026-11-14
+- Touches: 1.define/mock-data/expected-obligation-library.md §4, §5, conventions `D-4` and `D-6`; SAD EC-007; linked to H-024
+- Ask: Alongside H-024: (1) `D-4` lists three rules: roll forward, **roll backward** (to the preceding Luxembourg business day, skipping mock holidays) and no roll; "not confirmed" is only what the extractor reports for a silent source. (2) `D-6` is no longer reached by an approved row; mark it retired, or say so. (3) §5's expected G1 setting for `OBL-04` and `OBL-05` is "move to the preceding working day". (4) Counts: 22 entries, 6 moved off a weekend, 0 marked "roll rule unconfirmed" (SAD EC-007). **Must be done before the first evaluation run**, and before the B4 date test is written.
+- Why: SAD DL-19 (updated 2026-11-14) adds `roll_backward` and removes "not confirmed" as a G1 choice; the answer key is the evaluation's ground truth.
+- Outcome: Done 2026-11-14 by `@qa.eng` (uncommitted): (1) `D-4` lists roll forward, roll backward and no roll, both rolls skipping weekends and mock holidays; "not confirmed" is only the extractor's report for a silent source. (2) `D-6` is marked **Retired**. (3) §5 sets `OBL-04` and `OBL-05` to "Roll backward (preceding working day)". (4) §4 reads 22 entries, none on a weekend, 6 moved off a weekend (4 forward, 2 back), 0 "roll rule unconfirmed"; dates recomputed by script. New no-model test `tests/test_answer_key.py` (17 checks, standard library only) recomputes every date and fails on any weekend entry; it passes. Still open, outside this handoff: ux.md Open Question 10 (`EVT-01` awareness date 31 Jan 2027 is after the 13 Nov 2026 demo date); left unchanged because moving it breaks the 22-entry total. **Added 2026-11-14 (operator request, SAD EC-007, CR-027):** §4 has a new column "Open-question mark (specialist only)" with `OQ-7` on the 4 `OBL-02` entries and no other entry, and a note that the mark is never on the General Partner view (CR-027: "not shown to GPs"; SAD §3 page 7: "no open-question mark"). `tests/test_answer_key.py` now has 23 checks, including the mark on the specialist calendar mock-up's `OBL-02` rows only and never on `gp-calendar.html`; all pass. The G3 mock-up gap is raised as H-031.
+
+### H-025: Answer key: state that 7 rows are drafted, including the planted row (Q2)
+- From: operator (design exploration)   To: @qa.eng   Date: 2026-11-14
+- Touches: 1.define/mock-data/expected-obligation-library.md §1; CR-029; T-DEMO-1
+- Ask: Add one line to the answer key saying that 7 rows are drafted at rule approval (6 genuine rows plus the planted row) and that the planted row must be rejected, so the counts read 7 drafted → 6 approved → 6 checked for applicability → 5 apply → 22 dates. **Must be done before the first evaluation run.**
+- Why: The key says 6 rows today and doesn't mention the planted row, so someone could later "correct" a count that is right by design. The operator confirmed this on 2026-11-14.
+- Decision (operator, 2026-11-14): **Accepted.** Add the line "7 drafted, 6 genuine; the planted row must be rejected" to the answer key. **Must be done before the first evaluation run.**
+- Outcome: **Q2 done** 2026-11-14 by `@qa.eng` (uncommitted): §1 opens with "7 drafted, 6 genuine; the planted row must be rejected." and the counts 7 drafted → 6 approved → 6 checked for applicability → 5 apply → 22 dates, with a note that the planted row is added by code (CR-029), not extracted, so EC-001's "0 extra rows" stands. Checked by `tests/test_answer_key.py`.
+
+### H-024: Answer key: the two Sun 28 Feb 2027 filings move to Fri 26 Feb (Q1)
+- From: operator (design exploration)   To: @qa.eng   Date: 2026-11-14
+- Touches: 1.define/mock-data/expected-obligation-library.md §4, §5 (D-6); SD AC-011; CR-027; depends on H-021 (U9)
+- Ask: With no "not confirmed" business-day option, show the Spain report A01 and the beneficial-owner update as moved to the preceding working day (Fri 26 Feb 2027). The total stays at 22 dates, 6 are now moved off a weekend (was 4), and no entry carries a "rule unconfirmed" mark. **Must be done before the first evaluation run.**
+- Why: The answer key is the evaluation's ground truth and has to match the screens. The operator confirmed this on 2026-11-14.
+- Decision (operator, 2026-11-14): **Accepted.** Both 28 Feb filings move to the preceding working day, Fri 26 Feb (DL-19 change, see H-021). "Moved off a weekend" becomes 6. **Must be done before the first evaluation run.**
+- Outcome: **Q1 done** 2026-11-14 by `@qa.eng` (uncommitted): §4 shows `OBL-04` (anchor 2026-12-31) and `OBL-05` (`EVT-01`) moved from Sun 28 Feb to Fri 26 Feb 2027 under "roll backward"; the other three `OBL-04` dates fall on weekdays and are unchanged. Totals: 22 entries, 6 moved, 0 unconfirmed. "Roll rule unconfirmed" removed; moved marks noted as specialist-only (none expected on the General Partner view). The wrong event-date answer is now 2027-02-19 (Sat 20 Feb moved back).
 
 ### H-012: Calendar has Month, Year and List views plus charts (A10)
 - From: operator (design exploration)   To: @system.arch   Date: 2026-11-14
