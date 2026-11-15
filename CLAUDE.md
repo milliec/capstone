@@ -27,6 +27,8 @@ This repository is **public**. Anything committed should be treated as published
   version numbers, or other internal details.
 - Real source material lives only in `reference/`, which git ignores. Never copy from it into committed
   files. Create anonymised mock data instead (see `project-context/1.define/mock-data/`).
+- `docs/` is also private and git-ignored (kept on disk only, never committed). The Netlify page is
+  dropped in by hand, and learning notes in `docs/learning-notes.md` stay local.
 - The repo is a git repository with a GitHub remote (`origin`). Before every commit and push, confirm
   `reference/` and `.env` do not appear in `git status`, and run the real-name scan below.
 - Start new work on a branch, never on `main`. Changes reach `main` only through a reviewed pull
