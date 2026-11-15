@@ -126,6 +126,15 @@ the file that owns it, and look at the diff after a model switch before acceptin
 about the tool used to build the project, which is separate from the model the product itself will
 call (DL-40).
 
+**A story about a project goes stale when the project decides.** The case-study site was written
+during Define. When the architecture was settled, about a dozen of its claims quietly became wrong:
+it said an AI agent checks the quotes (code does, DL-14), showed a "not confirmed" weekend rule
+(retired, DL-19 update) and had an Edit button (cut, DL-22). Nothing broke; the words just stopped
+being true. The fix was a fact-check against the latest decision log, not against a summary, because
+the summary was itself a snapshot from two days earlier. Lesson: anything that describes the project
+from outside (a portfolio, a pitch, a README) needs a re-check whenever a phase closes. It's like a
+case-study deck that still shows last quarter's screens.
+
 ## 2. Designing AI agent systems
 
 **Use AI where judgement is needed, plain code where correctness is needed.** Agents read text and
@@ -359,6 +368,13 @@ rule. The answer is to replace the whole database file with a fresh one and leav
 Lesson: when a new feature seems to need an exception to a protection, look for a way to do it that
 never touches the protection. Also, a reset means the hosted audit log is a demo record, not evidence.
 
+**Check `git status` right before you delete, not at the start of the session.** Two files showed as
+untracked (`??`) when a session began, so they looked like stray copies. Two hours and several merges
+later they had been committed on purpose. Deleting them then showed as `D` (a tracked file deleted),
+which is how it was caught, before anything was committed. Lesson: what git said earlier is a
+snapshot, like a screenshot of a shared file. Look again immediately before deleting, and treat a
+committed file as someone's decision, removed only by a pull request they asked for.
+
 ## 5. Domain: fund compliance calendars
 
 **Anchor + offset.** A deadline is stored as a rule ("year-end + 6 months"), not a date, so the same
@@ -450,3 +466,5 @@ DL-48).
 - 2026-11-13 · added two notes from the G1 / GP mock-ups session (a more specific CSS rule beats a later one; set the viewport, not the window, for phone screenshots)
 - 2026-11-14 · added one note from the design-exploration SAD update (a field hidden by CSS is still submitted)
 - 2026-11-14 · added one note from the answer-key update for Q1 and Q2 (a rule change moves the wrong answers too; prove a test can fail)
+- 2026-11-15 · added two notes from the case-study site sync session (a story about a project goes
+  stale when the project decides; check `git status` right before deleting)

@@ -73,9 +73,27 @@ or summarised. The rule is listed in the stories README for `@security.eng` to c
 can't. The old wording is still in the git history; how to handle that is a separate decision.
 **Recorded in:** `project-context/1.define/decision-log.md` DL-07 · `docs/learning-notes.md` · PRD §5
 
+## AID-004 · 2026-11-15 · Build phase · "You decide" is not a licence to act on old information
+**Persona / tool:** Claude Code, working on the case-study site repo
+**The rule I gave:** "You decide", in answer to whether to delete two architecture-summary files from
+the site repo, and later "go ahead".
+**What the AI did:** It decided to delete them, reasoning that they were untracked copies of files
+committed here. That was true when the session started. By the time it acted, I had committed them to
+the site repo myself, so the deletion removed tracked files.
+**Why it was subtly wrong:** The reasoning was sound but the facts were two hours old. Delegating a
+decision hands over the judgement, not a guarantee that the AI re-checks the state of things first.
+**How I caught it:** The AI caught it itself: `git status` showed `D` (tracked file deleted) instead
+of nothing, just before the commit. It restored the files, committed only the intended change, and
+asked me before going further. Nothing reached GitHub.
+**How I tightened it:** A deletion of a committed file now happens only through a pull request I ask
+for, and the AI checks `git status` immediately before any delete. When I said "go ahead" again
+without naming a task, it asked which one instead of guessing.
+**Recorded in:** `docs/learning-notes.md` §4 ("Check `git status` right before you delete")
+
 ---
 
 ## Audit
 
 - 2026-11-08 · created with the template and two entries from the Define phase
 - 2026-11-09 · added AID-003 (employer details in the evidence, caught in the business review)
+- 2026-11-15 · added AID-004 ("you decide" acted on two-hour-old git state, caught by `git status`)
