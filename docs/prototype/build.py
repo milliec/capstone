@@ -128,14 +128,22 @@ def yeargrid(specialist):
     for r, key in enumerate(rows):
         last = " last" if r == len(rows) - 1 else ""
         o = OBL[key]
-        h.append(f'<div class="rowh{last}"><b>{o["name"]}</b><span>{o["who"]} → {o["to"]}</span></div>')
+        # The OQ-7 open-question mark is specialist-only (SAD CR-027, H-031): the same chip as on G1
+        # and the specialist calendar, once in the row label because a tile is too small for a chip.
+        oq7 = specialist and key == "tax"
+        oq7_chip = f'<div class="tags" style="margin-top:6px">{chip("Depends on open question OQ-7", "plain")}</div>' if oq7 else ""
+        h.append(f'<div class="rowh{last}"><b>{o["name"]}</b><span>{o["who"]} → {o["to"]}</span>{oq7_chip}</div>')
         for m in range(1, 13):
             cell = ""
             for k, d, mark, _, frm in E:
                 if k == key and d.month == m:
                     # Moved marks are specialist-only (CR-012): the GP's tile shows no "moved" colour.
                     cls = "" if (mark == "moved" and not specialist) else mark
-                    cell = f'<span class="day {cls}" title="{fmt(d)}"><small>{DOW[d.weekday()]}</small><b class="num">{d.day}</b></span>'
+                    # Each OBL-02 tile also carries the mark itself, for screen readers and on hover.
+                    oq7_note = " · Depends on open question OQ-7" if oq7 else ""
+                    oq7_sr = '<span class="sr">Depends on open question OQ-7</span>' if oq7 else ""
+                    cell = (f'<span class="day {cls}" title="{fmt(d)}{oq7_note}"><small>{DOW[d.weekday()]}</small>'
+                            f'<b class="num">{d.day}</b>{oq7_sr}</span>')
             h.append(f'<div class="{last.strip()}">{cell}</div>')
     moved_key = '<span><i class="moved"></i>Moved off a weekend</span>' if specialist else ""  # specialist-only
     legend = ('<div class="legend"><span><i></i>Due on the calculated date</span>'
