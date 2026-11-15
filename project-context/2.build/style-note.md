@@ -1,135 +1,124 @@
 # Visual style note — Regulatory Intelligence
 
-**How to use (@frontend.eng):** Layout from the operator's wireframes. Behaviour and wording from `project-context/2.build/ux.md`. Look from this note, which extends `editorial.css` — load that stylesheet first, then the app sheet whose `:root` is below. Buttons are never hidden or disabled to enforce a rule: a row that cannot be approved keeps its Approve button; the server refuses the click and the page shows the refusal message. Plain HTML, no JavaScript framework. No brand names or third-party wordmarks.
+**Source of truth:** `docs/prototype/app.css`. Its section 1 (`:root` tokens) holds every colour, font, radius and easing value used here. This note describes that stylesheet and records the product rules around it. If the two disagree, the stylesheet wins: fix this note.
+
+**How to use (@frontend.eng):** Layout from the operator's wireframes. Behaviour and wording from `project-context/2.build/ux.md`. Look from `app.css` and this note. The app loads one stylesheet; there is no separate base sheet. Buttons are never hidden or disabled to enforce a rule: a row that cannot be approved keeps its Approve button; the server refuses the click and the page shows the refusal message. Plain HTML, no JavaScript framework. No brand names or third-party wordmarks. Load the fonts from a public source (for example Google Fonts). Do not commit a proprietary font file.
 
 ## Look
 
-The same editorial system as the docs pages: near-monochrome, white page, no shadows, headings at weight 400, cards rounded at the top-left corner only. Colour is rationed. Orange marks the human gates and things that need attention; nothing else is coloured. Every page shows a "Demo with mock data" label. Status is always a word as well as a colour.
+A grey page with a white sidebar panel and white cards on it. No shadows. Headings at weight 400. Corners are soft and the same everywhere (6px on panels, cards and buttons). Colour is rationed: orange marks the human gates and things that need a person, brass marks work drafted by an agent, slate marks things that are settled, bordeaux marks refusals. Every page shows a "Demo with mock data" label. Status is always a word as well as a colour.
+
+## Layout
+
+- **Page.** `--page` (`#f5f5f5`) behind everything. Body text 15px / 1.5 in `--body`.
+- **Shell.** A two-column grid: a 264px white sidebar and the main column, 8px apart, 16px of padding round the edge. The sidebar is a `--card` panel, sticky, full viewport height minus 32px. Below 1100px it stacks above the content and stops being sticky.
+- **Main column.** Up to 1240px wide, 28px / 32px padding.
+- **Sidebar contents (top to bottom).** Wordmark with a small orange square, product name, fund block (hairline above), nav, the "waiting" panel on `--ivory`, then the person and demo label pinned to the foot.
+- **Nav.** Heading font 15px / 400, an 18px line icon in brass. The current page has a `--panel` row, weight 500, and an orange icon. Hover uses `--page`.
+- **The stage.** `--ivory` is the "stage": things that need a person. It is a surface for notes, the waiting panel and sign-in, not a page background.
 
 ## Colour
 
-Reuse the editorial token names and values. Two contrast fixes are applied as token changes (also listed under "Edits to editorial.css"). Status chips are the only app-only colours.
+All values come from `:root` in `app.css`. Contrast is measured against the four surfaces text can sit on.
 
-| Token | Hex | Use |
-|-------|-----|-----|
-| `--ink` | `#202020` | Text, headings, nav, icon strokes, primary button fill |
-| `--ink-2` | `#4d4d4d` | Body copy |
-| `--muted` | `#5c5c5c` | Helper, meta, captions, waiting-chip text. **Changed** from `#828282` (fails AA) |
-| `--paper` | `#ffffff` | Page background, cards, primary-button text |
-| `--band` | `#efefef` | Sidebar, section bands, pill containers |
-| `--nest` | `#f5f5f5` | Nested surfaces, table headers, waiting-chip wash |
-| `--warm` | `#ebe6dd` | Featured wash only — not the page background |
-| `--rule` | `#e8e8e8` | Hairline borders and row dividers |
-| `--accent` | `#ff682c` | Decoration only: gate marks, 3px left bars, underlines, focus outline. **Not text, not a fill** (2.89:1 on `--paper`; white-on-accent also fails) |
-| `--accent-2` | `#816729` | Secondary accent and demo-label text, on `--paper` / `--band` / `--nest` only. **Not on `--warm`** (4.33:1, fails AA) |
-| `--accent-text` | `#b33d12` | **New.** The only orange allowed for letters (5.84:1 on `--paper`, 4.70:1 on `--warm`) |
+| Token | Hex | Use | on `--card` | on `--page` | on `--panel` | on `--ivory` |
+|-------|-----|-----|-------------|-------------|--------------|--------------|
+| `--ink` | `#202020` | Headings, buttons, nav, links | 16.29 | 14.94 | 14.17 | 13.11 |
+| `--body` | `#4d4d4d` | Paragraphs | 8.45 | 7.75 | 7.35 | 6.80 |
+| `--muted` | `#636363` | Helper text, meta, captions | 6.01 | 5.51 | 5.22 | 4.83 |
+| `--orange-text` | `#b33d12` | **The only orange allowed for letters** | 5.84 | 5.36 | 5.08 | 4.70 |
+| `--brass` | `#816729` | Small labels, link underlines, ids | 5.38 | 4.93 | 4.68 | **4.33 fails** |
+| `--bordeaux` | `#6b1e1c` | Refused, rejected, failed | 11.49 | 10.54 | 9.99 | 9.24 |
+| `--slate` | `#1f3138` | Done, approved, published | 13.51 | 12.39 | 11.75 | 10.87 |
+| `--orange` | `#ff682c` | **Decoration only:** gate squares, 3px left bars, underlines, focus outline | **2.89 fails** | **2.65 fails** | **2.51 fails** | **2.32 fails** |
 
-Links stay `--ink` text with an `--accent` underline, as in editorial.css. Do not colour anything else.
+Surfaces: `--page` `#f5f5f5` (page), `--panel` `#efefef` (quiet bands, the active nav row, tab trays), `--card` `#ffffff` (sidebar, cards, tables), `--ivory` `#ebe6dd` (the stage). Lines: `--rule` `#e4e4e4` for hairlines, `--line` (ink at 21%) for control borders.
+
+Rules that follow from the table:
+
+- **Never use `--orange` as text, or as a fill under text.** It is decoration. Use `--orange-text` for letters.
+- **Never put `--brass` text on `--ivory`** (4.33:1, below AA). Use `--ink`, `--body` or `--orange-text` there.
+- Links are `--ink` with a 1px brass underline, 3px below the text. On hover the text turns brass.
+- Focus is a 2px orange outline, 2px offset, on every focusable element.
+- Do not colour anything else. If a new meaning needs a colour, add it to this note first.
+
+## Status families
+
+Four tone families, each a text colour, a pale wash and a thin border of the same hue. Chips (`.chip`) are pill-shaped, Inter 12px / 500, with a short word or the exact `ux.md` phrase. Never light text on a saturated fill.
+
+| Family | Class | Means | Text | Wash | Border | Contrast |
+|--------|-------|-------|------|------|--------|----------|
+| Orange | `.chip.you` | Needs a person | `--orange-text` `#b33d12` | `--orange-wash` `#fff0ea` | `--orange-line` `#ffc2a6` | 5.26 |
+| Brass | `.chip.agent` | Drafted by an agent | `#6b5420` | `--brass-wash` `#f4f0e3` | `--brass-line` `#d3c7a3` | 6.32 |
+| Slate | `.chip.done` | Done, approved, published | `--slate` `#1f3138` | `--slate-wash` `#e7eef0` | `--slate-line` `#b9cad0` | 11.50 |
+| Bordeaux | `.chip.no` | Refused, rejected, failed | `--bordeaux` `#6b1e1c` | `--bordeaux-wash` `#f6e9e7` | `--bordeaux-line` `#dcb6b1` | 9.70 |
+| Plain | `.chip` | Neutral, waiting | `--body` `#4d4d4d` | `#f7f7f7` | `--rule` | 7.89 |
+
+Rejected and declined share the bordeaux family and are told apart by their words; so do refused/blocked and quote-check failed. The same four hues drive the small square before a section title (`.sq`: orange = needs you, brass = agent, ink = settled), the stepper, and the KPI icon tile.
 
 ## Type
 
-`--font-head`: Inter Tight (or Space Grotesk), weight **400 only**, tracking `-0.02em`. Do not bold headings. `--font-body`: Inter, 400 for paragraphs, 500 for UI labels, 600 only for small chip text if needed. Load both from a public source (for example Google Fonts). Do not commit a proprietary font file.
+Three fonts, all loaded from a public source.
 
-App scale (skip the docs hero size):
+| Font | Token | Used for |
+|------|-------|----------|
+| Lexend | `--font-head` | Headings, nav, buttons, tabs, figures. Weight **400 only**, tracking `-0.02em` (`-0.01em` for small sizes). Do not bold headings. |
+| Inter | `--font-body` | Paragraphs (400), UI labels (500), chip text (500) |
+| DM Mono | `--font-id` | Rule and record ids only, 12.5px, brass, no tracking |
 
-| Role | Size / leading / tracking |
-|------|---------------------------|
-| Page title | 32px / 1.19 / -0.02em, `--font-head` 400 |
-| Section title | 18px / 1.25, `--font-head` 400 or Inter 500 |
-| Body / controls | 16px / 1.5, Inter 400 or 500 |
-| Caption, meta, chips, table helper | 14px / 1.43, Inter 400 or 500 |
-| Small chip / stepper index | 12px / 1.2, Inter 500 or 600 |
+| Role | Size / leading |
+|------|----------------|
+| Page title (`h1`) | 34px / 1.1 |
+| Section title (`h2`) | 22px / 1.15 |
+| Card title (`h3`) | 16px / 1.25 |
+| Body | 15px / 1.5 |
+| Buttons, nav | 15px / 1, Lexend |
+| Small text, meta | 13px / 1.45 |
+| Chips, small labels | 12px / 1 or 1.3, Inter 500 |
 
-## Spacing, radius, borders
+Numbers in tables and counts use tabular figures (`.num`).
 
-Base unit 4px. Comfortable density: 8 / 12 / 16 / 20px inside components; 36–40px around page titles; `--gap` (20px) between cards. Sidebar about 240px. Content max-width 1200px. Borders: 1px `--rule`, or 1px `--ink` on ghost buttons. No box-shadows.
-
-Reuse editorial radii. Do not use an 8px all-round card radius.
+## Radius, borders, depth
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `--r-card` | `6px 0 0` | Working cards, tables, alerts — soft top-left corner only |
-| `--r-figure` | `20px` | KPI / summary cards, week-grid calendar, data figures |
-| `--r-tag` | `20px` | Demo label, status chips |
-| `--r-pill` | `200px` | Nav pills |
-| Buttons | `0` | Same as `.ghost` — sharp corners on every button |
-| Form controls, filters | `3px` | `--r-input` (app-only; matches editorial `code`) |
+| `--r-panel` | `6px` | Sidebar, KPI cards, cards, the stage, the right-hand rail |
+| `--r-card` | `6px` | Alerts, notes, source panels, option boxes |
+| `--r-btn` | `6px` | Buttons, tab tray |
+| `--r-ctl` | `4px` | Inputs, selects, date tiles, tabs inside the tray, fact cards |
+| `--r-pill` | `200px` | Chips, the demo label |
+
+Borders are 1px `--rule`, or 1px `--ink` on ghost buttons. Notes and alerts that sit beside a row have a 3px left bar (square on the left edge, rounded on the right). **No drop shadows.** `box-shadow` is used only as a hard-edged line: inset underlines and left bars (orange or brass), a 1px inset outline, and one 1px ring on the stacked cards in the sign-in cluster. Never blur or spread a shadow to lift a card.
 
 ## Components
 
-- **Shell.** `--paper` page; left sidebar in `--band` with `--ink` nav in `--font-head` at 16px/400. The current item uses an `--accent` underline, not a heavy fill. Header holds the product name in `--ink`, the fund name, the role (specialist or GP), and the demo label.
-- **Demo label.** `--r-tag`, `--band` background, `--accent-2` text, Inter 12–14px 500, wording exactly "Demo with mock data". On every page. Keep it on `--band` or `--paper`, never on `--warm`.
-- **Stepper** ("Step 1 of 3" and so on). Quiet typographic steps in `--font-head`, 14–16px. The current gate is `--ink` with an `--accent` underline; later steps use `--muted`. G1 / G2 / G3 section headers may use the same underline or a 3px `--accent` bar. No chunky wizard bar.
-- **KPI / summary cards.** `--paper`, `--r-figure`, 20–40px padding, no shadow. Title in `--muted` 14px; figure in `--font-head` 32px/400, `--ink`. A row of three or four above a queue or calendar.
-- **Tables (G1 / G2 queues).** `--paper` card, `--r-card`. Light `--rule` row dividers only. Header in Inter 14px 500, `--muted` or `--ink-2`. Status and quote-check always include a word, not colour alone.
-- **Week-grid calendar (GP view, and the G3 review).** Seven columns, `--rule` hairlines, `--paper` cells, card `--r-figure`. Entries are chips plus the duty and who files, in words. "Due next" may use a `--warm` cell wash or an `--accent` underline on the date, never an `--accent` fill. The GP view has no action buttons.
-- **Filter dropdowns.** `--paper` or `--nest`, 1px `--rule` border, `--r-input`, Inter 14px, `--ink` value, `--muted` placeholder.
-- **Buttons.** Primary (Approve, Publish, Finish review, Start run): `--ink` fill, `--paper` text, 0 radius, 10px 20px padding, `--font-head` 16px/1, tracking `-0.02em`. Secondary (Reject, Decline, Abandon): same as `.ghost` — transparent, 1px `--ink` border, `--ink` text, same padding and radius. Links such as "Refresh now" and "Stop automatic refresh" are `--ink` text with an `--accent` underline. Never use `--accent` as a button fill.
-- **Form controls.** 1px `--rule` border, `--r-input`, Inter 16px, `--ink` text, 8–12px padding. Nothing preselected that implies a decision.
-- **Refusal / error alerts.** Sit beside the row or action, not in a modal. `--nest` or `--warm` wash, `--r-card`, a 3px `--accent` left bar (decoration only), `--ink` body text. The demo-row message uses the wording in `ux.md`. The Approve button stays visible and enabled. Focus uses editorial's `:focus-visible` outline (`2px solid var(--accent)`).
+- **Buttons.** Primary (Approve, Publish, Finish review, Start run): `.btn`, `--ink` fill, near-white text, Lexend 15px, 40px tall, 20px side padding. Secondary (Reject, Decline, Abandon): `.ghost`, transparent with a 1px `--ink` border; on hover it fills with `--ink`. Small variant (`.sm`) is 32px tall. Never use orange as a button fill.
+- **Demo label.** `.demo`, a pill in the brass family: brass text on `--brass-wash` with a `--brass-line` border, Inter 12px / 500. Wording exactly "Demo with mock data". On every page, in the sidebar foot.
+- **Stepper and pillars.** Four steps with a 3px top rule. Done steps use a slate rule; the current step uses an orange rule and orange-text sub-label; a skipped step has a dashed rule and a struck-through title. Later steps are `--muted`.
+- **KPI cards.** `.kpi`, white, `--r-panel`, 22px / 24px padding, no shadow. Title in `--muted`; figure in Lexend. A row of three or four above a queue or calendar.
+- **Tables and queues.** White card, light `--rule` row dividers only. Status and quote-check always include a word, not colour alone.
+- **Calendar (month, year and GP views).** `--rule` hairlines, white cells, date tiles at `--r-ctl`. Entries are chips plus the duty and who files, in words. The GP view has no action buttons.
+- **Form controls.** `select`, text input and textarea: Inter 14px, white, 1px `--line` border, `--r-ctl`, 8px / 10px padding. Nothing preselected that implies a decision.
+- **Refusal alerts.** `.refusal`: a `--bordeaux-wash` box with a 3px bordeaux left bar, `--ink` text. Sits beside the row or action, not in a modal. The Approve button stays visible and enabled. The refused row pulses once (orange outline, 1.4s).
+- **Flags and callouts.** `.flag`, `.caught`, `.cta`, `.refline`: `--ivory` or white with a 3px **orange** left bar (decoration only). A waiting call to action swaps the bar to brass.
+- **Trust line.** `.trust`: slate wash and border, slate text, for "this was checked" statements.
 
-## Status chips
+## Motion
 
-Always a short word (or the exact `ux.md` phrase) on a pale wash, dark AA-safe text, optional 1px same-hue border, `--r-tag`, Inter 12–14px 500. Do not use light text on a saturated fill. Rejected and declined share a family and are distinguished by words; so do refused/blocked and quote-check failed.
+One easing curve, `--ease: cubic-bezier(.645, .045, .355, 1)`, for everything that moves. Colour changes on hover use a plain 200ms linear fade.
 
-| Status | Text token / hex | Wash token / hex | Contrast |
-|--------|------------------|------------------|----------|
-| Approved | `--status-approved-text` `#1f5a32` | `--status-approved-bg` `#e6efe8` | 6.96:1 |
-| Published | `--status-published-text` `#1b4d30` | `--status-published-bg` `#e7f0ea` | 8.39:1 |
-| Rejected / declined | `--status-rejected-text` `#8a2c18` | `--status-rejected-bg` `#f8e6e0` | 7.08:1 |
-| Waiting | `--status-waiting-text` `#5c5c5c` | `--status-waiting-bg` `#f5f5f5` | 6.13:1 |
-| Verifier flag | `--status-flag-text` `#6b5420` | `--status-flag-bg` `#f3ead4` | 6.02:1 |
-| Refused / blocked, quote-check failed | `--status-refused-text` `#8b1e12` | `--status-refused-bg` `#f3d8d1` | 6.79:1 |
+| Where | What | Duration |
+|-------|------|----------|
+| Links, buttons, rows, chips on hover | Colour and background fade | 200ms linear |
+| "More" links | Brass underline draws left to right | 400ms |
+| Sign-in cards and calendar cards | `settle`: fade up 18px, staggered 120 / 320 / 520ms | 700ms |
+| Caught-by-the-check note | `slidein`: fade in from 10px left | 500ms |
+| Refused rule card | `pulse`: one orange outline ring | 1400ms, 300ms delay |
+| Source highlight | `draw`: highlight grows across | 800ms |
+| Ring, bars, dots | Arc draws, bars grow, dots scale in | 1100ms / 900ms / 420ms |
 
-## CSS custom properties
-
-The app loads `editorial.css` first, then this `:root`, which extends it. Do not redeclare the shared tokens except the two contrast fixes, so the sheets stay one system. Until those fixes are patched into `editorial.css`, the overrides below keep the app correct.
-
-```css
-/* Load Inter (400, 500, 600) and Inter Tight (400) from a public source,
-   then editorial.css, then this sheet. Do not commit a proprietary font file. */
-:root {
-  /* Contrast fixes — also apply these in editorial.css (see below). */
-  --muted: #5c5c5c;
-  --accent-text: #b33d12;
-
-  --status-approved-text: #1f5a32;
-  --status-approved-bg: #e6efe8;
-  --status-published-text: #1b4d30;
-  --status-published-bg: #e7f0ea;
-  --status-rejected-text: #8a2c18;
-  --status-rejected-bg: #f8e6e0;
-  --status-waiting-text: #5c5c5c;
-  --status-waiting-bg: #f5f5f5;
-  --status-flag-text: #6b5420;
-  --status-flag-bg: #f3ead4;
-  --status-refused-text: #8b1e12;
-  --status-refused-bg: #f3d8d1;
-
-  --r-input: 3px;
-  --sidebar-width: 240px;
-  --page-max-width: 1200px;
-  --button-padding: 10px 20px;
-}
-```
-
-## Edits to editorial.css
-
-Do not edit the attached copy. Apply these minimal changes in the project's `editorial.css` so docs and app share one token set:
-
-1. In `:root`, change `--muted: #828282` to `--muted: #5c5c5c`.
-2. In `:root`, add `--accent-text: #b33d12;`.
-3. `.tag.hold { color: var(--accent-text); }` — the inset border can stay `--accent`.
-4. `.hold-note b { color: var(--accent-text); font-weight: 600; }`.
-5. `.tag.ok` currently sets `color: var(--accent-2)` on `background: var(--warm)`, which fails AA (4.33:1). Change the background to `var(--band)` (4.68:1) or `var(--paper)` (5.38:1).
-6. `.d-acc-t` fills with `--accent`, which fails as text (2.89:1 on `--paper`). Change to `fill: var(--accent-text)`.
+**Reduced motion.** `@media (prefers-reduced-motion: reduce)` switches off every animation and transition on every element (`animation: none`, `transition: none`, both `!important`). Anything that starts hidden and relies on an animation to appear must also be given its end state under that media query. The `.dot` marks do this (`opacity: 1; transform: none`). Check every new animated element with reduced motion on.
 
 ## Contrast recap
 
-All pairs specified above meet WCAG AA (4.5:1) for normal text, including `--muted` and `--accent-text` on `--paper`, `--band`, `--nest` and `--warm`, and `--accent-2` on `--paper`, `--band` and `--nest`. `--ink` / `--ink-2` on those surfaces, and `--paper` on `--ink` (primary buttons), also pass.
-
-Still fail, by design or until the docs edits land:
-
-- `--accent` (`#ff682c`) as text, or as a fill under white text, on every light surface (2.89:1 on `--paper`). Keep it decorative only.
-- `--accent-2` on `--warm` (4.33:1). Do not use this pair. `.tag.ok` in the unpatched docs file still uses it.
-- `.d-acc-t` in the unpatched docs file still paints diagram labels with `--accent`.
+Every pair in the tables above meets WCAG AA (4.5:1) for normal text except the ones marked **fails**, which are banned by the rules under "Colour": `--orange` as text anywhere, and `--brass` text on `--ivory`. Primary-button text (`#f5f5f5` on `--ink`) is 14.94:1. Ratios were calculated from the hex values in `app.css`; recalculate them whenever a token changes.
