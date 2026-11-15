@@ -78,6 +78,10 @@ Three fonts, all loaded from a public source.
 
 Numbers in tables and counts use tabular figures (`.num`).
 
+## Icons
+
+Iconoir line icons (MIT licence), placed inline as SVG so they need no network. The source files are in `docs/prototype/icons/` and `build.py` inlines them. They use `stroke="currentColor"`, no fill, stroke width 1.5. Colour comes from the surrounding rule in `app.css`: brass in the nav, orange for the current page, white on the KPI tile, slate in the trust line. An icon never carries meaning alone; a word sits beside it.
+
 ## Radius, borders, depth
 
 | Token | Value | Use |
