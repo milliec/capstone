@@ -58,7 +58,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Ask: Decide whether to update the style note to Lexend headings, Inter body, 6px corners on cards and buttons, pill chips and Iconoir icons (MIT licence, inline SVG).
 - Why: The style note specifies Inter Tight, a top-left-only card radius and sharp buttons.
 - Decision (operator, 2026-11-14): **In MVP, with limits.** U7 and U8 together get half a day of styling in total; drop anything that doesn't fit.
-- Outcome: **Partly done, stays open.** 2026-11-14, `@ux.designer`: `2.build/ux.md` §6 records the accepted look and points to `docs/prototype/app.css` as the look reference until the style note is updated. `style-note.md` itself is not updated yet (the operator asked for it to be left alone in this pass). Close this when it is.
+- Outcome: **Done.** 2026-11-15, `@ux.designer`: `2.build/style-note.md` now describes `docs/prototype/app.css` as the source of truth (Lexend / Inter / DM Mono, 6px radii, the orange, brass, slate and bordeaux status families, motion and reduced-motion rules) and has an Icons section for Iconoir. `2.build/ux.md` §6 now says "Done" and points to it.
 
 ### H-003: Add `aamad validate` to CI, and make `--no-verify` a stop-and-report
 - From: @system.arch (operator request)   To: @project.mgr   Date: 2026-11-13

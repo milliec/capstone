@@ -878,11 +878,11 @@ The look (tokens, type, spacing, components, status chips, contrast) is in
 **`project-context/2.build/style-note.md`** (operator decision, 2026-11-13). This note does not
 repeat it.
 
-**Pending (U8, H-020).** The operator accepted a new look for the MVP: Lexend headings, Inter
-body, 6px corners on cards and buttons, pill chips and Iconoir icons (MIT licence, inline SVG), as
-in `docs/prototype/app.css`. `style-note.md` has not been updated yet, so until it is, the
-mock-ups are the look reference (see the top of this note). U7 and U8 together get half a day;
-anything that does not fit is dropped.
+**Done (U8, H-020).** The operator accepted a new look for the MVP: Lexend headings, Inter body,
+6px corners on cards and buttons, pill chips and Iconoir icons (MIT licence, inline SVG).
+`style-note.md` now describes it, with `docs/prototype/app.css` as the source of truth. If the two
+disagree, the stylesheet wins. U7 and U8 together get half a day; anything that does not fit is
+dropped.
 
 B6 is still the first block dropped if time runs out: every page must stay usable and accessible
 unstyled.
@@ -1142,3 +1142,8 @@ wording only.
   B12 included; closed Open Questions 2 (file stays in `2.build/`), 5, 6, 8 and 15; marked D1 to D5
   resolved. Did not edit `sad.md`, `style-note.md` or the mock-ups. No code. No model call.
   Approval status left `pending`.
+- 2026-11-15 · persona `ux-designer` · action `design-ux` (follow-up, H-020) · branch
+  `ux-style-note-followup` · §6 "Pending (U8, H-020)" changed to "Done": `style-note.md` was
+  rewritten around `docs/prototype/app.css` (PR 52) and gained an Icons section for Iconoir. Closed
+  H-020 in `handoffs.md`. No other section changed. Did not edit `sad.md` or the mock-ups. No code.
+  No model call. Approval status left `pending`.
