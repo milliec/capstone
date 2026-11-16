@@ -1206,6 +1206,14 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   blocks merges from then on; if B13 is dropped, the test is dropped with it. Why: the guard that
   keeps a deliberate failure out of real and evaluation runs, and off the GP view, is a safety
   check. **Changed**: SAD EC-R4, Estimate tiers, Build card, CR-033.
+- **Update 2026-11-16 (operator, third pass; DL-54): the failure demo no longer depends on Retry.**
+  It is built in B13a, straight after B3, and kept. T-DEMOFAIL-1 stays Tier 1 and is **no longer
+  dropped with Retry**; this replaces the second-pass wording "if B13 is dropped, the test is
+  dropped with it". Until Retry (B13b) is built, or if it is dropped, a failure-demo run ends
+  `FAILED` and the page offers only "Start a new review from Filing rules". Point 3's "one review
+  shows both the error and the retry" therefore holds only once B13b exists, and the retry check
+  moves from T-DEMOFAIL-1 to T-RETRY-1. **Changed**: SAD CR-033, CR-032, rule 11, EC-R4, Estimate,
+  Build card.
 
 ### DL-53 · The screen-to-data gaps in ux.md are answered
 
@@ -1245,6 +1253,51 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   code runs; there is no stored field. If the extractor drafts another row from that paragraph to
   the same authority, it is marked too, which is the safe direction (CR-027 "fail safe towards the
   mark"). **Changed**: SAD CR-027.
+
+---
+
+## 2026-11-16 · B13 split and stand-in pause
+
+### DL-54 · B13 is split into a failure demo built early and Retry built late; stand-in agents pause per unit
+
+- **Decision** (operator, 2026-11-16, handoff H-033; the quarter-day split and the wording by
+  `@system.arch`):
+  1. **B13 becomes two blocks.** **B13a Failure demo and stand-in pause** (0.25 day) is built
+     straight after B3's stand-in part: B3 → B13a → B4 → B5 → B7 → first green path. **B13b
+     Retry** (0.25 day) is built after B9 and before B6, where B13 was. B13a's page parts (the
+     start-form checkbox, the "Failure demo on" label, the failed page "Without Retry") are
+     written in B5.
+  2. **Drop order:** B6 and Tier 2 first; **B13b next**; **B13a is kept** with B7, because it
+     shows the failed and running states in the Sprint 3 stubbed UI and is built before the
+     tripwire. T-MAP-1 is never dropped.
+  3. **New setting `STAND_IN_UNIT_PAUSE_S`**: read only when `AGENTS_MODE=stand_in`; default 1
+     (seconds per unit); 0 in tests. Each stand-in agent function waits that long per unit
+     before returning its fixed output, so the units finish one by one (`ux.md` page 3). It
+     runs inside the backend stage timer, so the stage limits (DL-43) do not change. It is never
+     read, and nothing waits, in real mode.
+  4. **Tests:** T-DEMOFAIL-1 is Tier 1 from B13a, no longer tied to Retry. New **T-PAUSE-1**
+     (Tier 1): real mode never pauses; stand-in mode pauses the set amount per unit.
+     T-RETRY-1 to T-RETRY-3 stay Tier 2 with B13b.
+  5. **The failure demo does not depend on Retry** (CR-033, DL-52 update): until B13b is built,
+     or if it is dropped, a failure-demo run ends `FAILED` and the page offers only "Start a new
+     review from Filing rules".
+- **Why**: the operator wants the failed and running states visible in the Sprint 3 stubbed UI.
+  The Build card is authoritative (H-001), and a new setting and a new Tier 1 test are SAD edits
+  first, so nothing is built until this lands.
+- **Trade-offs**: the work before the first green path grows from about 3.5 to about 3.75 days,
+  so there is a quarter day less slack before the day-4 tripwire. The totals do not change
+  (about 6.75; about 7.75 with B12). The stand-in units now run one after another instead of in
+  parallel, and a pause long enough to pass a stage limit fails the run like any slow stage.
+  Stage C has no agent function, so the pause does not apply to it. Stand-in stage A takes
+  about 12 s and stage B about 6 s at the default.
+- **Considered**: (1) **A pause per stage** (the first proposal, about 3 seconds): units would
+  still appear all at once. (2) **Keeping B13 whole, after B9**: the failed state would not
+  exist in Sprint 3. (3) **Dropping B13a with B13b**: it is built before the tripwire, so
+  dropping it later saves nothing.
+- **Changed**: SAD Build card ("Time", "Order", "Tier 1", "Tier 2"), Order of work, Estimate (B13a,
+  B13b, fit verdict, tests, tripwire, "Checkpoint"), feasibility paragraph, SOQ-35, §2 "Stand-in
+  pause", Production Shape item 7, rule 11, §4 environment variables, EC-R4, CR-030, CR-032,
+  CR-033, "Decisions in force" (DL-52, new DL-54). Root `CLAUDE.md` Tier 1 line.
 
 ---
 
@@ -1323,3 +1376,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-50 confirmed: Mermaid one-off, the table list wins, `paragraphs` per run, one `publications` row per publish, precautionary mark copied onto the entry, no stored roll note; operator decisions
 - 2026-11-16 · persona `system-arch` (at the operator's instruction; `ux.md` revision D9 to D12, §10.3) · action `update` · new DL-51 (Retry a failed stage once; stage outputs stored when the stage ends; refusal codes `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`), DL-52 (failure demo switch, stand-in only, reason `demo failure`), DL-53 (data gaps G-1 to G-10 answered); DL-27 update (new "being prepared" text); DL-44 update (new refusal copy); DL-22 pointer to DL-51. Operator decisions, with the architect's additions to confirm in SAD SOQ-31 to SOQ-33
 - 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-51 update (refusals confirmed; `calendar generation` refuses a retry; B13 after B9, dropped next after B6), DL-52 update (T-DEMOFAIL-1 Tier 1 once B13 is built), DL-53 update (CR-027 names the OQ-7 rows by source paragraph and recipient code); operator decisions
+- 2026-11-16 · persona `system-arch` (at the operator's instruction; handoff H-033) · action `update` · new DL-54 (B13 split into B13a Failure demo and stand-in pause, kept, after B3, and B13b Retry, after B9, dropped next after B6; new setting `STAND_IN_UNIT_PAUSE_S`; T-DEMOFAIL-1 Tier 1 from B13a; new Tier 1 test T-PAUSE-1); DL-52 update (the failure demo no longer depends on Retry). Operator decisions
