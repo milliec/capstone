@@ -428,6 +428,8 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   (CR-007, as today), or rejects with a reason and starts a new review. Picking a source is
   **Future scope**. Both quotes stay read-only at G1. **Changed**: SAD "Decisions in force"
   (DL-22 line), Future Work F-01.
+- **Update 2026-11-16 (DL-51):** one specialist Retry of a whole failed stage is now in the MVP.
+  Re-running a single unit, "needs attention" and release stay future scope (SAD F-05).
 
 ### DL-23 · Evaluation: three passing runs, and names graded by the specialist
 
@@ -540,6 +542,12 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   by `@product-mgr`** (branch `define-gp-pre-publication-message`, not yet merged): PRD OQ-6, SD OQ-1 and
   OQ-US011-1 resolved; US-011 criterion 7 and SD AC-013 now name the message; US-010 criterion 6 points
   to it.
+- **Update 2026-11-16 (operator, `ux.md` Open Question 12, D11): new wording.** The message is now:
+  *"Your compliance calendar is being prepared and checked by a specialist. Nothing has been
+  published yet. The deadlines will appear here once it is published."* Why: "compliance calendar"
+  is the name the General Partner sees elsewhere, and the last sentence says what will happen
+  next. It still shows no entry, count, status or draft content (SD MN-007). **Changed**: SAD §3
+  page 7, EC-014. **Still to do by `@product-mgr`**: US-011 criterion 7 and SD AC-013 (SAD SOQ-34).
 
 
 ### DL-28 · After a backend restart, the specialist abandons the interrupted run
@@ -972,6 +980,16 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   `DEMO_ROW_NOT_APPROVABLE`; the message appears beside the row and as a short line at the top of
   the page; the attempt is audited; no browser pop-up is used. **Changed**: SAD CR-029, §3
   page 4, "Decisions in force".
+- **Update 2026-11-16 (operator, `ux.md` D9): the copy explains why.** The refusal message becomes
+  one message: **"This rule can't be approved. The quote is genuine, but it doesn't say what this
+  rule claims, so there's no legal basis for it. Reject it and add a short reason, for example
+  "Quote doesn't support the rule". Your attempt has been recorded in the audit trail."** It
+  replaces the 2026-11-14 text and its separate audit line. Why: the old text said the rule
+  "doesn't appear in the regulation text", but the planted row's quote *is* in the text (it passes
+  the quote check); what is missing is support for the rule. The new text is accurate and tells the
+  specialist what to write. Unchanged: `DEMO_ROW_NOT_APPROVABLE`, the "Approval blocked" chip, the
+  message beside the row and in the top line, no pop-up. **Changed**: SAD CR-029, "Decisions in
+  force". T-DEMO-2 checks the code, not the text, so no test changes.
 
 ### DL-45 · Evaluation copy cases are separate harness calls
 
@@ -1091,6 +1109,143 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Changed**: SAD §4 (new subsection "Data model: the happy path"), Input Requirements and Sources
   (range DL-01 to DL-50), SAD Audit.
 
+## 2026-11-16 · ux.md revision: Retry, failure demo, data gaps
+
+### DL-51 · A failed stage can be retried once by the specialist
+
+- **Decision** (operator, 2026-11-16, `ux.md` D10 and Open Question 18; details and guards proposed
+  by `@system.arch`, the two marked (a) and (b) as the operator's stated preference): a `FAILED`
+  run can be retried by the specialist, narrowly.
+  1. **Only the failed stage** runs again, **from its start** (stage A, B or C; the phase the run
+     failed in, DL-46).
+  2. **Every decision already recorded is kept** and not asked again (G1 decisions when B or C is
+     retried; G2 decisions when C is retried).
+  3. **One audit entry per retry**: who, when, the stage retried, and the failure it follows.
+  4. Route `POST /specialist/runs/{run_id}/retry` `{run_version}`. The run returns to `ACTIVE` in
+     the failed stage's `*_RUNNING` phase; the run version goes up by one; the stage gets a fresh
+     time limit; **the run's cost is not reset** and counts towards the same US$2.50 cap.
+  5. **Refused** (each audited, nothing changed): another run is active (`RUN_ACTIVE`); a stale page
+     (`VERSION_MISMATCH`); the run is not failed (`RUN_NOT_FAILED`); **(b)** the stage was already
+     retried once, so start a new review (`RETRY_LIMIT_REACHED`); **(a)** the failure was the
+     **cost cap**, the run is an **evaluation run**, or a **newer run** has been started since
+     (`RETRY_NOT_ALLOWED`, with a sentence naming which). The last two are the architect's
+     additions, for the operator to confirm (SAD SOQ-32).
+  6. **Structural change that makes this safe:** a stage now stores its outputs (rows, quote checks
+     and flags; verdicts; the calendar) **in one transaction when it ends with every unit valid**,
+     checked against a new `runs.stage_attempt` (1 or 2). Before, each unit's output was stored as
+     it arrived (SAD run-state rule 9).
+- **Why**: the demo's minimal UI bar lists "error and retry", and without it a failure in stage B
+  or C throws away the specialist's G1 and G2 work. Keeping it to one retry of the failed stage
+  keeps it small: no unit-level re-run, no "out of date" machinery, no partial outputs.
+  (a) **No retry after the cost cap**: the cap is a hard stop on spend (CR-017); a retry would
+  start spending again on a run that already reached it. (b) **One retry per stage**: a stage that
+  fails twice is not a passing glitch, and a new review is the honest next step; it also means a
+  run can never loop.
+- **Trade-offs**: rule 2 ("a terminal run is never resumed or re-run") now has one exception, so
+  `FAILED` is terminal except for Retry. Storing a stage's outputs only at its end means a stage
+  holds its outputs in memory until every unit is valid, which is small at about 17 calls per run.
+  The trace key gains the stage attempt. Retrying after `invalid output` sends the same prompt
+  again, which the Production Shape calls "not a fix"; it is allowed because a person decides it
+  after seeing the failure, once. EC-011 (review time) is measured on a run with no failures and no
+  retries. About half a day of build (block B13, with the failure demo).
+- **Considered**: (1) **No retry, a new run only** (the SAD before this change): simplest, but
+  loses the earlier gate work and fails the "error and retry" bar. Kept as the fallback if B13 is
+  dropped (`ux.md` "Without Retry"). (2) **Keep storing per unit and mark each stored output with
+  its attempt**: needs an attempt column on rows, flags, verdicts and calendars, and changes the
+  unique keys on `verdicts.row_id` and `calendar_versions.run_id`. More change, more ways to read
+  the wrong attempt. (3) **Delete the failed stage's partial outputs on retry**: breaks "ending a
+  run undoes nothing" and the write-once rule. (4) **Re-run only the failed unit**: that is F-05,
+  with its idempotency key and current-output store; parked.
+- **Changed**: SAD MVP scope steps 1 and 13, "What a wrong step costs", "Decisions in force", W-19
+  and the retired list, "Failure inside a stage", run state model (intro, `FAILED` row, rules 2, 9,
+  10, transitions, legend), feasibility, DM-17, principles, Production Shape, CR-017, CR-018, new
+  CR-032, §3 page 3, §4 routes, refusal codes and failure reasons, `runs` and `units`, the ERD,
+  identifiers, Tier 2, Estimate (B13), Build card, order of work, known limitations, F-05, SOQ-35
+  (first numbered SOQ-31), SOQ-32, SOQ-34. DL-22 carries a pointer here.
+- **Update 2026-11-16 (operator, second pass; SAD SOQ-32, SOQ-35):** (1) both architect-added
+  refusals are **confirmed** (evaluation run; a newer run exists). (2) **A `calendar generation`
+  failure also refuses a retry** (`RETRY_NOT_ALLOWED`). Why: stage C is code; with the same G1 and
+  G2 decisions it produces the same collision or gap, so a retry could only fail again and use up
+  the stage's one retry. (3) **B13 is accepted**: built after B9 (tuning), and the **next block
+  dropped after B6**, with the "Without Retry" page as the fallback (refines DL-42's drop order).
+  **Changed**: SAD rule 10, transitions, refusal codes, failure reasons note, CR-032, Build card,
+  Estimate drop order, order of work, known limitations, "Resolved" SOQs.
+
+### DL-52 · A demo-only switch makes step 1 fail once
+
+- **Decision** (operator, 2026-11-16, `ux.md` D12 and Open Questions 21 to 23; fields and guards
+  by `@system.arch`): the start form gets a second demo switch, **"Make step 1 fail (demo)"**.
+  1. **Field**: `runs.demo_fail_step1`, a boolean, off by default, set only when the run is started.
+     Turning it on is an audit entry, like `demo_planted_row` (CR-029).
+  2. **Only when `AGENTS_MODE=stand_in`**: the form shows the box only then. In real mode the field
+     is not part of the start form, so sending it is refused as `VALIDATION` and audited. An
+     evaluation run can therefore never carry it (evaluation runs refuse stand-in mode, CR-030).
+  3. **How it fails**: with the switch on and `runs.stage_attempt` = 1, the **stand-in extractor**
+     fails stage A's first unit (the first primary document); the other units stay `waiting`, and
+     the run ends `FAILED` under the normal rules. A retry (DL-51) runs at stage attempt 2, so the
+     extractor runs normally: **one review shows both the error and the retry**.
+  4. **Failure reason**: a new eighth reason, `demo failure`. The page shows the one sentence in
+     `ux.md`: "This step failed on purpose, for the demo only, because "Make step 1 fail (demo)"
+     was ticked when the review started. Nothing else went wrong."
+  5. **Specialist only**: the label "Failure demo on" appears on specialist pages; the General
+     Partner never sees it. A retried and published failure-demo run shows the GP only what any
+     published stand-in run shows.
+- **Why**: stand-in agents never fail, so without this the failed-review page and Retry cannot be
+  shown in a demo or checked by hand before any paid call. Tying it to stand-in mode and to the
+  first stage attempt keeps it out of every real and evaluation run.
+- **Trade-offs**: one more field, one more reason and one branch in the stand-in extractor. The
+  stand-in code now has one behaviour that depends on run data, which T-DEMOFAIL-1 covers.
+- **Considered**: (1) **An environment setting** that makes every stand-in run fail: not visible on
+  the run, not audited per run, and easy to leave on. (2) **Failing a stage other than A**: shows
+  that earlier decisions are kept, but makes the demo longer; the operator chose step 1.
+  (3) **A refusal code of its own** in real mode: `VALIDATION` already covers an unknown field.
+- **Changed**: SAD MVP scope step 1, "Decisions in force", run state model (`FAILED` row,
+  transitions, rule 11), new CR-033, §3 page 2, §4 start route and failure reasons, `runs`, the
+  ERD, Tier 2 (T-DEMOFAIL-1), Estimate (B13), Build card "Never" row.
+- **Update 2026-11-16 (operator, second pass): T-DEMOFAIL-1 is Tier 1** once B13 is built, so it
+  blocks merges from then on; if B13 is dropped, the test is dropped with it. Why: the guard that
+  keeps a deliberate failure out of real and evaluation runs, and off the GP view, is a safety
+  check. **Changed**: SAD EC-R4, Estimate tiers, Build card, CR-033.
+
+### DL-53 · The screen-to-data gaps in ux.md are answered
+
+- **Decision** (`@system.arch`, 2026-11-16, answering `ux.md` §10.3; the new fields are for the
+  operator to confirm with this batch):
+
+  | Gap | Answer |
+  |---|---|
+  | G-1 Start time and who started | **Add fields** `runs.started_at`, `runs.started_by`. Reading them from the audit log would need a join on every Filing rules row |
+  | G-2 Units | **Add to the ERD**: `units` with `stage`, `stage_attempt`, `unit_id`, `label`, `status`, `attempts`, `failure_reason`. The label is the source document's title (extraction), the row's obligation name (verifier, judge), or "Calendar" (stage C) |
+  | G-3 Retry | **DL-51** |
+  | G-4 Abandon and close reasons, end time | **Already covered** by the `audit_log` entry for the `ABANDONED` or `DECLINED` transition (`reason`, `at`); the pages may read it. No field on `runs` |
+  | G-5 Which step it failed at | **Already covered** by `runs.phase` (DL-46) |
+  | G-6 The OQ-7 mark at step 2 | **Already covered** by CR-027: the mark is derived from the regulation configuration when the page is drawn; no stored field. The configuration names the row by source paragraph and recipient code (update below) |
+  | G-7 Recipient name | **Add a config entry**: each recipient code's display name in `config/regulation/lu-part2.yaml`. No table field |
+  | G-8 Fund name and line | **Add config fields**: `name`, `regime`, `year_end` in `config/fund/FND-DEMO-01.yaml`, drawn on `fund_profile` |
+  | G-9 "Approval blocked" tag | **Already covered** by the `audit_log` refusal (`refusal_code = DEMO_ROW_NOT_APPROVABLE`, `subject_id` = the row); the page may read it |
+  | G-10 Failure demo | **DL-52**: `runs.demo_fail_step1`, reason `demo failure` |
+  | New: `runs.stage_attempt` | **Add field** (DL-51): the retry guard and the store check |
+  | New: `runs.spend_activity` | **Add field** (DL-51): so an evaluation run can be refused a retry. Empty in stand-in mode |
+  | New: which unit lines a page shows | **Rule**: run status and Filing rules show the newest stage attempt's lines; the earlier attempt's lines stay as the record |
+
+  Nothing is dropped from the screens.
+- **Why**: each field is either read by a page the operator approved, or needed by a guard in
+  DL-51 or DL-52. Display names stay in configuration, because they are fixed facts about the
+  fund and the sources, not run data.
+- **Considered**: reading start time and who started from the audit log (G-1): no new field, but
+  a join on every row of the run list. Storing the "Approval blocked" state on the row (G-9): the
+  rows table is write-once, so it would need a new table for one tag.
+- **Changed**: SAD "Decisions in force", §4 `runs` and `units`, configuration files, the ERD and
+  "What the diagram makes explicit" items 7 to 9, SOQ-33.
+- **Update 2026-11-16 (operator, second pass; SAD SOQ-33): how the OQ-7 mark finds its row.**
+  CR-027's configuration said `OQ-7` → `OBL-02`, an answer-key ID that a model-drafted row never
+  carries, so the G1 page could not match it. It now names the rows by **source paragraph and
+  recipient code** (`SRC-UCILAW-P2`, `AED`). The mark is derived from the row's
+  `source_paragraph_id` and `recipient_code` when the G1 and G3 pages are drawn and when the date
+  code runs; there is no stored field. If the extractor drafts another row from that paragraph to
+  the same authority, it is marked too, which is the safe direction (CR-027 "fail safe towards the
+  mark"). **Changed**: SAD CR-027.
+
 ---
 
 ## Audit
@@ -1166,3 +1321,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-14 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-49 update: moved marks specialist-only on the GP calendar and in the B12 charts; B6 0.25 → 0.5 days for U7 and U8 (refines DL-42). D5 (quote-check result shown on every G1 row, the demo row included) is recorded in the SAD §3 page 4 and handed to `@ux.designer` (H-030); no DL entry, as it restores what the SAD already said; operator decisions
 - 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-50 (data model diagram of the happy path in SAD §4; no new table; fund as config entity, `calendar_entries.row_id` and the entry date and mark columns proposed; three open points). Pending operator confirmation
 - 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-50 confirmed: Mermaid one-off, the table list wins, `paragraphs` per run, one `publications` row per publish, precautionary mark copied onto the entry, no stored roll note; operator decisions
+- 2026-11-16 · persona `system-arch` (at the operator's instruction; `ux.md` revision D9 to D12, §10.3) · action `update` · new DL-51 (Retry a failed stage once; stage outputs stored when the stage ends; refusal codes `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`), DL-52 (failure demo switch, stand-in only, reason `demo failure`), DL-53 (data gaps G-1 to G-10 answered); DL-27 update (new "being prepared" text); DL-44 update (new refusal copy); DL-22 pointer to DL-51. Operator decisions, with the architect's additions to confirm in SAD SOQ-31 to SOQ-33
+- 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-51 update (refusals confirmed; `calendar generation` refuses a retry; B13 after B9, dropped next after B6), DL-52 update (T-DEMOFAIL-1 Tier 1 once B13 is built), DL-53 update (CR-027 names the OQ-7 rows by source paragraph and recipient code); operator decisions
