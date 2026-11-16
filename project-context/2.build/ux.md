@@ -25,7 +25,9 @@ and refusals**. Where they differ on behaviour or wording, this note wins. The m
 the "Stand-in agents" label and the demo-row switch (H-004, H-005): that is prototype-only, and the
 built app keeps both (§1.3, page 2).
 
-**Approval status**: `pending`
+**Approval status**: `approved` (operator, 2026-11-16). `@frontend.eng` may build from this note.
+Retry and the failure demo stay unbuildable until the SAD change in H-032 lands (D10, D12); until
+then the build uses the Retry fallback (page 3, UX-022).
 
 ---
 
@@ -1462,3 +1464,8 @@ wording only. D9, D10, D11 and D12 need a SAD change; the operator asks for them
   (with Retry) and UX-022 (without); updated §10.2; added Open Questions 21 to 23. Edited only this
   file. No code. No model call. Approval status left `pending`. Later the same day the operator
   closed Open Questions 21 (fail once) and 22 (no extra column); 23 stays open.
+- 2026-11-16 · persona `ux-designer` · action `design-ux` (approval) · branch `ux-approve` · Open
+  Question 23 closed earlier the same day (the operator's failure-demo reason sentence, used
+  everywhere); handoff H-032 raised to `@system.arch` (PR 56). The operator approved this note:
+  Approval status set to `approved`. Retry and the failure demo stay blocked until H-032 lands.
+  No other change. No code. No model call.

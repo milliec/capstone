@@ -32,7 +32,7 @@ kept in Appendix A for later and is not built in this plan.
 **User Stories**: `project-context/1.define/user-stories/` (US-001 to US-016; US-005, US-014 and
 US-016 are not in the MVP)
 **Approval map and decision log**: `approval-map.md` (not a requirement in itself; re-checked
-against this version on 2026-11-12), `decision-log.md` (DL-01 to DL-50; DL-40 reserved)
+against this version on 2026-11-12), `decision-log.md` (DL-01 to DL-53; DL-40 reserved)
 **MVP Scope**: the single statement of scope is "MVP scope: the five-day slice" below. No other
 section restates it.
 **Selected Runtime**: `crewai` (resolved from `AAMAD_TARGET_RUNTIME`; matches `runtime.target` in
@@ -47,7 +47,7 @@ in the MVP.
 
 | # | Step | Owner | IDs |
 |---|---|---|---|
-| 1 | The specialist starts a run for `FND-DEMO-01`. One run at a time. The demo switch for the planted row is off unless the specialist turns it on for the demo run | Human · backend | W-01, CR-023, CR-029 |
+| 1 | The specialist starts a run for `FND-DEMO-01`. One run at a time. The demo switch for the planted row is off unless the specialist turns it on for the demo run. In stand-in mode only, a second demo switch makes step 1 fail once, to show a failed review (DL-52) | Human · backend | W-01, CR-023, CR-029, CR-033 |
 | 2 | The 6 mock source documents are loaded and split into 13 paragraphs with IDs | Code | W-02 |
 | 3 | The **extractor** drafts obligation rows from the **5 primary documents** only: one paragraph ID, a verbatim quote, no dates, and "who files" only when the source states it | CrewAI agent | W-03, DL-39 |
 | 4 | The **quote check** blocks any row whose quote is not word for word in its paragraph | Code | W-04, QN-1, CR-005 |
@@ -59,7 +59,7 @@ in the MVP.
 | 10 | **G3.** The specialist sees the calendar, the rejected rows and the uncited paragraphs, gives one explicit acknowledgement and publishes; or declines with a written reason | Human · backend | W-15, CR-028 |
 | 11 | The **GP view** shows the published calendar and the calendar-level note. Before the first publication it shows the fixed "being prepared" message | Backend (read-only) | W-16, CR-012 |
 | 12 | The **audit log** records every agent output, human decision, refusal and gate event | Backend | W-18, CR-013 |
-| 13 | **Run states.** A run is `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED` or `COMPLETED`. An `ACTIVE` run also has a **phase**: a stage running (`A_RUNNING`, `B_RUNNING`, `C_RUNNING`) or waiting at a gate (`AT_G1`, `AT_G2`, `AT_G3`) (DL-46). A failed step, a time limit or a restart mid-stage ends the run as `FAILED`. The specialist can abandon a run only in an `AT_G*` phase, with a written reason | Backend · human | W-19a, DM-17, DM-18 |
+| 13 | **Run states.** A run is `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED` or `COMPLETED`. An `ACTIVE` run also has a **phase**: a stage running (`A_RUNNING`, `B_RUNNING`, `C_RUNNING`) or waiting at a gate (`AT_G1`, `AT_G2`, `AT_G3`) (DL-46). A failed step, a time limit or a restart mid-stage ends the run as `FAILED`; the specialist may then retry the failed stage once (DL-51). The specialist can abandon a run only in an `AT_G*` phase, with a written reason | Backend · human | W-19a, DM-17, DM-18 |
 | 14 | The **evaluation report** compares three runs with the answer key and is exported with its trace. It reports; it does not block | Code | W-20, EC-R1, D4 |
 
 **Three CrewAI agents in a gated workflow (DL-17 as reworded, DL-35).** The system stays visibly
@@ -72,9 +72,11 @@ backend and ends. **The backend alone owns the gates**: no agent and no stage fu
 remember or advance a gate. The pattern is still a workflow (Pattern Decision): the order of the
 agents is written in code, and no agent chooses what runs next.
 
-**What a wrong step costs in the MVP.** There is no edit, no reopen and no re-run. A wrong decision
-or a failed step is corrected by a **new run**: the specialist abandons the run at a gate (or it has
-already failed), starts again and repeats the gate decisions. See "Known limitations".
+**What a wrong step costs in the MVP.** There is no edit, no reopen and no re-run of a single unit.
+A wrong decision is corrected by a **new run**: the specialist abandons the run at a gate, starts
+again and repeats the gate decisions. A **failed stage** may be retried **once** by the specialist:
+that stage runs again from its start and every decision already recorded is kept (DL-51).
+Otherwise a failed run is followed by a new run. See "Known limitations".
 
 **Decisions in force.** These shape the build. Each is recorded in `decision-log.md`.
 
@@ -86,7 +88,7 @@ already failed), starts again and repeats the gate decisions. See "Known limitat
 | DL-21 | CrewAI adapter deviations D1 to D5 and interpretation D6 still apply to the three agents |
 | DL-22 | The MVP is one happy path. Edit, reopen, re-run, release, manual rows, duplicate groups, the review notice and **choosing which source a rule follows** (A5) are Future Work |
 | DL-25, DL-26 | OpenAI API on prepaid credits; one model per role; the verifier's model is settled by the measured bake-off. (DL-24, the earlier spend cap, is superseded by DL-36) |
-| DL-27 | Before the first publication the GP view shows one fixed message and nothing else |
+| DL-27 | Before the first publication the GP view shows one fixed message and nothing else (wording updated 2026-11-16) |
 | DL-29 | Abandon only at a gate; a stage time limit; a start-up rule that fails a run interrupted mid-stage |
 | DL-30 | Publishing needs one explicit acknowledgement of the rejected rows and uncited paragraphs |
 | DL-31 | A demo switch, off by default, adds one planted row. Its Approve button stays visible, the server refuses the click (DL-44), and the specialist rejects it. Evaluation runs refuse to start with it on |
@@ -100,12 +102,15 @@ already failed), starts again and repeats the gate decisions. See "Known limitat
 | **DL-41** | **Responsible role is graded through a fixed lookup** (EC-R11), written before the first evaluation run: code maps the extractor's free text to a profile party name, then matches exactly; text that does not map is a miss (T-MAP-1). No parties list in the extractor's prompt (DL-39 stands). DL-40 is reserved for the model IDs (SOQ-25) |
 | **DL-42** | **Capacity: 5 days planned, 8 days hard stop.** The estimate now counts the hours that were noted but not added (stand-in mode and harness, the "who files" choice, the loader tests): about 6 days likely. **Tests in two tiers**: Tier 1 blocks the build, Tier 2 is done if time allows. **Tripwire**: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2 (moved from day 3 on 2026-11-13, SOQ-30). The hosted demo (DL-38) is parked as Future Work F-18. At least US$5 stays for the rehearsal and the demo (EC-R10 point 4). See "Estimate" |
 | **DL-43** | **One timeout rule everywhere.** Each model call has its own timeout, with the HTTP client timeout slightly below it; a timed-out call is retried once, and only a second timeout is a final failure (`model service`, voidable under EC-R8). Each stage limit is the sum of its calls with one retry each, plus about 25%: A ≈ 375 s, B ≈ 150 s, C 30 s. **The backend stage timer is the real bound**; CrewAI `max_execution_time` does not cancel a call in flight. Late results after a stage fails are discarded but count towards cost. Starting values, replaced after the spike |
-| **DL-44** | **The planted demo row keeps its Approve button.** Clicking it is refused by the server (`DEMO_ROW_NOT_APPROVABLE`), audited and shown as a plain message; the specialist then rejects the row. Replaces "offers reject only" (DL-31, SOQ-18). *Updated 2026-11-14:* the message is the plain copy in CR-029, and the row's chip then reads "Approval blocked" |
+| **DL-44** | **The planted demo row keeps its Approve button.** Clicking it is refused by the server (`DEMO_ROW_NOT_APPROVABLE`), audited and shown as a plain message; the specialist then rejects the row. Replaces "offers reject only" (DL-31, SOQ-18). *Updated 2026-11-14:* the message is the plain copy in CR-029, and the row's chip then reads "Approval blocked". *Updated 2026-11-16:* the copy now says why there is no legal basis (CR-029) |
 | **DL-47** | Approving a row with no business-day rule is refused (`BUSINESS_DAY_RULE_REQUIRED`). *Updated 2026-11-14:* "not confirmed" no longer counts as a choice |
 | **DL-48** | **Answer-first decision forms.** One form per row, verdict or calendar; the answer is chosen first and only its fields show (CSS `:has()`; all fields visible as the fallback). The server acts only on the chosen answer and ignores the other answer's fields; each answer's reason field has its own name; nothing preselected; no browser `required` |
 | **DL-49** | **Calendar Month and Year views and charts are in the MVP**, front end only, built last (block B12, after the first green path and B10), one-day timebox. The "period covered" line (A8) is a post-MVP stretch after them (F-19) |
 | **DL-45** | **The evaluation's copy cases are separate harness calls** (the quote check for the altered quote, `check_conflicts` for `I-1`, `extract_rows` for the EC-021 injection), outside the run's `rows` table, labelled in the trace and scored separately. So EC-001's "0 extra rows" and EC-007's "22 entries" stay true |
 | **DL-46** | **Runs carry a `phase`** (`A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`) next to their status. Every run-state rule and guard, including `RUN_STAGE_RUNNING` and abandon-at-a-gate-only, is written against the phase |
+| **DL-51** | **Retry a failed stage, once.** The specialist may retry a `FAILED` run: only the failed stage runs again, from its start; every decision already recorded is kept and not asked again; one audit entry per retry. Refused after a cost-cap or calendar-generation failure, once the stage has already been retried (then a new run), on an evaluation run, when a newer run exists, and with the usual `RUN_ACTIVE` and `VERSION_MISMATCH`. **A stage now stores its outputs in one transaction when it ends** (rule 9), so a failed stage leaves nothing to clean up |
+| **DL-52** | **Failure demo switch** (`demo_fail_step1`), stand-in mode only, off by default, set only at start and audited. The stand-in extractor fails stage A's first unit on the first attempt, with the reason `demo failure`; a retry then runs normally. Specialist pages only; never with real agents or on an evaluation run |
+| **DL-53** | **Screen-to-data gaps answered** (`ux.md` §10.3). `runs` gains `started_at`, `started_by`, `stage_attempt`, `demo_fail_step1` and `spend_activity`; `units` is drawn with a readable label and its stage attempt; the fund and regulation config gain display names. Everything else is read from tables already listed |
 
 ### Work Ownership
 
@@ -150,13 +155,14 @@ stable IDs, gate state, decision versions and the audit log.
 | W-16 | **GP read-only calendar**: what, when, who and why per entry; one calendar-level "not legal advice / conventions not yet checked" note; before the first publication, one fixed "being prepared" message (DL-27) | **Existing system** (renders published data only) | Not applicable (read-only) | High: GPs rely on it | Build crew · `@ux.designer` (wording) | Read-only is enforced on the server, not by hiding buttons. The view reads only the published version; draft, flag and reasoning data are never sent to it (CR-012). **"Who"** is the party the source states, or the one the specialist set at G1 (DL-39); "not known" is shown as "Not confirmed". SD FR-015, FR-020, MN-007, NFR-010 · US-011 · AM G1r to G3r |
 | W-17 | **GP-facing "why" text** per entry: plain-English reason, citation and quote | **Collaborative**: the judge drafts the reasoning (W-11) · the specialist confirms, overrides or decides at G2 · code renders it | Low inside the run (as W-12) | High: a GP reads it as the explanation; it must not imply permission (DL-01) | Specialist (content) · `@ux.designer` (voice, DL-05) | **The GP sees the reasoning of whoever made the final decision.** Confirm → the model's reasoning as confirmed. Override → the specialist's written reason; the model's text stays in the audit log only. Decide "unsure" → the specialist's written reason, plus the code-generated "precautionary" label and note. "Does not apply" → no entry, so no text. **So a G2 reason must be readable by a GP**, and the G2 page says so next to the field (SA-8). G1 reasons are specialist-only. No model runs on the GP path. SD MD-008, NFR-005, P-1 · US-007 c3, c5–c6 · US-011 c2–c5 |
 | W-18 | **Audit log**: every agent output, human decision (who, when, what, reason, version decided on), refusal and gate event; update and delete refused | Existing system | Not applicable (append-only by design) | High: the evidence for SD MP-008 and for the review-time measurement (MC-003) | Build crew · `@security.eng` (verifies append-only) | Bookkeeping with no decision in it. Append-only is enforced at the storage boundary (CR-013). SD MD-009, FR-017, NFR-003, AC-016 · US-012 · AM A16, A17 |
-| W-19 | **Run status**: the run's state and stage; for a failed run, the step, the unit and the reason in plain words | Existing system | Not applicable (a view) | Medium: the specialist needs it to know that a new run is the next step | Build crew | A view of the run state model below. **There is no re-run**; the status never offers one. SD NFR-004 · US-015 c1–c3, c19 |
+| W-19 | **Run status**: the run's state and stage; for a failed run, the step, the unit and the reason in plain words | Existing system | Not applicable (a view) | Medium: the specialist needs it to know that a new run is the next step | Build crew | A view of the run state model below. For a failed run it offers **Retry** of the failed stage, always shown, with the server deciding whether it is allowed (run-state rule 10, DL-51), and a new run. There is no re-run of a single unit (F-05). SD NFR-004 · US-015 c1–c3, c19 |
 | W-19a | **Abandon a run** that is waiting at G1, G2 or G3, with a written reason | **Human** decides · existing system closes the run and refuses further decisions on it | High: nothing is undone or deleted, and a new run can start | Low to medium: abandoning the wrong run wastes review work; no published calendar, decision or audit entry changes | Build crew | **Not a general cancel.** It does not cancel a model call, undo a decision or delete a draft. It is the only way out of a run that waits at a gate and is not wanted, for example after a wrong rejection. Refused without a reason (`REASON_REQUIRED`), on a run that is not active (`RUN_NOT_ACTIVE`), and in a running phase, `A_RUNNING`, `B_RUNNING` or `C_RUNNING` (`RUN_STAGE_RUNNING`, DL-46). Audited with who, when, reason and phase. SD MN-003, NFR-004, MD-009, AC-035 · US-015 c20–c21 · DL-29 · AM H13, H13a |
 | W-20 | **Evaluation report** against the answer key: rows, flags, verdicts, calendar; run time, model cost, review time from audit timestamps; misses stated, never hidden | Existing system (comparison and report) · reads model outputs as data | High | Medium: the report is the proof (PRD §7); a hidden miss would be the harm | `@qa.eng` | Scoring is a deterministic comparison with KEY §1–§4. Three runs; **the report states the result and does not block** (DL-34, EC-R1). The altered-quote, `I-1` and injection cases are **separate harness calls on copies**, outside the run's `rows` table, labelled in the trace and scored separately (DL-45, §9 "Copy cases"). An evaluation run refuses to start with the planted-row switch on (EC-R7). SD FR-018, MP-001 to MP-004 · US-013 · DL-10, DL-11 |
 | W-21 | **Mocked identity** (specialist or GP), attached to every decision and checked on every write | Existing system | Not applicable | Medium for the demo; **not an access-control claim** (AM §3) | Build crew | Enforced on the server: identity lives in code, not in a prompt (CR-004). Real authentication is out of scope (SD A-5). SD NFR-010 |
 
 *Not in this table:* `W-03a`, `W-07a`, `W-08`, `W-14`, `W-22` and the re-run part of `W-19` are
-retired from the MVP (Future Work F-01, F-05, F-06, F-07, F-09).
+retired from the MVP (Future Work F-01, F-05, F-06, F-07, F-09). The specialist's one Retry of a
+whole failed **stage** (DL-51) is not that re-run: it is part of W-19 in the MVP.
 
 **The planted demo row (DL-31, CR-029).** When the specialist starts a run with the switch on,
 **code** adds one row from a fixed fixture; the extractor never does. The row carries a real quote
@@ -200,13 +206,16 @@ document for extraction, one per row for the verifier and for the judge. A call 
 transport or provider error, **including its own call timeout**, gets **one** automatic retry (D1,
 DL-43). If a unit still fails, or its output fails schema validation, the stage ends and the run
 becomes `FAILED`. Valid outputs from the other
-units stay in the trace as a record. **No gate opens on a failed stage**, and nothing is re-run: a
-new run follows. Every call, including the retry, counts towards the run's cost and time (SD
+units stay in the trace as a record, and **nothing from a failed stage is stored** in the business
+tables: a stage stores its outputs in one transaction only when every unit is valid (rule 9).
+**No gate opens on a failed stage.** Nothing is re-run automatically: the specialist may retry the
+failed stage once (rule 10, DL-51), or start a new run. Every call, including the retry, counts towards the run's cost and time (SD
 MC-001, MC-002).
 
 **Run state model (DL-22, DL-29, DL-46).** A run has a **status**, one of five, and, while it is
 `ACTIVE`, a **phase**, one of six. Only `ACTIVE` blocks a new run. A **terminal** status is an end
-state: the run is over and its status never changes again. The `runs` table stores both fields
+state: the run is over and its status never changes again, **with one exception**: a `FAILED`
+run may be retried once per stage (rule 10, DL-51). The `runs` table stores both fields
 (§4). On a terminal run the phase keeps its last value, so it records where the run ended.
 
 | Phase (`ACTIVE` only) | Meaning |
@@ -221,7 +230,7 @@ state: the run is over and its status never changes again. The `runs` table stor
 | Status | Meaning | Ends when |
 |---|---|---|
 | `ACTIVE` | The run is in one of the six phases above | A stage fails (`FAILED`), the specialist abandons it in an `AT_G*` phase (`ABANDONED`), or G3 is decided (`COMPLETED` if published, `DECLINED` if declined) |
-| `FAILED` (terminal) | A unit returned invalid output, a call failed after its one retry (a second timeout included, DL-43), the stage passed its time limit, the cost cap stopped the run (CR-017), or the backend restarted while a stage was running. Run status names the step, the unit and the reason | Never; a new run follows |
+| `FAILED` (terminal, except Retry) | A unit returned invalid output, a call failed after its one retry (a second timeout included, DL-43), the stage passed its time limit, the cost cap stopped the run (CR-017), the backend restarted while a stage was running, or the failure demo failed stage A (`demo failure`, DL-52). Run status names the step, the unit and the reason | When the specialist retries the failed stage (rule 10): back to `ACTIVE` in that stage's `*_RUNNING` phase. Otherwise never; a new run follows |
 | `ABANDONED` (terminal) | The specialist closed a run in phase `AT_G1`, `AT_G2` or `AT_G3`, with a written reason (W-19a) | Never; a new run follows |
 | `COMPLETED` (terminal) | G3 was decided by publishing the calendar | Never |
 | `DECLINED` (terminal) | The specialist declined G3 with a written reason. Nothing new was published; GPs keep any earlier published version | Never; a new run follows |
@@ -229,7 +238,9 @@ state: the run is over and its status never changes again. The `runs` table stor
 Rules:
 
 1. **No gate opens on a failed stage.**
-2. **A run in a terminal state is never resumed and never re-run.**
+2. **A run in a terminal state is never resumed and never re-run, except one Retry of a failed
+   stage (rule 10, DL-51).** `ABANDONED`, `DECLINED` and `COMPLETED` never change again. A `FAILED`
+   run changes only through rule 10.
 3. **Ending a run undoes nothing.** Recorded decisions, drafts, the audit log, the traces and any
    published calendar stay as they were, and GPs keep seeing the last published version.
 4. A decision on a run that is not `ACTIVE` is refused (`RUN_NOT_ACTIVE`), and no model call is
@@ -246,11 +257,47 @@ Rules:
 8. **Abandon only at a gate.** Abandon is accepted only in phase `AT_G1`, `AT_G2` or `AT_G3`. In a
    `*_RUNNING` phase it is refused (`RUN_STAGE_RUNNING`); the stage ends by itself under rule 6, so
    no model call is left running for output nobody uses.
-9. **Every store call checks the run (DL-43, DL-46).** A stage function stores each unit's output
-   through a service function, which first checks that the run is `ACTIVE` and in that stage's
-   `*_RUNNING` phase. If not (the stage has already failed, or the run has ended), the output is
-   **discarded**: it is written to the trace only, never stored as a row, flag or verdict. Its
-   cost still counts towards the run's cost (CR-017).
+9. **A stage stores its outputs once, when it ends, and the store checks the run (DL-43, DL-46;
+   changed by DL-51).** Each unit's output is validated as it arrives and written to the trace,
+   and its unit line is updated, so run status can show progress. The stage's outputs (rows, quote
+   checks and flags for stage A; verdicts for stage B; the calendar for stage C, as before under
+   CR-011) are stored **in one transaction, only when every unit is valid**, through one service
+   function. That function first checks that the run is `ACTIVE`, in that stage's `*_RUNNING`
+   phase and on the same stage attempt (`runs.stage_attempt`). If not (the stage has already
+   failed, the run has ended, or a retry has started since), the outputs are **discarded**: they
+   are in the trace only, never stored as a row, flag or verdict. Their cost still counts towards
+   the run's cost (CR-017). So a failed stage stores nothing in the business tables, and a retry
+   starts clean.
+10. **Retry a failed stage, once (DL-51, CR-032).** The specialist may retry a `FAILED` run
+    (`POST /specialist/runs/{run_id}/retry`). The retry restarts **only the stage that failed**
+    (the phase the run failed in, DL-46), **from its start**: stage A drafts and checks every row
+    again, stage B judges every approved row again, stage C works out every date again. **Every
+    decision already recorded is kept** and not asked again: the G1 decisions when stage B or C is
+    retried, the G2 decisions when stage C is retried. Nothing from the failed attempt needs
+    removing, because a failed stage stored nothing (rule 9). The paragraphs loaded when the run
+    started are reused, and the configuration is not read again. The run goes back to `ACTIVE` in
+    that stage's `*_RUNNING` phase, `runs.stage_attempt` becomes 2, the run version goes up by one,
+    the stage gets a fresh stage time limit, and the stage starts as a background task, as after a
+    gate. **The run's cost is not reset**: the retry's calls count towards the same cap (CR-017).
+    **One audit entry per retry**: who, when, the stage retried, and the failure it follows (the
+    failed unit and its reason). The retry is refused, audited and changes nothing when:
+    - another run is `ACTIVE` (`RUN_ACTIVE`);
+    - the page's run version is stale (`VERSION_MISMATCH`);
+    - the run is not `FAILED` (`RUN_NOT_FAILED`);
+    - the failed stage has already been retried once (`runs.stage_attempt` is 2), so a new run is
+      the way forward (`RETRY_LIMIT_REACHED`);
+    - the run failed on the **cost cap** or on **calendar generation**, the run is an **evaluation
+      run**, or a **newer run** has been started for the fund since (`RETRY_NOT_ALLOWED`; the
+      sentence names which). Calendar generation is code working on the same decisions, so a
+      retry would fail the same way (operator, 2026-11-16, SOQ-32).
+
+    `runs.stage_attempt` goes back to 1 when the next stage starts after a gate, so each stage has
+    its own single retry.
+11. **The failure demo (DL-52, CR-033).** A run started with `demo_fail_step1` on, in stand-in
+    mode only, fails stage A on its first attempt, at the first unit, with the reason
+    `demo failure`. With the switch on, the stage starts unit 1 alone first, so its failure ends
+    the stage before the other units start and they stay `waiting`. A retry of stage A then runs
+    normally (rule 10).
 
 **Transitions and guards** (all in the backend; every refused request is written to the audit log).
 This table is the content of the run-state diagram (see "Diagrams"):
@@ -269,12 +316,15 @@ This table is the content of the run-state diagram (see "Diagrams"):
 | `AT_G3` | Specialist declines, with a reason | Phase is `AT_G3`; run version matches | `DECLINED` | `REASON_REQUIRED`, `VERSION_MISMATCH` |
 | `AT_G1`, `AT_G2`, `AT_G3` | Specialist abandons, with a reason | Run version matches | `ABANDONED` | `REASON_REQUIRED`, `VERSION_MISMATCH` |
 | `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | Specialist abandons | — | (unchanged) | `RUN_STAGE_RUNNING` |
-| `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | A unit fails after its retry, invalid output, the stage time limit, the cost cap, or calendar generation fails | — | `FAILED` | — |
+| `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | A unit fails after its retry, invalid output, the stage time limit, the cost cap, calendar generation fails, or the failure demo (stage A, first attempt only, DL-52) | — | `FAILED` | — |
 | `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | The backend starts again after stopping (start-up rule 7) | — | `FAILED` ("service restarted") | — |
 | Any terminal status | Any decision, abandon, publish or decline | — | (unchanged) | `RUN_NOT_ACTIVE` |
+| `FAILED` | Specialist retries the failed stage (rule 10) | Role `specialist`; no other run `ACTIVE`; no newer run for the fund; `runs.stage_attempt` is 1; the failure reason is not `cost cap` or `calendar generation`; not an evaluation run; run version matches | `ACTIVE` · the failed stage's `*_RUNNING` phase, `stage_attempt` 2 | `FORBIDDEN`, `RUN_ACTIVE`, `VERSION_MISMATCH`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED` |
+| `ACTIVE`, `ABANDONED`, `DECLINED`, `COMPLETED` | Specialist retries | — | (unchanged) | `RUN_NOT_FAILED` |
 
 *Legend for the diagram:* the six phases are the inside of `ACTIVE`; `FAILED`, `ABANDONED`,
-`DECLINED` and `COMPLETED` are the four terminal statuses. A gate decision on a row or verdict
+`DECLINED` and `COMPLETED` are the four terminal statuses. The only edge out of a terminal status
+is Retry, from `FAILED` back into the failed stage's `*_RUNNING` phase (rule 10). A gate decision on a row or verdict
 does not change the phase.
 
 **Steps with no model, by requirement:** W-02, W-03b, W-04, W-09, W-10, W-13, W-16, W-18, W-19,
@@ -290,7 +340,8 @@ proposal.
 **Load-bearing constraint: 5 days planned, 8 days hard stop, with no slack inside the estimate**
 (DL-32, DL-42). The ownership split is feasible as designed: the model steps are small, bounded and
 reviewable, and everything consequential is code. What decides the outcome is time. The estimate
-is about 6.25 days (about 7.25 with the B12 timebox), and the tripwire and the drop order protect the hard stop (see
+is about 6.75 days (about 7.75 with the B12 timebox; B13, Retry and the failure demo, added half a
+day on 2026-11-16), and the tripwire and the drop order protect the hard stop (see
 "Estimate").
 
 Two further constraints, named so they are not mistaken for guarantees:
@@ -329,7 +380,7 @@ role). **Backend** = the gate service, the records and the run state. Approval-m
 | DM-14 | GP view: the published calendar and the calendar-level note; before the first publication, the fixed "being prepared" message | **Backend** (read-only) | GPs must see only what the specialist published | Not an agent: no model on the GP path (W-17). Read-only is enforced on the server | G1r **Alone** · G2r **Never** (a GP changes anything) · G3r **Alone** | SD FR-015, FR-020, MN-007, NFR-010, AC-013, AC-014 · US-011 · W-16 · DL-27 |
 | DM-15 | Audit log: every agent output, human decision, refusal and gate event, with versions | **Backend** | Append-only bookkeeping that proves who decided what | Not an agent and not a stage function: records must outlive both and refuse edits at the storage boundary | A16 **Alone** · A17 **Never** (edit or delete) | SD FR-017, MD-009, NFR-003, AC-016 · US-012 · W-18 · CR-013 |
 | DM-16 | Gate state, decisions and versions | **Backend** | One owner of where the run is; it refuses any advance without the matching decision | Not a stage function and not an agent: with two owners, two records of the gate would have to agree (DL-17). Not the page: hiding a button is not enforcement | A13 **Never** · A14 **Never** | SD MN-003, MP-006, MD-009 · W-09 · CR-001, CR-009 · DL-17 |
-| DM-17 | **Failed run**: invalid output, a failed call, a time limit, the cost cap or a restart mid-stage → `FAILED` (terminal) | **Backend** (automatic) | Fail closed: nothing moves forward on bad output, and a new run is then allowed | Not human: a failure must not wait for someone to notice. No re-run in the MVP | A15 **Alone** (stop and log) · A25 **Alone** (start-up rule) | SD NFR-004, AC-033, AC-034, AC-036 · US-015 · Run state model · DL-29 |
+| DM-17 | **Failed run**: invalid output, a failed call, a time limit, the cost cap or a restart mid-stage → `FAILED` (terminal) | **Backend** (automatic) | Fail closed: nothing moves forward on bad output, and a new run is then allowed | Not human: a failure must not wait for someone to notice. No automatic re-run; the specialist may retry the failed stage once (DL-51) | A15 **Alone** (stop and log) · A25 **Alone** (start-up rule) | SD NFR-004, AC-033, AC-034, AC-036 · US-015 · Run state model · DL-29 |
 | DM-18 | **Abandoned run**: the specialist closes an `ACTIVE` run waiting at a gate, with a written reason → `ABANDONED` (terminal) | **Human** decides · **backend** records | The only way to end a run waiting at a gate (for example after a wrong rejection) without undoing anything | Not automatic: a gate wait never times out (SD AC-026). Not mid-stage: a running stage ends by itself (DL-29) | H13 **Ask**, reason · H13a **Never** (abandon mid-stage) | SD AC-035, AC-036 · US-015 · W-19a · Run state model · DL-29 |
 
 Steps that are Future Work have no row here; they are listed once, under "Future Work".
@@ -595,16 +646,18 @@ built in this plan.
 | CR-014 | Direct prompt injection (text typed by a person) | **No free text typed by a person reaches a prompt in the MVP**: there is no edit and no hand-made row, and G1 reasons are not passed to the judge. The business-day rule set at G1 is a fixed choice, not text. The rule that stays for later: anything placed in a prompt is **data** in a marked field, with the instruction outside it, and the output still passes CR-003 and CR-005 | input | Fail closed (the schema check on the way back) | Build crew | Prompt templates with data and instruction separated; the input-building functions take only stored records and loaded files | Not applicable |
 | CR-015 | Indirect injection through the sources, and unsafe display | The sources are version-controlled mock files loaded by code, never fetched. They are placed in prompts as data with paragraph IDs. **Model output is stored and shown as text**: the page templates escape every value automatically, and no model output is ever marked as safe HTML. A quote is checked against its source by code (CR-005), so a model cannot cite text that is not there | input · output | Fail closed | Build crew · `@security.eng` | A display test: model output containing HTML is shown as text; the source files are under version control with no network path | Not applicable |
 | CR-016 | Fairness and leakage | **Corpus**: fixed mock sources, no selection step. **Prompt framing**: the instruction to prefer "unsure" is a deliberate bias towards over-inclusion, stated here, and is why "unsure" goes to a person (CR-007). **Examples**: none drawn from the answer key, which is never in a run-time prompt or fixture; the worked examples in the agent cards are invented and use their own IDs. **The mock files carry the answers, so the loader strips them (DL-39):** it reads only the paragraph text of each source and the ID, fact and value of each fund fact, never the test notes, planted-conflict notes, header warnings, amendments or the "Decides" column | input | Fail closed: a prompt that refers to the answer key, or carries any of the stripped content, fails a test that runs without a model | `@system.arch` (design) · `@qa.eng` (check) | A search-style test: no prompt template or run-time fixture refers to `expected-obligation-library`. **T-LEAK-1** (no model): every task prompt is rendered from the real mock files and the test fails if it contains (a) the phrases "Test note", "Planted conflict" or "correct verdict", (b) the "Decides" heading or any value from that column, (c) the text of any blockquote in `mock-regulatory-sources.md`, or (d) any answer-key ID (`OBL-`, `C-1`, `C-2`, `I-1`, `AMD-`). Phrases are matched as written in the mock files, so ordinary words in a prompt such as "decides" do not trip it. **T-PROMPT-1** (no model): every task renders with sample inputs, with no missing or left-over placeholder. **T-EXAMPLE-1** (no model): no quote in a one-shot example appears in any mock source paragraph, the planted-row fixture, the answer key's quotes or an evaluation case; no example paragraph shares six or more consecutive words with them; no example uses a mock-data ID (§2, "Agent cards") | The review table "Examples against the demo traps" is redone whenever an example changes |
-| CR-017 | Token and cost exhaustion (SD MC-001, MC-002) | Per call: a fixed `max_tokens` per step and a bounded input (one document, or one row and six short documents). Per run: a **hard stop at US$2.50** (`RUN_COST_CAP_USD`, DL-36), counted from the provider's usage data across every call, retries included. Reaching it stops further calls and ends the run as `FAILED`, with the reason recorded. Calls already in flight finish, so the final figure can be slightly above the stop. **Why the stop is a little above the target:** a run slightly over US$2 still finishes, and is reported as a miss on EC-012 only. A run that reaches US$2.50 is cut off, and every criterion it would have measured then counts as a miss. Run status shows a warning when a run passes US$2 | input (size) · tool-call (making a call) | Fail closed: no further calls | Build crew · `@qa.eng` (report) | The report's cost and time fields against US$2 and 5 minutes (US-013 c3, c6); trace records with token counts; US-015 c17 | The specialist sees the warning and, at the cap, the reason the run stopped |
-| CR-018 | Explaining why an output was produced (SD MP-005) | Every model call, including a retry, appends a **trace record** keyed by run, step, unit and attempt number: prompt version (a hash of its content), model, sampling settings, `max_tokens`, a hash of the input, the raw output, the parsed output or the validation error, token counts, cost, duration and the spend activity (CR-030). The audit entry for an agent output links to its trace record. With the audit log, any row, verdict or entry can be explained from start to finish | output | Fail closed: a call whose trace cannot be written counts as failed | Build crew | The trace store (append-only, CR-013); a query that rebuilds the history of one calendar entry; the trace export (D4) | Not applicable |
+| CR-017 | Token and cost exhaustion (SD MC-001, MC-002) | Per call: a fixed `max_tokens` per step and a bounded input (one document, or one row and six short documents). Per run: a **hard stop at US$2.50** (`RUN_COST_CAP_USD`, DL-36), counted from the provider's usage data across every call, retries included. Reaching it stops further calls and ends the run as `FAILED`, with the reason recorded. **A run stopped by the cost cap cannot be retried** (DL-51), and a retry after any other failure counts towards the same cap. Calls already in flight finish, so the final figure can be slightly above the stop. **Why the stop is a little above the target:** a run slightly over US$2 still finishes, and is reported as a miss on EC-012 only. A run that reaches US$2.50 is cut off, and every criterion it would have measured then counts as a miss. Run status shows a warning when a run passes US$2 | input (size) · tool-call (making a call) | Fail closed: no further calls | Build crew · `@qa.eng` (report) | The report's cost and time fields against US$2 and 5 minutes (US-013 c3, c6); trace records with token counts; US-015 c17 | The specialist sees the warning and, at the cap, the reason the run stopped |
+| CR-018 | Explaining why an output was produced (SD MP-005) | Every model call, including a retry, appends a **trace record** keyed by run, step, stage attempt (DL-51), unit and attempt number: prompt version (a hash of its content), model, sampling settings, `max_tokens`, a hash of the input, the raw output, the parsed output or the validation error, token counts, cost, duration and the spend activity (CR-030). The audit entry for an agent output links to its trace record. With the audit log, any row, verdict or entry can be explained from start to finish | output | Fail closed: a call whose trace cannot be written counts as failed | Build crew | The trace store (append-only, CR-013); a query that rebuilds the history of one calendar entry; the trace export (D4) | Not applicable |
 | CR-019 | GP text implies permission or gives advice (SD MN-009; DL-01, DL-05) | Code generates the "precautionary" label and note from the specialist's decision (W-12); no model writes it. On screen the label reads **"May not be required"** (DL-01 amendment, U5). The G2 reason field is labelled as visible to GPs (W-17, SA-8). The calendar-level "not legal advice / conventions not yet checked" note is one fixed sentence on the GP view. The wording is checked in a copy review before the demo | output (a human control) | Not applicable (a review) | `@ux.designer` · specialist | The copy review record; US-011 c5, c11 | Human review before the demo |
 | CR-021 | Secrets and real data (SD NFR-009, MN-001) | The provider key is read from `OPENAI_API_KEY` in the git-ignored `.env`; `.env.example` lists names only. The real-name scan runs before every commit. The system holds no real data | input | Fail closed: no key → no calls; a scan hit → no commit | Operator · `@security.eng` | The scan output; `.env.example` | Not applicable |
 | CR-023 | Concurrent runs, and runs that never end (PRD A-6; DL-29) | The server refuses to start a run for the fund while one is `ACTIVE` (see the run state model). **An active run always has a way out:** G3 is decided, a step fails, a time limit passes, the backend restarts mid-stage, or the specialist abandons it at a gate. There is no other cancel | tool-call | Fail closed | Build crew | **T-RUN-0**: start a second run → refused, naming the active run. **T-RUN-1**: a unit fails → the run is `FAILED`, no gate opens, a new run can start. **T-RUN-2**: a stubbed call never returns → it times out, is retried once, times out again → the run is `FAILED` with the reason `model service`; a stubbed call that times out once and then answers → the unit succeeds and both attempts are in the trace (DL-43). **T-RUN-3**: abandon without a reason → `REASON_REQUIRED`; with one → `ABANDONED`, one audit entry, nothing else changed, a new run can start. **T-RUN-4**: abandon or decide on a run that is not active → `RUN_NOT_ACTIVE`; a stale run version → `VERSION_MISMATCH`. **T-RUN-5**: decline G3 without a reason → `REASON_REQUIRED`; with one → `DECLINED`, the GP view unchanged, a new run can start. **T-RUN-6**: a stage passes its stage time limit → `FAILED` with the reason "stage time limit", no gate opens. **T-RUN-7**: restart the backend in each `*_RUNNING` phase → `FAILED` with the reason "service restarted"; a run in an `AT_G*` phase is still `ACTIVE`; abandon in a `*_RUNNING` phase → `RUN_STAGE_RUNNING`; a row decision while `A_RUNNING` → `RUN_STAGE_RUNNING` (DL-46). **T-RUN-8**: a stubbed unit answers after its stage has failed → nothing is stored as a row, flag or verdict, the output is in the trace, and its cost is in the run's cost (DL-43). (AM T-26 to T-29, T-33 to T-35) | The specialist is shown the active run, or the terminal state and its reason |
-| CR-027 | A date rule silently settled while its convention is open (PRD OQ-7; DL-20) | The regulation configuration records each convention whose application is still an open question, with the question ID and the obligations it affects (MVP: `OQ-7` → `OBL-02`). At G1, the form for that row says its business-day rule depends on the open question, and offers no preselected rule. The date code copies the dependency onto every entry from that row. At G3 those entries carry the mark, next to the "moved" and "precautionary" marks (there is no "roll rule unconfirmed" mark since DL-19's 2026-11-14 update). The mark does **not** block publishing and is not shown to GPs | output (what the specialist sees at G1 and G3) | Fail safe towards the mark: if the dependency cannot be worked out, the entry is marked | Build crew · `@ux.designer` (wording) | **T-W13-1**: the demo calendar → all four `OBL-02` entries carry the mark at G3 and have the same dates under "no roll" and "roll forward"; no other entry carries it; the GP view shows no mark; publishing is not blocked. **T-W13-2**: the date module has no default rule for `OBL-02` | The specialist sees the mark at G1 and G3; answering the question happens outside the system |
+| CR-027 | A date rule silently settled while its convention is open (PRD OQ-7; DL-20) | The regulation configuration records each convention whose application is still an open question, with the question ID and the rows it affects, named by **source paragraph and recipient code** (MVP: `OQ-7` → paragraph `SRC-UCILAW-P2`, recipient `AED`, which is the `OBL-02` obligation). A drafted row carries no answer-key ID, so the configuration never uses one; the mark is derived from the row's `source_paragraph_id` and `recipient_code` when the G1 and G3 pages are drawn and when the date code runs, with no stored row field (operator, 2026-11-16, SOQ-33). At G1, the form for that row says its business-day rule depends on the open question, and offers no preselected rule. The date code copies the dependency onto every entry from that row. At G3 those entries carry the mark, next to the "moved" and "precautionary" marks (there is no "roll rule unconfirmed" mark since DL-19's 2026-11-14 update). The mark does **not** block publishing and is not shown to GPs | output (what the specialist sees at G1 and G3) | Fail safe towards the mark: if the dependency cannot be worked out, the entry is marked | Build crew · `@ux.designer` (wording) | **T-W13-1**: the demo calendar → all four `OBL-02` entries carry the mark at G3 and have the same dates under "no roll" and "roll forward"; no other entry carries it; the GP view shows no mark; publishing is not blocked. **T-W13-2**: the date module has no default rule for `OBL-02` | The specialist sees the mark at G1 and G3; answering the question happens outside the system |
 | CR-028 | Publishing without seeing what was left out (DL-30, P-1) | The G3 page lists the rows rejected at G1, each with its reason, and the paragraphs no non-rejected row cites. The publish request must carry **one explicit acknowledgement** of those two lists. The server works the lists out again and refuses the request without the acknowledgement, or with one that does not match (`ACK_REQUIRED`). Never preselected, never triggered by a timeout. The lists are stored with the acknowledgement. In the demo the three `SRC-PRACT` summaries are always uncited, so the acknowledgement appears on every publish. A decline needs none | tool-call | Fail closed | Build crew · `@ux.designer` (wording) | **T-G3ACK-1**: publish without the acknowledgement → refused; with one naming different lists → refused; with the current lists → published, and the audit entry names them; decline without one → accepted (AM T-36) | Both lists are shown in full at G3 |
-| CR-029 | The planted demo row is mistaken for real output, or reaches GPs (DL-31) | A switch on the run, `demo_planted_row`, **off by default**, set only when the run is started; turning it on is an audit entry. When on, **code** adds one row from a fixed fixture: a real quote, word for word in its paragraph, that does not support the row's rule. The row passes the quote check and **the verifier runs on it like on every other row** (SOQ-22); nothing depends on whether it raises a flag. The row has `origin: demo` and is labelled "demo" wherever it appears. **Its Approve button stays visible (DL-44)**, and **the backend refuses the approval** (`DEMO_ROW_NOT_APPROVABLE`), logs the refusal and answers: **"Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason."**, then the line **"Recorded in the audit trail."** (DL-44 updated 2026-11-14). The message is shown beside the row and as a short line at the top of the page, never as a browser pop-up, and the row's status chip then reads "Approval blocked". Nothing is preselected on the row, and its Approve button is visible and enabled. The only decision that can be recorded on it is reject with a reason, so it never reaches a calendar. **An evaluation run refuses to start with the switch on**, and every report records the switch state (EC-R7) | tool-call | Fail closed | Build crew · `@qa.eng` | **T-DEMO-1**: switch off → 6 rows, no demo row, no switch entry in the audit log; switch on → 7 rows, the 7th marked `origin: demo`, with a quote-check pass and a verifier result, and the switch entry exists; reject it → logged, and it appears in the G3 rejected list; an evaluation run with the switch on → refused. **T-DEMO-2**: approve the demo row, with and without a reason and with each business-day rule → every request refused and logged; the row stays pending; G1 cannot complete until it is rejected (AM T-25, T-37) | Shown at G1 labelled "demo", with the same Approve and Reject actions as every row; clicking Approve shows the refusal as a plain message, and the specialist then rejects it (DL-44) |
+| CR-029 | The planted demo row is mistaken for real output, or reaches GPs (DL-31) | A switch on the run, `demo_planted_row`, **off by default**, set only when the run is started; turning it on is an audit entry. When on, **code** adds one row from a fixed fixture: a real quote, word for word in its paragraph, that does not support the row's rule. The row passes the quote check and **the verifier runs on it like on every other row** (SOQ-22); nothing depends on whether it raises a flag. The row has `origin: demo` and is labelled "demo" wherever it appears. **Its Approve button stays visible (DL-44)**, and **the backend refuses the approval** (`DEMO_ROW_NOT_APPROVABLE`), logs the refusal and answers: **"This rule can't be approved. The quote is genuine, but it doesn't say what this rule claims, so there's no legal basis for it. Reject it and add a short reason, for example "Quote doesn't support the rule". Your attempt has been recorded in the audit trail."** (DL-44 updated 2026-11-16; one message, the audit sentence is part of it). The message is shown beside the row and as a short line at the top of the page, never as a browser pop-up, and the row's status chip then reads "Approval blocked". Nothing is preselected on the row, and its Approve button is visible and enabled. The only decision that can be recorded on it is reject with a reason, so it never reaches a calendar. **An evaluation run refuses to start with the switch on**, and every report records the switch state (EC-R7) | tool-call | Fail closed | Build crew · `@qa.eng` | **T-DEMO-1**: switch off → 6 rows, no demo row, no switch entry in the audit log; switch on → 7 rows, the 7th marked `origin: demo`, with a quote-check pass and a verifier result, and the switch entry exists; reject it → logged, and it appears in the G3 rejected list; an evaluation run with the switch on → refused. **T-DEMO-2**: approve the demo row, with and without a reason and with each business-day rule → every request refused and logged; the row stays pending; G1 cannot complete until it is rejected (AM T-25, T-37) | Shown at G1 labelled "demo", with the same Approve and Reject actions as every row; clicking Approve shows the refusal as a plain message, and the specialist then rejects it (DL-44) |
 | CR-030 | A run made with stand-in agents is mistaken for a real one, or real model calls are made by accident (DL-36) | The setting `AGENTS_MODE` is `stand_in` or `real`. **The default is `stand_in`**, so a real call always needs a deliberate setting. In stand-in mode the three agent functions return fixed outputs from files, and no model is called. Every run stores its mode. A stand-in run is labelled "stand-in agents" on every specialist page and, if its calendar is published, on the GP calendar. Real mode needs `SPEND_ACTIVITY` (`spike`, `tuning`, `evaluation`, `rehearsal` or `demo`), which is stored on every trace record. **An evaluation run refuses to start in stand-in mode**, and every report records the mode. The role harness used for the spike and for tuning counts real calls per activity from the trace and **refuses a call beyond its cap** (EC-R10) | tool-call | Fail closed | Build crew · `@qa.eng` | **T-MODE-1**: default settings → no model client is created, and the run is labelled; real mode without `SPEND_ACTIVITY` → the application refuses to start; an evaluation run in stand-in mode → refused; the harness at its cap → the next call is refused | The label is shown wherever the run or its calendar appears |
 | CR-031 | *Parked, Future Work F-18 (DL-38, DL-42); not built in this plan.* A public hosted copy is abused, spends money, or a form is submitted from another site | **Public by design, safe because nothing of value is reachable.** In `DEPLOY_MODE=portfolio_demo` the application refuses to start if a model key is set or `AGENTS_MODE` is `real`, so a visitor cannot cause a model call. The "demo, mock data" banner is in the base template, so every page carries it. It also says someone may be mid-run and holds the **Reset demo** button, which is open to every visitor, signed in or not: a **named exception to CR-004** that exists only in this mode, is limited to once a minute for the whole site and is CSRF-checked. Reset replaces the whole database file from a seed built through the real service layer (it never deletes rows, so CR-013 stands). **A CSRF token on every form**, checked by one shared dependency on every `POST` route before any service function runs; a missing or wrong token → `403 CSRF_FAILED`, no state change, one audit entry. The session cookie is `Secure`, `HttpOnly` and `SameSite=Lax`. Reason fields have a maximum length and all output is escaped (CR-015) | tool-call · input | Fail closed: on any doubt the application does not start, or the request is refused | Operator (spend limit) · Build crew · `@security.eng` | **T-HOST-1**: `portfolio_demo` with a key set → refused to start; with `AGENTS_MODE=real` → refused; neither → starts in stand-in mode. **T-BANNER-1**: every route, signed in as each role and signed out, shows the banner text and the Reset demo button. **T-CSRF-1**: a list of every `POST` route fails the test if one lacks the check; no token, a wrong token and another session's token → `403 CSRF_FAILED`, the state unchanged, one audit entry. **T-RESET-1**: after a reset the database equals a fresh seed; the audit log holds only the "demo reset" entry and the seed's entries; a reset during a running stage is refused; deleting a row from the audit table is still refused afterwards. A reset by a signed-out visitor and by a GP visitor works; a second reset within a minute is refused; a reset without a valid token is refused; **the reset route is the only route a GP visitor can write through** (a list of every `POST` route fails the test if another one accepts a GP); in `local` mode the route does not exist | The visitor is told plainly that the demo data has been reset, or that a form was refused and to reload the page |
+| CR-032 | A retry reuses partial output, loses or repeats a decision, loops, or spends past the cap (DL-51) | **One specialist Retry per failed stage**, through `POST /specialist/runs/{run_id}/retry` (run-state rule 10). It restarts only the failed stage, from its start. A failed stage stored nothing (rule 9), so no partial output is reused. Every recorded decision is kept and never asked again (the decision tables are write-once). The store checks the stage attempt, so late output from the failed attempt is discarded. Refused on a cost-cap or calendar-generation failure, a second retry of the same stage, an evaluation run, a run that a newer run has superseded, another active run, a stale page, or a run that is not failed. One audit entry per retry; every refusal is audited | tool-call | Fail closed: on any doubt the retry is refused, and a new run is the way forward | Build crew · `@qa.eng` | **T-RETRY-1**: fail stage B (stub), retry → stage B runs again and the run reaches `AT_G2`; every G1 decision is unchanged and not offered again; one audit entry names the stage and the failure; the run's cost includes both attempts. The same for stages A and C. **T-RETRY-2**: retry a run that is `ACTIVE`, `ABANDONED`, `DECLINED` or `COMPLETED` → `RUN_NOT_FAILED`; with another run active → `RUN_ACTIVE`; a stale version → `VERSION_MISMATCH`; after a cost-cap or calendar-generation failure, on an evaluation run, or when a newer run exists → `RETRY_NOT_ALLOWED`; the retried stage fails again, then retry → `RETRY_LIMIT_REACHED`; as GP → `FORBIDDEN`. Each refusal is audited and changes nothing. **T-RETRY-3**: a stubbed unit from attempt 1 answers during attempt 2 → nothing from it is stored; its cost counts (with T-RUN-8) | A failed run shows "Retry step {k}" and the link to start a new review (`ux.md` page 3) |
+| CR-033 | The failure demo is mistaken for a real failure, reaches a GP, or fails a real or evaluation run (DL-52) | A switch on the run, `demo_fail_step1`, **off by default**, set only when the run is started and only when `AGENTS_MODE=stand_in`; the start form shows it only then. Turning it on is an audit entry. In real mode the field is not part of the start form, so sending it is refused as `VALIDATION` (unknown field) and audited; an evaluation run can never carry it, because evaluation runs refuse stand-in mode (CR-030). When on, **the stand-in extractor** fails stage A's first unit on the first stage attempt only; the unit's reason is `demo failure`, and the run ends `FAILED` under the normal rules. The label "Failure demo on" is on specialist pages only. A failure-demo run that is retried and published shows the GP only what any published stand-in run shows | tool-call · output | Fail closed | Build crew · `@qa.eng` | **T-DEMOFAIL-1** (Tier 1 once B13 is built): switch off → stage A runs normally; switch on (stand-in) → the run is `FAILED` at stage A, unit 1 has `demo failure`, the other units are `waiting`, and the switch has one audit entry; retry → stage A succeeds and the run reaches `AT_G1`; real mode with the field sent → `VALIDATION`, no run started; the GP calendar never contains "Failure demo" | The specialist sees the label and the reason sentence (`ux.md` page 3) |
 
 ### Production Shape
 
@@ -617,7 +670,9 @@ built in this plan.
   spike measures them.
 - **Retries**: one automatic retry per call on a transport or provider error (its own call timeout,
   a rate limit, a server error), after a short wait (DL-43). **None** on output that fails its schema: sending the same
-  prompt again is not a fix, and the failure should be seen. There is no re-run.
+  prompt again is not a fix, and the failure should be seen. There is no automatic re-run. The
+  specialist's Retry of a failed stage (DL-51) is a human decision taken after the failure has
+  been seen, once per stage.
 - **Fallback chain**: **none, by rule.** Falling back to another model in the middle of a run would
   be a model swap without its evaluation. A provider outage ends the run as `FAILED`.
 - **Circuit breaker**: **none in the MVP** (Future Work F-13). It is not needed: the first failed
@@ -693,7 +748,7 @@ built in this plan.
 | The simplest orchestration that delivers the value | Three CrewAI agents in a gated workflow: three stages, each run by a plain backend function. No planning agent, no orchestrator, no tools, no memory | Pattern Decision · DL-17, DL-35 |
 | Code owns state, models draft | Gates, dates, versions, IDs and the audit log are deterministic backend code. Every model output is a validated proposal | Work Ownership · CR-001, CR-002 |
 | Fail closed, stay visible | Anything with a side effect refuses on doubt. Anything uncertain is shown, not resolved: flags, "unsure", coverage gaps, rejected rows, open conventions | Control Register · P-1 |
-| One way out of a mistake | A wrong decision or a failed step is corrected by a new run. There is no edit, reopen or re-run to build or test | DL-22, DL-29 · Known limitations |
+| One way out of a mistake | A wrong decision is corrected by a new run. A failed stage is retried once by the specialist, or followed by a new run (DL-51). There is no edit, reopen or unit re-run to build or test | DL-22, DL-29 · Known limitations |
 | Observable by default | Every model call has an append-only trace record; every decision has an audit entry with the version it was made on; run status names the step and the unit | CR-013, CR-018 · US-015 |
 | Testable without a model | Gate, date, audit and access tests run with the three agents replaced by stubs | SD NFR-011 |
 | Build for reuse, build only Part II | Regulation, fund terms and client policy live in configuration files, not in code. Only the Luxembourg Part II configuration exists | SD NFR-012, §10 |
@@ -1130,12 +1185,12 @@ Reviewed by `@system.arch` on 2026-11-12. The operator confirms it at the review
 | # | Page | Route | Role | What it shows and does | Trace |
 |---|---|---|---|---|---|
 | 1 | Sign-in | `/sign-in` (`/` redirects here, or to the role's first page) | any | Choose the specialist or the GP identity (mocked) | SD A-5 |
-| 2 | Run list | `/specialist/runs` | specialist | The runs and their states. The form that starts a run, with the planted-row switch, off and never preselected. "Start a new review" stays visible while a run is active; the server refuses it (`RUN_ACTIVE`), shows the reason beside the button and in a top line, and audits the attempt | US-015 · CR-004, CR-023, CR-029 |
-| 3 | Run status | `/specialist/runs/{run_id}` | specialist | The state, the stage, each unit, and the cost so far. For a failed run: the step, the unit and the reason. Abandon, with a required reason, only while the run waits at a gate. **No re-run action** | US-015 · W-19, W-19a |
+| 2 | Run list | `/specialist/runs` | specialist | The runs and their states. The form that starts a run, with the planted-row switch, off and never preselected, and, only when `AGENTS_MODE=stand_in`, the failure-demo switch, also off and never preselected (DL-52). "Start a new review" stays visible while a run is active; the server refuses it (`RUN_ACTIVE`), shows the reason beside the button and in a top line, and audits the attempt | US-015 · CR-004, CR-023, CR-029, CR-033 |
+| 3 | Run status | `/specialist/runs/{run_id}` | specialist | The state, the stage, each unit, and the cost so far. For a failed run: the step, the unit and the reason. Abandon, with a required reason, only while the run waits at a gate. For a failed run: **Retry** of the failed stage, always shown on a failed run, with the server deciding (rule 10), and a link to start a new run. No re-run of a single unit | US-015 · W-19, W-19a · DL-51, CR-032 |
 | 4 | G1 | `/specialist/runs/{run_id}/g1` | specialist | Each row with its quote, the cited paragraph, the quote-check result (on **every** row, the demo row included; operator, 2026-11-14, D5) and any flags with both texts. Per row: approve (with a business-day rule; a "who files" choice when the source does not state it, DL-39; and a reason if flagged) or reject (with a reason). A demo row is labelled "demo" and shows the same Approve and Reject actions; clicking Approve is refused by the server (`DEMO_ROW_NOT_APPROVABLE`), audited, and shown as a plain message beside the row and in a top line, after which its chip reads "Approval blocked" and the specialist rejects it (DL-44). Both quotes of a flag are read-only; there is no control to choose which source the rule follows (DL-22, A5). The coverage view. Complete G1 | US-001 to US-004 · W-07, W-03b · CR-027, CR-029 |
 | 5 | G2 | `/specialist/runs/{run_id}/g2` | specialist | Each verdict with its reasoning and the cited fact values. Per verdict: confirm, override (with a reason) or decide an "unsure" (with a reason). The reason field says it will be shown to GPs. Complete G2 | US-006, US-007 · W-12, W-17 |
 | 6 | G3 | `/specialist/runs/{run_id}/g3` | specialist | The whole calendar with its marks (moved, precautionary, open question; no "rule unconfirmed" mark, DL-19). The "conventions not yet checked" note. The rejected rows with their reasons, and the uncited paragraphs, with **one acknowledgement checkbox, never preselected**. Publish, or decline with a reason | US-008 to US-010 · CR-027, CR-028 |
-| 7 | GP calendar | `/calendar` | GP (and specialist, read-only) | The published calendar only: what, when, who and why for each entry, and the calendar-level note. **Before the first publication, only this fixed message:** "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." **List view first** (the default, and the view the tests and the demo use). **Month and Year views and charts** (dot chart, bars, ring) are block B12, built last with a one-day timebox (DL-49): front end only, from the same published entries, chosen by a link, no script, no new field, and they count only what the viewer may already see. **Moved marks are specialist-only**: the GP view has no "Moved off a weekend" card, count, chip, chart colour or legend entry, and no open-question mark (CR-012; operator, 2026-11-14) | US-011 · CR-012 · DL-27, DL-49 |
+| 7 | GP calendar | `/calendar` | GP (and specialist, read-only) | The published calendar only: what, when, who and why for each entry, and the calendar-level note. **Before the first publication, only this fixed message:** "Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published." (DL-27 updated 2026-11-16) **List view first** (the default, and the view the tests and the demo use). **Month and Year views and charts** (dot chart, bars, ring) are block B12, built last with a one-day timebox (DL-49): front end only, from the same published entries, chosen by a link, no script, no new field, and they count only what the viewer may already see. **Moved marks are specialist-only**: the GP view has no "Moved off a weekend" card, count, chip, chart colour or legend entry, and no open-question mark (CR-012; operator, 2026-11-14) | US-011 · CR-012 · DL-27, DL-49 |
 
 - **Shared template parts**, so the same evidence looks the same everywhere: a row card (fields,
   quote, check result, flags); a flag (its type and both texts, DL-03); a decision form; a mark
@@ -1160,6 +1215,13 @@ Reviewed by `@system.arch` on 2026-11-12. The operator confirms it at the review
   *precautionary* reads **"May not be required"**. The code, routes, API fields, refusal codes,
   tests and this document keep the internal names (`run_id`, `/specialist/runs`, `AT_G1`,
   `RUN_ACTIVE` and so on).
+- **Wording aligned with `ux.md` (2026-11-16).** Steps follow the stepper on screen: step 1 is AI
+  drafting the rules, and the specialist's steps are **Steps 2 to 4** (G1, G2, G3). Abandon is
+  offered only **while the review waits for the specialist at a step** (an `AT_G*` phase, rule 8).
+  The 403 page links the GP to **"Go to the calendar"** and the specialist to **"Go to Filing
+  rules"**. The planted-row switch and its column read **"Demo rule"**, and its run label reads
+  **"Demo rule on"**; the failure-demo label reads **"Failure demo on"** (specialist pages only).
+  The code keeps `demo_planted_row` and `origin: demo`.
 - **Waiting**: the run status page is the only place the specialist waits. It says which stage is
   running and which units have finished.
 - **Accessibility**: WCAG 2.2 AA on every page (PRD §6). Semantic HTML: headings in order, real
@@ -1189,10 +1251,11 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
 | Route | Role | Purpose | Controls |
 |---|---|---|---|
 | `GET /sign-in` · `POST /sign-in` · `POST /sign-out` | none | Mock sign-in: choose the specialist or the GP identity | CR-004 |
-| `GET /specialist/runs` | specialist | The run list, and the form that starts a run, with the planted-row switch (off, never preselected) | CR-029 |
-| `POST /specialist/runs` `{demo_planted_row}` | specialist | Start a run for `FND-DEMO-01`; the backend starts stage A. Turning the switch on is recorded in the audit log | CR-023, CR-029 |
+| `GET /specialist/runs` | specialist | The run list, and the form that starts a run, with the planted-row switch (off, never preselected) and, in stand-in mode only, the failure-demo switch (off, never preselected) | CR-029, CR-033 |
+| `POST /specialist/runs` `{demo_planted_row, demo_fail_step1?}` | specialist | Start a run for `FND-DEMO-01`; the backend starts stage A. Turning a switch on is recorded in the audit log. `demo_fail_step1` is a known field only when `AGENTS_MODE=stand_in`; otherwise it is refused as `VALIDATION` | CR-023, CR-029, CR-033 |
 | `GET /specialist/runs/{run_id}` | specialist | Run status: state, stage, units, cost so far, and for a failed run the step, the unit and the reason | W-19 · US-015 |
 | `POST /specialist/runs/{run_id}/abandon` `{run_version, reason}` | specialist | Abandon a run in phase `AT_G1`, `AT_G2` or `AT_G3`; refused in a `*_RUNNING` phase | W-19a · CR-009, CR-023 · DL-46 |
+| `POST /specialist/runs/{run_id}/retry` `{run_version}` | specialist | Retry the failed stage of a `FAILED` run, once (run-state rule 10). On success, redirect to run status in the running state | CR-032 · DL-51 |
 | `GET /specialist/runs/{run_id}/g1` | specialist | Rows with quotes, quote-check results and flags; the coverage view | W-07, W-03b |
 | `POST /specialist/rows/{row_id}/decision` `{version, decision, business_day_rule?, who_files?, approve_reason?, reject_reason?}` | specialist | Approve or reject one row. On approve, `business_day_rule` must be `roll_forward`, `roll_backward` or `no_roll` (DL-47), and `who_files` is required when the row says "not stated in source"; the reject fields are ignored. On reject, only `reject_reason` is read (DL-48) | CR-005, CR-007, CR-009, CR-029 |
 | `POST /specialist/runs/{run_id}/g1/complete` `{run_version}` | specialist | Complete G1; the backend starts stage B | CR-001, CR-009 |
@@ -1231,9 +1294,13 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
   | `RUN_ACTIVE` | A run is already active for the fund | 409 |
   | `RUN_NOT_ACTIVE` | The run has ended | 409 |
   | `RUN_STAGE_RUNNING` | The run's phase is `A_RUNNING`, `B_RUNNING` or `C_RUNNING`, or is not the gate the request belongs to, so it cannot be abandoned or decided yet (DL-46) | 409 |
+  | `RUN_NOT_FAILED` | Retry was asked for a run that is not `FAILED` (DL-51) | 409 |
+  | `RETRY_LIMIT_REACHED` | The failed stage has already been retried once; start a new run (DL-51) | 409 |
+  | `RETRY_NOT_ALLOWED` | The run cannot be retried: it failed on the cost cap or on calendar generation, it is an evaluation run, or a newer run has been started since. The sentence names which (DL-51) | 409 |
 
 - **Failure reasons.** A failed run stores one reason per failed unit, from this fixed list of
-  **six** (number 2 is retired, so the numbers stay as they were), so that run status can name it
+  **seven** (number 2 is retired, so the numbers stay as they were; number 8, the failure demo, was
+  added by DL-52), so that run status can name it
   and the void rule (EC-R8) can be applied without judgement:
 
   | # | Reason | When | Model-service failure under EC-R8? |
@@ -1245,9 +1312,12 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
   | 5 | `cost cap` | The run reached `RUN_COST_CAP_USD` | No |
   | 6 | `service restarted` | The backend restarted while the stage was running | **No** |
   | 7 | `calendar generation` | Stage C could not produce a complete calendar, including an entry ID collision | No |
+  | 8 | `demo failure` | The failure-demo switch was on: stage A's first unit, first stage attempt only, stand-in mode only (DL-52, CR-033). Pages show the one sentence in `ux.md` | Not applicable: never on an evaluation run |
 
   **A restart cannot void an evaluation run.** `service restarted` is a failure of the machine the
   run was on, not of the model service, so the run counts as it ended.
+
+  **Retry (DL-51)** is allowed after every reason except `cost cap` and `calendar generation`, and only once per stage.
 
 - **Streaming**: none (§1).
 
@@ -1257,8 +1327,8 @@ fund, and foreign keys include it, so a row cannot point at another fund's run. 
 
 | Table | Holds | Write rule |
 |---|---|---|
-| `runs` | `status` (`ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`), `phase` (`A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`; kept at its last value on a terminal run, DL-46), run version, the planted-row switch, the agents mode, cost so far | Updated by the backend only |
-| `units` | One line per unit of a stage: status, attempts, failure reason | Updated by the backend only |
+| `runs` | `status` (`ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`), `phase` (`A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`; kept at its last value on a terminal run, DL-46), run version, the planted-row switch, the agents mode, cost so far; the failure-demo switch (DL-52), the current stage attempt (1 or 2, DL-51), the spend activity in real mode, and who started the run and when (DL-53) | Updated by the backend only |
+| `units` | One line per unit of a stage **attempt**: the stage, the stage attempt (DL-51), a readable label (the source document's title for an extraction unit, the row's obligation name for a verifier or judge unit, "Calendar" for stage C; DL-53), status (`waiting`, `running`, `done`, `failed`), call attempts, failure reason. A retry adds new lines; the earlier ones stay as the record | Updated by the backend only |
 | `paragraphs` | The loaded source paragraphs with their IDs | Loaded from the mock files when a run starts |
 | `rows` | Each row: fields, quote, cited paragraph, origin (`model` or `demo`), version | Written once; never changed |
 | `quote_checks`, `flags` | The quote-check result and the verifier's flags for each row | Written once per row |
@@ -1276,9 +1346,10 @@ rule holds even if application code tries.
 #### Data model: the happy path (DL-50)
 
 This diagram draws the tables above that the one happy path touches (MVP scope, steps 1 to 12),
-with their keys and how they relate. **It adds no table.** `units` and `trace` are left out to
-keep it readable: they record how a stage ran, not what was decided (the audit entry for an agent
-output points at its trace record through `trace_ref`). Mermaid is used here at the operator's
+with their keys and how they relate. **It adds no table.** `trace` is left out to keep it
+readable: it records how each call ran, not what was decided (the audit entry for an agent output
+points at its trace record through `trace_ref`). `units` is drawn since 2026-11-16 (DL-53), because
+run status and Filing rules read each unit's label, status and failure reason from it. Mermaid is used here at the operator's
 request, as a one-off (DL-50); other figures still follow the draw-diagram skill.
 
 **The table list is the source for write rules. If the two differ, stop and ask the architect.**
@@ -1288,6 +1359,7 @@ erDiagram
     fund_profile ||--o{ runs : "is reviewed in"
     fund_profile ||--o{ publications : "has published"
     runs ||--|{ paragraphs : "loads"
+    runs ||--|{ units : "runs as"
     runs ||--o{ rows : "drafts"
     paragraphs ||--o{ rows : "is cited by"
     rows ||--|| quote_checks : "is checked by"
@@ -1306,6 +1378,9 @@ erDiagram
         string fund_id PK "FND-DEMO-01, a config file, not a table"
         text facts "fact IDs and values the judge cites"
         text filing_parties "the G1 who-files choices"
+        string name "DL-53, the fund's display name"
+        string regime "DL-53, legal form and regime line"
+        string year_end "DL-53, for example 31 Dec"
     }
     runs {
         string run_id PK "RUN-yyyymmdd-n"
@@ -1316,6 +1391,22 @@ erDiagram
         bool demo_planted_row "off unless turned on"
         enum agents_mode "stand_in or real"
         decimal cost_so_far
+        string started_by "DL-53"
+        datetime started_at "DL-53"
+        bool demo_fail_step1 "DL-52, stand-in only, off unless turned on"
+        int stage_attempt "DL-51, 1 or 2 for the current stage"
+        string spend_activity "DL-51, real mode only"
+    }
+    units {
+        string run_id PK, FK
+        enum stage PK "A B C"
+        int stage_attempt PK "DL-51, 1 or 2"
+        string unit_id PK "a document ID, a row ID or the calendar"
+        string fund_id FK
+        string label "DL-53, document title or obligation name"
+        enum status "waiting running done failed"
+        int attempts "call attempts, 1 or 2"
+        string failure_reason "failed units only, one of the reasons in 4"
     }
     paragraphs {
         string run_id PK, FK
@@ -1456,6 +1547,9 @@ left implicit:
 | 4 | **`paragraphs` are stored per run**, keyed by run and paragraph ID. So a row points at its paragraph with `run_id` and `source_paragraph_id` together, and a flag carries `run_id` so its `other_paragraph_id` can do the same | A run reads its sources once, when it starts (§4). A later change to a mock file must not change the text an earlier run's quote check passed against | §4 "Data", CR-005 |
 | 5 | **`publications` holds one row per publish; the newest row for the fund is the live calendar.** Publishing is one insert in one transaction | Keeps the write-once rule every decision table follows, makes the "one indivisible switch" a single insert, and keeps the history of what GPs saw | CR-011, DM-13 |
 | 6 | **The precautionary mark is copied onto the entry; its reason stays on the G2 decision.** All three marks (moved, precautionary, open question) are then read from one place | Both records are written once and never changed, so the copy cannot go stale. The reason is long text that the GP "why" path reads from the decision anyway | CR-019, CR-027, EC-014 |
+| 7 | *Added 2026-11-16 (DL-53).* **`units` is drawn, with its stage attempt and a readable label** | Run status and Filing rules show each unit's label, status and failure reason (`ux.md` G-2). A retry adds the second attempt's lines without overwriting the first | §4 table list, run-state rules 9 and 10 |
+| 8 | *Added 2026-11-16 (DL-51 to DL-53).* **New `runs` fields**: `started_at`, `started_by`, `demo_fail_step1`, `stage_attempt`, `spend_activity` | Filing rules shows who started a review and when (G-1); the failure demo (G-10); the retry guard and the stage-attempt check on every store (G-3) | Run-state rules 9 to 11, CR-032, CR-033 |
+| 9 | *Added 2026-11-16 (DL-53).* **Display names live in config, not in tables**: the fund's name, regime line and year end in `config/fund/FND-DEMO-01.yaml`; each recipient code's name and each source document's title in `config/regulation/lu-part2.yaml` | The sidebar (G-8), the recipient name at step 4 and on the calendar (G-7), the unit labels (G-2) | §4 configuration files |
 
 Column names inside tables the SAD describes only in words (`quote_checks`, `audit_log`,
 `publications`) name content the SAD already lists; they add no content. Field names for `rows`,
@@ -1474,10 +1568,10 @@ Column names inside tables the SAD describes only in words (`quote_checks`, `aud
 | Identifier | Scheme | Why |
 |---|---|---|
 | Run | `RUN-<yyyymmdd>-<n>` | Readable in reports and logs |
-| Row | `ROW-<run>-<n>`, where `<n>` is a sequence for the run, given by the backend when the row is stored, never by a model. **Origin is a separate field** (`model`, or `demo` for the planted row) | Unique by construction. **T-ID-1**: two rows extracted from one paragraph → two different row IDs; a unique constraint refuses a duplicate insert |
+| Row | `ROW-<run>-<n>`, where `<n>` is a sequence for the run, given by the backend when the row's output is validated (it is stored when the stage ends, rule 9), never by a model. **Origin is a separate field** (`model`, or `demo` for the planted row) | Unique by construction. **T-ID-1**: two rows extracted from one paragraph → two different row IDs; a unique constraint refuses a duplicate insert |
 | Versions | An integer on each row, verdict, calendar and run. A row or verdict stays at 1. The run version goes up at every gate event | CR-009 |
 | Calendar entry | `ENT-<fund>-<paragraph_id>-<recipient>-<period>`. `<recipient>` is the authority code (for example `CSSF`, `AED`). `<period>` is the anchor period (`2027-03` for a monthly or quarterly obligation, `FY2026` for an annual one) or the event ID for an event-triggered entry (`EVT-01`). Example: `ENT-FND-DEMO-01-SRC-CSSF15627-P2-CSSF-2026-12` | The same occurrence gets the same ID in every run (SD FR-016, US-008 c7), and the ID does not depend on the due date. Two approved rows that give the same ID stop generation, and both are named (DL-35). **T-ID-2**: generate twice from the same inputs → the same IDs; two approved rows with the same paragraph, recipient and period → generation refused, naming both |
-| Trace record | `run_id · step · unit_id · attempt_n` | CR-018 |
+| Trace record | `run_id · step · stage_attempt · unit_id · attempt_n` (stage attempt added by DL-51) | CR-018 |
 
 **How the layers connect.** When a gate is completed, the gate service records the transition and
 **then** starts the next stage function as a background task, passing only the run ID. The stage
@@ -1486,8 +1580,10 @@ versioned files:
 
 - `backend/config/agents.yaml` and `backend/config/tasks.yaml`: the three agents and their tasks.
 - `config/regulation/lu-part2.yaml`: conventions `D-1` to `D-7`, the mock holiday list, the open
-  conventions for CR-027, and the list of source files.
-- `config/fund/FND-DEMO-01.yaml`: the fund profile.
+  conventions for CR-027, and the list of source files, with each document's title and each
+  recipient code's display name (DL-53).
+- `config/fund/FND-DEMO-01.yaml`: the fund profile, including its display name, regime line and
+  year end (DL-53).
 - `config/policy/default.yaml`: client policy (the P-1 treatment). It holds **no default roll
   rule**: every approved row carries the rule the specialist chose (DL-19 updated 2026-11-14).
 - `config/demo/planted-row.yaml`: the planted demo row (CR-029). The evaluation runner never
@@ -1762,10 +1858,11 @@ and the answer key. Behaviour that is Future Work has no criterion here.
   | Agents cannot change what they check, compute dates or hold tools | EC-015 (SOQ-29) |
   | A GP cannot write; every specialist-only route refuses the GP role | EC-019 (SOQ-29) |
   | No accidental real model calls: stand-in is the default, real mode needs `SPEND_ACTIVITY`, an evaluation run refuses stand-in mode | T-MODE-1 (SOQ-29) |
+  | The failure demo stays in stand-in mode, fails only the first attempt, and never reaches a GP (once B13 is built; dropped with B13) | T-DEMOFAIL-1 (operator, 2026-11-16) |
 
   **Tier 2: done if time allows (DL-42).** Written after Tier 1; it runs in CI once it exists and
   does not block a merge: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1 and the
-  per-state page tests (§9 "Pages"). **T-MAP-1 is not dropped with Tier 2.** It must pass before
+  per-state page tests (§9 "Pages"), and T-RETRY-1 to T-RETRY-3 if B13 is built (DL-51). **T-MAP-1 is not dropped with Tier 2.** It must pass before
   the first evaluation run, because EC-001 depends on it, even if the tripwire (Estimate) has
   dropped the rest of Tier 2.
 
@@ -1895,7 +1992,7 @@ and the answer key. Behaviour that is Future Work has no criterion here.
 | EC-011 | Latency (human review) | Specialist review time, from G1 opened to G3 published, from audit timestamps | **Under 30 minutes**, on the **rehearsal run** made by a person, with no failure in that run (not on scripted runs, EC-R2). Reported next to the operator's labelled estimate of manual effort; no saving is claimed | Code (audit timestamps) | PRD §7 · SD MC-003 · US-013 c3, c7 · DL-11 |
 | EC-012 | Cost | Model cost per run, from the provider's usage data, including retries | **Under US$2** on each run, per EC-R1. A run cut off by the US$2.50 hard stop misses EC-012 and every criterion it did not reach | Code (trace) | PRD §5, §7 · SD MC-002 · CR-017 · DL-36 |
 | EC-013 | Safety | Attempts to get round a gate, made through the routes | **100%** refused and logged: publish with G1 or G2 incomplete; complete G2 with an undecided "unsure"; approve a row with a failed quote check (with or without a reason); approve a flagged row without a reason; complete G1 with an undecided row; decide a row or verdict a second time; act on a stale run version; publish without the acknowledgement, or with one that does not match; approve a demo row; abandon while a stage is running | Code | SD MP-006, AC-004, AC-006, AC-008 · CR-001, CR-005, CR-007, CR-009, CR-028, CR-029 · AM T-02 to T-05 |
-| EC-014 | Safety | What the GP view contains | Before G3: **0** entries, and the "being prepared" message **exactly** as in DL-27, with no count or draft detail. After G3: the **22** published entries only; **0** pending, unsure, rejected or flag content; the calendar-level note present once; each `OBL-04` entry shows the precautionary label (on screen "May not be required", DL-01 amendment) and its reason | Code (content) and human (wording) | SD AC-013, AC-014, MN-007, FR-020, P-1 · US-011 c1–c7, c11 · DL-27 |
+| EC-014 | Safety | What the GP view contains | Before G3: **0** entries, and the "being prepared" message **exactly** as in DL-27 (updated 2026-11-16: "Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published."), with no count or draft detail. After G3: the **22** published entries only; **0** pending, unsure, rejected or flag content; the calendar-level note present once; each `OBL-04` entry shows the precautionary label (on screen "May not be required", DL-01 amendment) and its reason | Code (content) and human (wording) | SD AC-013, AC-014, MN-007, FR-020, P-1 · US-011 c1–c7, c11 · DL-27 |
 | EC-015 | Safety | Agents cannot change what they check, or compute dates | Row fields **identical** before and after verification; **0** date fields accepted from any agent output; **0** tools on any agent | Code | SD MN-004, MN-005 · CR-002, CR-006, CR-008 · AM T-07, T-08 |
 | EC-016 | Safety | The audit log is complete and cannot be changed | **100%** of agent outputs and human decisions in a full run appear with who, when and what; reasons where required; the version each decision was made on; gate events and refusals logged; **100%** of update or delete attempts on the audit log and the trace refused | Code | SD MP-008, AC-016, NFR-003 · US-012 · CR-013 |
 | EC-017 | Safety | Traceability | **100%** of published entries lead back to their source paragraph, quote, verdict and decision records | Code | SD MP-005, NFR-002 · CR-018 |
@@ -2033,26 +2130,29 @@ writing (SA-16). Figures are the architect's judgement in quarter days, not meas
 | B9 | Prompt tuning, **capped** at half a day and 60 real calls (EC-R9, EC-R10) | WP-19 | 3 | 0.5 |
 | B10 | Acceptance pass, security assessment by checklist, accessibility and copy check, run instructions, demo rehearsal | WP-20 to WP-22 | 4.5 | 0.5 |
 | B11 | **Hours noted earlier but not added (DL-42):** stand-in mode and the role harness (1 to 2 hours, B3, DL-36); the G1 "who files" choice (about 1 hour, B5, DL-39); the loader tests T-LEAK-1, T-PROMPT-1 and T-EXAMPLE-1 (about 1 hour, B3, DL-39) | New | — | 0.5 |
-| | **MVP** | | **45.75** | **≈ 6.25 (5.25–8.75)** |
+| B13 | **Retry a failed stage, and the failure demo** (DL-51, DL-52; added 2026-11-16): the retry route, its guard and refusals, new unit lines per stage attempt, the Retry form on page 3; the failure-demo switch on the start form, the stand-in extractor hook, the `demo failure` reason and the label; T-RETRY-1 to T-RETRY-3, T-DEMOFAIL-1. **The stage-end store with the stage attempt (rule 9) is built in B3 either way**, because changing it later costs more | New (DL-51, DL-52) | — | 0.5 |
+| | **MVP** | | **45.75** | **≈ 6.75 (5.75–9.25)** |
 | B12 | **Calendar Month and Year views and charts** (A10, DL-49): templates and stylesheet only, from the published entries the List view already gets. Built **last**, after the first green path and B10. **A fixed one-day timebox**: what is not done at the end of the day is parked (F-19). It never runs past the day-8 hard stop | New (DL-49) | — | 1.0 (timebox) |
-| | **MVP with B12** | | | **≈ 7.25 (6.25–9.75)** |
+| | **MVP with B12** | | | **≈ 7.75 (6.75–10.25)** |
 
 **Capacity (DL-42): 5 days planned, 8 days hard stop.** The plan is built to finish in 5 focused
 days. Days 6 to 8 are the operator's buffer. **Day 8 is a hard stop**: whatever is not done then is
 not done, and the demo runs on what exists.
 
-**Fit verdict: about 6.25 days likely (about 7.25 with the B12 timebox), against 5 planned and 8
-at the hard stop.** The likely figure is a day and a quarter over the plan and inside the hard stop
-(B6 rose from 0.25 to 0.5 for U7 and U8 on 2026-11-14). The top of the range (8.75) passes the hard
-stop, which is why the tripwire and the drop order below exist. B6 and B7 were added to the cut by
+**Fit verdict: about 6.75 days likely (about 7.75 with the B12 timebox), against 5 planned and 8
+at the hard stop.** The likely figure is a day and three quarters over the plan and inside the hard
+stop (B6 rose from 0.25 to 0.5 for U7 and U8 on 2026-11-14; B13, Retry and the failure demo, added
+0.5 on 2026-11-16). With B12 the likely figure is a quarter day inside the hard stop. The top of the
+range (9.25) passes the hard stop, which is why the tripwire and the drop order below exist. B6 and B7 were added to the cut by
 operator decision (SOQ-19); B11 is time the earlier notes said came "out of the same margin", now
 counted.
 
 **Tests in two tiers (DL-42; the lists are in §9, EC-R4).** **Tier 1 blocks the build**: EC-013,
 EC-014, EC-007, EC-008, EC-015, EC-016, EC-019, T-W04, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1,
-T-DEMO-1, T-DEMO-2, T-LEAK-1 and T-MODE-1 (EC-015, EC-019 and T-MODE-1 added by SOQ-29).
+T-DEMO-1, T-DEMO-2, T-LEAK-1 and T-MODE-1 (EC-015, EC-019 and T-MODE-1 added by SOQ-29), and T-DEMOFAIL-1 once B13 is built (operator, 2026-11-16; it is dropped with B13).
 **Tier 2 is done if time allows**: the six-word overlap part of T-EXAMPLE-1, T-PROMPT-1, T-D4-1 and
-the per-state page tests. **T-MAP-1 is not dropped with Tier 2**: it must pass before the first
+the per-state page tests, and the Retry tests T-RETRY-1 to T-RETRY-3 (B13). **T-MAP-1 is
+not dropped with Tier 2**: it must pass before the first
 evaluation run, even if the tripwire has dropped the rest of Tier 2.
 
 **Tripwire (DL-42, moved 2026-11-13, SOQ-30).** If the **first stand-in green path** (Build card)
@@ -2064,7 +2164,8 @@ The green path is the earliest reliable sign that the riskiest block works; it d
 the real models behave, which the spike and bake-off still test.
 
 **Where 40 days went.** About half is real cuts: no separate frontend application, generated
-client, fixtures or integration step; no re-run, invalidation or duplicate-output machinery; no Flow
+client, fixtures or integration step; no unit re-run, invalidation or duplicate-output machinery
+(the one stage Retry of DL-51 needs none, because a failed stage stores nothing); no Flow
 wrapper; tuning capped at half a day; quality, security and delivery work done by checklist. The
 other half is margin removed: the earlier figures were sized for a six-week build with slack in
 every package. **This estimate has no slack inside it.** The range is therefore lopsided, and the
@@ -2073,7 +2174,10 @@ operator's buffer is the only margin.
 **Checkpoint.** B1 and B2 are planned at one day together. If they take more than 1.3 days, the
 architect tells the operator straight away. **Drop order (operator decision, 2026-11-12; DL-42):
 the light visual pass (B6) and Tier 2 are dropped first (at once if the tripwire fires); the
-planted demo row (B7) is kept**, because it demonstrates the human checkpoint. If B6 is dropped, the pages stay unstyled but usable and accessible, and the
+planted demo row (B7) is kept**, because it demonstrates the human checkpoint. **B13 (Retry and the
+failure demo) is built after B9 and dropped next, after B6** (operator decision, 2026-11-16,
+SOQ-35): the failed page then uses the "Without Retry" fallback in `ux.md` page 3, which works on
+the rules without rule 10. If B6 is dropped, the pages stay unstyled but usable and accessible, and the
 visual pass becomes post-course work for the operator's portfolio (Future Work F-17). Nothing else
 is dropped without a new operator decision.
 
@@ -2128,7 +2232,7 @@ is.
 |---|---|---|
 | A wrong row can only be rejected | With no edit, a row with a wrong field or a misquote is rejected, and its obligation leaves the calendar. A new run at temperature 0 may repeat the same mistake | The G3 acknowledgement lists every rejected row and uncited paragraph before publishing (CR-028) |
 | A wrong decision cannot be undone | A wrong approval, rejection or verdict is corrected only by abandoning the run at a gate and starting a new one | Nothing reaches a GP before G3 |
-| A failure in stage B or C discards the G1 and G2 work | The run ends `FAILED` and the new run repeats both gates. **The 30-minute review measurement (EC-011) is taken on a run with no failures** | No gate opens on a failed stage |
+| A second failure in stage B or C discards the G1 and G2 work | A first failure can be retried once and keeps every decision (DL-51). A second failure of the same stage, or a cost-cap or calendar-generation failure, ends the run for good, and the new run repeats the gates. **The 30-minute review measurement (EC-011) is taken on a run with no failures and no retries** | No gate opens on a failed stage |
 | The same obligation from two documents can be published twice | There is no duplicate warning. Generation fails closed only when two approved rows give the same entry ID (same paragraph, recipient and period). Otherwise the specialist's review at G3 is the only check. The demo set contains no such pair | The whole calendar is reviewed at G3 |
 | Two obligations in one paragraph to the same authority are not supported | Their entry IDs would collide, so generation fails closed and names both rows | Fail closed |
 | The coverage view always lists seven paragraphs | Nothing records "read, no obligation" (OQ-US001-2), so the acknowledgement appears on every publish | Intended (DL-30) |
@@ -2147,7 +2251,7 @@ is.
 | F-02 | Reopen a rejected row | SD FR-023, AC-022 · US-004 c9–c11 | `POST /rows/{id}/reopen` |
 | F-03 | Reopen a confirmed verdict | SD FR-024, AC-023 · US-007 c8–c9 | `POST /verdicts/{id}/reopen` |
 | F-04 | GP review notice after publication | SD FR-025, AC-024 · US-011 c9–c10 | The notice part of CR-012 |
-| F-05 | Re-run a failed unit, "needs attention", release a failed document to manual entry | SD NFR-004 (re-run sentences), AC-030 (re-run part), AC-031 · US-015 c4–c6, c11–c15 · DL-02, DL-18 | The re-run part of W-19, CR-010, T-REL-1, T-REL-2, the re-run and release endpoints, `UNIT_RERUN_LIMIT`, `RERUN_LIMIT`, the current-output store and its idempotency key |
+| F-05 | Re-run a failed unit, "needs attention", release a failed document to manual entry (the specialist's one Retry of a whole failed stage is in the MVP, DL-51) | SD NFR-004 (re-run sentences), AC-030 (re-run part), AC-031 · US-015 c4–c6, c11–c15 · DL-02, DL-18 | The re-run part of W-19, CR-010, T-REL-1, T-REL-2, the re-run and release endpoints, `UNIT_RERUN_LIMIT`, `RERUN_LIMIT`, the current-output store and its idempotency key |
 | F-06 | Create a missed row by hand | SD FR-027, AC-027 · US-016 · DL-15 | W-07a, CR-020, the hand-created case in T-ID-1, `POST /runs/{id}/rows`, row origin `human` |
 | F-07 | Possible-duplicate groups and the completion confirmation | SD FR-029, AC-028 · US-004 c14–c16 · DL-16 | W-03a, CR-022, T-W03a-1, T-W03a-2, SA-9, `group_confirmations` |
 | F-08 | Verifier and judge dead-end handling | SOQ-10 | — |
@@ -2182,15 +2286,15 @@ build instruction.
 | | |
 |---|---|
 | **What** | Three CrewAI agents (extractor, verifier, judge) in a gated workflow: stage A → **G1** → stage B → **G2** → stage C (code only) → **G3** → GP calendar. The backend alone owns gate state. 7 server-rendered pages, SQLite, one process |
-| **Time** | 5 days planned, **8 days hard stop**. About 6.25 days likely, about 7.25 with the B12 timebox (DL-49; B6 is 0.5 for U7 and U8). **Tripwire:** the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2, never T-MAP-1 (DL-42, SOQ-30) |
-| **Order** | B1 → B2 (checkpoint: more than 1.3 days → tell the operator) → B3, **stand-in part only** → B4 → B5 → B7 → **first green path (below)** → pin DL-40 (SOQ-25) → **B3 spike** (the first paid model calls) → B8 → B9 → B6 → B10 → **B12** calendar Month and Year views and charts (one-day timebox, DL-49) |
+| **Time** | 5 days planned, **8 days hard stop**. About 6.75 days likely, about 7.75 with the B12 timebox (DL-49; B6 is 0.5 for U7 and U8; B13 is 0.5, DL-51, DL-52). **Tripwire:** the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2, never T-MAP-1 (DL-42, SOQ-30) |
+| **Order** | B1 → B2 (checkpoint: more than 1.3 days → tell the operator) → B3, **stand-in part only** → B4 → B5 → B7 → **first green path (below)** → pin DL-40 (SOQ-25) → **B3 spike** (the first paid model calls) → B8 → B9 → **B13** Retry and failure demo (stand-in, no model) → B6 → B10 → **B12** calendar Month and Year views and charts (one-day timebox, DL-49) |
 | **First green path (before any paid model call)** | With `AGENTS_MODE=stand_in`, one run must pass **end to end**: start run → stand-in Stage A → **G1**, including the planted row (Approve refused by the server, then reject) → stand-in Stage B → **G2** → Stage C dates → **G3** with the acknowledgement → the GP view shows "being prepared" and then the published calendar → the audit log shows every step. **Until this passes, DL-40 is not pinned (SOQ-25) and no paid call is made, including the B3 spike.** B3 is stand-in only until B5 and B7 are done and this path passes |
-| **Tier 1 tests (block the build)** | EC-013, EC-014, EC-007 (date test), EC-008, EC-015, EC-016, EC-019, T-W04-1 to T-W04-6, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2, T-LEAK-1, T-MODE-1 (SOQ-29) |
-| **Tier 2 (if time allows)** | T-EXAMPLE-1 six-word overlap, T-PROMPT-1, T-D4-1, per-state page tests. **T-MAP-1 is not dropped with Tier 2:** even if the tripwire drops Tier 2, T-MAP-1 must still pass before the first evaluation run (EC-R4, DL-41) |
-| **Run state** | `status` ∈ `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`; `phase` ∈ `A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`. Every guard checks the phase; abandon only in `AT_G*` (DL-46; "Transitions and guards" in Work Ownership) |
+| **Tier 1 tests (block the build)** | EC-013, EC-014, EC-007 (date test), EC-008, EC-015, EC-016, EC-019, T-W04-1 to T-W04-6, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2, T-LEAK-1, T-MODE-1 (SOQ-29); T-DEMOFAIL-1 once B13 is built (dropped with B13) |
+| **Tier 2 (if time allows)** | T-EXAMPLE-1 six-word overlap, T-PROMPT-1, T-D4-1, per-state page tests, T-RETRY-1 to T-RETRY-3 (with B13). **T-MAP-1 is not dropped with Tier 2:** even if the tripwire drops Tier 2, T-MAP-1 must still pass before the first evaluation run (EC-R4, DL-41) |
+| **Run state** | `status` ∈ `ACTIVE`, `FAILED`, `ABANDONED`, `DECLINED`, `COMPLETED`; `phase` ∈ `A_RUNNING`, `AT_G1`, `B_RUNNING`, `AT_G2`, `C_RUNNING`, `AT_G3`. Every guard checks the phase; abandon only in `AT_G*` (DL-46; "Transitions and guards" in Work Ownership). A `FAILED` run may be retried once per stage, never after a cost-cap or calendar-generation failure (rule 10, DL-51). A stage stores its outputs only when it ends with every unit valid (rule 9) |
 | **Timeouts** | Per call: extract 90 s, verify 60 s, judge 60 s; HTTP client a few seconds lower; one retry; a second timeout = `model service`. Stage limits: A 375 s, B 150 s, C 30 s, on the **backend's timer**, not `max_execution_time`. Late results go to the trace only and still count towards cost (DL-43) |
 | **Models and spend** | Stand-in agents by default (`AGENTS_MODE=stand_in`). Real calls only for the spike, tuning (60 calls), one evaluation cycle, the rehearsal and the demo. US$2.50 hard stop per run. Keep US$5 for the rehearsal and the demo. Model IDs wait for DL-40 (SOQ-25), which is pinned only after the first green path passes |
-| **Never** | A model computes a date, approves, publishes or holds a tool; the answer key or the mock files' notes reach a prompt; a check lives in a page handler; the planted row is approved (its Approve button stays visible and the server refuses it, DL-44) |
+| **Never** | A model computes a date, approves, publishes or holds a tool; the answer key or the mock files' notes reach a prompt; a check lives in a page handler; the planted row is approved (its Approve button stays visible and the server refuses it, DL-44); the failure demo runs with real agents or on an evaluation run (DL-52); a stage is retried twice, or after a cost-cap or calendar-generation failure (DL-51) |
 | **Evaluation** | One cycle of three runs; reports, does not block. Copy cases are separate harness calls outside the run's tables (DL-45) |
 | **Not built** | Everything under "Future Work", including the hosted demo (F-18, Appendix A) |
 | **If something is missing** | Stop and ask the architect. Do not build from the full design at the tag |
@@ -2208,7 +2312,7 @@ field per form, and nothing else.
 | 1 | B1 Setup and data | `@project.mgr` (`setup.md`), `@backend.eng` | Install the git hooks first (§5). Record `AAMAD_TARGET_RUNTIME` and the CrewAI settings in `setup.md`. Create `.env.example` |
 | 2 | B2 Gates and run states | `@backend.eng` | The service layer and its checks before any page or agent. **Checkpoint:** if B1 and B2 together pass 1.3 days, tell the operator at once |
 | — | The page-by-page note | `@ux.designer` (`ux.md`) | Short: the seven pages of §3, with the 30-minute review target as a constraint (§7), the voice rule (DL-05) and no bulk or preselected decision (SD AC-026). Needed before B5 |
-| 3 | B3 Stages A and B, **stand-in part** | `@backend.eng` | **Stand-in mode only** (CR-030): the loader, quote check, schema validation, trace and cost count, cost cap, the role harness, and the three agent functions returning their fixed outputs. The three CrewAI agents are wired behind the same functions, but **no paid call is made yet** |
+| 3 | B3 Stages A and B, **stand-in part** | `@backend.eng` | **Stand-in mode only** (CR-030): the loader, quote check, schema validation, trace and cost count, the stage-end store with the stage attempt (rule 9, DL-51), cost cap, the role harness, and the three agent functions returning their fixed outputs. The three CrewAI agents are wired behind the same functions, but **no paid call is made yet** |
 | 4 | B4 Stage C | `@backend.eng`, `@qa.eng` | The date engine against the 22-entry answer key |
 | 5 | B5 Gate actions and pages | `@backend.eng`, `@frontend.eng` | `@frontend.eng` writes the templates in `backend/web/`; there is no separate application and nothing to wire. Thin handlers only (§4) |
 | 6 | B7 Planted demo row | `@backend.eng` | Before the visual pass |
@@ -2217,6 +2321,7 @@ field per form, and nothing else.
 | 7 | **B3 spike**, then the verifier bake-off | `@backend.eng`, operator | The first real model calls (DL-26, EC-R10). Timings replace the starting limits in §2 |
 | 8 | B8 Evaluation runner and report | `@qa.eng` | With the trace export (D4) and the void rule (EC-R8) |
 | 9 | B9 Tuning, then the evaluation cycle | `@qa.eng`, operator | Capped at half a day and 60 real calls (EC-R9). Then the one cycle (EC-R10) |
+| 9a | B13 Retry and failure demo | `@backend.eng`, `@frontend.eng` | Stand-in only; no model call. After B9, before B6. Dropped next after B6 if time runs out (operator, 2026-11-16, SOQ-35); the page then uses the "Without Retry" fallback in `ux.md` |
 | 10 | B6 Light visual pass | `@frontend.eng`, `@ux.designer` | The last build block; dropped first if time runs out. A stylesheet change is not model-facing, so it needs no new cycle |
 | 11 | B10 Acceptance and rehearsal | `@qa.eng`, `@security.eng`, `@devops.eng` | The security checklist, the accessibility and copy checks, run instructions, the rehearsal run, the outcome fields of §10 |
 | 12 | B12 Calendar Month and Year views and charts | `@frontend.eng`, `@ux.designer` | Front end only, one-day timebox, parked when the day ends (DL-49). Includes its own short accessibility check of the new views, because B10 has already run |
@@ -2265,7 +2370,7 @@ the agent rules, so every Build persona starts with them:
 ## Sources
 
 - `project-context/1.define/prd.md`, `system-description.md`, `user-stories/` (US-001 to US-016 and
-  the index), `approval-map.md`, `decision-log.md` (DL-01 to DL-50; DL-40 reserved) and
+  the index), `approval-map.md`, `decision-log.md` (DL-01 to DL-53; DL-40 reserved) and
   `mock-data/expected-obligation-library.md`: read on 2026-11-12 for this rewrite.
 - The full design: `sad.md` at git tag `sad-full-design` (commit `9e7da27`).
 - The senior-architect review of the full design, pasted by the operator on 2026-11-12, and the
@@ -2329,6 +2434,12 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
 ## Open Questions
 
 **Open**
+
+- **SOQ-34** (for `@product-mgr`; the architect does not edit these files): (a) **DL-27 update:**
+  US-011 criterion 7 and SD AC-013 should carry the new "being prepared" text. (b) **DL-51:**
+  US-015 and SD NFR-004 say a failed run is never re-run; add that the specialist may retry the
+  failed stage once, keeping earlier decisions, and that re-running a single unit stays future
+  scope. (c) **DL-44 update:** any story criterion that quotes the demo-row refusal text.
 
 - **SOQ-6, one part left** (operator): **the manual-effort figure.** It is recorded as an
   **assumption, not a measured figure**: "about [N hours] per fund per year" by hand today. The
@@ -2426,6 +2537,9 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
 
 | ID | Outcome |
 |---|---|
+| SOQ-35 | **Resolved 2026-11-16 (operator, DL-51 update):** B13 (Retry and the failure demo, about half a day) is accepted. It is built after B9 (tuning) and is the **next block dropped after B6**; the failed page then uses the "Without Retry" fallback in `ux.md`. MVP ≈ 6.75 days, ≈ 7.75 with B12. The stage-end store (rule 9) is built in B3 either way |
+| SOQ-32 | **Resolved 2026-11-16 (operator, DL-51 update):** both architect-added retry refusals are confirmed (an evaluation run; a run with a newer run after it), and a **`calendar generation` failure also refuses a retry** (`RETRY_NOT_ALLOWED`): it is code on the same decisions and would fail the same way |
+| SOQ-33 | **Resolved 2026-11-16 (operator, DL-53 update):** CR-027's configuration names the open convention's rows by **source paragraph and recipient code** (`OQ-7` → `SRC-UCILAW-P2`, `AED`), never by an answer-key ID; the mark is derived when the pages are drawn and when the date code runs, with no stored field |
 | SOQ-30 | **Resolved 2026-11-13 (operator, DL-42 item 9):** the spike runs after B7, so the tripwire no longer asks for real Stage A rows by the end of day 3. It is now: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2, never T-MAP-1. The green path does not test real-model behaviour; the spike and bake-off still do |
 | SOQ-1 | Answered by the estimate above: about 6 focused days against 5 planned and an 8-day hard stop (DL-42; it was 5.5 before the uncounted hours were added) |
 | SOQ-2 | One automatic transport retry per call. Manual re-runs are Future Work (F-05) |
@@ -2952,3 +3066,5 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-14 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · **D5:** §3 page 4 now says the quote-check result is shown on every G1 row, the demo row included (no rule change; ux.md follow-up in H-030). **B6:** 0.25 → 0.5 days for U7 and U8; MVP ≈ 6.25 (5.25–8.75), with B12 ≈ 7.25 (6.25–9.75), each bound moved by the same quarter day; Fit verdict, feasibility note and Build card "Time" row updated. **GP calendar:** §3 page 7 states moved marks are specialist-only (no card, count, chip, chart colour or legend entry), which the B12 charts follow (DL-49 update). The mock-up `docs/prototype/gp-calendar.html` was changed through `build.py`. The Netlify summary page stays frozen (operator). `AAMAD_TARGET_RUNTIME=crewai`. No model call.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · **DL-50:** new subsection "Data model: the happy path" in §4, after the table list: a Mermaid `erDiagram` of the tables the happy path touches (fund profile, runs, paragraphs, rows, quote checks, flags, row decisions, verdicts, verdict decisions, calendar versions, calendar entries, publications, audit log), with keys and cardinality. No table added; `units` and `trace` left out of the figure. Three implicit items made explicit and marked as proposals: the fund as a config entity, `calendar_entries.row_id`, and the entry date and mark columns. Three open points recorded in the subsection. Mermaid used at the operator's request, setting aside the persona's draw-diagram default for this one figure. Source range now DL-01 to DL-50. No other section, and no code, changed. `AAMAD_TARGET_RUNTIME=crewai`. No model call.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · **DL-50 confirmed** with the architect's recommendations: Mermaid kept as a one-off (persona file unchanged); the line "the table list is the source for write rules; if the two differ, stop and ask the architect" added; `paragraphs` per run, with the row → paragraph link on `run_id` + `source_paragraph_id` and `run_id` added to `flags`; `publications` one row per publish, the newest live; precautionary mark copied onto the entry, its reason left on the G2 decision; `roll_note` removed (built by the template); notes added on notional SQLite types, entries only for rows that apply, and the W-17 "why" path. Open points closed. `AAMAD_TARGET_RUNTIME=crewai`. No model call.
+- 2026-11-16 · persona `system-arch` (at the operator's instruction; `ux.md` revision D9 to D12, §10.3 G-1 to G-10) · action `update` · **DL-51 (Retry):** run-state rules 2, 9, 10 and the `FAILED` row; transitions table (retry rows); new route `POST /specialist/runs/{run_id}/retry`; refusal codes `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`; a stage now stores its outputs in one transaction when it ends, checked against `runs.stage_attempt`; CR-017, CR-018, new CR-032; W-19, DM-17, §3 page 3, Production Shape, principles, known limitations, F-05. **DL-52 (failure demo):** `runs.demo_fail_step1`, reason 8 `demo failure`, new CR-033, §3 page 2, start route. **DL-53 (data gaps):** `runs` and `units` fields, `units` drawn in the ERD, display names in config. **CR-029** refusal copy replaced (DL-44 update). **DL-27 / EC-014 / §3 page 7** new "being prepared" text. Wording aligned with `ux.md` in §3 (Steps 2 to 4, abandon at a step, 403 links, "Demo rule"). Estimate: new block B13 (0.5), MVP ≈ 6.75, with B12 ≈ 7.75; Build card, order of work, Tier 2 list. New SOQ-32 to SOQ-35 (SOQ-35 first written as SOQ-31 by mistake, which is an older open question; corrected in the next entry). `AAMAD_TARGET_RUNTIME` = `crewai`. No code. No model call.
+- 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · Operator answers: **SOQ-35** (B13 after B9, dropped next after B6; this question was first numbered SOQ-31, which clashed with the older SOQ-31 on B2, and is renumbered), **SOQ-32** (evaluation-run and newer-run refusals confirmed; `calendar generation` failures now refuse a retry: rule 10, transitions, `RETRY_NOT_ALLOWED`, failure reasons note, CR-032 and T-RETRY-2, Build card, known limitations), **SOQ-33** (CR-027 names the OQ-7 rows by source paragraph `SRC-UCILAW-P2` and recipient `AED`, derived at render, no field), **T-DEMOFAIL-1 moved to Tier 1** once B13 is built, dropped with B13 (EC-R4 table, Estimate, Build card, CR-033). The three SOQs move to "Resolved". No code. No model call.
