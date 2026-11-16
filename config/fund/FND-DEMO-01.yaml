@@ -1,0 +1,7 @@
+# Fund profile for the one fictional demo fund (DL-53). Mock data only.
+# Display fields only for now; the facts the judge cites and the filing parties come with B3
+# (scaffold-plan.md Open Question 3: written by hand, without the answer key's columns or notes).
+fund_id: FND-DEMO-01
+name: Bramblegate Credit Opportunities SICAV
+regime: Luxembourg UCI Part II
+year_end: 31 Dec
