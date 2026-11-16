@@ -12,8 +12,8 @@ Full version: `project-context/2.build/setup.md`. Source: the Build card in `sad
 - Keep `AGENTS_MODE=stand_in`. No DL-40 / SOQ-25 pin and no real model call (including the B3 spike)
   until the full stand-in happy path passes end to end (start, Stage A, G1 with the demo row refused
   then rejected, Stage B, G2, Stage C, G3 ack, GP view and audit log).
-- Tier 1 tests block merges (including EC-015, EC-019, T-MODE-1, and T-DEMOFAIL-1 once block B13,
-  Retry and the failure demo, is built; if B13 is dropped, the test goes with it). If Tier 2 is dropped, T-MAP-1 must
+- Tier 1 tests block merges (including EC-015, EC-019, T-MODE-1, and T-DEMOFAIL-1 and T-PAUSE-1 once
+  block B13a, the failure demo and stand-in pause, is built). If Tier 2 is dropped, T-MAP-1 must
   still pass before the first evaluation run.
 - A new tool, memory, retry or re-ask is a SAD edit first.
 - Netlify hosts `docs/architecture-decisions-summary.html` (public context page). It is **frozen**
