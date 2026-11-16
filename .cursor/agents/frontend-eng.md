@@ -27,7 +27,7 @@ actions:
 inputs:
   - project-context/1.define/prd.md
   - project-context/1.define/sad.md
-  - project-context/1.define/ux.md
+  - project-context/2.build/ux.md
   - project-context/2.build/setup.md
   - project-context/0.review/current-state.md
   - .cursor/skills/product-design/SKILL.md

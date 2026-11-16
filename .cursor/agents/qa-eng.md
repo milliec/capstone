@@ -34,7 +34,7 @@ inputs:
   - project-context/2.build/backend.md
   - project-context/2.build/integration.md
   - project-context/1.define/prd.md
-  - project-context/1.define/ux.md
+  - project-context/2.build/ux.md
   - project-context/1.define/sad.md
   - project-context/1.define/system-description.md
   - project-context/1.define/user-stories
