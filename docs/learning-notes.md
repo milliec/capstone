@@ -137,6 +137,12 @@ case-study deck that still shows last quarter's screens.
 
 ## 2. Designing AI agent systems
 
+**Why I build this by directing a team of agents.** Two reasons. First, I want first-hand experience
+of how AI-native product teams work, because that is the kind of design role I'm aiming for. Second,
+the product is about people approving AI work, so I wanted the same discipline in how it is built:
+every decision written down with its reason, owned by one agent, and checkable later by me or the next
+agent. Prompting one long chat would have left the decisions in a conversation that ends.
+
 **Use AI where judgement is needed, plain code where correctness is needed.** Agents read text and
 judge applicability. Dates are calculated by ordinary code, because code gives the same answer every
 time and can be tested without a model.
@@ -468,3 +474,5 @@ DL-48).
 - 2026-11-14 · added one note from the answer-key update for Q1 and Q2 (a rule change moves the wrong answers too; prove a test can fail)
 - 2026-11-15 · added two notes from the case-study site sync session (a story about a project goes
   stale when the project decides; check `git status` right before deleting)
+- 2026-11-16 · added why the project is built by directing a team of agents (operator's reasons:
+  first-hand AI-native experience; control and checkable decisions)
