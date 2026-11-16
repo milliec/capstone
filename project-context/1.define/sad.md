@@ -32,7 +32,7 @@ kept in Appendix A for later and is not built in this plan.
 **User Stories**: `project-context/1.define/user-stories/` (US-001 to US-016; US-005, US-014 and
 US-016 are not in the MVP)
 **Approval map and decision log**: `approval-map.md` (not a requirement in itself; re-checked
-against this version on 2026-11-12), `decision-log.md` (DL-01 to DL-49; DL-40 reserved)
+against this version on 2026-11-12), `decision-log.md` (DL-01 to DL-50; DL-40 reserved)
 **MVP Scope**: the single statement of scope is "MVP scope: the five-day slice" below. No other
 section restates it.
 **Selected Runtime**: `crewai` (resolved from `AAMAD_TARGET_RUNTIME`; matches `runtime.target` in
@@ -1273,6 +1273,202 @@ fund, and foreign keys include it, so a row cannot point at another fund's run. 
 The append-only tables have database triggers that raise an error on `UPDATE` or `DELETE`, so the
 rule holds even if application code tries.
 
+#### Data model: the happy path (DL-50)
+
+This diagram draws the tables above that the one happy path touches (MVP scope, steps 1 to 12),
+with their keys and how they relate. **It adds no table.** `units` and `trace` are left out to
+keep it readable: they record how a stage ran, not what was decided (the audit entry for an agent
+output points at its trace record through `trace_ref`). Mermaid is used here at the operator's
+request, as a one-off (DL-50); other figures still follow the draw-diagram skill.
+
+**The table list is the source for write rules. If the two differ, stop and ask the architect.**
+
+```mermaid
+erDiagram
+    fund_profile ||--o{ runs : "is reviewed in"
+    fund_profile ||--o{ publications : "has published"
+    runs ||--|{ paragraphs : "loads"
+    runs ||--o{ rows : "drafts"
+    paragraphs ||--o{ rows : "is cited by"
+    rows ||--|| quote_checks : "is checked by"
+    rows ||--o{ flags : "may get"
+    paragraphs |o--o{ flags : "is the other source in"
+    rows ||--o| row_decisions : "is decided once at G1"
+    rows ||--o| verdicts : "is judged if approved"
+    verdicts ||--o| verdict_decisions : "is decided once at G2"
+    runs ||--o| calendar_versions : "generates all or nothing"
+    calendar_versions ||--|{ calendar_entries : "contains"
+    rows ||--o{ calendar_entries : "is dated as"
+    calendar_versions ||--o| publications : "is published by"
+    runs |o--o{ audit_log : "records"
+
+    fund_profile {
+        string fund_id PK "FND-DEMO-01, a config file, not a table"
+        text facts "fact IDs and values the judge cites"
+        text filing_parties "the G1 who-files choices"
+    }
+    runs {
+        string run_id PK "RUN-yyyymmdd-n"
+        string fund_id FK
+        enum status "ACTIVE FAILED ABANDONED DECLINED COMPLETED"
+        enum phase "A_RUNNING AT_G1 B_RUNNING AT_G2 C_RUNNING AT_G3"
+        int run_version "goes up at every gate event"
+        bool demo_planted_row "off unless turned on"
+        enum agents_mode "stand_in or real"
+        decimal cost_so_far
+    }
+    paragraphs {
+        string run_id PK, FK
+        string paragraph_id PK "for example SRC-X-P2"
+        string fund_id FK
+        string document_id
+        text paragraph_text
+    }
+    rows {
+        string row_id PK "ROW-run-n, set by the backend"
+        string run_id FK "with source_paragraph_id, points at paragraphs"
+        string fund_id FK
+        string source_paragraph_id FK "exactly one, in the same run"
+        string obligation_name
+        string frequency
+        string anchor
+        string offset
+        string recipient_code
+        string responsible_role "or not stated in source"
+        text applicability_rule
+        string business_day_rule "as the source states it, else not_confirmed"
+        text quote "the source quote, verbatim"
+        enum origin "model or demo"
+        int version "stays 1"
+    }
+    quote_checks {
+        string row_id PK, FK "one per row"
+        string fund_id FK
+        enum result "pass or fail; fail blocks approval"
+        text mismatch "the text that did not match"
+    }
+    flags {
+        int flag_id PK
+        string row_id FK
+        string run_id FK "the row's run, so other_paragraph_id can point at paragraphs"
+        string fund_id FK
+        enum flag_type "internal or cross_source"
+        text explanation
+        string field "internal only"
+        string row_value "internal only"
+        text quote_says "internal only"
+        string other_paragraph_id FK "cross_source only"
+        text other_quote "cross_source only"
+    }
+    row_decisions {
+        int decision_id PK
+        string row_id FK, UK "one per row, CR-009"
+        string fund_id FK
+        enum decision "approve or reject"
+        enum business_day_rule "roll_forward roll_backward no_roll, on approve"
+        string who_files "when the source is silent"
+        text reason "to reject, or to approve over a flag"
+        int row_version
+        string decided_by
+        datetime decided_at
+    }
+    verdicts {
+        string verdict_id PK
+        string row_id FK, UK "approved rows only"
+        string fund_id FK
+        enum verdict "applies does_not_apply unsure"
+        text reasoning
+        text cited_fact_ids "one or more"
+        text missing_information "unsure only"
+        int version "stays 1"
+    }
+    verdict_decisions {
+        int decision_id PK
+        string verdict_id FK, UK "one per verdict, CR-009"
+        string fund_id FK
+        enum decision "confirm override decide"
+        enum final_value "applies or does_not_apply"
+        text reason
+        int verdict_version
+        string decided_by
+        datetime decided_at
+    }
+    calendar_versions {
+        string calendar_id PK
+        string run_id FK, UK "at most one per run"
+        string fund_id FK
+        int version
+        datetime generated_at
+    }
+    calendar_entries {
+        string calendar_id PK, FK
+        string entry_id PK "ENT-fund-paragraph-recipient-period"
+        string row_id FK "DL-50, a row whose final G2 value is applies"
+        string fund_id FK
+        string period "anchor period or event ID"
+        date unadjusted_date "DL-50, before the business-day rule"
+        date due_date "after the business-day rule"
+        enum business_day_rule "DL-50, copied from the G1 decision"
+        bool moved "moved off a weekend or holiday, specialist only"
+        bool precautionary "DL-50, copied from the G2 decision, its reason stays there"
+        string open_question_id "for example OQ-7, CR-027"
+    }
+    publications {
+        int publication_id PK "DL-50, one row per publish, the newest is live"
+        string fund_id FK
+        string calendar_id FK, UK
+        text acknowledged_rejected_row_ids
+        text acknowledged_uncited_paragraph_ids
+        string published_by
+        datetime published_at
+    }
+    audit_log {
+        int audit_id PK "append-only, CR-013"
+        string run_id FK "empty for an event outside a run"
+        string fund_id FK
+        datetime at
+        string actor "specialist-1, gp-1, a stage or the system"
+        enum event_type "decision agent_output gate_event refusal system"
+        string subject_id "a row, verdict, calendar or run ID"
+        int subject_version
+        string refusal_code "refusals only"
+        text reason
+        string trace_ref "agent outputs only: run, step, unit, attempt"
+    }
+```
+
+**How to read it.** `||--o{` is one to zero-or-many, `||--|{` one to one-or-many, `||--o|` one to
+zero-or-one, `||--||` exactly one each side, and `|o--o{` zero-or-one to zero-or-many. `PK` is the
+primary key, `FK` a foreign key, `UK` a unique key. Every `fund_id` is part of its table's foreign
+keys (the rule above), so a row cannot point at another fund's run; the diagram draws only the
+main link to keep it readable. **Types are notional:** SQLite has no `enum` or `decimal`, so an
+`enum` is a text column with a `CHECK` on its allowed values.
+
+**What the diagram makes explicit (DL-50, confirmed by the operator 2026-11-16).** The table list
+above names what each table holds in words. Turning it into an ERD needed these things the text
+left implicit:
+
+| # | Item | Why it is needed | Source it rests on |
+|---|---|---|---|
+| 1 | **The fund is a config file, not a table.** `fund_profile` is drawn so `fund_id` has something to point at. No `funds` table is added | Every table carries `fund_id` | §4 "Data", `config/fund/FND-DEMO-01.yaml` |
+| 2 | **`calendar_entries.row_id`**, a link from each entry to the approved row it came from | Rebuilding an entry's history (CR-018) and naming both rows on an ID collision (DL-35, CR-011) need it. The entry ID holds the paragraph, not the row | CR-011, CR-018, DL-35 |
+| 3 | **Entry date and mark columns**: `unadjusted_date`, `due_date`, a copy of `business_day_rule`, `moved`, `precautionary`, `open_question_id`. **No stored roll note:** the template builds it from the two dates and the rule, so its wording stays with `@ux.designer` | §4 says entries are stored "with their marks" but names no columns. G3 shows moved, precautionary and open-question marks; EC-007 counts entries "moved off a weekend, with a roll note" | CR-027, EC-007, §3 page 6 |
+| 4 | **`paragraphs` are stored per run**, keyed by run and paragraph ID. So a row points at its paragraph with `run_id` and `source_paragraph_id` together, and a flag carries `run_id` so its `other_paragraph_id` can do the same | A run reads its sources once, when it starts (§4). A later change to a mock file must not change the text an earlier run's quote check passed against | §4 "Data", CR-005 |
+| 5 | **`publications` holds one row per publish; the newest row for the fund is the live calendar.** Publishing is one insert in one transaction | Keeps the write-once rule every decision table follows, makes the "one indivisible switch" a single insert, and keeps the history of what GPs saw | CR-011, DM-13 |
+| 6 | **The precautionary mark is copied onto the entry; its reason stays on the G2 decision.** All three marks (moved, precautionary, open question) are then read from one place | Both records are written once and never changed, so the copy cannot go stale. The reason is long text that the GP "why" path reads from the decision anyway | CR-019, CR-027, EC-014 |
+
+Column names inside tables the SAD describes only in words (`quote_checks`, `audit_log`,
+`publications`) name content the SAD already lists; they add no content. Field names for `rows`,
+`flags` and `verdicts` come from the agent cards (§2).
+
+**Two things the diagram cannot show:**
+
+- **Entries exist only for rows whose final G2 value is `applies`.** A row that is rejected at G1,
+  or decided `does_not_apply` at G2, has no entry (W-13, W-17).
+- **The GP "why" text (W-17) is read from the G2 decision,** along entry → row → verdict → verdict
+  decision: the specialist's reason on an override or a decided "unsure", the model's reasoning on a
+  confirm.
+
 **Identifiers and versions**:
 
 | Identifier | Scheme | Why |
@@ -2069,7 +2265,7 @@ the agent rules, so every Build persona starts with them:
 ## Sources
 
 - `project-context/1.define/prd.md`, `system-description.md`, `user-stories/` (US-001 to US-016 and
-  the index), `approval-map.md`, `decision-log.md` (DL-01 to DL-49; DL-40 reserved) and
+  the index), `approval-map.md`, `decision-log.md` (DL-01 to DL-50; DL-40 reserved) and
   `mock-data/expected-obligation-library.md`: read on 2026-11-12 for this rewrite.
 - The full design: `sad.md` at git tag `sad-full-design` (commit `9e7da27`).
 - The senior-architect review of the full design, pasted by the operator on 2026-11-12, and the
@@ -2754,3 +2950,5 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-13 · persona `system-arch` (at the operator's instruction; ux.md Open Question 5) · action `update` · DL-47: new refusal code `BUSINESS_DAY_RULE_REQUIRED` (422) added to the §4 refusal-code table. No other section changed; the "DL-01 to DL-46" source references were not renumbered. `AAMAD_TARGET_RUNTIME=crewai`. No model call.
 - 2026-11-14 · persona `system-arch` (at the operator's instruction; design exploration in `docs/prototype/`, handoffs H-004 to H-012, H-017, H-021, H-024) · action `update` · The mock-ups are a layout reference only; this document stays the source for rules. **A1, A2:** no rule change; §3 confirms the "Stand-in agents" label under `AGENTS_MODE=stand_in` and the demo-row switch on the run-start form. **A3, A4 (DL-44 update):** CR-029 carries the plain refusal copy and the "Approval blocked" chip; §3 page 4. **A5 (DL-22 update):** no choosing a source; §3 page 4, F-01, "Decisions in force". **A7:** the demo-row rule confirmed in CR-029 (nothing preselected, Approve visible and enabled, beside-the-row message plus top line, audited, no pop-up); §3 now says no browser pop-ups. **A8:** post-MVP stretch, new F-19; no field added. **A9 (DL-48):** answer-first decision form in §3; §4 route bodies (`approve_reason`, `reject_reason`, `<answer>_reason`, `decline_reason`), the validation rule for hidden fields, G3 `formaction`; `VALIDATION` added to the AT_G1 guard row. **A10 (DL-49):** §3 page 7; new block B12 after B10 with a one-day timebox; Estimate, build order, Build card "Time" and "Order" rows, "Order of work". **H-009:** checked; CR-004, CR-023, the `RUN_ACTIVE` code and §3's refusal rule already kept the button visible and the refusal audited; §3 page 2 now says so in one sentence. **DL-19 update (U9, Q1):** W-07, W-13, CR-027, agent card 1 enum (`roll_backward` added), §3 page 6 and mark labels, §4 refusal table and `row_decisions`, policy file, EC-007 (6 moved, 0 unconfirmed), demo script step 4. **DL-01 amendment (U5):** CR-019, EC-014, glossary. **DL-47 update:** §4, AT_G1 guard row. **U2, U4:** glossary line in §3 (UI wording only). **Housekeeping:** Stage B limit recomputed with Stage A's method, still 150 s (Production Shape); period-field question closed by pointing at A8 / F-19; new SOQ-31 (open items around B2). Source range now DL-01 to DL-49. `ux.md`, `style-note.md`, the answer key and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No model call.
 - 2026-11-14 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · **D5:** §3 page 4 now says the quote-check result is shown on every G1 row, the demo row included (no rule change; ux.md follow-up in H-030). **B6:** 0.25 → 0.5 days for U7 and U8; MVP ≈ 6.25 (5.25–8.75), with B12 ≈ 7.25 (6.25–9.75), each bound moved by the same quarter day; Fit verdict, feasibility note and Build card "Time" row updated. **GP calendar:** §3 page 7 states moved marks are specialist-only (no card, count, chip, chart colour or legend entry), which the B12 charts follow (DL-49 update). The mock-up `docs/prototype/gp-calendar.html` was changed through `build.py`. The Netlify summary page stays frozen (operator). `AAMAD_TARGET_RUNTIME=crewai`. No model call.
+- 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · **DL-50:** new subsection "Data model: the happy path" in §4, after the table list: a Mermaid `erDiagram` of the tables the happy path touches (fund profile, runs, paragraphs, rows, quote checks, flags, row decisions, verdicts, verdict decisions, calendar versions, calendar entries, publications, audit log), with keys and cardinality. No table added; `units` and `trace` left out of the figure. Three implicit items made explicit and marked as proposals: the fund as a config entity, `calendar_entries.row_id`, and the entry date and mark columns. Three open points recorded in the subsection. Mermaid used at the operator's request, setting aside the persona's draw-diagram default for this one figure. Source range now DL-01 to DL-50. No other section, and no code, changed. `AAMAD_TARGET_RUNTIME=crewai`. No model call.
+- 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · **DL-50 confirmed** with the architect's recommendations: Mermaid kept as a one-off (persona file unchanged); the line "the table list is the source for write rules; if the two differ, stop and ask the architect" added; `paragraphs` per run, with the row → paragraph link on `run_id` + `source_paragraph_id` and `run_id` added to `flags`; `publications` one row per publish, the newest live; precautionary mark copied onto the entry, its reason left on the G2 decision; `roll_note` removed (built by the template); notes added on notional SQLite types, entries only for rows that apply, and the W-17 "why" path. Open points closed. `AAMAD_TARGET_RUNTIME=crewai`. No model call.

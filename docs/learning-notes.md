@@ -381,6 +381,17 @@ which is how it was caught, before anything was committed. Lesson: what git said
 snapshot, like a screenshot of a shared file. Look again immediately before deleting, and treat a
 committed file as someone's decision, removed only by a pull request they asked for.
 
+**When a diagram and a table describe the same thing, name which one is in charge.** The
+architecture document listed its database tables in a table, and we added an entity-relationship
+diagram (ERD) of the same tables. Two descriptions of one thing drift apart over time, like a design
+file and the shipped screen. So the document now says: "The table list is the source for write rules.
+If the two differ, stop and ask the architect." That turns drift into a question someone asks, not a
+silent bug. Drawing the diagram also paid for itself: turning words into boxes and lines showed three
+links the text never stated (for example, which rule a calendar entry came from), found before any
+database existed rather than mid-build. How to read the lines: `||--o{` means "one to zero-or-many"
+(one review drafts many rules); a foreign key (FK) is a column that points at another table's ID, and
+each line in the diagram stands for one.
+
 ## 5. Domain: fund compliance calendars
 
 **Anchor + offset.** A deadline is stored as a rule ("year-end + 6 months"), not a date, so the same
@@ -476,3 +487,5 @@ DL-48).
   stale when the project decides; check `git status` right before deleting)
 - 2026-11-16 · added why the project is built by directing a team of agents (operator's reasons:
   first-hand AI-native experience; control and checkable decisions)
+- 2026-11-16 · added one note from the data model session (when a diagram and a table describe the
+  same thing, name which one is in charge)

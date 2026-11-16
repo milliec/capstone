@@ -1052,6 +1052,45 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Changed**: SAD §3 page 7, Estimate (new block B12, build order, drop order), Build card
   "Order" row, "Order of work", Future Work F-19.
 
+## 2026-11-16 · Data model diagram
+
+### DL-50 · The SAD gets an entity-relationship diagram of the happy path; no new table
+
+- **Decision** (operator request, 2026-11-16; details proposed by `@system.arch`, **confirmed by the
+  operator the same day**): SAD §4 gains a subsection "Data model: the happy path" with a Mermaid
+  `erDiagram` of the tables §4 already lists that the one happy path touches, with keys and
+  one-to-many links. **No table is added.** Three things the table list left implicit are made
+  explicit (the second-pass update below refines item 3 and adds three more):
+  1. **The fund is a config entity, not a table.** `fund_profile` (`config/fund/FND-DEMO-01.yaml`)
+     is drawn so every `fund_id` has something to point at.
+  2. **New link `calendar_entries.row_id`** to the approved row an entry came from.
+  3. **New entry columns** for the date and its marks: `unadjusted_date`, `due_date`, a copy of
+     `business_day_rule`, `moved`, `precautionary`, `open_question_id` (`roll_note` dropped in the
+     update below).
+- **Why**: the operator asked for the data model as a diagram. The links and columns in items 2 and
+  3 are needed by rules already in force: rebuilding an entry's history (CR-018), naming both rows
+  on an entry ID collision (DL-35, CR-011), and showing the moved, precautionary and open-question
+  marks at G3 (CR-027, EC-007).
+- **Considered**: a `funds` table. Not added: the MVP has one fund, held as a config file, and a new
+  table would be a scope change. Drawing with the draw-diagram skill (the persona's default). Not
+  used: the operator asked for Mermaid.
+- **Update 2026-11-16 (operator, second pass): confirmed**, with the architect's recommendations:
+  1. **Mermaid is a one-off** for this figure; the persona's draw-diagram default is unchanged.
+  2. **The table list wins**: "The table list is the source for write rules. If the two differ,
+     stop and ask the architect."
+  3. **`paragraphs` are stored per run.** Why: a run reads its sources once, and an earlier run's
+     quote-check evidence must not change if a mock file does. So a row points at its paragraph
+     with `run_id` + `source_paragraph_id`, and `flags` gains `run_id` for its other source.
+  4. **`publications` holds one row per publish; the newest is live.** Why: it keeps the
+     write-once rule of the decision tables, makes the switch a single insert, and keeps history.
+  5. **The precautionary mark is copied onto the entry; its reason stays on the G2 decision.**
+     Why: all marks are read from one place, both records are write-once, and the GP "why" text is
+     read from the decision anyway (W-17).
+  6. **No stored roll note.** The template builds it from the two dates and the rule, so the
+     wording stays with `@ux.designer`.
+- **Changed**: SAD §4 (new subsection "Data model: the happy path"), Input Requirements and Sources
+  (range DL-01 to DL-50), SAD Audit.
+
 ---
 
 ## Audit
@@ -1125,3 +1164,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-13 · persona `system-arch` (at the operator's instruction; ux.md Open Question 5) · action `update` · DL-47 (approving a row with no business-day rule is refused as `BUSINESS_DAY_RULE_REQUIRED`, audited, plain message); operator decision
 - 2026-11-14 · persona `system-arch` (at the operator's instruction; design exploration, `project-context/handoffs.md` H-004 to H-012, H-017, H-021, H-024) · action `update` · DL-01 amendment (on-screen "May not be required", U5); DL-19 update (no "not confirmed" at G1, new `roll_backward`, the two 28 Feb 2027 filings move to Fri 26 Feb; U9, Q1); DL-22 update (no choosing a source, A5); DL-44 update (plain refusal copy, "Approval blocked" chip, confirmed A7 rule); DL-47 update ("not confirmed" no longer a choice); new DL-48 (answer-first decision forms, A9 reversed) and DL-49 (Month and Year views and charts last, one-day timebox, A10; period line post-MVP, A8). A1 and A2 are prototype-only and need no entry; operator decisions
 - 2026-11-14 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-49 update: moved marks specialist-only on the GP calendar and in the B12 charts; B6 0.25 → 0.5 days for U7 and U8 (refines DL-42). D5 (quote-check result shown on every G1 row, the demo row included) is recorded in the SAD §3 page 4 and handed to `@ux.designer` (H-030); no DL entry, as it restores what the SAD already said; operator decisions
+- 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-50 (data model diagram of the happy path in SAD §4; no new table; fund as config entity, `calendar_entries.row_id` and the entry date and mark columns proposed; three open points). Pending operator confirmation
+- 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-50 confirmed: Mermaid one-off, the table list wins, `paragraphs` per run, one `publications` row per publish, precautionary mark copied onto the entry, no stored roll note; operator decisions
