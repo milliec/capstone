@@ -8,4 +8,8 @@ reference/
 
 # Private working docs: kept on disk only, never committed.
 # (The Netlify page is dropped in manually, so it does not need to be tracked.)
-docs/
+# "docs/*" (not "docs/") so the two lines starting with "!" below can make exceptions.
+# Those two files were made public by the operator on 2026-11-16.
+docs/*
+!docs/ai-direction-log.md
+!docs/learning-notes.md
