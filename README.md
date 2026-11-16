@@ -205,7 +205,7 @@ These steps get you set up to read and work on the planning documents.
 ### Prerequisites
 
 - Git
-- Python 3.9 or later
+- Python 3.12 (the app needs `>=3.12,<3.14`; `make install` creates `.venv` with it via `uv`)
 - An AI coding tool that can load persona files, such as Claude Code or Cursor
 
 ### 1. Clone and set up
@@ -281,8 +281,14 @@ capstone/
 │   │   ├── user-stories/     # US-001 to US-015
 │   │   ├── mock-data/        # Mock sources, fund profile, answer key
 │   │   └── prototypes/
-│   ├── 2.build/              # Empty until Build
+│   ├── 2.build/              # Build artifacts: setup, scaffold plan, UX note, backend notes
 │   └── 3.deliver/            # Empty until Deliver
+│
+├── backend/                  # The one FastAPI app: services, runtime, pages (early shell)
+├── config/                   # Business config, e.g. the fictional fund's profile
+├── tests/                    # tier1/ blocks merges; tier2/ if time allows
+├── pyproject.toml            # App dependencies (pinned)
+├── Makefile                  # make install, make run, make test
 │
 └── docs/
     ├── aamad-framework.md    # The AAMAD framework's own README

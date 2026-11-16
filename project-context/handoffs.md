@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-035: Record the B2 service names, the stub rule, two ID schemes and the `trace` columns
+- From: @backend.eng (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
+- Touches: sad.md Build card ("Build approach" row), §4 Backend (services, "Identifiers and versions", table list `trace`), Order of work B2; 2.build/backend.md "Stub function list" and Open Questions 1 to 4
+- Ask: (1) Write the service function names and signatures into the SAD's B2 section, taken from the "Stub function list" in `2.build/backend.md` (named after the §4 routes), so B2 fills them in without renaming. (2) Update the Build card "Build approach" row to say: Sprint 3 stubs move states but run no checks; B2 adds the checks. (3) Add the ID schemes `VER-<run>-<n>` (verdict) and `CAL-<run>` (calendar) to "Identifiers and versions". (4) List the `trace` table's columns before B3 starts.
+- Why: the app shell had to choose names, a stub rule and two ID schemes the SAD does not give; the operator accepted them and wants the SAD to own them.
+- Outcome:
+
 ### H-032: SAD changes for the stubbed UI: demo-rule refusal wording, Retry, empty calendar, failure demo
 - From: @ux.designer (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
 - Touches: sad.md CR-029, DL-44 (decision-log.md), DL-27, EC-014, run-state model (rule 2, the `FAILED` row, "Transitions and guards"), §3 page 3 "No re-run action", §4 routes, refusal codes and failure reasons, `runs` table, data model (DL-50); 2.build/ux.md "Where ux.md and sad.md now disagree" D9 to D12 and §10.3 data gaps G-1 to G-10

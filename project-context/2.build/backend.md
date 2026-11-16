@@ -106,12 +106,12 @@ No agent loop, no retrieval over live state, no side-effecting tool, no model cl
 
 ## Open Questions
 
-1. **Function names.** The SAD has no B2 function names or signatures. The names above are
+1. **Function names.** *Answered 2026-11-16: accepted; SAD to own them (H-035).* The SAD has no B2 function names or signatures. The names above are
    derived from the §4 routes. Confirm them, or have `@system.arch` record them in the SAD.
-2. **Spec drift: stubs with state moves.** The Build card says "a stub holds no check and no state
+2. **Spec drift: stubs with state moves.** *Answered: accepted for the stubbed UI; Build card update in H-035.* The Build card says "a stub holds no check and no state
    logic" (read-only stubs). This shell's stubs move status and phase (operator request,
    2026-11-16). Accept, or hand to `@system.arch` to update the Build card row.
-3. **Verdict and calendar IDs.** The SAD gives no scheme for verdict or calendar IDs; the shell uses
+3. **Verdict and calendar IDs.** *Answered: accepted; SAD to record them (H-035).* The SAD gives no scheme for verdict or calendar IDs; the shell uses
    `VER-<run>-<n>` and `CAL-<run>`.
 4. **Env names.** Only the §4 names the shell needs were added. The `CALL_TIMEOUT_*_S` /
    `STAGE_LIMIT_*_S` renames in `setup.md` Open Points are still waiting.
@@ -126,3 +126,8 @@ No agent loop, no retrieval over live state, no side-effecting tool, no model cl
   controls: none resolved (no model in the shell).
 - 2026-11-16 · persona `backend-eng` · `sync-docs` · proposal made to the operator for `setup.md`
   and `README.md` (Project structure, Prerequisites); not written, waiting for approval.
+- 2026-11-16 · persona `backend-eng` · `sync-docs` · operator approved all three items; applied to
+  `setup.md` (dependency pins, pause-variable sentence) and `README.md` (Prerequisites, Project
+  structure). Operator answered Open Questions 1 to 4: names, stub rule, ID schemes accepted;
+  handoff H-035 asks `@system.arch` to record them in the SAD and to list the `trace` columns
+  before B3.
