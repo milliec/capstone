@@ -81,6 +81,7 @@ by `@backend.eng`, and are recorded here when they do.
 | `CALL_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 90 / 60 / 60 | Per-call timeouts (Build card) |
 | `HTTP_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 85 / 55 / 55 | HTTP client, a few seconds below the call timeout |
 | `STAGE_LIMIT_A_S` / `_B_S` / `_C_S` | 375 / 150 / 30 | Stage limits, on the backend's timer, not `max_execution_time` |
+| `STAND_IN_UNIT_PAUSE_S` | `1` | Seconds each stand-in agent function waits per unit, so units finish one by one. Read **only** when `AGENTS_MODE=stand_in`; never in real mode; `0` in tests (sad.md §4, DL-54, T-PAUSE-1). Added to `.env.example` by `@backend.eng` in B13a, with the code that reads it |
 
 **Open points to confirm against `sad.md` §4** (this block was told to read only the Implementation
 Guidance section, so these were not checked):
@@ -109,7 +110,9 @@ git config core.hooksPath scripts/git-hooks
 `run-checks.sh` runs three checks and **fails closed** (if a check cannot run, the commit is
 blocked):
 
-1. Blocks if `reference/` or `.env` is staged.
+1. Blocks if `reference/`, `.venv` or `.env` is staged, including a file or symlink named exactly
+   `reference` or `.venv` (`.gitignore`'s `reference/` only matches real folders, so a symlink to
+   one is not ignored; found 2026-11-16).
 2. Real-name scan against `reference/real-identifiers.txt` (the same command as `CLAUDE.md`). On a
    hit it prints file and line only, so the log never repeats a real name.
 3. `.venv/bin/aamad validate`.
@@ -170,3 +173,9 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   (pre-commit, pre-push, shared checks) and the Scope & Guard Rules block in `CLAUDE.md`. No
   application code and no dependency installs. No model call was made. The hooks were tested: the
   `.env`-staged block fires.
+- 2026-11-16 · persona `project-mgr` · action `setup-project` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  `run-checks.sh` check 1 now also blocks a staged `.venv`, and a file or symlink named exactly
+  `reference` or `.venv`. Found when a worktree used symlinks to run the hooks; nothing was
+  committed. Pattern tested against nine sample paths. Wrote `scaffold-plan.md` (plan only) and
+  handoff H-033. After PR #58 (DL-54) merged: added `STAND_IN_UNIT_PAUSE_S` to the environment
+  table.

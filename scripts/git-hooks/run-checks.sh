@@ -10,8 +10,10 @@ fail=0
 # 1. Never let real source material or secrets into a commit.
 #    (A pre-push run has nothing staged, so this only bites on pre-commit.)
 staged="$(git diff --cached --name-only)"
-if printf '%s\n' "$staged" | grep -qE '^(reference/|\.env$)'; then
-  echo "BLOCKED: reference/ or .env is staged. Unstage it with: git restore --staged <path>"
+# "(/|$)" also catches a symlink named exactly "reference" or ".venv": .gitignore's "reference/"
+# only matches real folders, so a symlink to one shows up as an ordinary new file (2026-11-16).
+if printf '%s\n' "$staged" | grep -qE '^(reference(/|$)|\.venv(/|$)|\.env$)'; then
+  echo "BLOCKED: reference/, .venv or .env is staged. Unstage it with: git restore --staged <path>"
   fail=1
 fi
 
