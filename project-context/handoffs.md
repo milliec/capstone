@@ -34,19 +34,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-035: Record the B2 service names, the stub rule, two ID schemes and the `trace` columns
-- From: @backend.eng (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
-- Touches: sad.md Build card ("Build approach" row), §4 Backend (services, "Identifiers and versions", table list `trace`), Order of work B2; 2.build/backend.md "Stub function list" and Open Questions 1 to 4
-- Ask: (1) Write the service function names and signatures into the SAD's B2 section, taken from the "Stub function list" in `2.build/backend.md` (named after the §4 routes), so B2 fills them in without renaming. (2) Update the Build card "Build approach" row to say: Sprint 3 stubs move states but run no checks; B2 adds the checks. (3) Add the ID schemes `VER-<run>-<n>` (verdict) and `CAL-<run>` (calendar) to "Identifiers and versions". (4) List the `trace` table's columns before B3 starts.
-- Why: the app shell had to choose names, a stub rule and two ID schemes the SAD does not give; the operator accepted them and wants the SAD to own them.
-- Outcome:
 
-### H-032: SAD changes for the stubbed UI: demo-rule refusal wording, Retry, empty calendar, failure demo
-- From: @ux.designer (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
-- Touches: sad.md CR-029, DL-44 (decision-log.md), DL-27, EC-014, run-state model (rule 2, the `FAILED` row, "Transitions and guards"), §3 page 3 "No re-run action", §4 routes, refusal codes and failure reasons, `runs` table, data model (DL-50); 2.build/ux.md "Where ux.md and sad.md now disagree" D9 to D12 and §10.3 data gaps G-1 to G-10
-- Ask: One batch, as the operator asked. (1) **D9:** update the `DEMO_ROW_NOT_APPROVABLE` sentence in CR-029 and DL-44 to the wording in ux.md §5. (2) **D11:** update DL-27 and EC-014 to the empty-calendar message in ux.md page 7 item 3 (Open Question 12). (3) **D10, G-3:** allow Retry of the failed stage only, keeping earlier decisions and auditing it (ux.md page 3 "Failed review"): a transition out of `FAILED`, its route, guard, refusal codes and audit event, which failure reasons allow it, how it counts towards the cost cap, and what happens to outputs the failed stage already stored. (4) **D12, G-10:** add the failure demo (ux.md page 2 and page 3 "Failure demo"): a start-time switch on the run like `demo_planted_row`, stand-in agents only, refused with the real model and on evaluation runs, audited, with its own failure reason; it fails step 1 once (Open Question 21). Also please answer the data gaps G-1, G-2 and G-4 to G-9 in ux.md §10.3; they need no new behaviour, only a decision on where the data comes from.
-- Why: The operator approved these for the stubbed UI ("error and retry" is on the minimal UI bar), and Retry and the failure demo are new behaviour, which the project rules say is a SAD edit first. Until (3) lands, the build uses the fallback in ux.md (no Retry form; UX-022).
-- Outcome: (the owner fills this in)
 
 ### H-027: The weekend-option refusal is not shown in the mock-up; build it from ux.md
 - From: operator   To: @frontend.eng   Date: 2026-11-14
@@ -89,6 +77,22 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-035: Record the B2 service names, the stub rule, two ID schemes and the `trace` columns
+- From: @backend.eng (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
+- Touches: sad.md Build card ("Build approach" row), §4 Backend (services, "Identifiers and versions", table list `trace`), Order of work B2; 2.build/backend.md "Stub function list" and Open Questions 1 to 4
+- Ask: (1) Write the service function names and signatures into the SAD's B2 section, taken from the "Stub function list" in `2.build/backend.md` (named after the §4 routes), so B2 fills them in without renaming. (2) Update the Build card "Build approach" row to say: Sprint 3 stubs move states but run no checks; B2 adds the checks. (3) Add the ID schemes `VER-<run>-<n>` (verdict) and `CAL-<run>` (calendar) to "Identifiers and versions". (4) List the `trace` table's columns before B3 starts.
+- Why: the app shell had to choose names, a stub rule and two ID schemes the SAD does not give; the operator accepted them and wants the SAD to own them.
+- Outcome: Done 2026-11-16 by `@system.arch` in `1.define/sad.md`. (1) New §4 "Service functions" table (names and signatures from `2.build/backend.md`, unchanged) and a note that a stage function gets the run ID and the stage name; "How the layers connect" says the same. (2) Build card "Build approach": stand-in shell stubs move status and phase and write units, audit, calendar and publication records but run no check; allowed only in stand-in mode; the first green path cannot pass before B2's checks. "Sprint 3" was not used. (3) "Identifiers and versions": `VER-<run>-<n>` and `CAL-<run>`. (4) New `trace` column list in §4, before B3. One note: the "form `decision` matches the route" check for decline stays in the page handler's form validation, because `decline_calendar` has no `decision` argument. `backend.md` not edited.
+
+
+### H-032: SAD changes for the stubbed UI: demo-rule refusal wording, Retry, empty calendar, failure demo
+- From: @ux.designer (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
+- Touches: sad.md CR-029, DL-44 (decision-log.md), DL-27, EC-014, run-state model (rule 2, the `FAILED` row, "Transitions and guards"), §3 page 3 "No re-run action", §4 routes, refusal codes and failure reasons, `runs` table, data model (DL-50); 2.build/ux.md "Where ux.md and sad.md now disagree" D9 to D12 and §10.3 data gaps G-1 to G-10
+- Ask: One batch, as the operator asked. (1) **D9:** update the `DEMO_ROW_NOT_APPROVABLE` sentence in CR-029 and DL-44 to the wording in ux.md §5. (2) **D11:** update DL-27 and EC-014 to the empty-calendar message in ux.md page 7 item 3 (Open Question 12). (3) **D10, G-3:** allow Retry of the failed stage only, keeping earlier decisions and auditing it (ux.md page 3 "Failed review"): a transition out of `FAILED`, its route, guard, refusal codes and audit event, which failure reasons allow it, how it counts towards the cost cap, and what happens to outputs the failed stage already stored. (4) **D12, G-10:** add the failure demo (ux.md page 2 and page 3 "Failure demo"): a start-time switch on the run like `demo_planted_row`, stand-in agents only, refused with the real model and on evaluation runs, audited, with its own failure reason; it fails step 1 once (Open Question 21). Also please answer the data gaps G-1, G-2 and G-4 to G-9 in ux.md §10.3; they need no new behaviour, only a decision on where the data comes from.
+- Why: The operator approved these for the stubbed UI ("error and retry" is on the minimal UI bar), and Retry and the failure demo are new behaviour, which the project rules say is a SAD edit first. Until (3) lands, the build uses the fallback in ux.md (no Retry form; UX-022).
+- Outcome: Checked 2026-11-16 by `@system.arch`; no SAD edit needed, because the batch had already landed in `sad.md` as DL-51 to DL-54. (1) D9: CR-029 and DL-44 carry the ux.md §5 sentence. (2) D11: DL-27 and EC-014 carry the new empty-calendar message. (3) D10, G-3: run-state rule 10, `POST …/retry`, `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`, CR-032, DL-51. (4) D12, G-10: `demo_fail_step1`, failure reason 8 `demo failure`, CR-033, DL-52. G-1, G-2, G-4 to G-9 are answered in ux.md §10.3 (DL-53, SOQ-33). `ux.md` D9 to D12 are marked resolved. This entry was only waiting to be closed.
+
 
 ### H-034: Bring ux.md up to DL-51 to DL-54, and decide on stashed ux.md edits
 - From: @project.mgr   To: @ux.designer   Date: 2026-11-16
