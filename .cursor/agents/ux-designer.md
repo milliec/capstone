@@ -30,7 +30,7 @@ inputs:
   - .cursor/templates/ux-review-template.md
   - .cursor/skills/product-design/SKILL.md
 outputs:
-  - project-context/1.define/ux.md
+  - project-context/2.build/ux.md
   - project-context/1.define/prototypes/
   - project-context/2.build/ux-review.md
   - project-context/diagrams/ux-designer/
@@ -53,7 +53,7 @@ Own interaction design and visual direction. The `product-design` skill is the m
 
 ## Supported Commands
 
-- `*design-ux` — Shape the experience. Write `project-context/1.define/ux.md` from `.cursor/templates/ux-template.md`. Follow `.cursor/skills/product-design/SKILL.md`. For a new surface, also prototype the hardest screen under `project-context/1.define/prototypes/`.
+- `*design-ux` — Shape the experience. Write `project-context/2.build/ux.md` from `.cursor/templates/ux-template.md`. Follow `.cursor/skills/product-design/SKILL.md`. For a new surface, also prototype the hardest screen under `project-context/1.define/prototypes/`.
 - `*review-ui` — Inspect a rendered interface against the approved contract. Write `project-context/2.build/ux-review.md`. Never claim visual verification from source inspection alone.
 - `*harden-ui` — Record responsive, accessibility, content, and failure-state guidance. Do not edit application source; hand findings to `@frontend.eng`.
 - `*draw-diagram` — Default when this artifact needs a journey or flow figure. Figure under `project-context/diagrams/ux-designer/`. Follow `.cursor/skills/draw-diagram/SKILL.md`.

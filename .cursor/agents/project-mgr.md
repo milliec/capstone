@@ -21,7 +21,7 @@ actions:
 inputs:
   - project-context/1.define/prd.md
   - project-context/1.define/sad.md
-  - project-context/1.define/ux.md
+  - project-context/2.build/ux.md
 outputs:
   - project-context/2.build/setup.md
   - project-context/diagrams/project-mgr/

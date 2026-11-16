@@ -33,7 +33,7 @@
 ## @ux.designer - UX Designer
 - Objective: Own interaction design and visual direction for user-facing surfaces.
 - Key Tasks:
-  - Shape the experience into `project-context/1.define/ux.md` and wait for operator approval.
+  - Shape the experience into `project-context/2.build/ux.md` and wait for operator approval.
   - Adopt, create, or extend the design system per `ui.design_system_mode`; do not rewrite an external brand document.
   - Prototype the hardest new screen when the surface is new (`project-context/1.define/prototypes/`).
   - Review rendered interfaces into `ux-review.md` when asked; do not implement production frontend.
