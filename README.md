@@ -4,7 +4,8 @@ AI agents read regulatory text and draft source-linked filing rules. A complianc
 approves them, and ordinary code turns them into a fund's compliance calendar.
 
 > **Status: Define phase.** Requirements, user stories and mock data are written. The architecture
-> (SAD) is next. **There is no application code yet.**
+> (SAD) is next. **The application is an early shell** (placeholder pages, stub services,
+> stand-in agents, no model call): see [Getting started](#getting-started).
 >
 > This is a six-week capstone project. All data is mock and the fund is fictional. Nothing here is
 > legal advice.
@@ -177,7 +178,29 @@ the work and hand over through written documents in `project-context/`. Persona 
 
 ## Getting started
 
-There is no app to run yet. These steps get you set up to read and work on the planning documents.
+### Run the app shell (stand-in agents only)
+
+The app is an early shell: mock sign-in and the seven pages as unstyled placeholders, driven by
+stub services and stand-in agents. **No AI model is called.** Full run instructions come in B10.
+
+```bash
+make install              # Python 3.12 .venv, app and test dependencies, git hooks
+cp .env.example .env      # then set SESSION_SECRET to any local random value
+make run                  # open http://localhost:8000 ; stop with Ctrl+C
+make test                 # every test, stand-in agents, no model call
+```
+
+**Sign in** with one of the two mock identities (no password):
+
+- **Compliance specialist**: Filing rules, start a review, steps 2 to 4, publish.
+- **General Partner / Fund Manager**: the calendar only, view only.
+
+Tick "Make step 1 fail (demo)" on the start form to see the failed state. To start from nothing,
+stop the app and delete `data/app.db`.
+
+### Work on the planning documents
+
+These steps get you set up to read and work on the planning documents.
 
 ### Prerequisites
 

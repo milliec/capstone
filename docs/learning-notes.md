@@ -313,6 +313,14 @@ recompute the deliberate mistakes as well as the correct results. Then prove a n
 the old value back in a throwaway copy and watch the test go red. A test that has never failed hasn't
 shown it can catch anything.
 
+**A test that fails first can catch the code, not just the feature.** The stand-in pause had a test
+that swapped Python's `sleep` for a fake one that only writes down what it was asked to wait. The test
+failed: the fake was never called. The code was written `def unit_pause(settings, sleep=time.sleep)`,
+and Python fixes a default value once, when the file loads, so swapping `time.sleep` later changed
+nothing. The fix was `sleep=None`, looking up `time.sleep` at the moment of pausing. Lesson: a
+default is a snapshot, not a live link. And a "real mode never pauses" test only means something if
+the matching "stand-in does pause" test exists and can go red.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -500,3 +508,5 @@ DL-48).
   same thing, name which one is in charge)
 - 2026-11-16 · added one note from the B13 split session (a shortcut to a private folder is not
   covered by that folder's ignore rule)
+- 2026-11-16 · added one note from the app-shell build (a default value is a snapshot; a test that
+  fails first can catch the code)
