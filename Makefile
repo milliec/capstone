@@ -15,7 +15,7 @@ install:
 	git config core.hooksPath scripts/git-hooks
 
 run:
-	$(PY) -m uvicorn backend.main:app --reload --port 8000
+	$(PY) -m uvicorn backend.main:create_app --factory --reload --port 8000
 
 test:
 	$(PY) -m pytest -q

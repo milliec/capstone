@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Filing rules{% endblock %}
+{% block ux_ref %}ux.md page 2.{% endblock %}
+{% block main %}
+<h1>Filing rules</h1>
+
+{% if active_run %}
+<p>Active review: <a href="/specialist/runs/{{ active_run.run_id }}">{{ active_run.run_id }}</a> · {{ active_run.status_words }}</p>
+{% else %}
+<p>No active review (state: idle).</p>
+{% endif %}
+
+<h2>Start a new review</h2>
+<form method="post" action="/specialist/runs">
+  <p>Fund: {{ fund.fund_id }}</p>
+  <p>Agents: {% if agents_mode == "stand_in" %}stand-in agents (fixed test outputs, no AI model is called){% else %}{{ agents_mode }}{% endif %}</p>
+  <p><label><input type="checkbox" name="demo_planted_row" value="true"> Add the demo rule (rule 7)</label></p>
+  {% if agents_mode == "stand_in" %}
+  <p><label><input type="checkbox" name="demo_fail_step1" value="true"> Make step 1 fail (demo)</label></p>
+  {% endif %}
+  <button type="submit">Start a new review</button>
+</form>
+
+<h2>Reviews</h2>
+{% if runs %}
+<table>
+  <thead><tr><th>Review</th><th>Started</th><th>By</th><th>Status</th><th>Demo rule</th><th>Failure demo</th></tr></thead>
+  <tbody>
+  {% for r in runs %}
+    <tr>
+      <td><a href="/specialist/runs/{{ r.run_id }}">{{ r.run_id }}</a></td>
+      <td>{{ r.started_at }}</td><td>{{ r.started_by }}</td><td>{{ r.status_words }}</td>
+      <td>{{ "on" if r.demo_planted_row else "off" }}</td><td>{{ "on" if r.demo_fail_step1 else "off" }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No reviews yet.</p>
+{% endif %}
+{% endblock %}

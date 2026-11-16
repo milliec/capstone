@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block head %}{% if run.is_working %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
+{% block title %}Review status{% endblock %}
+{% block ux_ref %}ux.md page 3 (idle, running, done, failed).{% endblock %}
+{% block main %}
+{% include "parts/review_nav.html" %}
+<h1>Review {{ run.run_id }}</h1>
+{% include "parts/run_labels.html" %}
+{% if notice %}<p role="status">{{ notice }}</p>{% endif %}
+{% if run.is_working %}<p>This page refreshes every 3 seconds while AI or code works.</p>{% endif %}
+
+<p>Started {{ run.started_at }} by {{ run.started_by }} · model cost so far US${{ "%.2f"|format(run.cost_so_far) }}</p>
+
+<h2>Units</h2>
+<table>
+  <thead><tr><th>Stage</th><th>Attempt</th><th>Unit</th><th>Status</th><th>Failure reason</th></tr></thead>
+  <tbody>
+  {% for u in units %}
+    <tr><td>{{ u.stage }}</td><td>{{ u.stage_attempt }}</td><td>{{ u.label }}</td><td>{{ u.status }}</td><td>{{ u.failure_reason or "" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% if run.is_at_gate %}
+<h2>Abandon this review</h2>
+<form method="post" action="/specialist/runs/{{ run.run_id }}/abandon">
+  <input type="hidden" name="run_version" value="{{ run.run_version }}">
+  <p><label>Reason <input type="text" name="reason"></label></p>
+  <button type="submit">Abandon review</button>
+</form>
+{% endif %}
+
+{% if run.status == "FAILED" %}
+<form method="post" action="/specialist/runs/{{ run.run_id }}/retry">
+  <input type="hidden" name="run_version" value="{{ run.run_version }}">
+  <button type="submit">Retry step (stub, B13b)</button>
+</form>
+<p><a href="/specialist/runs">Start a new review from Filing rules</a></p>
+{% endif %}
+{% endblock %}

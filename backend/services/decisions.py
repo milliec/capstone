@@ -64,11 +64,15 @@ def decide_row(conn: sqlite3.Connection, *, row_id: str, version: int, decision:
 
 
 def decide_verdict(conn: sqlite3.Connection, *, verdict_id: str, version: int, decision: str,
-                   value: str | None, reason: str | None, actor: str) -> str:
+                   value: str | None, confirm_reason: str | None, override_reason: str | None,
+                   decide_reason: str | None, actor: str) -> str:
     """STUB — replace in B2. Confirm, override or decide one verdict at G2. Returns the run ID.
 
-    B2 writes one verdict_decisions line and reads only the chosen answer's reason (DL-48).
+    Each answer has its own reason field; only the chosen answer's field is read (DL-48).
+    B2 writes one verdict_decisions line and adds the checks.
     """
+    reason = {"confirm": confirm_reason, "override": override_reason,
+              "decide": decide_reason}.get(decision)
     run_id = run_id_from_child(verdict_id)
     write_audit(conn, fund_id=FUND_ID, actor=actor, event_type="decision", run_id=run_id,
                 subject_id=verdict_id, subject_version=version,

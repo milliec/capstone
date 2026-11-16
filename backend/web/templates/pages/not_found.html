@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Page not found{% endblock %}
+{% block ux_ref %}ux.md §1.7 (404).{% endblock %}
+{% block main %}
+<h1>We can't find that page</h1>
+<p>The address may be wrong, or there is no review with this number.</p>
+{% if identity and identity.role == "gp" %}
+<p><a href="/calendar">Go to the calendar</a></p>
+{% else %}
+<p><a href="/specialist/runs">Go to Filing rules</a></p>
+{% endif %}
+{% endblock %}

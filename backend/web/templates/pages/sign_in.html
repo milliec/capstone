@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block ux_ref %}ux.md page 1.{% endblock %}
+{% block main %}
+<h1>Sign in</h1>
+{% if refusal %}<p role="alert">{{ refusal }}</p>{% endif %}
+<p>Demo with mock data. No password.</p>
+{% for who in identities %}
+<form method="post" action="/sign-in">
+  <input type="hidden" name="identity_id" value="{{ who.identity_id }}">
+  <button type="submit">Sign in as {{ who.label }}</button>
+</form>
+{% endfor %}
+{% endblock %}

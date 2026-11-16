@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Calendar{% endblock %}
+{% block ux_ref %}ux.md page 7 (List view).{% endblock %}
+{% block main %}
+<h1>Calendar</h1>
+{% if not published %}
+<p>The calendar is being prepared.</p>
+{% else %}
+<p>Published {{ published.published_at }}{% if published.agents_mode == "stand_in" %} · made with stand-in agents (fixed test outputs){% endif %}</p>
+<table>
+  <thead><tr><th>Due date</th><th>Filing</th><th>Precautionary</th></tr></thead>
+  <tbody>
+  {% for e in published.entries %}
+    <tr><td>{{ e.due_date }}</td><td>{{ e.obligation_name }}</td><td>{{ "yes" if e.precautionary else "no" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
