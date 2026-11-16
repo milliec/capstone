@@ -13,3 +13,10 @@ reference/
 docs/*
 !docs/ai-direction-log.md
 !docs/learning-notes.md
+
+# The local SQLite database and process log (SAD §5). Delete data/app.db to start from nothing.
+data/
+
+# Python packaging leftovers from "pip install -e ."
+*.egg-info/
+.pytest_cache/
