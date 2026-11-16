@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Check the calendar and publish{% endblock %}
+{% block ux_ref %}ux.md page 6 (G3).{% endblock %}
+{% block main %}
+{% include "parts/review_nav.html" %}
+<h1>Step 4: Check the calendar and publish</h1>
+{% include "parts/run_labels.html" %}
+
+{% if not view.calendar_id %}
+<p>Not reached yet: no calendar has been worked out for this review.</p>
+{% else %}
+<p>Calendar {{ view.calendar_id }}</p>
+<table>
+  <thead><tr><th>Due date</th><th>Rule</th><th>Period</th><th>Moved</th><th>Precautionary</th><th>Open question</th></tr></thead>
+  <tbody>
+  {% for e in view.entries %}
+    <tr><td>{{ e.due_date }}</td><td>{{ e.obligation_name }}</td><td>{{ e.period }}</td>
+        <td>{{ "yes" if e.moved else "no" }}</td><td>{{ "yes" if e.precautionary else "no" }}</td><td>{{ e.open_question_id or "" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p>Rejected rules to acknowledge: {{ view.rejected_row_ids or "none" }} · Unused paragraphs: {{ view.uncited_paragraph_ids or "none" }}</p>
+
+{% if run.phase == "AT_G3" and run.status == "ACTIVE" %}
+<form method="post" action="/specialist/calendars/{{ view.calendar_id }}/publish">
+  <input type="hidden" name="run_version" value="{{ run.run_version }}">
+  {% for id in view.rejected_row_ids %}<input type="hidden" name="rejected_row_ids" value="{{ id }}">{% endfor %}
+  {% for id in view.uncited_paragraph_ids %}<input type="hidden" name="uncited_paragraph_ids" value="{{ id }}">{% endfor %}
+  <p><label><input type="checkbox" name="acknowledged" value="true"> I have read the rejected rules and unused paragraphs</label></p>
+  <button type="submit">Publish calendar</button>
+</form>
+<form method="post" action="/specialist/calendars/{{ view.calendar_id }}/decline">
+  <input type="hidden" name="run_version" value="{{ run.run_version }}">
+  <p><label>Reason <input type="text" name="decline_reason"></label></p>
+  <button type="submit">Close without publishing</button>
+</form>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,36 @@
+# Application dependencies for the one FastAPI process (SAD §4).
+# Versions are pinned exactly to what was installed on 2026-11-16 with Python 3.12.16, and recorded
+# in project-context/2.build/backend.md. CrewAI is NOT here yet: it comes in with block B3
+# (stand-in part), and no model is called before the first green path (Build card).
+
+[project]
+name = "compliance-calendar"
+version = "0.0.1"
+description = "Stubbed app shell: mock sign-in, seven placeholder pages, stand-in agents only."
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi==0.163.1",          # the web framework (routes, forms, background tasks)
+    "uvicorn==0.54.0",           # the server that runs the app locally
+    "jinja2==3.1.6",             # the HTML templates
+    "python-multipart==0.0.34",  # lets FastAPI read HTML form posts
+    "itsdangerous==2.2.0",       # signs the session cookie (mock sign-in)
+    "pyyaml==6.0.3",             # reads config/fund/FND-DEMO-01.yaml
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest==9.2.0",
+    "httpx==0.28.1",             # needed by FastAPI's TestClient
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Only backend/ is application code. Without this line, setuptools would try to treat every
+# top-level folder (config/, scripts/, tests/ ...) as a package and refuse to install.
+[tool.setuptools.packages.find]
+include = ["backend*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

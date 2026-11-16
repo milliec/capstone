@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Check the rules{% endblock %}
+{% block ux_ref %}ux.md page 4 (G1).{% endblock %}
+{% block main %}
+{% include "parts/review_nav.html" %}
+<h1>Step 2: Check the rules</h1>
+{% include "parts/run_labels.html" %}
+
+{% for r in view.rows %}
+<section>
+  <h2>{{ r.row_id }} · {{ r.obligation_name }}{% if r.origin == "demo" %} [Demo]{% endif %}</h2>
+  <ul>
+    <li>Frequency: {{ r.frequency }} · anchor: {{ r.anchor }} · offset: {{ r.offset }}</li>
+    <li>Recipient: {{ r.recipient_code }} · who files: {{ r.responsible_role }} · business-day rule: {{ r.business_day_rule }}</li>
+    <li>Source {{ r.source_paragraph_id }}: “{{ r.quote }}”</li>
+    <li>Decision so far: {{ r.decision or "none" }}</li>
+  </ul>
+  {% if run.phase == "AT_G1" and run.status == "ACTIVE" %}
+  <form method="post" action="/specialist/rows/{{ r.row_id }}/decision">
+    <input type="hidden" name="version" value="{{ r.version }}">
+    <p><label><input type="radio" name="decision" value="approve"> Approve</label>
+       <label><input type="radio" name="decision" value="reject"> Reject</label></p>
+    <p><label>Business-day rule
+      <select name="business_day_rule"><option value="">Choose</option><option>roll_forward</option><option>roll_backward</option><option>no_roll</option></select></label>
+       <label>Approve reason <input type="text" name="approve_reason"></label>
+       <label>Reject reason <input type="text" name="reject_reason"></label></p>
+    <button type="submit">Save decision</button>
+  </form>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if run.phase == "AT_G1" and run.status == "ACTIVE" %}
+<form method="post" action="/specialist/runs/{{ run.run_id }}/g1/complete">
+  <input type="hidden" name="run_version" value="{{ run.run_version }}">
+  <button type="submit">Finish checking</button>
+</form>
+{% endif %}
+{% endblock %}

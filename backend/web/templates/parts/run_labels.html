@@ -1,0 +1,7 @@
+{# PLACEHOLDER run labels (ux.md §1.3 item 3): text tags, never colour alone. Needs `run`. #}
+<p>
+  {% if run.agents_mode == "stand_in" %}<span>[Stand-in agents]</span>{% endif %}
+  {% if run.demo_planted_row %}<span>[Demo rule on]</span>{% endif %}
+  {% if run.demo_fail_step1 %}<span>[Failure demo on]</span>{% endif %}
+</p>
+<p>Status: <strong>{{ run.status_words }}</strong> ({{ run.status }} · {{ run.phase }} · state: {{ run.workflow_state }} · version {{ run.run_version }})</p>

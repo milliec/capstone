@@ -64,8 +64,10 @@ architect before anyone cites a single D-number.
 - **`guardrail_max_retries: 0`.** No automatic retry or re-ask. The only retry is the one allowed
   per model call by the Timeouts row (a second timeout becomes `model service`).
 
-Nothing in this block installs or imports CrewAI. Dependencies come in with the backend block (B2),
-by `@backend.eng`, and are recorded here when they do.
+Nothing in this block installs or imports CrewAI. The app shell (`@backend.eng`, 2026-11-16) installed
+the web stack, pinned in `pyproject.toml`: fastapi 0.163.1, uvicorn 0.54.0, jinja2 3.1.6,
+python-multipart 0.0.34, itsdangerous 2.2.0, pyyaml 6.0.3; for tests, pytest 9.2.0 and httpx 0.28.1.
+CrewAI still comes in with B3 (stand-in part) and is recorded here then.
 
 ## Environment variables
 
@@ -81,7 +83,7 @@ by `@backend.eng`, and are recorded here when they do.
 | `CALL_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 90 / 60 / 60 | Per-call timeouts (Build card) |
 | `HTTP_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 85 / 55 / 55 | HTTP client, a few seconds below the call timeout |
 | `STAGE_LIMIT_A_S` / `_B_S` / `_C_S` | 375 / 150 / 30 | Stage limits, on the backend's timer, not `max_execution_time` |
-| `STAND_IN_UNIT_PAUSE_S` | `1` | Seconds each stand-in agent function waits per unit, so units finish one by one. Read **only** when `AGENTS_MODE=stand_in`; never in real mode; `0` in tests (sad.md §4, DL-54, T-PAUSE-1). Added to `.env.example` by `@backend.eng` in B13a, with the code that reads it |
+| `STAND_IN_UNIT_PAUSE_S` | `1` | Seconds each stand-in agent function waits per unit, so units finish one by one. Read **only** when `AGENTS_MODE=stand_in`; never in real mode; `0` in tests (sad.md §4, DL-54, T-PAUSE-1). Added to `.env.example` by `@backend.eng` in the app shell (2026-11-16), with the code that reads it |
 
 **Open points to confirm against `sad.md` §4** (this block was told to read only the Implementation
 Guidance section, so these were not checked):
@@ -179,3 +181,6 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   committed. Pattern tested against nine sample paths. Wrote `scaffold-plan.md` (plan only) and
   handoff H-033. After PR #58 (DL-54) merged: added `STAND_IN_UNIT_PAUSE_S` to the environment
   table.
+- 2026-11-16 · persona `backend-eng` · `sync-docs` (operator-approved) · `AAMAD_TARGET_RUNTIME=crewai`
+  · recorded the app shell's pinned dependencies under "CrewAI settings" and corrected where
+  `STAND_IN_UNIT_PAUSE_S` was added to `.env.example`. Nothing else changed.

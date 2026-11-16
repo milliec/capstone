@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Confirm what applies{% endblock %}
+{% block ux_ref %}ux.md page 5 (G2).{% endblock %}
+{% block main %}
+{% include "parts/review_nav.html" %}
+<h1>Step 3: Confirm what applies</h1>
+{% include "parts/run_labels.html" %}
+
+{% if run.phase in ("AT_G1", "B_RUNNING", "A_RUNNING") and run.status == "ACTIVE" %}
+<p>Not reached yet.</p>
+{% else %}
+{% for v in view.verdicts %}
+<section>
+  <h2>{{ v.verdict_id }} · {{ v.obligation_name }}</h2>
+  <ul>
+    <li>AI answer: {{ v.verdict }} · cites {{ v.cited_fact_ids }}</li>
+    <li>Reasoning: {{ v.reasoning }}</li>
+    {% if v.missing_information %}<li>Missing: {{ v.missing_information }}</li>{% endif %}
+    <li>Decision so far: {{ v.decision or "none" }}</li>
+  </ul>
+  {% if run.phase == "AT_G2" and run.status == "ACTIVE" %}
+  <form method="post" action="/specialist/verdicts/{{ v.verdict_id }}/decision">
+    <input type="hidden" name="version" value="{{ v.version }}">
+    <p><label><input type="radio" name="decision" value="confirm"> Confirm</label>
+       <label><input type="radio" name="decision" value="override"> Overrule</label>
+       <label><input type="radio" name="decision" value="decide"> Decide</label></p>
+    <p><label>Value <select name="value"><option value="">Choose</option><option>applies</option><option>does_not_apply</option></select></label></p>
+    <p><label>Confirm reason <input type="text" name="confirm_reason"></label>
+       <label>Overrule reason <input type="text" name="override_reason"></label>
+       <label>Decide reason <input type="text" name="decide_reason"></label></p>
+    <button type="submit">Save decision</button>
+  </form>
+  {% endif %}
+</section>
+{% endfor %}
+{% endif %}
+
+{% if run.phase == "AT_G2" and run.status == "ACTIVE" %}
+<form method="post" action="/specialist/runs/{{ run.run_id }}/g2/complete">
+  <input type="hidden" name="run_version" value="{{ run.run_version }}">
+  <button type="submit">Finish and calculate dates</button>
+</form>
+{% endif %}
+{% endblock %}
