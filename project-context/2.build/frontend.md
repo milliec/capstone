@@ -1,0 +1,659 @@
+# Frontend: build spec for the stubbed UI (B5 pages, with the light visual pass)
+
+Owner: `@frontend.eng`. Branch `frontend-spec` (made from `main` at `12c674b`, because work never
+starts on `main`). **Stage 1 of 2: spec only.** This file changes no template, stylesheet or code.
+Stage 2 starts only after the operator replies "approve".
+
+For: the operator (approval), `@frontend.eng` (stage 2), `@backend.eng` (the view fields in §10,
+proposed handoff H-036), `@qa.eng` (the checks in §6 and §7).
+
+**Goal.** The seven pages, the 403 and 404 pages and the shared frame, rendered by the real app on
+top of the stand-in shell (`backend.md`), so the operator can click through the Friday demo
+script (§7) with stand-in data and no model call.
+
+**Two references, two jobs** (ux.md, top). `ux.md` (approved 2026-11-16) is the reference for
+behaviour, states, wording and refusals. The mock-ups in `docs/prototype/` and `app.css` are the
+reference for layout and look. Where they differ on behaviour or wording, `ux.md` wins.
+
+**The one rule that shapes every template** (ux.md §1.2, SAD §4 "Page handlers", Never row):
+**the page never decides.** A template shows what the service view gives it and posts forms. It
+holds the fixed `ux.md` wording, keyed by values the server sends. It does not compare counts,
+work out a state, check a rule, or hide a button to enforce one. Where a template needs something
+the stub services do not send yet, this spec lists it in §10 for `@backend.eng`; the template does
+not work it out instead.
+
+---
+
+## 1. Templates: what each one is, and which route and stub it uses
+
+All templates live in `backend/web/templates/`. Stage 2 replaces every placeholder there. The
+routes and service functions already exist (`backend.md`, SAD §4 "Service functions", H-035);
+none is renamed.
+
+### 1.1 Pages
+
+| Template | ux.md | Route(s) it serves | Handler (`backend/web/routes/`) | Service functions it shows or posts to |
+|---|---|---|---|---|
+| `pages/sign_in.html` | page 1 | `GET /sign-in`, `POST /sign-in` | `sign_in.sign_in_page`, `sign_in_submit` | `auth.IDENTITIES`, `auth.sign_in` |
+| `pages/filing_rules.html` | page 2 | `GET /specialist/runs`; form → `POST /specialist/runs` | `runs.filing_rules`, `runs.start_review` | `runs.list_runs`, `runs.get_active_run`, `runs.start_run` |
+| `pages/review_status.html` | page 3 | `GET /specialist/runs/{run_id}`; form → `POST …/abandon` | `runs.review_status`, `runs.abandon` | `runs.get_run`, `runs.list_units`, `runs.abandon_run` |
+| `pages/check_rules.html` | page 4 | `GET /specialist/runs/{run_id}/g1`; forms → `POST /specialist/rows/{row_id}/decision`, `POST …/g1/complete` | `gates.check_rules`, `decide_row`, `complete_g1` | `decisions.get_g1_view`, `decisions.decide_row`, `gates.complete_g1` |
+| `pages/confirm_applies.html` | page 5 | `GET …/g2`; forms → `POST /specialist/verdicts/{verdict_id}/decision`, `POST …/g2/complete` | `gates.confirm_applies`, `decide_verdict`, `complete_g2` | `decisions.get_g2_view`, `decisions.decide_verdict`, `gates.complete_g2` |
+| `pages/publish.html` | page 6 | `GET …/g3`; one form, two buttons → `POST /specialist/calendars/{calendar_id}/publish` or `…/decline` | `calendar.publish_page`, `publish`, `decline` | `calendar.get_g3_view`, `publishing.publish_calendar`, `publishing.decline_calendar` |
+| `pages/calendar.html` | page 7 | `GET /calendar` | `calendar.calendar_page` | `calendar.get_published_calendar` |
+| `pages/no_access.html` | §1.7 (403) | any specialist route, as the General Partner | `main.forbidden` | `auth.require_role` (the `FORBIDDEN` refusal) |
+| `pages/not_found.html` | §1.7 (404) | an address or review that does not exist | `main.http_error` | — |
+| `pages/server_error.html` (**new**) | §1.7 (500) | — | needs a 500 handler in `main.py` (§10, item W-4) | — |
+
+**Retry is left out.** The current placeholder has a "Retry step (stub, B13b)" form. B5 builds the
+**"Without Retry"** failed page (ux.md page 3, UX-022): no Retry form, button or text in the page
+source, not hidden and not disabled. The `POST …/retry` route stays in the backend for B13b; no
+template posts to it until then.
+
+### 1.2 Shared parts
+
+| Part | ux.md | Used on | Contents |
+|---|---|---|---|
+| `base.html` | §1.3 | every page | `<title>` (`<Page name> · ACME Compliance calendar (demo)`, prefixed `Not done: ` after a refusal); fonts and `site.css`; a skip link to `#main`; the sidebar (except on sign-in); the main column in the §1.3 order: breadcrumb → H1 and lead → run labels → refusal slot → stepper → page content |
+| `parts/sidebar.html` | §1.3 | every page but sign-in | wordmark "acme" and "Compliance calendar"; fund block; `<nav aria-label="Main">` with `aria-current="page"`; the **"Your turn"** tag on Filing rules; identity, "Demo with mock data", "Sign out" form |
+| `parts/breadcrumb.html` | §1.3 item 1 | pages 3 to 6 | "Filing rules › Luxembourg UCI Part II › Review {n}", first item a link to page 2 |
+| `parts/run_labels.html` | §1.3 item 3 | pages 3 to 6 | text tags "Stand-in agents", "Demo rule on", "Failure demo on", each only when it applies |
+| `parts/stepper.html` | §1.4 | pages 3 to 6 | an `<ol>` of four steps; each has its number, title and state word; done and "Your turn" steps are links; `aria-current="step"` on the current one |
+| `parts/status_banner.html` | §1.5, page 3 item 4 | page 3 | the status pill, the status sentence, "Last updated …" and the refresh controls (§4) |
+| `parts/refresh_controls.html` | page 3 | page 3, only while AI or code works | the refresh sentence, "Refresh now", "Stop automatic refresh" / "Turn automatic refresh back on" |
+| `parts/units_table.html` | page 3 item 7 | page 3 | one real table per unit group, columns Unit · Status |
+| `parts/row_card.html` | page 4 item 5 | page 4 | the rule card in its fixed reading order: H2 and tags → quote → quote check → cited paragraph → flags → fields → OQ-7 mark → decision form or decided line |
+| `parts/flag.html` | page 4 item 5.5 | inside the row card | type heading, the one-line rule, "The rule says" / "The source says" |
+| `parts/decision_rule.html` | §4 "Decision form", page 4 | inside the row card | answer-first form, Approve or Reject (§3) |
+| `parts/decision_answer.html` | page 5 item 7 | the G2 card | answer-first form, Confirm or Overrule, or for "can't tell", Add or Leave off (§3) |
+| `parts/decision_publish.html` | page 6 item 6 | page 6 | answer-first form, publish or close without publishing (§3) |
+| `parts/macros.html` | §1.5, §4, §5 | everywhere | Jinja macros: `status_tag(words, tone)`, `refusal_box(refusal)`, `refusal_line(refusal)`, `mark_label(mark)`, `field_hint(id, text)` |
+| `parts/not_reached.html` | pages 4 to 6 "Not yet", §"Closed review" | pages 4 to 6 | the one-line "not ready yet" or "This review ended before this step." message and its link |
+
+`parts/review_nav.html` (the placeholder links between steps) is deleted. The breadcrumb and the
+stepper replace it.
+
+---
+
+## 2. Each page: states, data read, forms posted
+
+"Reads" names the field the template needs. ✅ = the stub view sends it today. ⏳ = it does not
+yet; it is in §10 for `@backend.eng`. The template never works a ⏳ field out by itself.
+
+### Page 1 · Sign-in
+
+| | |
+|---|---|
+| **States** | default; refused (`VALIDATION`: an identity that does not exist) |
+| **Reads** | `identities[]` (`identity_id`, `label`) ✅; `refusal` ✅ (a plain string today; ⏳ the shared refusal object) |
+| **Shows** | no sidebar; "acme"; H1 "Sign in to the demo"; the intro line (carries the demo label, UX-001); two forms, equal weight, each with its hint; "The fund and the firm are fictional." |
+| **Posts** | `POST /sign-in` with `identity_id` (hidden), one form per identity. Buttons: "Sign in as the compliance specialist", "Sign in as the General Partner / Fund Manager" |
+
+### Page 2 · Filing rules
+
+| State (ux.md §10.1) | What shows |
+|---|---|
+| idle, no reviews | "No reviews yet. Start the first review below." in place of the table |
+| idle, reviews | the table, newest first; no active-review notice |
+| running, AI working | notice: label "AI is working", "**Review {n}:** {status words}.", link "Open review {n}" |
+| running, your turn | notice: label "Waiting for you", same line, link "Continue checking" |
+| refused `RUN_ACTIVE` | short top line "Not done. A new review can't start while review {n} is in progress." + "Go to 'Start a new review'"; the full sentence beside the button |
+| refused `VALIDATION` | the full sentence at the top and beside the button |
+
+| | |
+|---|---|
+| **Reads** | `runs[]`: `run_id` ✅, `status_words` ✅, `status` ✅, `demo_planted_row` ✅, `started_at` ✅ (ISO, formatted by a filter, §10 W-2), ⏳ `review_number`, ⏳ `status_tone`, ⏳ `ended_because`; `active_run` ✅ with `is_working` / `is_at_gate` ✅; `agents_mode` ✅ (decides whether the failure-demo checkbox is in the form: an option that does not exist in real mode, ux.md page 2, not a hidden button); `fund.fund_id`, `fund.name` ✅; ⏳ `refusal` |
+| **Table** | Review · Started · Demo rule ("On"/"Off") · Status (pill + words) · Ended because. `<th scope="col">` |
+| **Posts** | `POST /specialist/runs`: checkbox `demo_planted_row` (unticked), checkbox `demo_fail_step1` (unticked, stand-in only), button "Start a new review". The form is **always shown** (H-009) |
+
+The placeholder's "By" and "Failure demo" columns are removed (ux.md page 2 table; Open Question 22
+of ux.md: no failure-demo column).
+
+### Page 3 · Review status
+
+| State | H1 | Status pill (words, tone) | Shows | Refresh |
+|---|---|---|---|---|
+| `A_RUNNING` | "Nothing for you to do yet" | "AI is drafting the rules", info | step 1 sentence; units in two groups, "Drafting the rules" and "Checking the drafts" | on |
+| `AT_G1` | "The rules are ready for you to check" | "Your turn: check the rules", action | sentence with {n} rules; link "Check the rules"; abandon form | off |
+| `B_RUNNING` | "Nothing for you to do yet" | "AI is checking what applies", info | units "Checking what applies" | on |
+| `AT_G2` | "Ready for you to confirm what applies" | "Your turn: confirm what applies", action | sentence with {n} and {u}; link "Confirm what applies"; abandon form | off |
+| `C_RUNNING` | "Nothing for you to do yet" | "Working out the dates", info | one unit, "Code, no AI model" | on ("… while the dates are worked out.") |
+| `AT_G3` | "The calendar is ready to check" | "Your turn: publish the calendar", action | sentence with {n} dates; link "Check the calendar and publish"; abandon form | off |
+| `COMPLETED` | "Published" | "Published", success | published sentence; link "See the calendar as the General Partner sees it" | off |
+| `DECLINED` | "Closed without publishing" | "Closed without publishing", neutral | closed sentence + "What needs to change: {reason}"; link "Go to Filing rules" | off |
+| `ABANDONED` | "Abandoned" | "Abandoned", neutral | abandoned sentence + "Your reason: {reason}"; link "Go to Filing rules" | off |
+| `FAILED` | "This review failed" | "Failed", problem | the **Without Retry** sentence: "This review failed at step {k} ({step name}), at unit {unit}. {reason sentence}. Nothing moved forward. Decisions you already made stay in the audit log."; primary link "Start a new review from Filing rules" | off |
+
+Below the banner on every state: the units table(s), "Model cost so far: **US$0.00**." with
+"(stand-in agents make no model calls)" for stand-in reviews, and the details line "Started {date},
+{time}, by Compliance specialist (mock). Fund FND-DEMO-01."
+
+**Abandon** (`AT_G*` only, ux.md page 3 item 10; the SAD says the form shows only at a gate). H2
+"Abandon this review" with `id="abandon"`; the explanatory text; a `<textarea>` labelled "Reason
+for abandoning" with its hint; button "Abandon review" in the secondary style. While AI or code
+works, in its place: "You can abandon this review once it is waiting for you. While AI is working,
+it always finishes by itself." On a closed review: nothing.
+
+| | |
+|---|---|
+| **Reads** | `run` ✅ (`status`, `phase`, `status_words`, `is_working`, `is_at_gate`, `agents_mode`, `demo_planted_row`, `demo_fail_step1`, `cost_so_far`, `run_version`, `started_at`); `units[]` ✅ (`stage`, `label`, `status`, `failure_reason`, `stage_attempt`); ⏳ `review_number`, `status_tone`, `steps[]`, `unit_groups[]` (step 1 needs the "Checking the drafts" group, which the stub does not make), `counts` ({n}, {u}), `failure` (step k, step name, unit label, reason sentence), `ended` (date, time, reason), `published_at`, `started_by_label`, `rendered_at`, `refresh_on` |
+| **Posts** | `POST /specialist/runs/{run_id}/abandon`: `run_version` (hidden), `reason` (the route's field name) |
+
+### Page 4 · Check the rules (G1)
+
+| State | What shows |
+|---|---|
+| not yet (`A_RUNNING`) | `parts/not_reached.html`: "AI is still drafting the rules. They will be here when it finishes." + "Watch progress on the review status page" |
+| at G1, rules to decide | full page: lead, four summary cards, rule index table, one card per rule, unused paragraphs, finish section, "Abandon this review" link |
+| at G1, all decided | every card shows its decision; "To decide 0"; finish section H2 "All rules decided" |
+| refused, about one rule | lands on `#row-{i}`; full sentence inside the card under "Not done"; short top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; the demo rule's tag becomes "Approval blocked" |
+| refused, about the page | full sentence in a box at the top and beside "Finish checking" |
+| after G1, or ended | read-only record; line "You've finished checking the rules. This is the record of the decisions."; no forms. On a review that ended before G1: "This review ended before this step." |
+
+| | |
+|---|---|
+| **Reads** | `view.rows[]` ✅ `row_id`, `version`, `obligation_name`, `frequency`, `anchor`, `offset`, `recipient_code`, `responsible_role`, `business_day_rule`, `source_paragraph_id`, `quote`, `origin`, `decision` (a text read back from the audit log); ⏳ per row: `index`, `quote_check`, `paragraph` (text and document title), `flags[]`, `has_flag`, `open_question`, `needs_who_files`, `status` (to decide / approved / rejected / approval blocked), `decided` (who, when, choices, reason), `refused` (this card holds the refusal); ⏳ page: `total`, `summary` (rules, decided, to decide, checker flags), `filing_parties[]` (value, label), `unused_paragraphs[]`, `next_undecided`, `show_forms`, `stage` (before / at / after) |
+| **Posts** | per rule: `POST /specialist/rows/{row_id}/decision` with `version` (hidden), `decision` (`approve` / `reject`), `business_day_rule` (`roll_forward` / `roll_backward` / `no_roll`), `who_files` (only when the source is silent), `approve_reason` (only when the rule has a flag), `reject_reason`. Page: `POST …/g1/complete` with `run_version`; button "Finish checking", always shown at G1 |
+
+### Page 5 · Confirm what applies (G2)
+
+| State | What shows |
+|---|---|
+| not yet | "AI has not finished checking what applies. The answers will be here when it does." + link to review status |
+| at G2 | lead, progress line, index ("can't tell" first), one card per answer, finish section, abandon link |
+| all decided | progress "All {n} answers decided." |
+| refused | as page 4: about one answer, land on `#verdict-{i}`; about the page, the box at the top |
+| after G2 | read-only record: "You've confirmed what applies. This is the record of the decisions." |
+
+| | |
+|---|---|
+| **Reads** | `view.verdicts[]` ✅ `verdict_id`, `version`, `row_id`, `obligation_name`, `verdict` (`applies` / `does_not_apply` / `unsure`), `reasoning`, `cited_fact_ids` (one string), `missing_information`, `decision`; ⏳ per card: `index`, `cited_facts[]` (ID, fact, value), `approved_rule` (rule, quote, paragraph ID), `missing_fact` (the phrase in "Nobody has confirmed {the missing fact}."), `overrule_value`, `decided` (outcome, who, when, reason), `refused`; ⏳ page: `progress` (decided, total, can't-tell left), `index_order`, `next_undecided`, `show_forms`, `stage` |
+| **Posts** | per card: `POST /specialist/verdicts/{verdict_id}/decision` with `version`, `decision` (`confirm` / `override` / `decide`), `value` (carried by the button pressed, §3.3), `override_reason`, `decide_reason`. Page: `POST …/g2/complete` with `run_version`; button "Finish and calculate dates" |
+
+### Page 6 · Check the calendar and publish (G3)
+
+| State | What shows |
+|---|---|
+| not yet (`C_RUNNING` or earlier) | "The calendar is not ready yet." + "Watch progress on the review status page" |
+| at G3 | lead; the boxed date-conventions note; calendar table; "What's not in this calendar" with its two tables; the decision form; abandon link |
+| refused | the sentence at the top and beside the checkbox (`ACK_REQUIRED`) or the reason field (`REASON_REQUIRED`); the checkbox **unticked** again |
+| after G3 | read-only calendar with "Published on {date} at {time}." or "Closed without publishing on {date} at {time}. What needs to change: {reason}"; no forms |
+
+| | |
+|---|---|
+| **Reads** | `view.calendar_id` ✅, `view.entries[]` ✅ (`due_date`, `obligation_name`, `moved`, `precautionary`, `open_question_id`), `view.rejected_row_ids` ✅ (empty in the stub), `view.uncited_paragraph_ids` ✅ (empty); ⏳ per entry: `who_files_label`, `recipient_name`, `why` (the reason the General Partner reads), `source_paragraph_id`, `marks[]` (kind, from and to dates, direction); ⏳ `rejected_rows[]` (rule, reason, demo), `unused_paragraphs[]` (ID, source, text), `previous_publication_at`, `outcome` (published or closed: date, time, reason), `stage` |
+| **Posts** | one form: `decision` (`publish` / `decline`, radio), `run_version`, `rejected_row_ids[]`, `uncited_paragraph_ids[]` (hidden, exactly the lists shown), `acknowledged` (checkbox, unticked), `decline_reason`. Button "Publish calendar" (`formaction=…/publish`), button "Close without publishing" (`formaction=…/decline`) |
+
+### Page 7 · Calendar
+
+| State | What shows |
+|---|---|
+| nothing published | H1 "Compliance calendar" and the fixed message only: "Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published." |
+| published | "Published on {date}." (+ "Made with stand-in agents (fixed test outputs, no AI model)." when it applies); the role's calendar note; three summary cards; week grid "The next two months"; table "All entries for {year}", grouped by month |
+| error | "The calendar could not be shown just now. Try again in a few minutes." (§10, W-4) |
+
+| | |
+|---|---|
+| **Reads** | `published` ✅ (`None` = nothing published; `published_at`, `agents_mode`, `entries[]` with `due_date`, `obligation_name`, `precautionary`); `identity.role` ✅ (picks the General Partner or specialist note); ⏳ `summary` (entries in year, year, due next, "May not be required" count), `weeks` (the two months, days with entries, the "Due next" day), `months[]` (entries grouped by month), per entry `who_files_label`, `why`, `source_document`, `source_paragraph_id`, `quote` |
+| **Posts** | nothing (only "Sign out") |
+| **Never shows** | a "Moved off a weekend" mark, an open-question mark, a flag, a "can't tell", a review status (CR-012, UX-009) |
+
+Phone width (≤ 480 px): each table row stacks as a block with visible column labels; the week grid
+becomes a list of days with entries; no horizontal page scroll (UX-012).
+
+### 403, 404, 500
+
+Shared frame, H1, one line, one link, nothing else (ux.md §1.7). Already worded in the
+placeholders; stage 2 moves them into the new frame. The existing Tier 1 tests check
+"You don't have access to this", "Go to the calendar" and "We can't find that page" and must keep
+passing.
+
+---
+
+## 3. Answer-first decision forms
+
+One pattern on pages 4, 5 and 6 (ux.md §4 "Decision form", SAD §3, DL-48).
+
+### 3.1 Markup
+
+```html
+<form class="decision" method="post" action="…">
+  <input type="hidden" name="version" value="…">
+  <fieldset>
+    <legend>What's your decision on this rule?</legend>
+    <label class="opt"><input type="radio" name="decision" value="approve" data-answer="approve"> Approve</label>
+    <label class="opt"><input type="radio" name="decision" value="reject" data-answer="reject"> Reject</label>
+  </fieldset>
+  <div class="if" data-answer="approve"> … the Approve fields … <button class="btn">Approve rule</button></div>
+  <div class="if" data-answer="reject">  … the Reject fields …  <button class="ghost">Reject rule</button></div>
+</form>
+```
+
+- The radio question comes first, named `decision`, **nothing checked**.
+- Each answer's fields and button sit in their own `.if` block, marked with `data-answer`.
+- `data-answer` on the radio, not its `value`, drives the reveal. Two G2 answers send the same
+  `value` (`decide`), so the value cannot tell them apart (§3.3).
+
+### 3.2 Reveal with `:has()`, and the fallback
+
+```css
+.if { display: grid; }                       /* fallback: every answer's fields show */
+@supports selector(:has(*)) {
+  .decision .if { display: none; }
+  .decision:has(input[name="decision"][data-answer="approve"]:checked) .if[data-answer="approve"],
+  .decision:has(input[name="decision"][data-answer="reject"]:checked)  .if[data-answer="reject"],
+  /* … one line per answer: confirm, overrule, add, leave, publish, decline … */
+  { display: grid; }
+}
+```
+
+- `[name="decision"]` matters: the weekend-or-holiday and "who files" radios inside the Approve
+  block must not trigger a reveal.
+- **Fallback:** a browser without `:has()` skips the `@supports` block, so every answer's fields
+  and buttons show and every control can be reached. The server reads only the chosen answer's
+  fields (DL-48), so the fallback is safe.
+- **No script.** No `required`, `disabled` or `pattern` on any decision form (ux.md §1.2). A
+  missing field is the server's refusal, shown on the page.
+- **Nothing preselected**: no `checked` on any radio or checkbox in any template, ever, including
+  after a refusal (UX-004, UX-011). Typed reason text **is** shown again after a refusal (⏳ the
+  server must send it back, §10).
+- Labels: every radio inside a `<label>`; every group in a `<fieldset>` with a `<legend>`; every
+  hint linked with `aria-describedby`; targets at least 24 × 24 px (WCAG 2.5.8).
+
+### 3.3 The three forms
+
+**G1, Check the rules** (`parts/decision_rule.html`)
+
+| Answer | Fields (name) | Button |
+|---|---|---|
+| Approve | radio group `business_day_rule`, legend "If the deadline falls on a weekend or holiday (choose one to approve)": "Move to the following working day" `roll_forward` · "Move to the preceding working day" `roll_backward` · "Keep the date" `no_roll`. **Only when the source is silent:** radio group `who_files`, legend "Who files this? The source doesn't say.", options from `filing_parties` (⏳), with the hint. **Only when the rule has a flag:** textarea **`approve_reason`**, "Why are you approving it although the checker flagged it?", with the hint | "Approve rule" (primary) |
+| Reject | textarea **`reject_reason`**, "Why are you rejecting it?", with the hint | "Reject rule" (secondary) |
+
+The approve and reject reason fields have **different names**, so a reason typed under one answer
+is never read as the other's (DL-48). The demo rule and a quote-check-failed rule get **exactly
+the same form**: the Approve button is visible and active once "Approve" is chosen (UX-003).
+
+**G2, Confirm what applies** (`parts/decision_answer.html`)
+
+| AI said | Question | Answer A | Answer B |
+|---|---|---|---|
+| applies / doesn't apply | "What's your answer on this rule?" | **Confirm: applies** (or doesn't apply): text only, no reason field. Radio `decision=confirm`, `data-answer="confirm"`. Button "Confirm: applies" with `name="value" value="{AI's value}"` | **Overrule: doesn't apply** (or applies): textarea **`override_reason`**, "Reason for overruling", hint by outcome (ux.md page 5 table). Radio `decision=override`, `data-answer="overrule"`. Button "Overrule: …" with `name="value" value="{overrule_value}"` (⏳) |
+| can't tell | "Nobody has confirmed {missing fact}. Should this rule go on the calendar?" | **Yes, add it until someone confirms**: radio `decision=decide`, `data-answer="add"`; button "Add to the calendar" with `name="value" value="applies"` | **No, leave it off**: radio `decision=decide`, `data-answer="leave"`; button "Leave it off" with `name="value" value="does_not_apply"` |
+
+The SAD fixes the G2 reason names as `confirm_reason`, `override_reason` and `decide_reason`
+(H-035). Both "can't tell" answers are `decide`, so they share **one** field, `decide_reason`.
+Proposal (Open Question 7): **one textarea** below the two answers, with two `<label>`s and two
+hints ("Why are you adding it?" plus the "creates an entry" hint; "How do you know it doesn't
+apply?" plus the audit-only hint). `:has()` shows the label and hint for the chosen answer; the
+fallback shows both. That keeps one field per answer type, as the SAD has it. `confirm_reason` is
+never rendered: ux.md says Confirm needs no reason.
+
+**G3, Publish** (`parts/decision_publish.html`)
+
+| Answer | Fields | Button |
+|---|---|---|
+| Yes, publish it (`decision=publish`) | the "will see these {n} dates straight away" text (with the "in place of the calendar published on {date}" variant, ⏳); checkbox `acknowledged`, **unticked**, "I've read the {r} rejected rules and the {k} unused paragraphs above. Nothing from them will be on the published calendar." | "Publish calendar" (primary), `formaction="/specialist/calendars/{id}/publish"` |
+| No, don't publish (`decision=decline`) | the "Nothing changes for the General Partner" text; textarea **`decline_reason`**, "What needs to change before it can be published?", with the hint | "Close without publishing" (secondary), `formaction="/specialist/calendars/{id}/decline"` |
+
+The two ID lists go in as hidden fields, exactly as the page shows them; the server compares them
+with its own (CR-028).
+
+---
+
+## 4. Making the review status obvious
+
+What the operator asked for, mapped to `ux.md`. Items marked **new** are not in `ux.md` yet (Open
+Questions 1, 4 and 5).
+
+### 4.1 The status banner (review status page)
+
+One block, `parts/status_banner.html`, is the first thing under the stepper (ux.md page 3 item 4,
+the "status line"). Top to bottom:
+
+1. **The pill**: the status words of ux.md §1.5, in a pill with its tone (§4.2). For example
+   **"AI is drafting the rules"**, **"Your turn: check the rules"**, **"Failed"**. Never "Crew:
+   running", "Stage A" or "G1" (UX-019).
+2. **The sentence** for the state (§2, page 3 table), in large text.
+3. **"Last updated {time}"** (**new**, Open Question 4), only while auto-refresh runs, next to the
+   pill. Proposed words: "Last updated at 14:02:09." Seconds are shown so the specialist can see
+   each 3-second refresh. The time is the server's render time (⏳ `rendered_at`).
+4. **The refresh controls** (only while AI or code works): "This page refreshes every 3 seconds
+   while AI is working." · "Refresh now" · "Stop automatic refresh". With refresh off: "Automatic
+   refresh is off." · "Refresh now" · "Turn automatic refresh back on".
+
+The banner is `role="status"` **only when it is not refreshing**. A live region that re-renders
+every 3 seconds would make a screen reader read it again and again. While running, the `<title>`
+carries the status words instead, so a screen-reader user can check it.
+
+**Position.** The operator asked for "a status banner at the top". `ux.md` puts the status line
+under the H1 and the stepper. Proposal: keep ux.md's order (breadcrumb → H1 with labels → stepper →
+banner) and make the banner the most visible block on the page. The H1 on a running review is
+"Nothing for you to do yet", which already tells the specialist the main thing (Open Question 5).
+
+### 4.2 Pills: word first, colour second
+
+Every status is a pill **with its word inside**: `<span class="chip {tone}">{words}</span>`.
+Colour never carries the meaning alone (UX-007). The tone comes from the server (⏳ `status_tone`,
+from ux.md §1.5); the template maps tone to a class.
+
+The operator asked for grey idle, blue running, green done and red failed. The approved palette in
+`style-note.md` has **no blue and no green**, and says a new colour goes into that note first. The
+persona rules forbid a parallel palette. Proposal: keep the operator's four meanings and use the
+families the style note already has (Open Question 1):
+
+| Meaning | ux.md tone | Asked for | Proposed (existing class) | Where |
+|---|---|---|---|---|
+| idle, waiting, not started, ended without publishing | neutral | grey | grey: `.chip` (plain) | "Abandoned", "Closed without publishing", stepper "Not started", unit "Waiting" |
+| running (AI or code working) | info | blue | **brass**: `.chip.agent` ("drafted by an agent") | "AI is drafting the rules", "Working out the dates", stepper "In progress", unit "Running" |
+| needs the specialist | action | — (not in the brief) | **orange**: `.chip.you` ("needs a person") | "Your turn: …", the sidebar "Your turn" tag |
+| done | success | green | **slate**: `.chip.done` | "Published", stepper "Done", unit "Done", "Approved" |
+| failed or refused | problem | red | **bordeaux**: `.chip.no` | "Failed", unit "Failed", "Rejected", "Approval blocked" |
+
+All five meet AA contrast already (style-note "Status families").
+
+### 4.3 Auto-refresh
+
+- `<meta http-equiv="refresh" content="3">` in `<head>`, **only** while the phase is `A_RUNNING`,
+  `B_RUNNING` or `C_RUNNING` **and** refresh is not switched off. No script.
+- "Stop automatic refresh" is a link to the same page with `?refresh=off`; "Refresh now" keeps
+  whatever the URL says. Nothing is stored (ux.md Assumptions). The handler must pass `refresh_on`
+  (⏳ W-1).
+- Never on a refusal page, a gate, an ended or a failed review (ux.md §7, UX-006).
+- **Units fill in one by one**: the stub already runs units one at a time with
+  `STAND_IN_UNIT_PAUSE_S` (1 s per unit), so each refresh shows more rows moving "Waiting" →
+  "Running" → "Done". The template only shows the `units` rows; it adds no animation that pretends
+  progress.
+
+### 4.4 The same words everywhere
+
+| Where | Words used |
+|---|---|
+| review status banner | §1.5 status words |
+| Filing rules table, Status column | the same §1.5 words, the same pill |
+| Filing rules active-review notice | "**Review {n}:** {§1.5 words}." |
+| sidebar tag | "Your turn" (orange, the same pill) |
+| stepper | "Done", "In progress", "Your turn", "Not started", "Failed", "Ended" |
+| page `<title>` while running | "Review {n}: {§1.5 words} · ACME Compliance calendar (demo)" (**new**, Open Question 4) |
+| buttons and next-step links | ux.md verb + object ("Check the rules", "Confirm what applies", "Check the calendar and publish") |
+| refusal sentences | ux.md §5, using the same §1.5 words in `RUN_NOT_ACTIVE` ("This review has ended ({status words}) …") |
+
+The status words are already held once, in `runs.STATUS_WORDS` (server). Templates never retype
+them.
+
+---
+
+## 5. CSS plan
+
+| | |
+|---|---|
+| **File** | `backend/web/static/site.css`: the one stylesheet (SAD §3). Served at `/static/site.css` (⏳ W-3: a static mount in `main.py`) |
+| **Source** | `docs/prototype/app.css`. Copy the tokens unchanged; take only the rules the seven pages use; no new colour, radius or font |
+| **Fonts** | Lexend (`--font-head`: headings, wordmark, fund name), Inter (`--font-body`: body, labels, buttons), DM Mono (`--font-id`: IDs such as `FND-DEMO-01`). Loaded from Google Fonts with `display=swap`, as the mock-ups do. No font file committed (style-note) |
+| **Icons** | Iconoir, inline SVG, for the two nav items only ("Calendar", "Filing rules"), copied from `docs/prototype/icons/`. Add the Iconoir MIT notice to `NOTICES`. Every icon sits next to a word and is `aria-hidden="true"` |
+| **Time box** | **Half a day at most** (U7 and U8, H-019, H-020). Anything that does not fit is dropped and recorded in the Spec Sync checklist |
+| **Unstyled test** | Every page must read and work in order with the stylesheet removed: real headings, lists, tables and forms, the main column in reading order, no meaning carried by CSS alone. Checked by loading each page with `site.css` blocked (§6) |
+| **Third-party comments** | The new file carries no comment naming a third-party site or brand. The "ventriloc.ca" comment the brief mentions is **not in the repository** outside `reference/` and `.venv` (searched 2026-11-16), so there is nothing to remove from `app.css` (Open Question 9). `docs/` is git-ignored, so `app.css` itself is not committed |
+
+**Sections taken from `app.css`**
+
+| `app.css` section | Take | Leave out |
+|---|---|---|
+| 1 Tokens | all | — |
+| 2 Base | all | — |
+| 3 Shell | shell, sidebar, brand, fund, nav, side-foot, who, demo, main | the "waiting" panel (not in ux.md §1.3) |
+| 4 Page parts | crumb, head, tags, section, sec-h, sq, facts | — |
+| 5 Components | buttons, chips, kpi, card, card-h, tables, refusal, pillars (as the stepper), units | — |
+| 6 Calendar | the list table and the GP card styles only | month and year grids (B12) |
+| 7 Review | rule card, quote, paragraph, flag | the two-column source/draft layout's "source picking" (A5, out of scope) |
+| 8 Sign-in | the `.enter` panel and `.role` buttons | the left-hand ivory "stage" with floating cards (ux.md "Mock-up differences") |
+| 9 Second pass | `.decision`, `.opt`, `.if` and its `@supports` block, `.refusal` / `.refline`, `pulse` | `.design-note`, prototype-only classes |
+| 10 Charts, 11 Source picker, 12 View switch, 13 Add fund | — | all (B12, A5, future scope) |
+| Responsive and reduced motion | the 1100 px stacking, the phone-width table stacking, `prefers-reduced-motion` | — |
+
+**Motion kept from the mock-ups** (all switched off under `prefers-reduced-motion`):
+
+| Keep | Where | Why |
+|---|---|---|
+| 200 ms colour fade on hover | links, buttons, nav rows | already in `app.css`; signals "clickable" |
+| `pulse`: one orange outline ring, 1.4 s, 300 ms delay | the refused rule or answer card, on landing | draws the eye to where the refusal is, once |
+| `slidein`: fade in from 10 px, 500 ms | the in-card refusal box | the refusal appears beside the form without a jump |
+| `.more` underline draw, 400 ms | the next-step links ("Check the rules ›") | a quiet "go here next" |
+
+Left out: `settle` (sign-in floating cards, not built), `draw`, `arc`, `grow`, `dotIn` (charts,
+B12). **No new motion** for running states: no spinner, no pulsing dot. The units table filling in
+is the progress signal, and it is real.
+
+---
+
+## 6. Accessibility checks (WCAG 2.2 AA, ux.md §7)
+
+Run on every page in stage 2, recorded in `project-context/2.build/ux-review.md`.
+
+| Check | How | ux.md |
+|---|---|---|
+| Keyboard only | Tab through every page: skip link first, then sidebar, then main; every link, radio, checkbox, textarea and button reachable and operable; focus always visible (2 px orange outline); no trap; the G1 "Go to rule {i}" link moves focus to the card | §7 |
+| Semantic headings | one `<h1>` per page; `<h2>` per section and per card; no skipped level. Checked with the browser's accessibility tree | §7 |
+| Landmarks | `<aside>` sidebar with `<nav aria-label="Main">`, one `<main id="main">`, breadcrumb in `<nav aria-label="Breadcrumb">` | §1.3 |
+| Status not by colour alone | view each page in greyscale; every status still reads as a word | UX-007 |
+| Forms | every control labelled; groups in `<fieldset>` + `<legend>`; hints on `aria-describedby`; no `required`, `disabled`, `pattern` | §7, §1.2 |
+| Nothing preselected | no `checked` in any template, on first load and after a refusal | UX-004, UX-011 |
+| Refusal announced | `<title>` starts "Not done: "; the refusal is the first thing in `<main>` after the H1 | §7, §5 |
+| Timing adjustable | auto-refresh only while running; "Stop automatic refresh" works | UX-006, WCAG 2.2.1 |
+| Target size | buttons, radios and their labels at least 24 × 24 px | WCAG 2.5.8 |
+| Tables | real `<table>` with `<th scope>` for reviews, units, rule index, unused paragraphs, calendar, rejected rules | §7 |
+| Widths | specialist pages at 1280 px and 1024 px; the calendar at 360 px, 480 px and desktop, with no horizontal page scroll | §7, UX-012 |
+| Contrast | only the style-note pairs; never `--orange` as text; never brass on ivory | style-note |
+| Reduced motion | every animation off with `prefers-reduced-motion: reduce` | style-note |
+| Unstyled | each page with `site.css` blocked still reads in order and works | §6 |
+| Words | no "run", "Stage A/B/C", "G1/G2/G3", "gate" or "precautionary" in user-facing text (except "Stand-in agents") | UX-019 |
+
+Tools: the rendered pages in a browser (keyboard and greyscale by hand) and Playwright for
+screenshots at the agreed widths (§8). An automated scan is a help, never the acceptance on its
+own.
+
+---
+
+## 7. Demo script for Friday (20 Nov 2026)
+
+Start: `make run`, then delete `data/app.db` for a clean start. Browser at
+`http://localhost:8000`. About 10 minutes.
+
+The **Depends on** column says what must be built for the step to show what `ux.md` describes.
+"Stub" means it works on today's stand-in shell once stage 2 is done.
+
+| # | Do | You should see | Depends on |
+|---|---|---|---|
+| 1 | Open the app | Sign-in: "Sign in to the demo", two equal buttons, "The fund and the firm are fictional." | Stub |
+| 2 | "Sign in as the compliance specialist" | Filing rules: "No reviews yet. Start the first review below."; the start form says "stand-in agents"; both checkboxes unticked | Stub |
+| 3 | Tick "Add the demo rule (rule 7)", then "Start a new review" | Review status, step 1 "In progress", pill "AI is drafting the rules", "Last updated at …", labels "Stand-in agents" and "Demo rule on" | Stub (`review_number`, `rendered_at`: H-036) |
+| 4 | Wait about 12 seconds | The page refreshes every 3 s; units go "Waiting" → "Running" → "Done" one by one; then "The rules are ready for you to check", pill "Your turn: check the rules", sidebar "Your turn" | Stub (the "Checking the drafts" group: H-036) |
+| 5 | "Check the rules" | Summary cards, rule index, one card per rule, every card with its quote-check line; the demo rule tagged "Demo" | Stub shows the rules; quote check, paragraph, flags and counts need B2/B3 (H-036) |
+| 6 | On the demo rule: choose "Approve", pick a weekend option, "Approve rule" | **Refused on the page**: lands on the demo rule; "Not done" box with the `DEMO_ROW_NOT_APPROVABLE` sentence; tag "Approval blocked"; top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; nothing preselected | ⚠️ **Needs B2 + B7** (the refusal is a service check; the stub records any approval). Without it, this step shows the decision recorded instead (Open Question 6) |
+| 7 | Choose "Reject", type "Quote doesn't support the rule", "Reject rule" | "Rejected by Compliance specialist (mock) at 14:05. Reason: …"; "Next rule to decide" | Stub (the decided line's who and when: H-036) |
+| 8 | Decide the other rules (one Approve over a flag, one Reject), "Finish checking" | Review status, step 3 "In progress", "AI is checking what applies", units fill in, then "Ready for you to confirm what applies" | Stub |
+| 9 | "Confirm what applies": confirm one answer, overrule one with a reason, and for the "can't tell" one choose "Yes, add it until someone confirms" with a reason | Each card shows its decided line; progress counts down; "Finish and calculate dates" | Stub (cited facts, progress, decided lines: H-036) |
+| 10 | "Finish and calculate dates" | "Working out the dates", then "The calendar is ready to check" within a refresh | Stub |
+| 11 | "Check the calendar and publish": read the table and the two lists, choose "Yes, publish it", tick the box, "Publish calendar" | Review status "Published", pill "Published", link "See the calendar as the General Partner sees it" | Stub (placeholder entries; real dates are B4) |
+| 12 | "Sign out", then "Sign in as the General Partner / Fund Manager" | Calendar with "Published on …", "Made with stand-in agents …", the short General Partner note, the entries; "May not be required" on the one entry it applies to; no moved mark, no review status | Stub (entries are placeholders; summary cards and week grid need H-036) |
+| 13 | Open `/specialist/runs` by hand | 403: "You don't have access to this", "Go to the calendar" | Stub |
+| 14 | Sign out, sign in as the specialist, tick "Make step 1 fail (demo)", "Start a new review" | Unit 1 "Running" for about a second, then "This review failed", pill "Failed", stepper step 1 "Failed", the demo-failure reason sentence, only the link "Start a new review from Filing rules" (no Retry) | Stub (`failure` sentence fields: H-036) |
+| 15 | "Start a new review from Filing rules", leave both boxes unticked, start; wait for "Your turn"; open review status; type a reason under "Abandon this review"; "Abandon review" | "Abandoned", "Abandoned at step 2 (You check the rules) on … Your reason: …"; Filing rules shows "Abandoned" and the reason under "Ended because"; "Start a new review" works again | Stub (`ended` fields: H-036) |
+
+Optional, if B2 is in: click "Start a new review" while a review is in progress to show the
+`RUN_ACTIVE` refusal beside the button (UX-017).
+
+---
+
+## 8. Deliverables
+
+| # | Deliverable | Where |
+|---|---|---|
+| D-1 | The templates in §1 (pages and parts), replacing every placeholder; `parts/review_nav.html` deleted | `backend/web/templates/` |
+| D-2 | `site.css` and the two nav icons | `backend/web/static/` |
+| D-3 | The Iconoir MIT notice | `NOTICES` |
+| D-4 | Page tests (SAD Tier 2 "per-state page tests"): nothing preselected (UX-004), no forbidden words (UX-019), no Retry form on a failed review (UX-022), auto-refresh only while running (UX-006), the empty calendar message (UX-008). The Tier 1 tests keep passing | `tests/tier2/test_pages.py` |
+| D-5 | The rendered review: screenshots at 1280, 1024 and 360 px, keyboard and greyscale checks, findings and fixes | `project-context/2.build/ux-review.md` |
+| D-6 | Visual regression: Playwright snapshot tests and the first baseline, **after** the operator's review has no open high-severity finding (`.cursor/skills/visual-regression/SKILL.md`). Playwright is not installed yet; if it cannot be added in the time box, `ux-review.md` records "not tested" and why | `tests/visual/` (proposed) |
+| D-7 | README notes, proposed through `*sync-docs` and written only after approval (below) | `README.md` |
+| D-8 | This file, kept current: the Spec Sync checklist after every commit | `project-context/2.build/frontend.md` |
+
+**README notes (D-7), proposed content.** The scaffold plan gives the full README rewrite to B10
+(`@devops.eng` or `@qa.eng`). This change set proposes two short sections only:
+
+1. **Run it locally**: `make install`, `cp .env.example .env` (set `SESSION_SECRET`), `make run`,
+   open `http://localhost:8000`, the two demo identities, delete `data/app.db` to start again.
+   `STAND_IN_UNIT_PAUSE_S` sets how slowly the units fill in.
+2. **Where the CrewAI crews connect next**: the pages never call an agent. They render what the
+   service functions return. The crews connect in **B3** behind `backend/runtime/agents.py`
+   (`run_unit`), which today returns stand-in outputs with a pause; `backend/runtime/stages.py`
+   runs the units and `backend/services/stage_store.py` stores them. Switching
+   `AGENTS_MODE=stand_in` to `real` changes no template. Real calls wait for the first green path
+   and DL-40 (Build card).
+
+---
+
+## 9. Spec Sync checklist
+
+Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ done · ⏸️ blocked ·
+➖ dropped (with the reason).
+
+| # | Item | Status | Note |
+|---|---|---|---|
+| S-01 | `frontend.md` (this spec) | ✅ | Stage 1. Waiting for "approve" |
+| S-02 | `base.html` + `parts/sidebar.html` + skip link | ⬜ | |
+| S-03 | `parts/macros.html` (status tag, refusal, mark label, hint) | ⬜ | |
+| S-04 | `parts/breadcrumb.html`, `parts/run_labels.html`, `parts/stepper.html` | ⬜ | Stepper needs `steps[]` (H-036) |
+| S-05 | `pages/sign_in.html` | ⬜ | |
+| S-06 | `pages/filing_rules.html` | ⬜ | |
+| S-07 | `pages/review_status.html` + banner + refresh + units table | ⬜ | Refresh needs `refresh_on` (W-1) |
+| S-08 | `pages/check_rules.html` + row card + flag + G1 form | ⬜ | |
+| S-09 | `pages/confirm_applies.html` + G2 form | ⬜ | `decide_reason` per Open Question 7 |
+| S-10 | `pages/publish.html` + G3 form | ⬜ | |
+| S-11 | `pages/calendar.html` (list first; week grid if H-036 sends it) | ⬜ | |
+| S-12 | `pages/no_access.html`, `not_found.html`, `server_error.html` | ⬜ | 500 wiring is W-4 |
+| S-13 | `parts/review_nav.html` deleted; no Retry form anywhere | ⬜ | UX-022 |
+| S-14 | `static/site.css` (half-day box) + icons + `NOTICES` | ⬜ | Static mount is W-3 |
+| S-15 | `tests/tier2/test_pages.py` | ⬜ | |
+| S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ⬜ | |
+| S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review |
+| S-18 | README notes via `*sync-docs` | ⬜ | Operator approval first |
+| S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Not started; this spec proposes it |
+| S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | ⬜ | Run before asking to merge |
+
+---
+
+## 10. What the templates need that the stub services do not send yet
+
+These are the ⏳ fields of §2. The templates must not work them out (ux.md §1.2, backend.md "Known
+gaps": "B5 moves any such choice into the service view"). Proposed as handoff **H-036** to
+`@backend.eng`; not written to `handoffs.md` until the operator approves this spec.
+
+### 10.1 View fields (services, `@backend.eng`)
+
+| # | Field | Service function | Why |
+|---|---|---|---|
+| V-1 | `review_number` on every run | `runs._describe` | "Review {n}" everywhere; the run ID (`RUN-20261116-1`) is not the on-screen name (ux.md §1.8) |
+| V-2 | `status_tone` (`info`, `action`, `problem`, `neutral`, `success`) | `runs._describe` | the pill colour, from ux.md §1.5 |
+| V-3 | `steps[]` (number, state word, link or none, current) | `runs._describe` or a view helper | the stepper (§1.4), including "Failed" and "Ended" on ended reviews |
+| V-4 | `unit_groups[]` (heading, intro, units); step 1 split into "Drafting the rules" and "Checking the drafts" | `runs.list_units` | ux.md page 3 item 7; the stub has document units only |
+| V-5 | `counts` for the status sentence ({n} rules, {u} can't tell, {n} dates) | `runs.get_run` or the page view | page 3 sentences |
+| V-6 | `failure` (step k, step name, unit label, reason sentence); `ended` (date, time, reason); `published_at`; `ended_because` for Filing rules | `runs` | page 3 failed and closed states; page 2 column. The reason sentences are ux.md page 3's table |
+| V-7 | `started_by_label` ("Compliance specialist (mock)") | `runs` | details line |
+| V-8 | G1: `index`, `total`, `quote_check`, `paragraph`, `flags[]`, `has_flag`, `open_question`, `needs_who_files`, `filing_parties[]`, row `status`, `decided`, `summary`, `unused_paragraphs[]`, `next_undecided`, `show_forms`, `stage` | `decisions.get_g1_view` | page 4. `show_forms` and `stage` replace the placeholder's phase checks in the template |
+| V-9 | G2: `index`, `cited_facts[]`, `approved_rule`, `missing_fact`, `overrule_value`, `decided`, `progress`, `index_order`, `next_undecided`, `show_forms`, `stage` | `decisions.get_g2_view` | page 5 |
+| V-10 | G3: per entry `who_files_label`, `recipient_name`, `why`, `source_paragraph_id`, `marks[]`; `rejected_rows[]`, `unused_paragraphs[]`, `previous_publication_at`, `outcome`, `stage` | `calendar.get_g3_view` | page 6 |
+| V-11 | Calendar: `summary`, `weeks`, `months[]`, per entry `who_files_label`, `why`, `source_document`, `quote` | `calendar.get_published_calendar` | page 7 |
+| V-12 | `refusal` object on a re-rendered page: `code`, `sentence`, `scope` (page, card or start form), `anchor` (`row-3`), `target_label` ("rule 3"), and the typed reason text to show again | every refusing service + its handler (B2) | ux.md §5; today only `FORBIDDEN` exists and every POST redirects |
+
+### 10.2 Web-layer items (`backend/web/`, `backend/main.py`)
+
+These are display plumbing, not checks. Who writes them is Open Question 2.
+
+| # | Item | File |
+|---|---|---|
+| W-1 | Pass `refresh_on` (from `?refresh=off`) and `rendered_at` to the review status page | `backend/web/routes/runs.py` |
+| W-2 | Jinja filters for dates and times in ux.md's format ("Fri 13 Nov 2026", "14:02") | `backend/web/deps.py` |
+| W-3 | Mount `backend/web/static/` at `/static` | `backend/main.py` |
+| W-4 | A 500 handler that renders `pages/server_error.html` with the role's sentence | `backend/main.py` |
+
+---
+
+## Sources
+
+- `project-context/2.build/ux.md` (approved 2026-11-16): workflow, §1 to §11, Assumptions, Open
+  Questions, "Mock-up differences".
+- `docs/prototype/` (`app.css`, `HANDOVER.md`, `run-status.html` and the other mock-ups) for layout
+  and look; `project-context/2.build/style-note.md` for tokens, status families, motion and
+  contrast.
+- `project-context/1.define/sad.md`: Build card (incl. "Build approach", Never row), Order of work,
+  §3 Frontend (rendering, styling, scripts, freshness, the seven pages, shared parts, decision
+  form, refusals), §4 routes, validation, refusal codes and "Service functions" (H-035).
+- `project-context/2.build/backend.md`: stub function list, Known gaps.
+- `project-context/2.build/scaffold-plan.md` §1 to §3 (folder tree, block order, stand-in setup).
+- `project-context/2.build/setup.md`; `.cursor/agents/frontend-eng.md`;
+  `.cursor/skills/product-design/SKILL.md`.
+- The code on `main` at `12c674b`: `backend/web/` (routes, deps, placeholder templates),
+  `backend/services/`, `backend/runtime/stages.py`, `backend/stand_in/shell_data.py`,
+  `config/fund/FND-DEMO-01.yaml`, `tests/tier1/`.
+- The operator's stage-1 brief (2026-11-16).
+
+Not read or used: Future Work, Appendix A, tag `sad-full-design`, `reference/`.
+
+## Assumptions
+
+- **Styling now.** The operator's brief asks for the CSS in stage 2. In the SAD that is B6, the
+  last block and the first dropped. This spec pulls a half-day pass forward at the operator's
+  request; every page still works unstyled, so dropping it later costs nothing.
+- **Wording lives in templates, state lives on the server.** A template may look up ux.md's fixed
+  words by a value the server sends (a status, a tone, a step state). It may count a list the
+  server sends (`|length`). It may not compare values, work out a state or decide which form to
+  show; those come as view fields (§10).
+- **The failure-demo checkbox** is in the form only when `agents_mode == "stand_in"`. ux.md page 2
+  says this is the one option that depends on the server setting, not a hidden button.
+- **Retry** is left out of every template (B13b; ux.md "Without Retry").
+- **The stub's demo rule is rule 4**, not rule 7, because the shell has three placeholder rules.
+  The checkbox still reads "Add the demo rule (rule 7)", as ux.md says; B3 and B7 bring the real
+  six rules plus the demo rule.
+- **Times** are shown in the server's local time.
+- **Branch.** `frontend-spec`, made from `main`; stage 2 continues on it unless the operator says
+  otherwise.
+
+## Open Questions
+
+For the operator.
+
+1. **Pill colours.** You asked for grey, blue, green and red. The approved palette has no blue or
+   green, and the style note says new colours go there first. Use the existing families (grey,
+   brass for running, orange for "Your turn", slate for done, bordeaux for failed; §4.2), or ask
+   `@ux.designer` to add blue and green to `style-note.md` first? *Recommended: existing families.*
+2. **Web-layer edits.** W-1 to W-4 are in `backend/web/` and `backend/main.py`: display plumbing
+   with no checks. Your rule says "don't change backend code". May `@frontend.eng` make these four
+   small edits, or do they go to `@backend.eng` with H-036? *Recommended: frontend makes W-1 to W-4
+   (the SAD puts templates, handlers and the stylesheet together in `backend/web/`); services stay
+   with `@backend.eng`.*
+3. **H-036 and the order of work.** Most of the page detail (§10.1) needs view fields from
+   `@backend.eng`. Stage 2 can build every template against the field names in §10 and show only
+   what the stubs send until then. Raise H-036 now so the backend work runs in parallel?
+   *Recommended: yes.*
+4. **New wording.** "Last updated at {time}." and the running `<title>` ("Review {n}: {status
+   words} · …") are not in `ux.md`. Approve the words; `@ux.designer` then records them in
+   `ux.md`.
+5. **Banner position.** Keep ux.md's order (banner under the H1 and stepper), or move it above the
+   H1? *Recommended: ux.md's order.*
+6. **The demo-rule refusal on Friday.** Step 6 of the demo script needs B2's checks and B7's demo
+   row, both `@backend.eng` work. Is that planned before Friday, or should the script skip step 6?
+7. **The "can't tell" reason field.** Both "can't tell" answers send `decision=decide`, and the SAD
+   gives them one field, `decide_reason`. Accept one shared textarea with a label and hint per
+   answer (§3.3), or ask `@system.arch` for two field names?
+8. **Commits.** Stage 2 commits in small steps on `frontend-spec`, no push. Confirm.
+9. **"ventriloc.ca".** The comment is not in `docs/prototype/app.css` or anywhere else in the repo
+   (outside `reference/` and `.venv`). Is it in a file I have not looked at?
+
+## Audit
+
+- 2026-11-16 · persona `frontend-eng` · stage 1 of the operator's brief · `project.mode`
+  greenfield · `ux.md` approval checked: `approved` (2026-11-16). Read the sources above. Wrote this
+  file only, on branch `frontend-spec`. No template, stylesheet, test or backend file changed. No
+  diagram needed (§1 and §2 tables carry the structure). No model call; `AGENTS_MODE=stand_in`
+  untouched. `ux.md` and `sad.md` not edited. `*sync-docs` not run (no application source, runtime
+  config or deploy change in this change set).
