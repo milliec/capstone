@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-032: SAD changes for the stubbed UI: demo-rule refusal wording, Retry, empty calendar, failure demo
+- From: @ux.designer (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
+- Touches: sad.md CR-029, DL-44 (decision-log.md), DL-27, EC-014, run-state model (rule 2, the `FAILED` row, "Transitions and guards"), §3 page 3 "No re-run action", §4 routes, refusal codes and failure reasons, `runs` table, data model (DL-50); 2.build/ux.md "Where ux.md and sad.md now disagree" D9 to D12 and §10.3 data gaps G-1 to G-10
+- Ask: One batch, as the operator asked. (1) **D9:** update the `DEMO_ROW_NOT_APPROVABLE` sentence in CR-029 and DL-44 to the wording in ux.md §5. (2) **D11:** update DL-27 and EC-014 to the empty-calendar message in ux.md page 7 item 3 (Open Question 12). (3) **D10, G-3:** allow Retry of the failed stage only, keeping earlier decisions and auditing it (ux.md page 3 "Failed review"): a transition out of `FAILED`, its route, guard, refusal codes and audit event, which failure reasons allow it, how it counts towards the cost cap, and what happens to outputs the failed stage already stored. (4) **D12, G-10:** add the failure demo (ux.md page 2 and page 3 "Failure demo"): a start-time switch on the run like `demo_planted_row`, stand-in agents only, refused with the real model and on evaluation runs, audited, with its own failure reason; it fails step 1 once (Open Question 21). Also please answer the data gaps G-1, G-2 and G-4 to G-9 in ux.md §10.3; they need no new behaviour, only a decision on where the data comes from.
+- Why: The operator approved these for the stubbed UI ("error and retry" is on the minimal UI bar), and Retry and the failure demo are new behaviour, which the project rules say is a SAD edit first. Until (3) lands, the build uses the fallback in ux.md (no Retry form; UX-022).
+- Outcome: (the owner fills this in)
+
 ### H-027: The weekend-option refusal is not shown in the mock-up; build it from ux.md
 - From: operator   To: @frontend.eng   Date: 2026-11-14
 - Touches: 2.build/ux.md page 4 item 8 and §5 `BUSINESS_DAY_RULE_REQUIRED`; docs/prototype/review-rules.html (rule 3, design note)

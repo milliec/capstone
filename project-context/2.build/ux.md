@@ -1,5 +1,13 @@
 # UX note: the seven pages (Block B5)
 
+## The workflow (the one workflow the stubbed UI proves)
+
+- **Who starts:** the compliance specialist.
+- **What they give:** the fund `FND-DEMO-01`, then **"Start a new review"**.
+- **What happens:** stand-in agents draft the rules; the specialist works through Step 2 (check the rules), Step 3 (confirm what applies) and Step 4 (publish). Step 1 is "AI drafts the rules" (§1.4).
+- **How they know:** the review status shows idle, running, done or failed (§10.1).
+- **What they get:** a published calendar the General Partner can read.
+
 Owner: `@ux.designer` (`*design-ux`). For: `@frontend.eng` (templates in `backend/web/templates/`)
 and `@backend.eng` (the refusal sentences in §5 are the text the service functions return).
 
@@ -80,8 +88,9 @@ button, no "someone may be mid-run" line.
    Review {n}"**, the first item a link to page 2.
 2. **H1** and a one-line lead (wording per page, §3).
 3. **Run labels** (any page that shows a review): **"Stand-in agents"** when the review used them
-   (CR-030), and **"Demo row on"** when the planted-row switch was on. Both as text tags next to the
-   H1, never colour alone. The mock-ups leave both out; the built app keeps them (H-004, H-005).
+   (CR-030), **"Demo rule on"** when the planted-row switch was on, and **"Failure demo on"** when
+   the failure-demo switch was on (page 2, proposed). All as text tags next to the H1, never colour
+   alone. The mock-ups leave them out; the built app keeps them (H-004, H-005).
 4. **Refusal message** (only after a refused request, §5: the full sentence, or a short line with a
    "Go to rule {i}" link when the refusal is about one card).
 5. The stepper (§1.4), on pages 3 to 6.
@@ -106,12 +115,23 @@ H-015, H-016). No "Stage", "G1/G2/G3" or "gate" is shown; those stay in the docu
 | `AT_G2` | Done | Done | Your turn | Not started |
 | `C_RUNNING` | Done | Done | Done | In progress |
 | `AT_G3` | Done | Done | Done | Your turn |
+| `COMPLETED` | Done | Done | Done | Done |
+
+On a review that ended without publishing, or failed:
+
+- Steps before the one it stopped at: **"Done"**.
+- The step it stopped at: **"Ended"** (`ABANDONED`, `DECLINED`) or **"Failed"** (`FAILED`).
+- Later steps: **"Not started"**, with no link.
+
+The step a review stopped at comes from `runs.phase`, which keeps its last value on an
+ended review (DL-46): `A_RUNNING` → step 1, `AT_G1` → step 2, `B_RUNNING` or `AT_G2` → step 3,
+`C_RUNNING` or `AT_G3` → step 4.
 
 Stage B (AI checks what applies) is shown as the start of step 3, and Stage C (code works out the
 dates) as the start of step 4, so the specialist sees four steps, not six (see Assumptions).
 
-Each step carries a word, not just a colour: **"Done"**, **"In progress"**, **"Your turn"** or
-**"Not started"**. Steps that are done or "Your turn" link to their page. It is an ordered list
+Each step carries a word, not just a colour: **"Done"**, **"In progress"**, **"Your turn"**,
+**"Not started"**, **"Failed"** or **"Ended"**. Steps that are done or "Your turn" link to their page. It is an ordered list
 (`<ol>`) with `aria-current="step"` on the current one.
 
 How the flow feels like one sitting:
@@ -160,12 +180,22 @@ All wording in this note goes through the copy review before the demo (CR-019).
 | Case | What happens | Words |
 |---|---|---|
 | Not signed in, any page | Redirect to `/sign-in` | — |
-| GP opens a specialist page | 403 page in the shared frame | **"This page is for the compliance specialist. You are signed in as the General Partner, so you can view the published calendar only."** Link: **"Go to the calendar"** |
-| Run ID does not exist | 404 page | **"There is no review with this number."** Link: **"Go to Filing rules"** |
+| No access (403): the General Partner opens a specialist page or sends a specialist form | 403 page in the shared frame | H1 **"You don't have access to this"**. Line: **"This page is for the compliance specialist. You are signed in as the General Partner, so you can view the published calendar only."** One link back (see below). Recorded in the audit log as a `FORBIDDEN` refusal |
+| Not found (404): a review number or address that does not exist | 404 page in the shared frame | H1 **"We can't find that page"**. Line: **"The address may be wrong, or there is no review with this number."** One link back (see below). Not recorded in the audit log |
 | Unexpected server error, specialist | Plain page | **"Something went wrong on the server. Nothing was changed by this request. Go back to Filing rules and try again."** |
 | Unexpected server error, GP | Plain page, no working content (CR-012) | **"The calendar could not be shown just now. Try again in a few minutes."** |
 
-The mock-ups do not design these pages (H-026, still open). The wording above stands until they do.
+**403 and 404 pages (H-026, gap d).** No new layout: the shared frame (§1.3), then the H1, one
+line and one link, as a plain page. No status, no review content, no auto-refresh.
+
+- **The link back** reads **"Go to Filing rules"** for the specialist. For the General Partner it
+  reads **"Go to the calendar"**, because Filing rules would refuse them again (see Open Question
+  17).
+- **Role is checked before the address.** A General Partner who opens
+  `/specialist/runs/{run_id}` always gets the 403 page, whether or not that review exists, so the
+  page never tells them which reviews exist.
+- `<title>`: `No access · ACME Compliance calendar (demo)` / `Page not found · ACME Compliance
+  calendar (demo)`.
 
 ### 1.8 Words on screen and words in the documents
 
@@ -262,8 +292,7 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
    |---|---|
    | Review | "Review 4", links to review status |
    | Started | "Fri 13 Nov 2026, 14:00" |
-   | Agents | "Stand-in agents" or "Real model" |
-   | Demo row | "On" or "Off" |
+   | Demo rule | "On" or "Off" |
    | Status | Status words (§1.5) |
    | Ended because | For `FAILED`, the reason in words (page 3); for `ABANDONED` and `DECLINED`, the first line of the written reason; otherwise empty |
 
@@ -271,9 +300,20 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
    - Text: "Fund: **Bramblegate Credit Opportunities SICAV** (fictional, `FND-DEMO-01`)".
    - Text: "Agents: **stand-in agents** (fixed test outputs, no AI model is called)" or
      "Agents: **real model**", from the server setting (CR-030).
-   - Checkbox, **unticked**: **"Add the planted demo row"**. Hint: "Adds one row that looks
+   - Checkbox, **unticked**: **"Add the demo rule (rule 7)"**. Hint: "Adds one rule that looks
      plausible but must not be approved. Use it only to show the review in a demo. The choice is
      recorded in the audit log." The built app keeps this switch; the mock-ups leave it out (H-005).
+   - Checkbox, **unticked**, under the demo rule one (proposed, needs a SAD change, D12):
+     **"Make step 1 fail (demo)"**. Hint: "Shows what a failed review looks like. Only with
+     stand-in agents." Ticking it is recorded in the audit log, like the demo rule switch. What it
+     does: see page 3, "Failure demo".
+     - **Shown only when the server runs stand-in agents** (`AGENTS_MODE=stand_in`). With the real
+       model the checkbox is not in the page at all. This is the one option on a form that depends
+       on the server setting, like the "Agents:" line above it; it is not a hidden button (§1.2),
+       because the option does not exist with the real model. The server still checks: a start
+       with the box ticked under the real model, or on an evaluation run, is refused with
+       `VALIDATION` (§5) and nothing starts.
+     - The General Partner never sees this form or the label it leaves on a review.
    - Button: **"Start a new review"**.
    - The form and its button are **always shown**, even while a review is in progress (H-009).
      The server refuses a second review (`RUN_ACTIVE`, §5): the reason is shown beside the button,
@@ -286,6 +326,7 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
 | Empty (no reviews yet) | Table replaced by: **"No reviews yet. Start the first review below."** |
 | Populated | Table as above |
 | Review active | Active-review notice at the top |
+| No review active (the last one was published, closed without publishing, abandoned or failed) | No active-review notice. "Start a new review" is accepted again: the server no longer refuses it with `RUN_ACTIVE` |
 | Refused (`RUN_ACTIVE`) | Same page. Beside "Start a new review": the full `RUN_ACTIVE` sentence (§5). At the top: **"Not done. A new review can't start while review {n} is in progress."** and the link **"Go to 'Start a new review'"** |
 | Refused (`VALIDATION`) | Same page, the full sentence at the top and next to "Start a new review" |
 
@@ -301,12 +342,14 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
 ### Page 3 · Review status (`/specialist/runs/{run_id}`)
 
 **Purpose.** The only place the specialist waits. Shows where the review is, each unit, the cost,
-and what to do next. **Who:** specialist. **No re-run action, ever.**
+and what to do next. **Who:** specialist. **No re-run of a whole review.** The one proposed
+exception, **Retry** on a failed step, is blocked until the SAD allows it (see "Failed review"
+below).
 
 **On screen, in order**
 
 1. Shared frame; breadcrumb ending **"Review {n}"**.
-2. H1 for the state (see the states table), with the run labels (Stand-in agents, Demo row on).
+2. H1 for the state (see the states table), with the run labels (Stand-in agents, Demo rule on, Failure demo on).
 3. Stepper (§1.4).
 4. **Status line** (large text): the status words (§1.5) plus the sentence for the state below.
 5. **Next step** (only at a step that waits for the specialist, or when ended): one primary link
@@ -358,9 +401,9 @@ controls are not shown.
 | `COMPLETED` | **"Published"** | "Published on {date} at {time}. The General Partner now sees this calendar." | **"See the calendar as the General Partner sees it"** → `/calendar` |
 | `DECLINED` | **"Closed without publishing"** | "Closed without publishing on {date} at {time}. Nothing was published. The General Partner still sees what they saw before." Then: "What needs to change: {reason}" | **"Go to Filing rules"** |
 | `ABANDONED` | **"Abandoned"** | "Abandoned at step {k} ({step name}) on {date} at {time}. Nothing was published, and the decisions made so far stay in the audit log." Then: "Your reason: {reason}" | **"Go to Filing rules"** |
-| `FAILED` | **"This review failed"** | "This review failed at step {k} ({step name}), at unit **{unit}**. {reason sentence}. Nothing moved forward. Start a new review from Filing rules." | **"Go to Filing rules"** |
+| `FAILED` | **"This review failed"** | Two versions, see "Failed review" below: with Retry, and without it (fallback) | Without Retry: the link **"Start a new review from Filing rules"**. With Retry: the **"Retry step {k}"** form, then the link **"Or start a new review from Filing rules"** |
 
-**Failure reason sentences** (from the six reasons in §4):
+**Failure reason sentences** (the six reasons in §4, plus one proposed for the failure demo):
 
 | Reason code | Sentence |
 |---|---|
@@ -370,6 +413,7 @@ controls are not shown.
 | `cost cap` | "The review reached its cost limit of US$2.50" |
 | `service restarted` | "The application restarted while AI was working" |
 | `calendar generation` | "The dates could not be worked out into one complete calendar" |
+| *Proposed:* failure demo (code for `@system.arch` to name, G-10) | "This step failed on purpose, for the demo only, because "Make step 1 fail (demo)" was ticked when the review started. Nothing else went wrong" |
 
 **Abandon this review** (only in `AT_G1`, `AT_G2`, `AT_G3`). One form,
 `POST /specialist/runs/{run_id}/abandon`, with the run version as a hidden field:
@@ -385,8 +429,106 @@ While AI or code is working the form is not shown; instead: **"You can abandon t
 is waiting for you. While AI is working, it always finishes by itself."** If an old page sends the
 form anyway, the server answers `RUN_STAGE_RUNNING` (§5).
 
-The mock-ups do not design the abandon control or the failed, abandoned and closed states
-(H-026, still open). The behaviour and wording above stand until they do.
+**After abandoning** (H-026, gap b). The page reloads in the `ABANDONED` state (states table
+above) and becomes a closed review (below). The abandon is recorded in the audit log with who,
+when, the step it was at and the written reason (W-19a). On Filing rules the review shows
+**"Abandoned"** with the first line of the reason under "Ended because", the active-review notice
+goes, and **"Start a new review"** is accepted again. Abandon is offered only while the review
+waits for the specialist at a step (SAD run-state rule 8); while AI or code works, the line above
+explains why it is not offered.
+
+#### Failed review (H-026, gap a)
+
+**Reviewed and approved by the operator, 2026-11-16.** This approves the design of this section
+only. Retry still waits for the SAD change (D10) before anyone builds it, and the note's overall
+approval status stays `pending`.
+
+**What the specialist sees** when a step fails, top to bottom, on this page:
+
+1. H1 **"This review failed"**, with the status tag **"Failed"** (word, problem tone).
+2. Stepper: earlier steps "Done", the failed step **"Failed"**, later steps "Not started" (§1.4).
+3. Status line, in plain English. The reason sentence comes from the table above. The units
+   table marks that unit **"Failed"**.
+   - Without Retry: **"This review failed at step {k} ({step name}), at unit {unit}. {reason
+     sentence}. Nothing moved forward. Decisions you already made stay in the audit log."**
+   - With Retry: **"This review failed at step {k} ({step name}), at unit {unit}. {reason
+     sentence}. Nothing moved forward, and the decisions you already made are kept."**
+4. Automatic refresh stops (the review is no longer working).
+5. What to do next: one of the two versions below, depending on whether the SAD change has landed.
+
+**Without Retry (the fallback).** If the SAD change for Retry (D10, G-3) has not landed when the
+build starts, the failed page shows only the link **"Start a new review from Filing rules"**
+(primary link, to page 2 at "Start a new review"). The Retry form is **left out of the page**:
+not hidden, not disabled, not greyed out, and there is no "coming soon" (§1.2). This works with
+the SAD as it is today, because a failed review is not active and a new review can start.
+
+**With Retry.** Once `@system.arch` has changed the SAD, the page shows the Retry form (below)
+and, under it, the link **"Or start a new review from Filing rules"**. Nothing else on the page
+changes.
+
+> 🔴 **Retry: kept by the operator (2026-11-16, Open Question 18), not buildable yet.** The SAD says a failed run "is never resumed and
+> never re-run" (run-state rule 2; `FAILED` is terminal; page 3 "No re-run action"), and a new
+> retry is a SAD edit first (project `CLAUDE.md`). `@frontend.eng` and `@backend.eng` must not
+> build Retry until `@system.arch` changes the SAD (see §10.3, gap G-3). Until then the specialist
+> starts a new review, which already works because a failed review is not active.
+
+**Retry** (proposed). One form, under the status line, with the run version as a hidden field.
+The route is for `@system.arch` to name.
+
+- H2 **"Try this step again"**.
+- Text: **"Retry runs step {k} again from its start. Your decisions on earlier steps are kept and
+  are not asked again. The retry is recorded in the audit log."** For a failure at step 1:
+  **"Retry runs step 1 again from its start. AI drafts every rule again."**
+- Button: **"Retry step {k}"** (primary). Shown on every failed review, never hidden or disabled
+  (§1.2); the server decides whether it is allowed.
+- Under it, the link **"Or start a new review from Filing rules"**.
+
+| What Retry does | Detail |
+|---|---|
+| Restarts | Only the stage that failed: AI drafting (step 1), AI checking what applies (start of step 3), or working out the dates (start of step 4) |
+| Keeps | Every decision already recorded: the rule decisions from step 2 if the failure was at step 3 or 4, and the answers from step 3 if it was at step 4. They are not shown again as forms |
+| Redoes | The failed stage's work, from its start |
+| Then | Redirect to this page in the running state for that stage ("Nothing for you to do yet"), with automatic refresh on and the step "In progress" |
+| Records | One audit entry: who, when, the step retried and the failure it follows |
+| Refused when | Another review is in progress (`RUN_ACTIVE` wording, §5), the page is out of date (`VERSION_MISMATCH`), or the review is not failed. Whether some reasons (for example `cost cap`) refuse a retry is for `@system.arch` (§10.3, G-3) |
+
+#### Failure demo (proposed, needs a SAD change, D12)
+
+Stand-in agents never fail, so without this the failed review cannot be shown in a demo.
+
+- **Start:** the specialist ticks **"Make step 1 fail (demo)"** on page 2 and starts the review.
+  The audit log records the switch. The review shows the label **"Failure demo on"** next to the
+  H1 on every page about it (§1.3).
+- **What happens:** step 1 starts as usual. Its first unit (the first source document) fails;
+  the units after it stay "Waiting". The review ends as **Failed** at step 1.
+- **What the specialist sees:** the normal "Failed review" screen above, nothing special, with
+  the reason sentence: **"This step failed on purpose, for the demo only, because "Make step 1
+  fail (demo)" was ticked when the review started. Nothing else went wrong."** On Filing rules the
+  review shows **"Failed"**, and the same sentence under "Ended because".
+- **Without Retry:** the specialist uses "Start a new review from Filing rules", leaves the box
+  unticked, and the new review runs normally.
+- **With Retry:** the switch makes step 1 fail **once** (operator, 2026-11-16, Open Question
+  21). "Retry step 1" then runs step 1 normally, so one review shows both the error and the retry.
+- **Never** with the real model, never on an evaluation run, never seen by the General Partner.
+  It changes nothing on any published calendar.
+
+#### Closed review: read-only (H-026, gap c)
+
+A review is closed once it is **Published** (`COMPLETED`), **Closed without publishing**
+(`DECLINED`) or **Abandoned** (`ABANDONED`). A failed review is also read-only, apart from the
+proposed Retry.
+
+- **Review status**: the state's H1 and sentence (states table above), the stepper (§1.4), the
+  units and cost as a record, and one link (next-step column). No refresh controls, no abandon
+  form.
+- **The step pages** (4, 5 and 6): reached steps show their read-only record (each page's "After"
+  state: every decision, no forms, no finish button). A step the review never reached shows one
+  line, **"This review ended before this step."**, and the link **"Go to the review status
+  page"**.
+- **No form anywhere** on a closed review. A form sent from an old page is refused with
+  `RUN_NOT_ACTIVE` (§5) and the refusal is recorded in the audit log.
+- **The General Partner** sees none of it. Their calendar changes only when a review is published
+  (page 7).
 
 **Actions**
 
@@ -395,6 +537,7 @@ The mock-ups do not design the abandon control or the failed, abandoned and clos
 | Refresh now / Stop / Turn back on | Same page, refresh on or off |
 | Next step link | The step page, or the calendar, or Filing rules |
 | Abandon review | Success: same page, `ABANDONED` state. Refused: `REASON_REQUIRED`, `VERSION_MISMATCH`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE` |
+| Retry step {k} (proposed, blocked until the SAD allows it) | Success: same page, running state for that stage. Refused: see "Failed review" above |
 
 ---
 
@@ -583,8 +726,9 @@ decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reas
       field has its own name (`<answer>_reason`, SAD §4), and only the chosen answer's field is
       read. No answer chosen → `VALIDATION`.
 
-      When AI said **"applies"** or **"doesn't apply"** (not in the mock-ups, see H-026; the
-      question is wording this note adds):
+      When AI said **"applies"** or **"doesn't apply"** (the ordinary path; H-026, gap e). No new
+      layout: the same card and answer-first form as the "can't tell" case in
+      `applicability.html`, with these two answers in place of its two:
       - Question: **"What's your answer on this rule?"**
       - **"Confirm: applies"** (or **"Confirm: doesn't apply"**): text **"If you confirm, the
         General Partner will read AI's reasoning above as the explanation."** (for "doesn't
@@ -593,6 +737,12 @@ decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reas
       - **"Overrule: doesn't apply"** (or **"Overrule: applies"**, the opposite of AI's): field
         **"Reason for overruling"** with the hint for that outcome (below). Button: **"Overrule:
         doesn't apply"** / **"Overrule: applies"**.
+      - Neither answer is preselected or styled as the default. The server acts only on the
+        chosen answer and reads only that answer's reason field.
+      - Confirm needs no reason. Overrule without a reason is refused with `REASON_REQUIRED`
+        (§5), shown inside the card; the typed text is kept and the answer is shown unchosen
+        again.
+      - Every decision, and every refusal, is recorded in the audit log with who and when.
 
       When AI **can't tell** (U5, H-017; `applicability.html`): no Confirm.
       - Question: **"Nobody has confirmed {the missing fact}. Should this rule go on the
@@ -615,9 +765,17 @@ decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reas
       | Can't tell, decided as **add it** ("May not be required") | Yes | Same as above |
       | Overrule to **doesn't apply** | No | **"This obligation will not be on the calendar, so the General Partner will not see this reason. It is kept in the audit log for specialists."** |
       | Can't tell, decided as **leave it off** | No | Same as above |
-   8. **Decided** (replaces the form): "**Confirmed: applies** by Compliance specialist (mock) at
-      14:21." / "**Overruled: doesn't apply** … Reason: …" / "**Added, marked 'May not be
-      required'** … Reason: …", then **"Next answer to decide"** link.
+   8. **Decided** (replaces the form), one line per outcome, then the **"Next answer to
+      decide"** link:
+
+      | Outcome | Line | On the calendar? |
+      |---|---|---|
+      | Confirm: applies | "**Confirmed: applies** by Compliance specialist (mock) at 14:21." | Yes; the General Partner reads AI's reasoning as the "Why" |
+      | Confirm: doesn't apply | "**Confirmed: doesn't apply** by … at 14:21." | No |
+      | Overrule: applies | "**Overruled: applies** by … at 14:21. Reason: {reason}" | Yes; the General Partner reads your reason as the "Why" |
+      | Overrule: doesn't apply | "**Overruled: doesn't apply** by … at 14:21. Reason: {reason}" | No; the reason stays in the audit log |
+      | Can't tell → add it | "**Added, marked 'May not be required'** by … at 14:21. Reason: {reason}" | Yes, marked "May not be required" |
+      | Can't tell → leave it off | "**Left off** by … at 14:21. Reason: {reason}" | No |
 6. **Finish** (H2: **"{x} answers left to confirm"**, or **"All answers decided"**), one form,
    `POST /specialist/runs/{run_id}/g2/complete`, run version:
    - Text: **"Once you've confirmed them all, the dates are calculated by code. No AI works out a
@@ -635,8 +793,8 @@ decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reas
 | Refused | Same page, as §5: about one answer, land on its card with the short top line and "Go to rule {i}"; about the page, the full message at the top |
 | After G2 | Read-only record, no forms. **"You've confirmed what applies. This is the record of the decisions."** |
 
-The mock-ups design only the "AI can't tell" case. Overruling an ordinary answer stays as written
-above until H-026 decides it.
+The mock-ups design only the "AI can't tell" case. The ordinary confirm and overrule (item 7)
+reuse that layout; this note sets their behaviour and words (H-026, gap e).
 
 **After each action**
 
@@ -749,10 +907,11 @@ read-only. **Must work at phone width.**
 
 1. Shared frame.
 2. H1 **"Compliance calendar"**
-3. The fixed message (DL-27, word for word), **and nothing else**: no count, no review, no status,
-   no summary cards, no week grid:
-   **"Your obligations calendar is being prepared and checked by a specialist. Nothing has been
-   published yet."** The mock-up's empty state uses other words; DL-27 wins (see Open Question 12).
+3. The fixed message, word for word, **and nothing else**: no count, no review, no status, no
+   summary cards, no week grid:
+   **"Your compliance calendar is being prepared and checked by a specialist. Nothing has been
+   published yet. The deadlines will appear here once it is published."** (operator, 2026-11-16,
+   Open Question 12). It replaces the DL-27 text; `@system.arch` updates DL-27 and EC-014 (D11).
 
 **On screen, in order (published)**
 
@@ -799,7 +958,7 @@ scroll.
 
 | State | What shows |
 |---|---|
-| Nothing published yet | The fixed DL-27 message only |
+| Nothing published yet | The fixed empty message only (item 3 above; D11) |
 | Published | As above. A later review that is closed without publishing, failed or abandoned changes nothing here |
 | Error | **"The calendar could not be shown just now. Try again in a few minutes."** (never working content, CR-012) |
 
@@ -848,7 +1007,7 @@ for that sentence. `{…}` are values the server fills in.
 
 | Code | Context | Sentence |
 |---|---|---|
-| `DEMO_ROW_NOT_APPROVABLE` | Approve on the planted row | **"Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason."** Then the line **"Recorded in the audit trail."** (A3, H-006; now the CR-029 sentence, DL-44 updated 2026-11-14) |
+| `DEMO_ROW_NOT_APPROVABLE` | Approve on the demo rule (rule 7) | **"This rule can't be approved. The quote is genuine, but it doesn't say what this rule claims, so there's no legal basis for it. Reject it and add a short reason, for example "Quote doesn't support the rule". Your attempt has been recorded in the audit trail."** (operator, 2026-11-16, DL-44 wording; sad.md CR-029 still has the older sentence, see D9) |
 | `QUOTE_CHECK_FAILED` | Approve on a rule that failed the check | **"This rule failed the quote check: its quote does not appear word for word in paragraph {para_id}. It cannot be approved. Reject it with a reason."** |
 | `ALREADY_DECIDED` | Rule (G1) | **"This rule was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
 | `ALREADY_DECIDED` | Answer (G2) | **"This answer was already decided, so your decision was not recorded. The page now shows the decision that stands."** |
@@ -878,8 +1037,17 @@ The look (tokens, type, spacing, components, status chips, contrast) is in
 **`project-context/2.build/style-note.md`** (operator decision, 2026-11-13). This note does not
 repeat it.
 
-**Done (U8, H-020).** The operator accepted a new look for the MVP: Lexend headings, Inter body,
-6px corners on cards and buttons, pill chips and Iconoir icons (MIT licence, inline SVG).
+**Done (U8, H-020).** The operator accepted a new look for the MVP: 6px corners on cards and
+buttons, pill chips and Iconoir icons (MIT licence, inline SVG).
+
+**Fonts** (as in `docs/prototype/app.css`; not Inter Tight):
+
+| Use | Font | `app.css` token |
+|---|---|---|
+| Headings, wordmark, fund name | **Lexend** | `--font-head` |
+| Body text, labels, buttons | **Inter** | `--font-body` |
+| Data: IDs and codes (`OBL-03`, `SRC-X-P2`, `FND-DEMO-01`) | **DM Mono** | `--font-id` |
+
 `style-note.md` now describes it, with `docs/prototype/app.css` as the source of truth. If the two
 disagree, the stylesheet wins. U7 and U8 together get half a day; anything that does not fit is
 dropped.
@@ -912,7 +1080,7 @@ unstyled.
 | UX-005 | No page has a bulk action, a disabled button or a "coming soon" | §3, AC-026 |
 | UX-006 | Review status refreshes every 3 s only while AI or code works, and "Stop automatic refresh" stops it | §3 Freshness, WCAG 2.2.1 |
 | UX-007 | Every status is readable with colour removed | §3 Accessibility |
-| UX-008 | Before the first publication, `/calendar` shows only the DL-27 message | DL-27, CR-012 |
+| UX-008 | Before the first publication, `/calendar` shows only the empty message (page 7 item 3) | DL-27 (to be updated, D11), CR-012 |
 | UX-009 | A GP never sees a flag, a "can't tell" answer, a mark other than "May not be required", or a review | CR-012 |
 | UX-010 | G2 reason fields that create an entry say the General Partner will read the reason; "doesn't apply" and "leave it off" fields say it is for the audit log only | SA-8, W-17 |
 | UX-015 | Approving a rule with no weekend-or-holiday choice shows the `BUSINESS_DAY_RULE_REQUIRED` sentence in that rule's card; the rule stays undecided. The options read exactly: Move to the following working day, Move to the preceding working day, Keep the date; there is no "not confirmed" | §5, H-021 |
@@ -923,8 +1091,10 @@ unstyled.
 | UX-016 | The "who files" options read exactly: AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor, Not known | DL-39 |
 | UX-011 | The G3 acknowledgement checkbox is unticked on every load | CR-028 |
 | UX-012 | The GP calendar has no horizontal scroll at 360 px | §3 |
-| UX-013 | Run status offers no re-run action | §3 page 3 |
+| UX-013 | Run status offers no re-run action (Retry on a failed step is proposed and is not built until the SAD allows it) | §3 page 3 |
 | UX-014 | A stand-in happy path from G1 open to G3 published takes a first-time reader under 30 minutes (from audit timestamps) | §7, EC-011 |
+| UX-021 | **With Retry** (SAD change landed): a failed review shows the "Retry step {k}" button, visible and enabled, and the link "Or start a new review from Filing rules"; clicking Retry puts the review back to "In progress" at that step, keeps every earlier decision, and adds one audit entry | Page 3 "Failed review", D10, G-3 |
+| UX-022 | **Without Retry** (fallback): a failed review shows only the link "Start a new review from Filing rules"; the page source has no Retry form, button or text (not hidden, not disabled), and a new review can be started | Page 3 "Failed review", §1.2 |
 
 ## 9. Post-MVP ideas (not in the Build card; not designed)
 
@@ -939,6 +1109,85 @@ unstyled.
   uses what the SAD already provides (Open Question 3, closed).
 - **"Approve and go to next row" in one click**, to save time at G1. Only if the 30-minute target
   is missed in the rehearsal.
+
+## 10. Screen-to-data map (the workflow)
+
+For each screen in the one workflow: what it shows and what the user changes, named as
+`entity.field` from the sad.md ERD ("Data model: the happy path", DL-50). **This is not a
+schema.** Where a screen needs something the ERD does not have, it is listed in §10.3. "Derived"
+means the server counts or filters fields that exist; the page never works anything out (§1.2).
+`units` is in the SAD table list but not drawn in the ERD, so it is marked "(table list)".
+
+### 10.1 The four review states
+
+The workflow's four states map to the server values like this. The screen still shows the status
+words of §1.5.
+
+| State | `runs.status` · `runs.phase` | What the specialist sees |
+|---|---|---|
+| **idle** | No `runs` row with `status = ACTIVE` for the fund (none yet, or the newest has ended) | Filing rules without the active-review notice; "Start a new review" is accepted |
+| **running** | `ACTIVE` · `A_RUNNING`, `B_RUNNING` or `C_RUNNING` (AI or code working), or `ACTIVE` · `AT_G1`, `AT_G2` or `AT_G3` (waiting for the specialist) | "AI is working" or "Your turn" (§1.5); review status refreshes only while working |
+| **done** | `COMPLETED` (the goal), or `DECLINED` or `ABANDONED` (ended without publishing) | "Published", "Closed without publishing" or "Abandoned"; a closed, read-only review (page 3) |
+| **failed** | `FAILED` | "Failed", with step, unit and reason (page 3, "Failed review") |
+
+### 10.2 Screens
+
+| Screen | State | Shows (`entity.field`) | User changes (`entity.field` written) |
+|---|---|---|---|
+| Sign-in (stub) | Any | Nothing from the ERD (two fixed mock identities) | Nothing in the ERD (session only) |
+| Sidebar (every page) | Any | `fund_profile.fund_id`; fund name and line (G-8); role from the session; "Your turn" tag from `runs.status`, `runs.phase` | — |
+| Filing rules | idle | Reviews table: `runs.run_id`, start time (G-1), `runs.demo_planted_row`, `runs.status` + `runs.phase` as words; "Ended because": `units.failure_reason` (table list) for `FAILED`, `audit_log.reason` for `ABANDONED` and `DECLINED`. Start form: `fund_profile.fund_id`; agents mode from the server setting, which also decides whether the "Make step 1 fail (demo)" checkbox is in the form | **Start a new review** → new `runs` row (`fund_id`, `demo_planted_row`, the failure-demo switch (G-10), `agents_mode`, `status = ACTIVE`, `phase = A_RUNNING`); `audit_log` entries for the start and, if ticked, each demo switch. A refused start → `audit_log` (`event_type = refusal`, `refusal_code = RUN_ACTIVE` or `VALIDATION`) |
+| Filing rules | running | As idle, plus the active-review notice: `runs.run_id`, `runs.status`, `runs.phase` | Start is refused (as above) |
+| Filing rules | done, failed | As idle; the ended review shows its status words and "Ended because" | Start is accepted |
+| Review status | running (AI working) | `runs.phase`, `runs.status`, units and their status (`units`, table list; G-2), `runs.cost_so_far`, `runs.agents_mode`, `runs.demo_planted_row`, start details (G-1) | Nothing (refresh on/off is in the URL only) |
+| Review status | running (your turn) | As above, plus the counts in the sentence (derived: `rows` for the run; `verdicts.verdict = unsure`; `calendar_entries` for the run's `calendar_versions`) | **Abandon** → `runs.status = ABANDONED` (checked against `runs.run_version`); `audit_log` (`actor`, `at`, `reason`, `subject_id = run_id`); `runs.phase` keeps the step |
+| Review status | failed | `runs.status`, `runs.phase` (the step), the failed unit and `units.failure_reason` (table list; G-2), `runs.cost_so_far` | **Retry** (proposed): G-3. Without Retry: nothing (the link goes to Filing rules) |
+| Review status | failed (failure demo) | As failed, plus the "Failure demo on" label from the failure-demo switch, and the failure-demo reason in `units.failure_reason` (G-10) | As failed |
+| Review status | done | `COMPLETED`: `publications.published_at`. `DECLINED` / `ABANDONED`: `audit_log.at`, `audit_log.reason`, `runs.phase` (the step) (G-4) | Nothing |
+| Check the rules (step 2) | running (before `AT_G1`) | `runs.phase` only | Nothing |
+| Check the rules (step 2) | running (`AT_G1`) | `rows.row_id`, `rows.obligation_name`, `rows.frequency`, `rows.anchor`, `rows.offset`, `rows.recipient_code` (G-7), `rows.responsible_role`, `rows.business_day_rule`, `rows.quote`, `rows.origin` ("Demo" tag); `quote_checks.result`; `paragraphs.paragraph_text`, `paragraphs.document_id` (via `rows.run_id` + `rows.source_paragraph_id`); `flags.flag_type`, `flags.explanation`, `flags.row_value`, `flags.quote_says`, `flags.other_paragraph_id`, `flags.other_quote`; decided rules from `row_decisions`; "Approval blocked" from `audit_log` (`refusal_code = DEMO_ROW_NOT_APPROVABLE`, `subject_id = row_id`) (G-9); OQ-7 mark (G-6); unused paragraphs (derived: `paragraphs` not cited by an approved or undecided row); summary counts (derived) | **Approve / Reject** → one `row_decisions` row (`decision`, `business_day_rule` on approve, `who_files` when the source is silent, `reason`, `row_version`, `decided_by`, `decided_at`) + `audit_log`. A refusal → `audit_log` only. **Finish checking** → `runs.phase = B_RUNNING`, `runs.run_version` up by one, `audit_log` |
+| Check the rules (step 2) | done, failed (after `AT_G1`) | Read-only: the same fields and every `row_decisions` row | Nothing |
+| Confirm what applies (step 3) | running (`AT_G2`) | `verdicts.verdict`, `verdicts.reasoning`, `verdicts.cited_fact_ids` → `fund_profile.facts`, `verdicts.missing_information` (can't tell only); the approved rule: `rows.*`, `row_decisions.*`; decided answers from `verdict_decisions`; progress (derived) | **Confirm / Overrule / Decide** → one `verdict_decisions` row (`decision` = `confirm`, `override` or `decide`; `final_value`; `reason`, empty on confirm; `verdict_version`; `decided_by`; `decided_at`) + `audit_log`. **Finish and calculate dates** → `runs.phase = C_RUNNING`, `runs.run_version` up by one, `audit_log` |
+| Confirm what applies (step 3) | before, done, failed | Before: `runs.phase` only. After: read-only `verdicts` + `verdict_decisions` | Nothing |
+| Check the calendar and publish (step 4) | running (`AT_G3`) | `calendar_entries.due_date`, `unadjusted_date`, `business_day_rule`, `moved`, `precautionary`, `open_question_id`; via `calendar_entries.row_id`: `rows.obligation_name`, `rows.recipient_code` (G-7), `row_decisions.who_files` or `rows.responsible_role`, `rows.source_paragraph_id`; "Why": `verdict_decisions.reason` when the specialist overruled or decided, else `verdicts.reasoning` (W-17); rejected rules: `row_decisions` with `decision = reject` (`reason`) and `rows.origin`; unused paragraphs (derived); earlier publication: newest `publications.published_at` | **Publish** → one `publications` row (`calendar_id`, `acknowledged_rejected_row_ids`, `acknowledged_uncited_paragraph_ids`, `published_by`, `published_at`), `runs.status = COMPLETED`, `audit_log`. **Close without publishing** → `runs.status = DECLINED`, `audit_log.reason` (G-4) |
+| Check the calendar and publish (step 4) | done | Read-only: the same, plus `publications.published_at` or the close reason (`audit_log.reason`) | Nothing |
+| Calendar (General Partner) | No publication yet | Nothing: no `publications` row for the fund → the empty message (page 7 item 3; D11) | Nothing |
+| Calendar (General Partner) | Published | Newest `publications` row for the fund → its `calendar_versions` → `calendar_entries.due_date`, `calendar_entries.precautionary`; via `row_id`: `rows.obligation_name`, `rows.quote`, `rows.source_paragraph_id` → `paragraphs.document_id`, who files, "Why" (as step 4); `publications.published_at`; stand-in line from `runs.agents_mode` (via `calendar_versions.run_id`); summary cards (derived). Never `moved`, `open_question_id`, flags, verdicts or any `runs.status` | Nothing |
+| Calendar (General Partner) | A later review running, failed or done without publishing | Unchanged: still the newest `publications` row | Nothing |
+| 403 / 404 pages | Any | Nothing from the ERD | 403: `audit_log` (`refusal_code = FORBIDDEN`). 404: nothing |
+
+### 10.3 Data gaps for `@system.arch`
+
+Things a screen needs that the ERD does not have. This note proposes no columns; the architect
+decides.
+
+| # | Screen | What is needed | What the ERD has today |
+|---|---|---|---|
+| G-1 | Filing rules ("Started"), review status (details line) | When the review started and who started it | No `runs.started_at` or `started_by`. Could be the start entry in `audit_log`; confirm which |
+| G-2 | Review status (units table, failed state), Filing rules ("Ended because") | Each unit's label (for example "CSSF Circular 15/627"), status and failure reason | `units` is in the SAD table list but not drawn in the ERD. Confirm its fields, including a readable unit label |
+| G-3 | Review status, Retry (proposed) | A transition out of `FAILED` back to the failed stage's `*_RUNNING` phase; its route, guard and refusal codes; an audit event for it; which failure reasons allow a retry (for example `cost cap`); how the retry counts towards the cost cap; and what happens to outputs the failed stage already stored (`verdicts.row_id` and `calendar_versions.run_id` are unique, so a stage cannot simply write again) | Nothing: `FAILED` is terminal (run-state rule 2). **A SAD edit first** |
+| G-4 | Filing rules, review status, step 4 (read-only) | The abandon and close reasons and the time the review ended | Only `audit_log.reason` and `audit_log.at`. Confirm the pages read them from the audit log, or add fields to `runs` |
+| G-5 | Review status (failed) | Which step the review failed at | `runs.phase` keeps its last value (DL-46). Enough; listed only to confirm |
+| G-6 | Check the rules (step 2) | The "Depends on open question OQ-7" mark on rule `OBL-02`, before any date exists | Only `calendar_entries.open_question_id`, written at the date step. No row-level field |
+| G-7 | Step 4, calendar | The recipient's name ("CSSF") | Only `rows.recipient_code`. Where does the name come from? |
+| G-8 | Sidebar | Fund name and the line "Luxembourg UCI Part II · year end 31 Dec" | `fund_profile` is drawn with `fund_id`, `facts` and `filing_parties` only. Confirm the config fields |
+| G-9 | Check the rules (step 2) | "Approval blocked" tag on the demo rule after a refused approval | Only the `audit_log` refusal row. Confirm the page may read it from the audit log |
+| G-10 | Filing rules (start form), review status (label, failed state) | The failure demo: a switch on the review, set only at start, like `runs.demo_planted_row`; a failure reason for it (a seventh reason, beside the six in §4); which unit fails (proposed: the first unit of step 1); a refusal when the box is ticked with the real model or on an evaluation run; an audit entry when it is on; and, with Retry, how the review knows the first attempt has already failed (the operator decided it fails once, Open Question 21) | Nothing: no switch, no reason. **A SAD edit first** (D12) |
+
+## 11. Out of scope for the stubbed UI
+
+Not designed, not built, and not shown as a placeholder (§1.2):
+
+- **Real sign-in.** Sign-in stays a stub: two mock identities, no password.
+- **Live streaming from crews.** Review status refreshes every 3 seconds; no streaming.
+- **Tool traces and cost panels.** Review status shows only the one "Model cost so far" line.
+- **Multi-tenant.** One fund, `FND-DEMO-01`; no Funds page, no second fund.
+- **Full design system and styling polish.** Within the half day for U7 and U8 (H-019, H-020);
+  pages must work unstyled.
+- **Real backend wiring.** Stand-in agents only (`AGENTS_MODE=stand_in`); no real model call.
+- **Any second workflow.**
+- **A5, the source picker** (choosing which source a rule follows; H-008, DL-22).
+- **A8, the period field** ("For December 2026"; H-010, DL-49).
 
 ---
 
@@ -963,6 +1212,9 @@ unstyled.
 - `project-context/1.define/sad.md` DL-47, DL-48, DL-49, §3 pages 4 and 7, §3 "Decision form",
   §4 routes and validation (read for H-030).
 - `docs/prototype/HANDOVER.md` and `docs/prototype/build.py` (the mock-up wording and layout).
+- `project-context/1.define/sad.md` "Data model: the happy path" (DL-50 ERD), the table list in
+  §4 "Data", the run-state model, "Transitions and guards" and the failure reasons (read for §10
+  and the H-026 gaps); `docs/prototype/app.css` font tokens (§6); `handoffs.md` H-026.
 - `.cursor/templates/ux-template.md`, `.cursor/skills/product-design/SKILL.md`.
 - The operator's B5 brief, and the operator's decisions on the mock-up review (2026-11-13).
 
@@ -1052,6 +1304,17 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    has been published yet. You'll see deadlines here once compliance has signed them off." DL-27
    fixes the message word for word (EC-014 checks it), so this note keeps DL-27. Change DL-27, or
    update the mock-up?
+   **Closed 2026-11-16 (operator): approved.** Page 7 now uses this copy for the General
+   Partner's empty calendar. `@system.arch` updates DL-27 and EC-014 in the same batch as CR-029
+   (D9, D11):
+   > **"Your compliance calendar is being prepared and checked by a specialist. Nothing has been
+   > published yet. The deadlines will appear here once it is published."**
+
+   Why: it keeps DL-27's two sentences almost as they are, so EC-014 needs only a small update;
+   it says "compliance calendar", the on-screen name (§1.8, U1), in place of "obligations
+   calendar"; and it adds what happens next, as the voice rules ask (§1.6), without the mock-up's
+   "signed them off", which reads like a legal sign-off. The mock-up `gp-calendar-empty.html`
+   still shows its own words and needs changing to match.
 13. **For the operator: "General Partner" or "General Partner / Fund Manager".** H-018 says
    "General Partner" in the UI. The mock-ups use "General Partner / Fund Manager" for the role name
    on sign-in and in the sidebar. This note uses the long form for the role name and "the General
@@ -1063,6 +1326,28 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    Partner's calendar has no "Moved off a weekend" card, count, chip, chart colour or legend
    entry, and the B12 views and charts follow the same rule (SAD §3 page 7, DL-49 update; page 7
    item 8). The mock-up is already changed (`build.py`, `gp-calendar.html`).
+16. **Closed 2026-11-16 (operator).** Step numbers follow the stepper on screen everywhere: the
+   specialist's steps are Steps 2, 3 and 4 (check the rules, confirm what applies, publish); Step 1
+   is "AI drafts the rules" (U4, H-016).
+17. **Closed 2026-11-16 (operator).** The 403 page links the General Partner to **"Go to the
+   calendar"** and the specialist to **"Go to Filing rules"** (§1.7).
+18. **Closed 2026-11-16 (operator): keep Retry.** The minimal UI bar for the demo lists "error and
+   retry". Keep it small: retry only the failed stage, keep earlier approvals, record it in the
+   audit log (page 3, "Failed review"). It still needs a SAD change by `@system.arch` before
+   anyone builds it (D10, §10.3 G-3).
+19. **Closed 2026-11-16 (operator).** Abandon is offered only while the review waits for the
+   specialist at a step, never while AI or code is working, so no agent is cut off halfway (SAD
+   run-state rule 8).
+20. **Closed 2026-11-16 (operator).** The Filing rules column is now **"Demo rule"**, to match
+   the refusal wording.
+21. **Closed 2026-11-16 (operator).** The failure demo fails step 1 **once**. "Retry step 1" then
+   succeeds, so one review shows both the error and the retry.
+22. **Closed 2026-11-16 (operator).** No "Failure demo" column on Filing rules. The "Failed"
+   status and the reason sentence under "Ended because" are enough, and the table stays simpler.
+23. **Closed 2026-11-16 (operator).** The reason sentence is: "This step failed on purpose, for
+   the demo only, because "Make step 1 fail (demo)" was ticked when the review started. Nothing
+   else went wrong." One sentence, used everywhere (reason table, status line, "Ended because" on
+   Filing rules), so `@system.arch` stores one version.
 
 ## Mock-up differences this revision does not apply
 
@@ -1089,9 +1374,13 @@ old text. D6 to D8 stay as notes:
 | D6 | Users read "review", "AI", four named steps, "General Partner", "Close without publishing" | "run", "Stage A/B/C", "G1/G2/G3", "GP", "decline" | Throughout (allowed: the documents keep the internal names, §1.8) | U2, U3, U4, U6, U10 |
 | D7 | The General Partner's note: "These dates are the specialist's approved reading of the rules. Not legal advice. Date counting hasn't yet been checked against the legal texts." The specialist sees a longer note | One calendar-level "not legal advice / conventions not yet checked" note | W-16, DM-14 (wording only; H-023 says no FR-020 change) | U11, H-023 |
 | D8 | The specialist's navigation is "Calendar · Filing rules" in a sidebar | Not specified beyond the seven pages | §3 (no conflict; noted for completeness) | U7, H-019 |
+| D9 | The demo-rule refusal reads "This rule can't be approved. The quote is genuine, but it doesn't say what this rule claims, so there's no legal basis for it. Reject it and add a short reason, for example "Quote doesn't support the rule". Your attempt has been recorded in the audit trail." | "Approval blocked: no legal basis. This rule doesn't appear in the regulation text. Reject it with a reason." + "Recorded in the audit trail." | CR-029; DL-44 update of 2026-11-14 in `decision-log.md`; T-DEMO-2 may check the text | Operator, 2026-11-16. **Open:** `@system.arch` to update CR-029 and DL-44 |
+| D10 | Retry on a failed step (proposed) | A failed run is never resumed or re-run; no re-run action | Run-state rules 2 and the `FAILED` row; §3 page 3 | Operator, 2026-11-16: keep Retry, small (failed stage only, earlier approvals kept, audited). **Open:** SAD edit by `@system.arch` before anyone builds it (§10.3, G-3) |
+| D11 | The General Partner's empty calendar reads "Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published." | "Your obligations calendar is being prepared and checked by a specialist. Nothing has been published yet." | DL-27; EC-014 checks the text | Operator, 2026-11-16 (Open Question 12). **Open:** `@system.arch` to update DL-27 and EC-014, in the same batch as D9 |
+| D12 | A second demo switch, "Make step 1 fail (demo)", stand-in agents only, makes step 1 fail with its own reason sentence; the review shows "Failure demo on" | No such switch; six failure reasons (§4), none on purpose | §4 failure reasons; `runs` table; CR-029 (the demo rule switch it copies); CR-030 | Operator, 2026-11-16. **Open:** SAD edit by `@system.arch` (§10.3, G-10) |
 
 D6 and D8 need no SAD change. D1 to D5 were changed in sad.md by `@system.arch` (H-030). D7 is
-wording only.
+wording only. D9, D10, D11 and D12 need a SAD change; the operator asks for them in one batch.
 
 ## Audit
 
@@ -1147,3 +1436,29 @@ wording only.
   rewritten around `docs/prototype/app.css` (PR 52) and gained an Icons section for Iconoir. Closed
   H-020 in `handoffs.md`. No other section changed. Did not edit `sad.md` or the mock-ups. No code.
   No model call. Approval status left `pending`.
+- 2026-11-16 · persona `ux-designer` · action `design-ux` (revision, stubbed UI) · branch
+  `ux-sprint3-workflow` · added the five-line workflow at the top; filled the H-026 gaps:
+  failed review with a proposed Retry (blocked until a SAD edit, D10), abandon follow-through,
+  closed read-only reviews, 403 and 404 pages, the ordinary confirm and overrule at step 3; added
+  "Ended" and "Failed" to the stepper; removed the "Agents" column on Filing rules; "Add the demo
+  rule (rule 7)"; new demo-rule refusal wording (D9); §6 font table (Lexend, Inter, DM Mono); a
+  proposal for Open Question 12; Open Questions 16 to 20; §10 screen-to-data map with data gaps
+  G-1 to G-9; §11 out of scope for the stubbed UI. Edited only this file. No code. No model call.
+  Approval status left `pending`.
+- 2026-11-16 · persona `ux-designer` · action `design-ux` (revision, operator answers) · same
+  branch · removed "Sprint 3" from the text; closed Open Questions 12 and 16 to 20 with the
+  operator's decisions: page 7 empty message now the approved copy (D11, DL-27 and EC-014 to
+  update with CR-029); step numbers follow the stepper; 403 link for the General Partner is "Go to
+  the calendar"; Retry kept, small, still blocked until the SAD change (D10); abandon only at a
+  step; Filing rules column renamed "Demo rule". Edited only this file. No code. No model call.
+  Approval status left `pending`. Later the same day the operator reviewed and approved the
+  "Failed review" section (page 3); recorded at its head. Run label renamed "Demo rule on" (§1.3
+  and page 3), so the tag, the Filing rules column and the refusal use the same words.
+- 2026-11-16 · persona `ux-designer` · action `design-ux` (revision, error and retry) · same
+  branch · added the failure demo (proposed, D12, G-10): a "Make step 1 fail (demo)" checkbox on
+  page 2, stand-in agents only, the "Failure demo on" label, its reason sentence and a page 3
+  subsection; wrote the Retry fallback in "Failed review" (two versions of the status line and the
+  next-step link; the Retry form left out of the page until the SAD change lands); added UX-021
+  (with Retry) and UX-022 (without); updated §10.2; added Open Questions 21 to 23. Edited only this
+  file. No code. No model call. Approval status left `pending`. Later the same day the operator
+  closed Open Questions 21 (fail once) and 22 (no extra column); 23 stays open.
