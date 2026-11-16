@@ -1335,6 +1335,33 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
 
 - **Streaming**: none (§1).
 
+**Service functions (H-035).** These names and signatures are fixed so B2 fills in the stubs without
+renaming them. They are named after the routes above. Each `conn` is the database connection;
+`settings` and `schedule` start a background stage. The "Shell stub does" column is the stand-in
+shell (Build card, "Build approach"); the last column is what B2 or a later block adds.
+
+| Function | Route | Shell stub does | B2 or later adds |
+|---|---|---|---|
+| `runs.list_runs(conn, fund_id)` · `get_run` · `get_active_run` · `list_units` | pages 2 and 3 | Real reads | — |
+| `runs.start_run(conn, settings, schedule, *, fund_id, started_by, demo_planted_row, demo_fail_step1)` | `POST /specialist/runs` | New run `ACTIVE · A_RUNNING`; audits the start and each switch; starts stage A | `RUN_ACTIVE`; `VALIDATION` for the failure demo in real mode (B2, B13a) |
+| `runs.abandon_run(conn, *, run_id, run_version, reason, actor)` | `POST …/abandon` | `ABANDONED`, phase kept, audited | Only at `AT_G*`; `VERSION_MISMATCH`, `REASON_REQUIRED`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE` (B2) |
+| `runs.retry_run(conn, settings, schedule, *, run_id, run_version, actor)` | `POST …/retry` | Changes nothing; says "not built yet" | Rule 10 and the three retry codes (B13b) |
+| `gates.start_stage(settings, schedule, run_id, stage)` | — | Schedules the stage function | — |
+| `gates.complete_g1(conn, settings, schedule, *, run_id, run_version, actor)` · `complete_g2(…same…)` | `POST …/g1/complete` · `…/g2/complete` | `AT_G1 → B_RUNNING` · `AT_G2 → C_RUNNING`; run version +1; starts the next stage | Phase guard, version check, `GATE_INCOMPLETE` (B2) |
+| `decisions.get_g1_view(conn, run)` · `get_g2_view(conn, run)` | `GET …/g1` · `…/g2` | Placeholder rows and verdicts (a demo row if switched on) | Stored rows, quote checks, flags, verdicts (B2, B3) |
+| `decisions.decide_row(conn, *, row_id, version, decision, business_day_rule, who_files, approve_reason, reject_reason, actor)` | `POST /specialist/rows/{row_id}/decision` | Audit entry only; nothing stored | `row_decisions` and every G1 code, `DEMO_ROW_NOT_APPROVABLE` included (B2, B7) |
+| `decisions.decide_verdict(conn, *, verdict_id, version, decision, value, confirm_reason, override_reason, decide_reason, actor)` | `POST /specialist/verdicts/{verdict_id}/decision` | Audit entry only; reads only the chosen answer's reason (DL-48) | `verdict_decisions` and its checks (B2) |
+| `calendar.get_g3_view(conn, run)` · `get_published_calendar(conn, fund_id)` | `GET …/g3` · `GET /calendar` | Calendar ID and placeholder entries; the newest publication is live | Real entries, rejected and uncited lists (B2, B4) |
+| `publishing.publish_calendar(conn, *, calendar_id, run_version, acknowledged, rejected_row_ids, uncited_paragraph_ids, actor)` | `POST …/publish` | Inserts a publication, run `COMPLETED`, audited | `ACK_REQUIRED`, version and phase checks (B2) |
+| `publishing.decline_calendar(conn, *, calendar_id, run_version, decline_reason, actor)` | `POST …/decline` | Run `DECLINED`, audited | `REASON_REQUIRED` (B2). The "form `decision` matches the route" check (`VALIDATION`) stays in the page handler's form validation, because this signature has no `decision` |
+| `stage_store.add_units` · `mark_unit` · `finish_stage` · `fail_stage` | — | Unit lines and phase moves; stage C creates the calendar | Rule 9 store and the stage-attempt check (B3) |
+| `runtime.stages.run_stage(settings, run_id, stage)` | — | Runs units one by one; the failure demo on stage A, unit 1, attempt 1, stand-in only | Stage timer, trace, cost cap (B3) |
+| `runtime.agents.run_unit(settings, stage, unit_id)` | — | Stand-in pause, no output; real mode raises | Fixed outputs, then the CrewAI wiring (B3) |
+
+**What a stage function receives.** "Passing only the run ID" (below) means no data travels in
+memory: the stage function is given the **run ID and the stage name**, reads everything else from
+the database, and takes the stage from nothing the browser sent.
+
 **Data.** One SQLite file. **Every business table carries `fund_id`**, although the MVP has one
 fund, and foreign keys include it, so a row cannot point at another fund's run. The backend sets
 `fund_id` from the run; it is never taken from a form.
@@ -1356,6 +1383,29 @@ fund, and foreign keys include it, so a row cannot point at another fund's run. 
 
 The append-only tables have database triggers that raise an error on `UPDATE` or `DELETE`, so the
 rule holds even if application code tries.
+
+**The `trace` columns (H-035, before B3).** One line per model call attempt (CR-018), insert-only.
+They come from CR-018, DL-40, DL-43 and the evaluation copy cases (DL-45). B3 may refine types, not
+meaning.
+
+| Column | Holds | Source |
+|---|---|---|
+| `trace_id` | Integer key, auto-increment. The audit entry's `trace_ref` holds the record key below | CR-018 |
+| `run_id`, `fund_id` | The run and its fund (`fund_id` as on every table; foreign key to `runs`). For an evaluation copy case, the evaluation run's ID | DL-45 |
+| `step` · `stage_attempt` · `unit_id` · `attempt_n` | The record key from "Identifiers and versions": step, stage attempt (1 or 2), unit, call attempt. Unique together with `run_id` | CR-018, DL-51 |
+| `at` | When the call started (UTC) | CR-018 |
+| `prompt_version` | Hash of the agent and task content used | CR-018 |
+| `model`, `model_returned` | The configured model, and the model string the API returned (empty in stand-in mode) | DL-40 |
+| `settings_json` · `max_tokens` | Sampling or reasoning settings, and the fixed `max_tokens` for the step | CR-018, CR-017 |
+| `input_hash` | Hash of the input | CR-018 |
+| `raw_output` · `parsed_output` · `validation_error` | The raw output; the output parsed against its schema; or the validation error. Invalid output lives here only (CR-003) | CR-003, CR-018 |
+| `tokens_in` · `tokens_out` · `cost_usd` · `duration_ms` | Token counts, cost from the provider's usage data, and duration | CR-017, CR-018 |
+| `spend_activity` | `spike`, `tuning`, `evaluation`, `rehearsal` or `demo`; empty in stand-in mode | CR-030 |
+| `eval_case` | `altered_quote`, `I-1` or `injection` for a copy case; empty for an ordinary call | DL-45 |
+| `late` | 1 when the output arrived after its stage had failed or the run had ended; such output is kept here only and its cost still counts | DL-43, rule 9 |
+
+A call whose trace line cannot be written counts as failed (CR-018). Stand-in calls also write a
+line, so the cost count and the audit link work the same way; the run's stored mode tells them apart.
 
 #### Data model: the happy path (DL-50)
 
@@ -1583,12 +1633,14 @@ Column names inside tables the SAD describes only in words (`quote_checks`, `aud
 |---|---|---|
 | Run | `RUN-<yyyymmdd>-<n>` | Readable in reports and logs |
 | Row | `ROW-<run>-<n>`, where `<n>` is a sequence for the run, given by the backend when the row's output is validated (it is stored when the stage ends, rule 9), never by a model. **Origin is a separate field** (`model`, or `demo` for the planted row) | Unique by construction. **T-ID-1**: two rows extracted from one paragraph → two different row IDs; a unique constraint refuses a duplicate insert |
+| Verdict (H-035) | `VER-<run>-<n>`, where `<run>` is the full run ID (for example `VER-RUN-20261116-1-3`) and `<n>` is a sequence for the run, given by the backend when the output is validated (stored when the stage ends, rule 9), never by a model. Same construction as the row ID | Unique by construction; one verdict per approved row |
+| Calendar (H-035) | `CAL-<run>` (for example `CAL-RUN-20261116-1`). One calendar per run: a failed stage stores nothing (rule 9), so a retried stage C still ends with one | Readable in the audit log and on the publish route |
 | Versions | An integer on each row, verdict, calendar and run. A row or verdict stays at 1. The run version goes up at every gate event | CR-009 |
 | Calendar entry | `ENT-<fund>-<paragraph_id>-<recipient>-<period>`. `<recipient>` is the authority code (for example `CSSF`, `AED`). `<period>` is the anchor period (`2027-03` for a monthly or quarterly obligation, `FY2026` for an annual one) or the event ID for an event-triggered entry (`EVT-01`). Example: `ENT-FND-DEMO-01-SRC-CSSF15627-P2-CSSF-2026-12` | The same occurrence gets the same ID in every run (SD FR-016, US-008 c7), and the ID does not depend on the due date. Two approved rows that give the same ID stop generation, and both are named (DL-35). **T-ID-2**: generate twice from the same inputs → the same IDs; two approved rows with the same paragraph, recipient and period → generation refused, naming both |
 | Trace record | `run_id · step · stage_attempt · unit_id · attempt_n` (stage attempt added by DL-51) | CR-018 |
 
 **How the layers connect.** When a gate is completed, the gate service records the transition and
-**then** starts the next stage function as a background task, passing only the run ID. The stage
+**then** starts the next stage function as a background task, passing only the run ID and the stage name (H-035). The stage
 function stores each unit's output through service functions. The pattern's configuration is in
 versioned files:
 
@@ -2307,7 +2359,7 @@ build instruction.
 | **What** | Three CrewAI agents (extractor, verifier, judge) in a gated workflow: stage A → **G1** → stage B → **G2** → stage C (code only) → **G3** → GP calendar. The backend alone owns gate state. 7 server-rendered pages, SQLite, one process |
 | **Time** | 5 days planned, **8 days hard stop**. About 6.75 days likely, about 7.75 with the B12 timebox (DL-49; B6 is 0.5 for U7 and U8; B13a and B13b are 0.25 each, DL-51, DL-52, DL-54). **Tripwire:** the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2, never T-MAP-1 (DL-42, SOQ-30) |
 | **Order** | B1 → B2 (checkpoint: more than 1.3 days → tell the operator) → B3, **stand-in part only** → **B13a** failure demo and stand-in pause (stand-in, no model) → B4 → B5 → B7 → **first green path (below)** → pin DL-40 (SOQ-25) → **B3 spike** (the first paid model calls) → B8 → B9 → **B13b** Retry (stand-in, no model) → B6 → B10 → **B12** calendar Month and Year views and charts (one-day timebox, DL-49) |
-| **Build approach (operator, 2026-11-16)** | **Page-first thin slice.** The first commit is a read-only slice: sign in, then page 2 (Filing rules) rendered by the real app from the real database and config (`2.build/scaffold-plan.md` §5). It may come before B2's full service layer; the "Order" row otherwise stands. **Stub services with B2 names:** each service the slice needs is a minimal, read-only stub that already has the name and place B2 gives it (`backend/services/`, §4), so B2 fills the stub in and nothing is renamed or moved. A stub holds no check and no state logic; every check still lives in the service layer (Never row). **Stub UI demo:** the whole UI runs on stand-in data (`AGENTS_MODE=stand_in`, fixed outputs, no model call), so the demo works before any paid call |
+| **Build approach (operator, 2026-11-16)** | **Page-first thin slice.** The first commit is a read-only slice: sign in, then page 2 (Filing rules) rendered by the real app from the real database and config (`2.build/scaffold-plan.md` §5). It may come before B2's full service layer; the "Order" row otherwise stands. **Stub services with B2 names:** each service the slice needs is a minimal stub that already has the name and place B2 gives it (`backend/services/`, §4, "Service functions"), so B2 fills the stub in and nothing is renamed or moved. **Stand-in shell stubs (H-035, 2026-11-16):** a stub moves run status and phase and writes units, audit entries and (stage C, publish) the calendar and publication records, but **runs no check**; B2 adds every check, and every check still lives in the service layer (Never row). Unchecked stubs fail open, which is allowed only while `AGENTS_MODE=stand_in` and no model call exists. The first green path needs the demo row refused (`DEMO_ROW_NOT_APPROVABLE`), a B2 check, so it cannot pass before B2's checks are in. **Stub UI demo:** the whole UI runs on stand-in data (`AGENTS_MODE=stand_in`, fixed outputs, no model call), so the demo works before any paid call |
 | **First green path (before any paid model call)** | With `AGENTS_MODE=stand_in`, one run must pass **end to end**: start run → stand-in Stage A → **G1**, including the planted row (Approve refused by the server, then reject) → stand-in Stage B → **G2** → Stage C dates → **G3** with the acknowledgement → the GP view shows "being prepared" and then the published calendar → the audit log shows every step. **Until this passes, DL-40 is not pinned (SOQ-25) and no paid call is made, including the B3 spike.** B3 is stand-in only until B5 and B7 are done and this path passes |
 | **Tier 1 tests (block the build)** | EC-013, EC-014, EC-007 (date test), EC-008, EC-015, EC-016, EC-019, T-W04-1 to T-W04-6, T-RUN-0, T-RUN-1, T-RUN-3, T-G3ACK-1, T-DEMO-1, T-DEMO-2, T-LEAK-1, T-MODE-1 (SOQ-29); T-DEMOFAIL-1 and T-PAUSE-1 from B13a (kept, DL-54) |
 | **Tier 2 (if time allows)** | T-EXAMPLE-1 six-word overlap, T-PROMPT-1, T-D4-1, per-state page tests, T-RETRY-1 to T-RETRY-3 (with B13b). **T-MAP-1 is not dropped with Tier 2:** even if the tripwire drops Tier 2, T-MAP-1 must still pass before the first evaluation run (EC-R4, DL-41) |
@@ -3091,3 +3143,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · Operator answers: **SOQ-35** (B13 after B9, dropped next after B6; this question was first numbered SOQ-31, which clashed with the older SOQ-31 on B2, and is renumbered), **SOQ-32** (evaluation-run and newer-run refusals confirmed; `calendar generation` failures now refuse a retry: rule 10, transitions, `RETRY_NOT_ALLOWED`, failure reasons note, CR-032 and T-RETRY-2, Build card, known limitations), **SOQ-33** (CR-027 names the OQ-7 rows by source paragraph `SRC-UCILAW-P2` and recipient `AED`, derived at render, no field), **T-DEMOFAIL-1 moved to Tier 1** once B13 is built, dropped with B13 (EC-R4 table, Estimate, Build card, CR-033). The three SOQs move to "Resolved". No code. No model call.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction; handoff H-033, `2.build/scaffold-plan.md` §2 and §6) · action `update` · **DL-54 (B13 split and stand-in pause):** B13 (0.5) replaced by **B13a** Failure demo and stand-in pause (0.25, built straight after B3's stand-in part, kept) and **B13b** Retry (0.25, after B9, dropped next after B6); totals unchanged (≈ 6.75, ≈ 7.75 with B12); work before the first green path grows from about 3.5 to about 3.75 days. Changed: Build card "Time", "Order", "Tier 1" and "Tier 2" rows; Order of work (new 3a, 9a renamed); Estimate (B13 row, fit verdict, tests paragraph, tripwire, "Checkpoint" drop order); feasibility paragraph; SOQ-35; §2 new "Stand-in pause" bullet and Production Shape item 7; run-state rule 11; §4 new variable `STAND_IN_UNIT_PAUSE_S`; EC-R4 (T-DEMOFAIL-1 Tier 1 from B13a, new T-PAUSE-1); CR-030 (pause, T-PAUSE-1); CR-032 (the failure-demo retry check moved to T-RETRY-1); CR-033 (no dependence on Retry; T-DEMOFAIL-1 no longer includes a retry); DL-52 row; new DL-54 row; source range now DL-01 to DL-54. Stage C is code only, so the pause is not applied to it. `ux.md`, `scaffold-plan.md`, `setup.md`, `.env.example` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · **Build card:** new row "Build approach" records three operator choices: a page-first thin slice (first commit is the read-only Filing rules page, which may come before B2's full service layer; the "Order" row otherwise stands), stub services that already carry B2's names so B2 fills them in, and a stub UI demo on stand-in data. Answers `scaffold-plan.md` Open Question 1. No other row changed. `scaffold-plan.md`, `ux.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
+- 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · **H-035:** recorded the stand-in shell's choices. Build card "Build approach": stubs move status and phase and write units, audit, calendar and publication records but run no check, allowed only in stand-in mode, and the first green path cannot pass before B2's checks. §4 new "Service functions" table (names and signatures from `2.build/backend.md`) and a note that a stage function gets the run ID and the stage name. "Identifiers and versions": verdict `VER-<run>-<n>` and calendar `CAL-<run>`. §4 new `trace` column list (from CR-018, DL-40, DL-43, DL-45, CR-030). The word "Sprint 3" was not used. H-032 was checked and needed no SAD change (already landed as DL-51 to DL-53, CR-032, CR-033, CR-029, DL-27, EC-014). `backend.md`, `ux.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
