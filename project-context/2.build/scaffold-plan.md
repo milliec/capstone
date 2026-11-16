@@ -164,7 +164,7 @@ state, and the way forward is a new review. B13b adds the Retry form above the l
 | **Mock sign-in** | Two buttons, no password. `POST /sign-in` sets a signed session cookie with `specialist-1` or `gp-1` and the role. The backend reads the role from the cookie on every request. Needs `SESSION_SECRET` in `.env` (a local random value, never committed) | `services/auth.py`, `pages/sign_in.html` | SAD §4 "Sign-in and secrets", ux.md page 1 |
 | **Seed data for `FND-DEMO-01`** | No database seed for the happy path: a run creates its own data. The "seed" is three sets of files: (1) the fund profile `config/fund/FND-DEMO-01.yaml` (fictional name, regime line, facts, filing parties); (2) the mock sources, loaded and split into 13 paragraphs when a run starts; (3) the stand-in outputs in `backend/stand_in/`, which give the rows, flags and verdicts that lead to the 22 calendar entries | `config/`, `backend/stand_in/` | SAD §4 "How the layers connect", MVP scope steps 1 to 3 |
 | **Demo rule switch** (in the SAD) | Unticked checkbox "Add the demo rule (rule 7)" on the start form. When ticked, the run adds the planted row from `config/demo/planted-row.yaml`, labelled "Demo". Approve stays visible; the server refuses it (`DEMO_ROW_NOT_APPROVABLE`) and audits it | B7 | DL-31, DL-44, CR-029 |
-| **Stand-in pause** (B13a) | `STAND_IN_UNIT_PAUSE_S`, default 1 second **per unit**, in stand-in mode only. Each unit in the units table moves from "Running" to "Done" one at a time, and step 1 runs for about 12 seconds, so the 3-second auto-refresh shows it filling in. Set it higher for a slower demo, or 0 in tests | `backend/settings.py`, `backend/runtime/agents.py` | Operator, 2026-11-16 (SAD edit pending, H-033) |
+| **Stand-in pause** (B13a) | `STAND_IN_UNIT_PAUSE_S`, default 1 second **per unit**, in stand-in mode only. Each unit in the units table moves from "Running" to "Done" one at a time, and step 1 runs for about 12 seconds, so the 3-second auto-refresh shows it filling in. Set it higher for a slower demo, or 0 in tests | `backend/settings.py`, `backend/runtime/agents.py` | Operator, 2026-11-16. Rename closed: the setting is built as `STAND_IN_UNIT_PAUSE_S` on `b1-app-shell` (`settings.py`, `.env.example`, `agents.unit_pause`, tests set it to 0); named in the SAD by DL-54 |
 | **Failure demo switch** (B13a) | Unticked checkbox "Make step 1 fail (demo)", in the start form **only when `AGENTS_MODE=stand_in`**. Stored as `runs.demo_fail_step1`, audited. The stand-in extractor fails stage A's first unit on the first attempt only, with reason `demo failure`; the other units stay "Waiting". Sent in real mode → `VALIDATION`. Never on an evaluation run, never seen by the General Partner. With the pause, unit 1 shows "Running" for about 1 second, then the review shows "Failed" | B13a (page parts in B5) | DL-52, CR-033, run-state rule 11 |
 | **Retry** (B13b) | "Retry step {k}" on every failed review; the server decides. Restarts only the failed stage, keeps every decision, `stage_attempt` goes to 2, one audit entry. Refused after a cost-cap or calendar-generation failure, a second retry, an evaluation run or when a newer run exists. Until B13b: the "Start a new review" fallback | B13b | DL-51, CR-032, run-state rule 10 |
 | **Local database** | One SQLite file at `DATABASE_PATH` (default `data/app.db`), created on first start. Delete the file to start from nothing | `backend/db/` | SAD §5 |
@@ -313,8 +313,7 @@ land, the Build card as on `main` stays the build instruction.
 7. **CR-033 / DL-52**: the failure demo no longer depends on Retry; until B13b, the failed page
    offers only "Start a new review".
 
-`setup.md`'s environment table also gains `STAND_IN_UNIT_PAUSE_S` once the SAD names it (this
-persona's job, after the SAD edit).
+`setup.md`'s environment table already lists `STAND_IN_UNIT_PAUSE_S` (done, 2026-11-16).
 
 ---
 
@@ -329,7 +328,7 @@ persona's job, after the SAD edit).
 - *Fund profile fields* → `name`, `regime`, `year_end` in `config/fund/FND-DEMO-01.yaml`
   (DL-53, answers G-8).
 
-**Answered by the operator, 2026-11-16 (SAD edit pending):**
+**Answered by the operator, 2026-11-16 (pause rename closed, built on `b1-app-shell`):**
 
 - *Failed state before B13* → B13 split: the failure demo (B13a) is built right after B3; Retry
   (B13b) stays after B9.
@@ -383,3 +382,9 @@ persona's job, after the SAD edit).
   `STAND_IN_UNIT_PAUSE_S` (stand-in only, 0 in tests); wrote handoff H-033 to `@system.arch` with
   the seven `sad.md` edits and the root `CLAUDE.md` T-DEMOFAIL-1 wording. Closed two open
   questions. Still plan only; `sad.md` and `CLAUDE.md` not edited.
+- 2026-11-16 · persona `project-mgr` · action `document-setup` (plan update, operator instruction) ·
+  closed the pause rename: `STAND_IN_UNIT_PAUSE_S` (about 1 second per unit, stand-in only, 0 in
+  tests) is built on `b1-app-shell` and in `.env.example`. Removed the "SAD edit pending" marker on
+  that setting and the "setup.md gains it later" note (`setup.md` already lists it). The old name
+  `STAND_IN_STAGE_PAUSE_S` stays only in the earlier audit entry, as history. No code, `sad.md` or
+  `CLAUDE.md` edited.
