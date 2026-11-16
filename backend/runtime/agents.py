@@ -16,15 +16,17 @@ class RealAgentsNotBuilt(Exception):
     """Real agents arrive with the B3 spike, after the first green path. Not in the shell."""
 
 
-def unit_pause(settings: Settings, sleep=time.sleep) -> None:
+def unit_pause(settings: Settings, sleep=None) -> None:
     """Wait the stand-in pause for one unit. Does nothing in real mode.
 
     `sleep` can be swapped in tests, so a test can see whether a pause happened without waiting.
+    It defaults to None (not time.sleep) on purpose: a default is fixed when the file loads, so
+    `sleep=time.sleep` would ignore a test that swaps time.sleep later.
     """
     if settings.agents_mode != "stand_in":
         return  # Real mode: never pause (and settings never read the variable).
     if settings.stand_in_unit_pause_s > 0:
-        sleep(settings.stand_in_unit_pause_s)
+        (sleep or time.sleep)(settings.stand_in_unit_pause_s)
 
 
 def run_unit(settings: Settings, stage: str, unit_id: str) -> None:
