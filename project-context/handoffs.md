@@ -34,13 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-034: Bring ux.md up to DL-51 to DL-54, and decide on stashed ux.md edits
-- From: @project.mgr   To: @ux.designer   Date: 2026-11-16
-- Touches: 2.build/ux.md lines about Retry and the failure demo being blocked (intro "Approval status" note, page 3 purpose and "Failed review", page 3 actions table, Audit); sad.md DL-51 to DL-54
-- Ask: (1) ux.md on `main` still says Retry and the failure demo are blocked until H-032 lands; DL-51 to DL-53 allow them, and DL-54 (PR #58) splits B13 into B13a (failure demo and per-unit stand-in pause, after B3, kept) and B13b (Retry, after B9, dropped next after B6). Please update the wording. (2) Uncommitted ux.md edits doing part of (1) were found in the `scaffold-plan` working tree, written before the split, with no commit or branch. They are saved as the stash named "ux.md follow-ups to DL-51..53 from another session". Restore with `git stash apply` and that stash's number if you want them; note they also set approval back to `pending` and say "B13" where DL-54 now has B13a and B13b.
-- Why: The build follows ux.md for wording, and the stash would be lost silently if nobody owns it.
-- Outcome: (the owner fills this in)
-
 ### H-032: SAD changes for the stubbed UI: demo-rule refusal wording, Retry, empty calendar, failure demo
 - From: @ux.designer (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
 - Touches: sad.md CR-029, DL-44 (decision-log.md), DL-27, EC-014, run-state model (rule 2, the `FAILED` row, "Transitions and guards"), §3 page 3 "No re-run action", §4 routes, refusal codes and failure reasons, `runs` table, data model (DL-50); 2.build/ux.md "Where ux.md and sad.md now disagree" D9 to D12 and §10.3 data gaps G-1 to G-10
@@ -89,6 +82,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-034: Bring ux.md up to DL-51 to DL-54, and decide on stashed ux.md edits
+- From: @project.mgr   To: @ux.designer   Date: 2026-11-16
+- Touches: 2.build/ux.md lines about Retry and the failure demo being blocked (intro "Approval status" note, page 3 purpose and "Failed review", page 3 actions table, Audit); sad.md DL-51 to DL-54
+- Ask: (1) ux.md on `main` still says Retry and the failure demo are blocked until H-032 lands; DL-51 to DL-53 allow them, and DL-54 (PR #58) splits B13 into B13a (failure demo and per-unit stand-in pause, after B3, kept) and B13b (Retry, after B9, dropped next after B6). Please update the wording. (2) Uncommitted ux.md edits doing part of (1) were found in the `scaffold-plan` working tree, written before the split, with no commit or branch. They are saved as the stash named "ux.md follow-ups to DL-51..53 from another session". Restore with `git stash apply` and that stash's number if you want them; note they also set approval back to `pending` and say "B13" where DL-54 now has B13a and B13b.
+- Why: The build follows ux.md for wording, and the stash would be lost silently if nobody owns it.
+- Outcome: Done 2026-11-16, branch `ux-sync-dl51-54`. (1) `ux.md` no longer says Retry or the failure demo are blocked; it follows DL-54 (failure demo = B13a, kept, does not need Retry; Retry = B13b, after B9, dropped next after B6; "Without Retry" is the page B5 builds). Also synced the stale lines outside the four places listed here (tests, data map and gaps G-1 to G-10, D9 to D12, Open Questions 18 and 21, Audit). Approval left `approved` (operator choice). New Open Question 24: three Retry refusal sentences in section 5 are drafts, not in the SAD. (2) The stash was read, not applied (it said "B13" and reset approval to `pending`). It can be dropped once this branch is merged; not dropped yet.
 
 ### H-033: Split B13 (failure demo early, Retry late) and add a stand-in per-unit pause
 - From: @project.mgr (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
