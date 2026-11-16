@@ -392,6 +392,15 @@ database existed rather than mid-build. How to read the lines: `||--o{` means "o
 (one review drafts many rules); a foreign key (FK) is a column that points at another table's ID, and
 each line in the diagram stands for one.
 
+**A shortcut to a private folder is not covered by that folder's ignore rule.** To let the git hooks
+run in a second checkout (a "worktree"), an agent made shortcuts (symlinks) to the private
+`reference/` folder. The ignore line `reference/` ends in a slash, which means "only real folders",
+and git sees a shortcut as a file, not a folder. A quick test showed the shortcut listed as a new file
+ready to commit. Nothing leaked: the agent removed the shortcuts and the commit held only the three
+intended files. Lesson: a protection is defined by its exact pattern, not by what it is meant to
+protect. It's like a Figma share setting on a page: a link to that page from another file is a
+separate thing with its own settings. Before relying on a rule, test the edge case.
+
 ## 5. Domain: fund compliance calendars
 
 **Anchor + offset.** A deadline is stored as a rule ("year-end + 6 months"), not a date, so the same
@@ -489,3 +498,5 @@ DL-48).
   first-hand AI-native experience; control and checkable decisions)
 - 2026-11-16 · added one note from the data model session (when a diagram and a table describe the
   same thing, name which one is in charge)
+- 2026-11-16 · added one note from the B13 split session (a shortcut to a private folder is not
+  covered by that folder's ignore rule)

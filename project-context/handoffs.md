@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-034: Bring ux.md up to DL-51 to DL-54, and decide on stashed ux.md edits
+- From: @project.mgr   To: @ux.designer   Date: 2026-11-16
+- Touches: 2.build/ux.md lines about Retry and the failure demo being blocked (intro "Approval status" note, page 3 purpose and "Failed review", page 3 actions table, Audit); sad.md DL-51 to DL-54
+- Ask: (1) ux.md on `main` still says Retry and the failure demo are blocked until H-032 lands; DL-51 to DL-53 allow them, and DL-54 (PR #58) splits B13 into B13a (failure demo and per-unit stand-in pause, after B3, kept) and B13b (Retry, after B9, dropped next after B6). Please update the wording. (2) Uncommitted ux.md edits doing part of (1) were found in the `scaffold-plan` working tree, written before the split, with no commit or branch. They are saved as the stash named "ux.md follow-ups to DL-51..53 from another session". Restore with `git stash apply` and that stash's number if you want them; note they also set approval back to `pending` and say "B13" where DL-54 now has B13a and B13b.
+- Why: The build follows ux.md for wording, and the stash would be lost silently if nobody owns it.
+- Outcome: (the owner fills this in)
+
 ### H-032: SAD changes for the stubbed UI: demo-rule refusal wording, Retry, empty calendar, failure demo
 - From: @ux.designer (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
 - Touches: sad.md CR-029, DL-44 (decision-log.md), DL-27, EC-014, run-state model (rule 2, the `FAILED` row, "Transitions and guards"), §3 page 3 "No re-run action", §4 routes, refusal codes and failure reasons, `runs` table, data model (DL-50); 2.build/ux.md "Where ux.md and sad.md now disagree" D9 to D12 and §10.3 data gaps G-1 to G-10
@@ -82,6 +89,23 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-033: Split B13 (failure demo early, Retry late) and add a stand-in per-unit pause
+- From: @project.mgr (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
+- Touches: sad.md Build card ("Time", "Order", "Tier 1" rows), "Order of work", Estimate (B13 row, totals, "Checkpoint" drop-order paragraph), SOQ-35, §2 / Production Shape (stage timer, DL-43), §4 "Sign-in and secrets", §9 EC-R4 Tier 1 list, CR-030, CR-033, DL-52 (decision-log.md); root `CLAUDE.md` (Tier 1 line naming T-DEMOFAIL-1); detail in 2.build/scaffold-plan.md §2 (block table) and §6 (estimate, drop order, the numbered list of edits)
+- Base: edit `sad.md` as on `main` at `7048b38` (DL-51 to DL-53). Older branches carry a stale copy.
+- Ask: Seven `sad.md` edits plus one `CLAUDE.md` line, in one batch.
+  1. **Order** (Build card "Order" row and "Order of work"): split B13 into **B13a Failure demo and stand-in pause**, built straight after B3's stand-in part (B3 → B13a → B4 → B5 → B7 → first green path), and **B13b Retry**, after B9 and before B6, where B13 is now. B13a's page parts (start-form checkbox, "Failure demo on" label, the "Without Retry" failed page) are written in B5.
+  2. **Estimate**: replace B13 (0.5) with B13a (0.25) and B13b (0.25). Totals unchanged (≈ 6.75; ≈ 7.75 with B12); note that work before the first green path grows from about 3.5 to about 3.75 days. Please confirm or correct the quarter-day split.
+  3. **Drop order** ("Checkpoint" paragraph, SOQ-35): B6 and Tier 2 first; **B13b next**; **B13a kept** with B7 (it shows the failed and running states in Sprint 3 and is built before the tripwire). T-MAP-1 never dropped.
+  4. **§4 "Sign-in and secrets"**: new variable `STAND_IN_UNIT_PAUSE_S`, read only when `AGENTS_MODE=stand_in`, default 1 (seconds per unit), 0 in tests.
+  5. **§2 / Production Shape and CR-030**: each stand-in agent function waits `STAND_IN_UNIT_PAUSE_S` per unit before returning its fixed output, so units finish one by one (ux.md page 3). It runs inside the backend stage timer and never in real mode; stage limits unchanged (about 12 s for stage A, 6 s for B, 1 s for C at the default).
+  6. **§9 EC-R4 Tier 1 list, Build card "Tier 1" row**: T-DEMOFAIL-1 is Tier 1 from B13a, no longer tied to Retry or dropped with it; add **T-PAUSE-1** (Tier 1): real mode never pauses; stand-in mode pauses the set amount per unit. T-RETRY-1 to T-RETRY-3 stay Tier 2 with B13b.
+  7. **CR-033 and DL-52**: the failure demo no longer depends on Retry. Until B13b is built (or if it is dropped), a failure-demo run ends `FAILED` and the page offers only "Start a new review from Filing rules".
+  8. **Root `CLAUDE.md`**: the Tier 1 line says T-DEMOFAIL-1 counts "once block B13, Retry and the failure demo, is built; if B13 is dropped, the test goes with it". Change it to B13a, add T-PAUSE-1, and drop the "goes with it" clause, since B13a is kept.
+- Why: The operator wants the failed and running states visible in the Sprint 3 stubbed UI. The Build card is authoritative (H-001), and a new setting and test tier are SAD edits first, so nothing is built until this lands.
+- Note: H-032 below looks done by `7048b38` (DL-51 to DL-53) but is still under "Open"; please move it to "Done" if so.
+- Outcome: **Done.** 2026-11-16, `@system.arch`: all eight items made in commit `1d7ce2e` (DL-54 in `decision-log.md`; Build card, Order of work, Estimate, drop order, §2 and §4 stand-in pause, CR-030, CR-033, DL-52, rule 11, EC-R4 and the root `CLAUDE.md` Tier 1 line), merged to `main` as PR #58 (`986ccad`). Checked item by item by `@project.mgr` before the merge. Outcome recorded by `@project.mgr`, because this entry was only in an uncommitted copy the owner could not see. H-032 is left for its owner to close.
 
 ### H-030: ux.md follow-ups from the SAD update (DL-48, DL-19, DL-44)
 - From: @system.arch   To: @ux.designer   Date: 2026-11-14
