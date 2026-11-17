@@ -17,6 +17,13 @@ docs/*
 # The local SQLite database and process log (SAD §5). Delete data/app.db to start from nothing.
 data/
 
+# Visual regression (tests/visual/): Node packages, run output and the test database.
+# The baseline snapshots (tests/visual/*-snapshots/) ARE committed.
+tests/visual/node_modules/
+tests/visual/test-results/
+tests/visual/playwright-report/
+tests/visual/.tmp/
+
 # Python packaging leftovers from "pip install -e ."
 *.egg-info/
 .pytest_cache/

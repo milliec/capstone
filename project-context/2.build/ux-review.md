@@ -68,7 +68,7 @@ pages with ux.md's wording only.
 | M-003 | Contrast spot check | — | **not tested** | — | Only style-note token pairs are used (measured in `style-note.md`); no tool run on the pages |
 | M-004 | Target size | screenshots | passed (visual) | `08-check-rules`, `10-…` | Answer options and buttons 40 px tall; checkboxes 18 px inside a full-width label |
 | M-005 | Automated a11y scan | — | **not tested** | — | No scanner installed |
-| M-006 | Visual regression | Playwright Test | **not tested** | — | See 3b |
+| M-006 | Visual regression | Playwright Test 1.64.1, Chromium | **not tested (baseline pending)** | `tests/visual/visual.spec.js`, `tests/visual/visual.spec.js-snapshots/` | 24 snapshots generated and stable on a second run; a deliberate 2 px change failed as it should. Not committed: the first baseline waits for the operator to accept the open high-severity H-006 |
 | M-007 | Status not by colour alone | greyscale screenshot | passed | `grey-1280` | Every pill and step state reads as a word |
 | M-008 | Works unstyled | stylesheet removed | passed after fix | `08u-unstyled-1280` | Reading order intact; see H-003 |
 | M-009 | Nothing preselected; no `required`/`disabled`/`pattern` | page tests | passed | `test_nothing_is_preselected_on_any_page`, `test_no_browser_checks_on_forms` | UX-004, UX-011, ux.md §1.2 |
@@ -77,10 +77,18 @@ pages with ux.md's wording only.
 
 ### 3b. Visual regression
 
-**Not tested.** Playwright is not installed in `.venv`, and the skill says the first baseline is
-taken only after the operator's Human judgment pass has no open high-severity finding. Next step:
-the operator reviews §4; then `@frontend.eng` proposes adding Playwright to
-`requirements-dev.txt` and scaffolds `tests/visual/` per `.cursor/skills/visual-regression/SKILL.md`.
+- **Command:** `cd tests/visual && npm run test:visual` (Playwright starts the app on port 8777, fresh
+  database, stand-in agents, pause 0).
+- **Browser and widths:** Playwright Chromium (headless shell 156), light scheme, `en-GB`; specialist
+  pages 1280 and 1024 px, sign-in and the General Partner's calendar 1280 and 360 px.
+- **Snapshots:** `tests/visual/visual.spec.js-snapshots/` (24, named page-state-width; the file name
+  carries the platform, `-darwin`). Dynamic text (run IDs, today's date, times) is replaced with fixed
+  placeholders before each picture; animations disabled; `maxDiffPixels` 150, `threshold` 0.2.
+- **Check of the check:** a second run matched all 24; making every H1 2 px larger failed with
+  12,343 pixels different; the stylesheet was restored from the commit.
+- **Baseline status:** generated, **not committed**. The skill allows the first baseline only when no
+  high-severity finding is open or the operator accepts it; H-006 is open.
+- **Last baseline Audit:** none yet.
 
 ## 4. Human judgment gate
 
@@ -155,3 +163,6 @@ this table is the agent's reading, not the acceptance decision.
 - 2026-11-17 · persona `frontend-eng` · keyboard pass repeated in the operator's Chrome through
   Claude in Chrome (41-frame recording kept, not exported). Passed. One tool quirk, not an app
   fault: the browser tool's arrow key is named "Right", not "ArrowRight".
+- 2026-11-17 · persona `frontend-eng` · visual regression scaffolded (Playwright Test 1.64.1 in
+  `tests/visual/`); 24 snapshots generated and stable; first baseline waiting for the operator to
+  accept H-006.

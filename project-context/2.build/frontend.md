@@ -557,7 +557,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
 | S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`. 12 tests; 54 in the suite pass |
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
-| S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review of `ux-review.md` |
+| S-17 | Visual baselines | 🟡 | Playwright Test 1.64.1 in `tests/visual/` (24 snapshots: page × state × width). Stable on a second run; catches a 2 px change. **Baselines not committed** until the operator accepts H-006 (skill rule) |
 | S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
@@ -642,6 +642,18 @@ none for a page-level refusal), `target_label` ("rule 3"), optional `short` and 
 without `:has()`, both answers' buttons show, so a request can carry `decision=confirm` with the
 overrule button's `value`. The service should refuse a `value` that does not match the answer
 (`VALIDATION`), as the G3 route does for `decision`.
+
+### 11.1 Visual regression (how to run)
+
+- **Where:** `tests/visual/` (its own `package.json`; Node is used only here; the app stays Python).
+- **Install once:** `cd tests/visual && npm install --ignore-scripts && npx playwright install chromium`
+  (Playwright Test 1.64.1, pinned; Chromium goes to the user cache, not the repo).
+- **Run:** `cd tests/visual && npm run test:visual`. Playwright starts the app itself on port 8777 with
+  a fresh database, stand-in agents and no pause. Report: `npm run test:visual:report`.
+- **What it checks:** 24 snapshots (sign-in, Filing rules, review status, the three step pages, the
+  calendar, 403, 404) at ux.md's widths. Run IDs, today's date and clock times are replaced with
+  fixed placeholders before each picture; animations are frozen. Threshold: `maxDiffPixels` 150.
+- **Updating a baseline** follows the skill: propose, wait for the operator, then write.
 
 ## Sources
 
