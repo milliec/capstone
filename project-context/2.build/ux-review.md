@@ -68,7 +68,7 @@ pages with ux.md's wording only.
 | M-003 | Contrast spot check | — | **not tested** | — | Only style-note token pairs are used (measured in `style-note.md`); no tool run on the pages |
 | M-004 | Target size | screenshots | passed (visual) | `08-check-rules`, `10-…` | Answer options and buttons 40 px tall; checkboxes 18 px inside a full-width label |
 | M-005 | Automated a11y scan | — | **not tested** | — | No scanner installed |
-| M-006 | Visual regression | Playwright Test 1.64.1, Chromium | passed | `tests/visual/visual.spec.js`, `tests/visual/visual.spec.js-snapshots/` | Baseline v1 committed 17 Nov 2026 (24 snapshots); calendar v3 and the view snapshots added 17 Nov 2026 (26 in all), after the operator accepted H-006 for it. Stable on a second run; a deliberate 2px change fails it |
+| M-006 | Visual regression | Playwright Test 1.64.1, Chromium | passed | `tests/visual/visual.spec.js`, `tests/visual/visual.spec.js-snapshots/` | Baseline v1 committed 17 Nov 2026 (24 snapshots); calendar v3 and the view snapshots added 17 Nov 2026 (26 in all), after the operator accepted H-006 for it. Stable on a second run; a deliberate 2px change fails it. H-036 refresh of 18 snapshots approved 17 Nov 2026; all 26 pass |
 | M-007 | Status not by colour alone | greyscale screenshot | passed | `grey-1280` | Every pill and step state reads as a word |
 | M-008 | Works unstyled | stylesheet removed | passed after fix | `08u-unstyled-1280` | Reading order intact; see H-003 |
 | M-009 | Nothing preselected; no `required`/`disabled`/`pattern` | page tests | passed | `test_nothing_is_preselected_on_any_page`, `test_no_browser_checks_on_forms` | UX-004, UX-011, ux.md §1.2 |
@@ -106,7 +106,7 @@ pages with ux.md's wording only.
   Refreshed `07-calendar-gp-published-1280`, `07-calendar-specialist-published-1280`,
   `07-calendar-gp-published-360`; new `07-calendar-gp-list-view-1280` and
   `07-calendar-gp-year-view-1280`. 26 snapshots in all; fonts pinned for the tests (M-012).
-- **H-036 refresh: proposed, waiting for operator approval** · 2026-11-17 · `@frontend.eng`. With
+- **H-036 refresh: approved** · 2026-11-17 · `@frontend.eng` · operator approved all 18. With
   H-036 (V-1 to V-11) and B2 on main and the interim lookups deleted (H-045), 18 snapshots differ:
   exactly the 18 in H-036's Outcome. Each was compared with its baseline side by side and every
   change traced to a server field (review number, counts, published time, ended-because sentence,
@@ -114,7 +114,8 @@ pages with ux.md's wording only.
   calendar Who files and Why) or to stand-in data the backend changed on purpose (entry 2 now
   moves from Sun 18 to Mon 19 Apr 2027). The other 8 are pixel-identical. Nothing re-recorded.
   Candidates made again after the H-014 and H-015 fix (`c84d181`): the same 18, the two fixes
-  visible, every page at its screen width.
+  visible, every page at its screen width. Made once more from the committed code, then exactly
+  those 18 copied over their baselines; the visual check passes on all 26.
 - **Review status (published) v2** · 2026-11-17 · `@frontend.eng` · operator approved
   `03-review-status-published-1280`: the unit cards in one row with their tops aligned (`93745d3`).
   An earlier refresh of the same snapshot was rejected (cards still not aligned; frontend.md Open
@@ -231,3 +232,6 @@ this table is the agent's reading, not the acceptance decision.
 - 2026-11-17 · persona `frontend-eng` · H-014 and H-015 fixed (operator chose to fix before the
   refresh); first attempt widened step 4 at 1024 px and was narrowed to row headers; candidates
   made again.
+- 2026-11-17 · persona `frontend-eng` · H-036 refresh: the operator approved all 18; candidates
+  made again from the committed code, the same 18 copied over their baselines (no other snapshot
+  touched); suite passes on all 26.
