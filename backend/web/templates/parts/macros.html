@@ -33,9 +33,14 @@
 {%- endmacro %}
 
 
-{#- "Review 4". Interim: the run ID until H-036 V-1 sends `review_number`. -#}
+{#- The review's number ("4"). Interim: the run ID until H-036 V-1 sends `review_number`. -#}
+{% macro review_no(run) -%}
+{{ run.review_number if run.review_number is defined and run.review_number else run.run_id }}
+{%- endmacro %}
+
+{#- "Review 4" (ux.md §1.8: "Review", never "Run", on screen). -#}
 {% macro review_name(run) -%}
-Review {{ run.review_number if run.review_number is defined and run.review_number else run.run_id }}
+Review {{ review_no(run) }}
 {%- endmacro %}
 
 
