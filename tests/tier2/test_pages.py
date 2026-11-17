@@ -286,9 +286,9 @@ def test_units_without_group_fall_back_to_todays_view():
 
 # --- B12 (operator, 2026-11-17; DL-49, H-040): views chosen by a link, dot chart ---
 
-def test_view_switch_ticks_the_view_asked_for_and_defaults_to_list(specialist_client, gp_client, at_g1):
+def test_view_switch_ticks_the_view_asked_for_and_defaults_to_month(specialist_client, gp_client, at_g1):
     _publish(specialist_client, at_g1)
-    for query, chosen in [("", "list"), ("?view=month", "month"), ("?view=year", "year"), ("?view=nonsense", "list")]:
+    for query, chosen in [("", "month"), ("?view=list", "list"), ("?view=year", "year"), ("?view=nonsense", "month")]:
         html = gp_client.get("/calendar" + query).text
         assert re.findall(r'id="v-([a-z]+)" value="[a-z]+" checked', html) == [chosen], query
 

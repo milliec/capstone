@@ -68,14 +68,15 @@
 
 {#- One calendar, three views (B12, DL-49; operator 2026-11-17: behave like the mock-up). A tab-styled
     radio group switches the view in place with CSS (:has()), no script: only the chosen view shows.
-    The server ticks the radio for ?view= (List by default, SAD), so month paging keeps the Month view.
+    The server ticks the radio for ?view= (Month by default: operator 2026-11-17, as in the mock-up),
+    so month paging keeps the Month view.
     Without :has() every view shows, one under another. Below 960px only the List view shows. -#}
 <section class="section switch" id="entries" aria-labelledby="cal-h">
   <div class="sec-h">
     <h2 id="cal-h">All entries{% if year %} for {{ year }}{% endif %}</h2>
     <div class="tabs" role="radiogroup" aria-label="Show the calendar as">
       {%- for key, label in [("month", "Month"), ("year", "Year"), ("list", "List")] %}
-      <label><input class="sr" type="radio" name="view" id="v-{{ key }}" value="{{ key }}"{% if (cal_view or "list") == key %} checked{% endif %}>{{ label }}</label>
+      <label><input class="sr" type="radio" name="view" id="v-{{ key }}" value="{{ key }}"{% if (cal_view or "month") == key %} checked{% endif %}>{{ label }}</label>
       {%- endfor %}
     </div>
   </div>
