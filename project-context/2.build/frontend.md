@@ -51,28 +51,30 @@ none is renamed.
 source, not hidden and not disabled. The `POST …/retry` route stays in the backend for B13b; no
 template posts to it until then.
 
-### 1.2 Shared parts
+### 1.2 Shared parts (as built)
 
-| Part | ux.md | Used on | Contents |
+Stage 2 built the small shared parts as **macros** in one file, `parts/macros.html` (a macro is a
+reusable piece of page, like a component), and kept the three decision forms as their own files.
+Sections used by one page only (status banner, refresh controls, units tables, rule and answer
+cards) live in that page.
+
+| File · macro | ux.md | Used on | Contents |
 |---|---|---|---|
-| `base.html` | §1.3 | every page | `<title>` (`<Page name> · ACME Compliance calendar (demo)`, prefixed `Not done: ` after a refusal); fonts and `site.css`; a skip link to `#main`; the sidebar (except on sign-in); the main column in the §1.3 order: breadcrumb → H1 and lead → run labels → refusal slot → stepper → page content |
-| `parts/sidebar.html` | §1.3 | every page but sign-in | wordmark "acme" and "Compliance calendar"; fund block; `<nav aria-label="Main">` with `aria-current="page"`; the **"Your turn"** tag on Filing rules; identity, "Demo with mock data", "Sign out" form |
-| `parts/breadcrumb.html` | §1.3 item 1 | pages 3 to 6 | "Filing rules › Luxembourg UCI Part II › Review {n}", first item a link to page 2 |
-| `parts/run_labels.html` | §1.3 item 3 | pages 3 to 6 | text tags "Stand-in agents", "Demo rule on", "Failure demo on", each only when it applies |
-| `parts/stepper.html` | §1.4 | pages 3 to 6 | an `<ol>` of four steps; each has its number, title and state word; done and "Your turn" steps are links; `aria-current="step"` on the current one |
-| `parts/status_banner.html` | §1.5, page 3 item 4 | page 3 | the status pill, the status sentence, "Last updated …" and the refresh controls (§4) |
-| `parts/refresh_controls.html` | page 3 | page 3, only while AI or code works | the refresh sentence, "Refresh now", "Stop automatic refresh" / "Turn automatic refresh back on" |
-| `parts/units_table.html` | page 3 item 7 | page 3 | one real table per unit group, columns Unit · Status |
-| `parts/row_card.html` | page 4 item 5 | page 4 | the rule card in its fixed reading order: H2 and tags → quote → quote check → cited paragraph → flags → fields → OQ-7 mark → decision form or decided line |
-| `parts/flag.html` | page 4 item 5.5 | inside the row card | type heading, the one-line rule, "The rule says" / "The source says" |
-| `parts/decision_rule.html` | §4 "Decision form", page 4 | inside the row card | answer-first form, Approve or Reject (§3) |
-| `parts/decision_answer.html` | page 5 item 7 | the G2 card | answer-first form, Confirm or Overrule, or for "can't tell", Add or Leave off (§3) |
-| `parts/decision_publish.html` | page 6 item 6 | page 6 | answer-first form, publish or close without publishing (§3) |
-| `parts/macros.html` | §1.5, §4, §5 | everywhere | Jinja macros: `status_tag(words, tone)`, `refusal_box(refusal)`, `refusal_line(refusal)`, `mark_label(mark)`, `field_hint(id, text)` |
-| `parts/not_reached.html` | pages 4 to 6 "Not yet", §"Closed review" | pages 4 to 6 | the one-line "not ready yet" or "This review ended before this step." message and its link |
+| `base.html` | §1.3 | every page | `<title>` (`<Page name> · ACME Compliance calendar (demo)`, prefixed `Not done: ` after a refusal, except on the 403 page, ux.md §1.7); fonts and `site.css`; skip link to `#main`; the sidebar when signed in, else one white panel |
+| `parts/sidebar.html` | §1.3 | every page but sign-in | wordmark and product name; fund block; `<nav aria-label="Main">` with `aria-current="page"`; the "Your turn" pill on Filing rules; identity and its demo line; "Sign out" |
+| `macros.html` · `tag`, `run_tag`, `run_tone` | §1.5 | everywhere | the status pill: word inside, tone → style-note family (§4.2) |
+| `macros.html` · `review_no`, `review_name` | §1.8 | pages 2 to 6 | "Review {n}" (interim: the run ID until H-036 V-1) |
+| `macros.html` · `breadcrumb`, `run_labels`, `stepper`, `review_head` | §1.3, §1.4 | pages 3 to 6 | the head of a review page in the §1.3 order: breadcrumb → H1 with run labels → lead → refusal → stepper |
+| `macros.html` · `refusal_top`, `refusal_here` | §5 | all forms | the "Not done" box or the short line with "Go to …" at the top; the full sentence beside the control or inside the card the server names (`refusal.anchor`) |
+| `macros.html` · `stage_of`, `not_reached` | pages 4 to 6, "Closed review" | pages 4 to 6 | where a step page stands (before / at / after / ended before) and the one-line "not ready" message |
+| `macros.html` · `mark_label` | page 6 "Mark labels" | page 6 | "Moved off a weekend", "May not be required", "Depends on open question OQ-7", each with its line |
+| `parts/lookups.html` | §1.4, §1.5, pages 3 to 5 | via the macros and pages | ux.md's fixed tables (step names, failure sentences, weekend words) and the **interim** lookups (§2), each marked with the H-036 field that replaces it |
+| `parts/decision_rule.html` | page 4 item 5.8 | page 4 | G1 answer-first form (§3) |
+| `parts/decision_answer.html` | page 5 item 5.7 | page 5 | G2 answer-first form (§3) |
+| `parts/decision_publish.html` | page 6 item 6 | page 6 | G3 answer-first form (§3) |
 
-`parts/review_nav.html` (the placeholder links between steps) is deleted. The breadcrumb and the
-stepper replace it.
+`parts/review_nav.html` and `parts/run_labels.html` (placeholders) are deleted. The breadcrumb,
+stepper and run-labels macros replace them.
 
 ---
 
@@ -481,7 +483,7 @@ The **Depends on** column says what must be built for the step to show what `ux.
 | 8 | Decide the other rules (one Approve over a flag, one Reject), "Finish checking" | Review status, step 3 "In progress", "AI is checking what applies", units fill in, then "Ready for you to confirm what applies" | Stub |
 | 9 | "Confirm what applies": confirm one answer, overrule one with a reason, and for the "can't tell" one choose "Yes, add it until someone confirms" with a reason | Each card shows its decided line; progress counts down; "Finish and calculate dates" | Stub (cited facts, progress, decided lines: H-036) |
 | 10 | "Finish and calculate dates" | "Working out the dates", then "The calendar is ready to check" within a refresh | Stub |
-| 11 | "Check the calendar and publish": read the table and the two lists, choose "Yes, publish it", tick the box, "Publish calendar" | Review status "Published", pill "Published", link "See the calendar as the General Partner sees it" | Stub (placeholder entries; real dates are B4) |
+| 11 | "Check the calendar and publish": read the table and the two lists, choose "Yes, publish it", tick the box, "Publish calendar" | Review status "Published", pill "Published", link "See the calendar as the General Partner sees it" | Stub (placeholder entries; real dates are B4). ⚠️ Both "what's not in this calendar" lists stay empty until B2 stores decisions, so the box reads "0 rejected rules" (§11) |
 | 12 | "Sign out", then "Sign in as the General Partner / Fund Manager" | Calendar with "Published on …", "Made with stand-in agents …", the short General Partner note, the entries; "May not be required" on the one entry it applies to; no moved mark, no review status | Stub (entries are placeholders; summary cards and week grid need H-036) |
 | 13 | Open `/specialist/runs` by hand | 403: "You don't have access to this", "Go to the calendar" | Stub |
 | 14 | Sign out, sign in as the specialist, tick "Make step 1 fail (demo)", "Start a new review" | Unit 1 "Running" for about a second, then "This review failed", pill "Failed", stepper step 1 "Failed", the demo-failure reason sentence, only the link "Start a new review from Filing rules" (no Retry) | Stub (`failure` sentence fields: H-036) |
@@ -527,27 +529,27 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 
 | # | Item | Status | Note |
 |---|---|---|---|
-| S-01 | `frontend.md` (this spec) | ✅ | Approved 2026-11-17 |
-| S-02 | `base.html` + `parts/sidebar.html` + skip link | ⬜ | |
-| S-03 | `parts/macros.html` (status tag, refusal, mark label, hint) + `parts/lookups.html` (interim) | ⬜ | Lookups go as H-036 lands |
-| S-21 | W-1 to W-4 (refresh flag and render time, date filters, static mount, 500 page) | ⬜ | Display only, approved 2026-11-17 |
-| S-04 | `parts/breadcrumb.html`, `parts/run_labels.html`, `parts/stepper.html` | ⬜ | Stepper needs `steps[]` (H-036) |
-| S-05 | `pages/sign_in.html` | ⬜ | |
-| S-06 | `pages/filing_rules.html` | ⬜ | |
-| S-07 | `pages/review_status.html` + banner + refresh + units table | ⬜ | Refresh needs `refresh_on` (W-1) |
-| S-08 | `pages/check_rules.html` + row card + flag + G1 form | ⬜ | |
-| S-09 | `pages/confirm_applies.html` + G2 form | ⬜ | `decide_reason` per Open Question 7 |
-| S-10 | `pages/publish.html` + G3 form | ⬜ | |
-| S-11 | `pages/calendar.html` (list first; week grid if H-036 sends it) | ⬜ | |
-| S-12 | `pages/no_access.html`, `not_found.html`, `server_error.html` | ⬜ | 500 wiring is W-4 |
-| S-13 | `parts/review_nav.html` deleted; no Retry form anywhere | ⬜ | UX-022 |
-| S-14 | `static/site.css` (half-day box) + icons + `NOTICES` | ⬜ | Static mount is W-3 |
-| S-15 | `tests/tier2/test_pages.py` | ⬜ | |
-| S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ⬜ | |
-| S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review |
-| S-18 | README notes via `*sync-docs` | ⬜ | Operator approval first |
+| S-01 | `frontend.md` (this spec) | ✅ | Approved 2026-11-17; §1.2 updated to the parts as built |
+| S-21 | W-1 to W-4 (refresh flag and render time, date filters, static mount, 500 page) | ✅ | `80b9d7e`, `e7bf018`. Display only |
+| S-14 | `static/site.css` + nav icons + `NOTICES` | ✅ | `e7bf018`. Icons inline in the sidebar; Iconoir and font notices added |
+| S-02 | `base.html` + `parts/sidebar.html` + skip link | ✅ | `093c07b` |
+| S-03 | `parts/macros.html` + `parts/lookups.html` (interim) | ✅ | `093c07b`. Lookups go as H-036 lands |
+| S-04 | Breadcrumb, run labels, stepper | ✅ | Built as macros (§1.2), not separate files |
+| S-05 | `pages/sign_in.html` | ✅ | `53f08d8` |
+| S-12 | `pages/no_access.html`, `not_found.html`, `server_error.html` | ✅ | `53f08d8`. 403 title without "Not done: " (ux.md §1.7) |
+| S-06 | `pages/filing_rules.html` | ✅ | `4b75b7b`. "Ended because" empty until H-036 V-6 |
+| S-07 | `pages/review_status.html` + banner + refresh + units | ✅ | `1ed4fbf`. Count, date and reason clauses wait for H-036 V-5, V-6 (§11) |
+| S-08 | `pages/check_rules.html` + G1 form | ✅ | `3b665d7`. Quote check, paragraph, flags, unused paragraphs wait for H-036 V-8 |
+| S-09 | `pages/confirm_applies.html` + G2 form | ✅ | `16acd65`. Shared `decide_reason` box |
+| S-10 | `pages/publish.html` + G3 form | ✅ | `c78163e`. Rejected and unused lists empty until B2 stores decisions |
+| S-11 | `pages/calendar.html` (list) | ✅ | `36f02cc`. Summary cards, week grid, month grouping wait for H-036 V-11 |
+| S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
+| S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`. 12 tests; 54 in the suite pass |
+| S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | 🟡 | In progress |
+| S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review of `ux-review.md` |
+| S-18 | README notes via `*sync-docs` | ⬜ | Proposal to the operator; nothing written before approval |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
-| S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | ⬜ | Template side: the refusal slot in the G1 card and the top line. The refusal itself is B2 |
+| S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | ⬜ | Run before asking to merge |
 
 ---
@@ -589,6 +591,38 @@ These are display plumbing, not checks. `@frontend.eng` writes them, with no log
 | W-4 | A 500 handler that renders `pages/server_error.html` with the role's sentence | `backend/main.py` |
 
 ---
+
+## 11. Stage 2 notes: what the pages show until H-036 and B2 land
+
+The templates read the H-036 field names, so each item below fills in by itself when the field
+arrives. None of them shows a made-up value.
+
+| Where | Shows now | Shows once | Why |
+|---|---|---|---|
+| Every review | "Review RUN-20261117-1" | "Review 4" | `review_number`, H-036 V-1 |
+| Page 3, `AT_G1` sentence | "AI drafted the rules and checked each one against the sources. …" | "AI drafted **7 rules** and …" | counts, V-5 |
+| Page 3, `AT_G2` sentence | "AI checked the approved rules against the fund's facts." | "AI checked **6 rules** … **1 of them** need your decision …" | counts, V-5 |
+| Page 3, `AT_G3` sentence | "The calendar is ready." | "The calendar is ready: **22 dates**." | counts, V-5 |
+| Page 3, published / closed / abandoned | the sentence without "on {date} at {time}" and without the reason | the full ux.md sentence | `published_at`, `ended`, V-6 |
+| Page 3, units | step 1 shows "Drafting the rules" only | also "Checking the drafts" | `unit_groups`, V-4 |
+| Page 2, "Ended because" | empty | the failure sentence or the first line of the reason | `ended_because`, V-6 |
+| Page 4 | no quote-check line, paragraph, flags, OQ-7 mark, "Checker flags" card or unused-paragraphs list; decided line is "**Approved**." only | all of them, and "Approved by … at 14:02. …" | V-8 |
+| Page 5 | cited facts as IDs only; no "Show the approved rule"; the can't-tell question without "Nobody has confirmed {fact}." | the facts table, the rule, the full question | V-9 |
+| Page 6 | "Who files", "Sent to", "Why" empty; moved mark without its dates; **both "what's not in this calendar" lists empty**, even after a rejection | filled | V-10; the lists need B2 to store decisions |
+| Page 7 | no summary cards, no two-month grid, heading "All entries" without the year; "Who files" and "Why" empty | filled | V-11 |
+| Refusals | only `FORBIDDEN` (403) and the sign-in `VALIDATION` show; every form redirects | every ux.md §5 refusal on the page | V-12 and B2 |
+
+**Wording to confirm with `@ux.designer`** (not in ux.md): the empty "Paragraphs no rule uses" list
+on page 6 shows "None."; the fallback lines above that drop a count or date.
+
+**For `@backend.eng` (add to H-036 V-12).** The refusal object the templates read: `code`,
+`sentence`, `anchor` (`row-3`, `verdict-2`, `start`, `ack`, `decline-reason`, `decision`, `abandon`;
+none for a page-level refusal), `target_label` ("rule 3"), optional `short` and `link_text` (for
+`RUN_ACTIVE`: "Not done. A new review can't start while review {n} is in progress." and "Go to
+'Start a new review'"), and `typed` (the reason text to show again, by field name). **G2 fallback:**
+without `:has()`, both answers' buttons show, so a request can carry `decision=confirm` with the
+overrule button's `value`. The service should refuse a `value` that does not match the answer
+(`VALIDATION`), as the G3 route does for `decision`.
 
 ## Sources
 
