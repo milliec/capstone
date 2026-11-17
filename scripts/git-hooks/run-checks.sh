@@ -23,7 +23,9 @@ if [ ! -f "$ids" ]; then
   echo "BLOCKED: $ids not found, so the real-name scan cannot run."
   fail=1
 else
-  hits="$(grep -rniwF --exclude-dir=reference --exclude-dir=.venv --exclude-dir=node_modules --exclude-dir=.git \
+  # -I skips binary files (images, snapshots): a text search cannot see a name drawn as pixels, and
+  # compressed image bytes sometimes spell a listed word by chance (operator decision, 2026-11-17).
+  hits="$(grep -rniwFI --exclude-dir=reference --exclude-dir=.venv --exclude-dir=node_modules --exclude-dir=.git \
     -f <(grep -vE '^(#|$)' "$ids") . 2>/dev/null)"
   if [ -n "$hits" ]; then
     echo "BLOCKED: real-name scan found matches (file:line shown, fix before committing):"
