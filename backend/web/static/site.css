@@ -294,6 +294,7 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
 .signin { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
 .enter { background: var(--card); border-radius: var(--r-panel); padding: 40px 48px; width: 100%; max-width: 560px; display: grid; gap: 16px; }
 .enter h1 { font-size: 30px; }
+.enter .brand { padding: 0; } /* the sidebar's 28px inset does not apply on sign-in */
 .role-form { margin: 0; }
 .role { display: block; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 18px 20px; cursor: pointer; font: inherit; color: inherit; transition: background-color 200ms linear, border-color 200ms linear; }
 .role:hover { background: var(--page); border-color: var(--ink); }
