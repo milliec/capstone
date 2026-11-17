@@ -329,3 +329,33 @@ def test_summary_cards_write_their_counts_as_text(specialist_client, gp_client, 
     assert "Due next Tue 20 Apr 2027 Stand-in rule 2: quarterly return" in text
     assert "Entries in 2027: 2" in text and "May not be required 1" in text
     assert re.search(r'<svg class="dots"[^>]*aria-hidden="true"', cards)
+
+# --- After a decision, land on the next card to decide (operator, 2026-11-17) ---
+
+def test_after_a_rule_decision_the_page_lands_on_the_next_rule_to_decide(specialist_client, at_g1):
+    r = specialist_client.post(f"/specialist/rows/ROW-{at_g1}-1/decision",
+                               data={"version": 1, "decision": "approve", "business_day_rule": "roll_forward",
+                                     "who_files": "AIFM"}, follow_redirects=False)
+    assert r.headers["location"] == f"/specialist/runs/{at_g1}/g1?after=ROW-{at_g1}-1#next"
+    html = specialist_client.get(r.headers["location"].split("#")[0]).text
+    assert re.search(r'<article class="rule-card[^"]*" id="row-2"[^>]*>\s*<span class="jump" id="next"></span>', html)  # rule 2, not the top
+
+
+def test_the_next_card_wraps_round_then_points_at_finish(specialist_client, at_g1):
+    for n in (4, 2, 3):  # decide every rule but rule 1, ending with rule 3
+        specialist_client.post(f"/specialist/rows/ROW-{at_g1}-{n}/decision",
+                               data={"version": 1, "decision": "reject", "reject_reason": "Test"})
+    html = specialist_client.get(f"/specialist/runs/{at_g1}/g1?after=ROW-{at_g1}-3").text
+    assert re.search(r'<article class="rule-card[^"]*" id="row-1"[^>]*>\s*<span class="jump" id="next"></span>', html)  # wraps to rule 1
+    specialist_client.post(f"/specialist/rows/ROW-{at_g1}-1/decision", data={"version": 1, "decision": "reject", "reject_reason": "Test"})
+    html = specialist_client.get(f"/specialist/runs/{at_g1}/g1?after=ROW-{at_g1}-1").text
+    assert re.search(r'id="next"></span>\s*<section class="section" id="finish"', html)  # all decided
+
+
+def test_after_an_answer_decision_the_page_lands_on_the_next_answer(specialist_client, at_g1):
+    specialist_client.post(f"/specialist/runs/{at_g1}/g1/complete", data={"run_version": 1})
+    r = specialist_client.post(f"/specialist/verdicts/VER-{at_g1}-1/decision",
+                               data={"version": 1, "decision": "confirm", "value": "applies"}, follow_redirects=False)
+    assert r.headers["location"] == f"/specialist/runs/{at_g1}/g2?after=VER-{at_g1}-1#next"
+    html = specialist_client.get(r.headers["location"].split("#")[0]).text
+    assert re.search(r'<article class="rule-card[^"]*" id="verdict-2"[^>]*>\s*<span class="jump" id="next"></span>', html)

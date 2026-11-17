@@ -35,6 +35,14 @@
 {%- endfor -%}
 {%- set left = ns.undecided|length -%}
 
+{#- Where the page lands after a decision (operator, 2026-11-17): the first card still to decide after
+    the one just decided (?after=, W-7), else the first card still to decide, else the finish section.
+    An invisible #next marker sits just before it; the redirect after a decision ends in #next. -#}
+{%- set nx = namespace(j=0) -%}
+{%- for c in ns.cards -%}{%- if after and c.r.row_id == after -%}{%- set nx.j = c.i -%}{%- endif -%}{%- endfor -%}
+{%- set later_undecided = ns.undecided|select(">", nx.j)|list -%}
+{%- set next_i = (later_undecided|first) if later_undecided else ((ns.undecided|first) if ns.undecided else none) -%}
+
 {% block title %}Check the rules{% endblock %}
 {% block main %}
 {% call ui.review_head(run, "Check the rules", refusal) %}
@@ -87,6 +95,7 @@
   {%- for c in ns.cards %}
   {%- set r = c.r %}{%- set i = c.i %}
   <article class="rule-card{{ ' open' if stage == 'at' and not c.decided }}{{ ' refused' if refusal and refusal.anchor is defined and refusal.anchor == 'row-' ~ i }}" id="row-{{ i }}" aria-labelledby="row-{{ i }}-h">
+    {%- if stage == "at" and i == next_i %}<span class="jump" id="next"></span>{% endif %}
     <header>
       <div>
         <p class="n">Rule {{ i }} of {{ n }} · <span class="id">{{ r.row_id }}</span></p>
@@ -199,6 +208,7 @@
 {#- Finish checking (ux.md page 4 item 7). Always shown at G1; the server refuses it while a rule
     is undecided (GATE_INCOMPLETE). -#}
 {%- if stage == "at" %}
+{%- if not next_i %}<span class="jump" id="next"></span>{% endif %}
 <section class="section" id="finish" aria-labelledby="finish-h">
   <div class="sec-h"><h2 id="finish-h" class="sq you">{{ "All rules decided" if left == 0 else left ~ (" rule left to decide" if left == 1 else " rules left to decide") }}</h2></div>
   <form class="card card-b" method="post" action="/specialist/runs/{{ rid }}/g1/complete">
