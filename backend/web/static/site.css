@@ -294,29 +294,31 @@ textarea { width: 100%; min-height: 76px; resize: vertical; }
 blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
 /* List grouped by month (ux.md page 7 item 7): one header row per month */
 .month-row th { font: 400 17px/1.2 var(--font-head); letter-spacing: -0.01em; color: var(--ink); background: #fbfaf7; padding-top: 16px; padding-bottom: 10px; }
-/* Week grid (ux.md page 7 item 6), display-only: a visual view of the list, from app.css's month
-   view without the clickable days (B12). Hidden below 960px, where the list alone shows. */
 .month-card { overflow: hidden; }
 .month-card + .month-card { margin-top: 12px; }
 .monthbar { padding: 16px 24px; border-bottom: 1px solid var(--rule); }
 .monthbar h3 { font-size: 17px; }
-.month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.month .dow { padding: 12px 10px; font: 400 12.5px/1 var(--font-body); color: var(--body); border-bottom: 1px solid var(--rule); }
-.month .cell { min-height: 92px; min-width: 0; padding: 8px 8px 10px; border-bottom: 1px solid var(--rule); border-left: 1px solid var(--rule); display: grid; gap: 6px; align-content: start; font: 400 14px/1 var(--font-head); color: var(--ink); }
-.month > :nth-child(7n + 1) { border-left: 0; }
-.month .cell.out { color: #6a6a6a; }
-.month .cell .d.next { box-shadow: inset 0 -2px 0 var(--orange); padding-bottom: 3px; justify-self: start; }
-.month .cell .due-next { font: 500 11.5px/1.2 var(--font-body); color: var(--orange-text); }
-.month .cell .e { font: 500 12px/1.25 var(--font-body); color: var(--ink); background: #f7f7f7; border: 1px solid var(--rule); border-radius: var(--r-ctl); padding: 5px 7px; min-width: 0; overflow-wrap: anywhere; }
-.month .cell .e small { display: block; font-weight: 400; color: var(--muted); margin-top: 1px; }
-.month .cell .e small.mnbr { color: var(--orange-text); font-weight: 500; }
 /* B12 (DL-49, operator 2026-11-17): the view switch, the dot chart, the Month and Year views */
 .tabs { display: flex; gap: 2px; background: var(--panel); border-radius: var(--r-btn); padding: 4px; }
-.tabs a { font: 400 14px/1 var(--font-head); letter-spacing: -0.01em; padding: 9px 16px; border-radius: var(--r-ctl); text-decoration: none; color: var(--ink); white-space: nowrap; }
-.tabs a:hover { background: var(--page); color: var(--ink); }
-.tabs a[aria-current] { background: var(--card); font-weight: 500; }
-.dot-card .k { font: 400 16px/1.25 var(--font-head); color: var(--ink); }
-.dot-card .dots { display: block; width: 100%; max-width: 560px; height: auto; margin-top: 8px; }
+/* The view switch is a radio group styled as tabs (app.css "Month / Year / List swap in place"):
+   CSS shows only the chosen view, no script. Without :has() every view shows, one under another. */
+.tabs label { font: 400 14px/1 var(--font-head); letter-spacing: -0.01em; padding: 9px 16px; border-radius: var(--r-ctl); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.tabs label:hover { background: var(--page); }
+@supports selector(:has(*)) {
+  .tabs label:has(input:checked) { background: var(--card); font-weight: 500; }
+  .tabs label:has(input:focus-visible) { outline: 2px solid var(--orange); outline-offset: 2px; }
+  .switch .view { display: none; }
+  .switch:has(#v-month:checked) .view.month, .switch:has(#v-year:checked) .view.year,
+  .switch:has(#v-list:checked) .view.list { display: block; }
+}
+.switch .view + .view { margin-top: 12px; } /* the fallback, when every view shows */
+@supports selector(:has(*)) { .switch .view + .view { margin-top: 0; } }
+/* Summary cards (as in the mock-up): Due next on ink, Entries with its dot chart, May not be required */
+.kpi .m { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.kpi.dark { background: var(--ink); }
+.kpi.dark .k, .kpi.dark .m { color: #cfcfcf; } .kpi.dark .v { color: #fff; }
+.kpi .dots { display: block; width: 100%; height: auto; margin-top: 10px; }
+.kpi .dots-key { font-size: 11.5px; }
 .dots-key { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--body); margin-top: 6px; }
 .dots-key span { display: inline-flex; gap: 6px; align-items: center; }
 .dots-key i { width: 9px; height: 9px; border-radius: 50%; background: var(--brass); }
@@ -444,7 +446,8 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
   .fund { margin-left: 20px; margin-right: 20px; }
 }
 @media (max-width: 959px) {
-  .grid-view, .views { display: none; } /* the list alone below 960px (operator, 2026-11-17) */
+  .switch .tabs, .switch .view.month, .switch .view.year { display: none !important; } /* the list alone below 960px */
+  .switch .view.list { display: block !important; }
   .shell { align-content: start; } /* short pages: do not stretch the stacked sidebar */
   .shell { grid-template-columns: minmax(0, 1fr); } .side { position: static; height: auto; }
   .kpis, .kpis.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }

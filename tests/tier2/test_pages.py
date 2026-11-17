@@ -227,26 +227,27 @@ def _publish(client, run_id):
                 data={"run_version": 3, "decision": "publish", "acknowledged": "true"})
 
 
-def test_week_grid_is_a_visual_view_with_no_tab_stops(specialist_client, gp_client, at_g1):
-    """The list is the accessible view; the List view's grid repeats it visually, hidden from screen
-    readers, with no Tab stops. The view switch above it is ordinary links (B12)."""
+def test_calendar_is_one_switch_with_three_views(specialist_client, gp_client, at_g1):
+    """As in the mock-up (operator, 2026-11-17): one calendar, a Month / Year / List radio switch,
+    exactly one view chosen; CSS shows only that one. No moved or open-question mark (CR-012)."""
     _publish(specialist_client, at_g1)
     html = gp_client.get("/calendar").text
-    views = html.split('<section class="section views"', 1)[1].split("</section>", 1)[0]
-    assert '<h2 id="views-h">The next two months</h2>' in views
-    grid = views.split('<div class="grid-view" aria-hidden="true">', 1)[1]
-    assert "Due next" in grid
-    assert not re.search(r"<(a|button|input|select|textarea)\b|tabindex", grid)  # nothing to Tab to
-    assert "Moved off a weekend" not in grid and "OQ-7" not in grid  # CR-012, UX-009
-    assert html.index('<section class="section views"') < html.index('id="entries-h"')
+    switch = html.split('<section class="section switch" id="entries"', 1)[1].split("</section>", 1)[0]
+    group = switch.split('role="radiogroup" aria-label="Show the calendar as">', 1)[1].split("</div>", 1)[0]
+    assert re.findall(r'id="v-([a-z]+)"', group) == ["month", "year", "list"]
+    assert len(re.findall(r"\bchecked\b", group)) == 1
+    for view in ("month", "year", "list"):
+        assert f'<div class="view {view}' in switch
+    assert "The next two months" not in html  # the Month view replaces the two-month grid
+    assert "Moved off a weekend" not in switch and "OQ-7" not in switch
 
 
 def test_list_is_grouped_by_month_with_row_group_headers(specialist_client, gp_client, at_g1):
     _publish(specialist_client, at_g1)
     html = gp_client.get("/calendar").text
-    list_part = html.split('id="entries-h"', 1)[1]
-    assert re.search(r'<th colspan="4" scope="rowgroup">April 2027</th>', list_part)
-    assert "All entries for 2027" in html
+    list_view = html.split('<div class="view list card">', 1)[1]
+    assert re.search(r'<th colspan="4" scope="rowgroup">April 2027</th>', list_view)
+    assert '<h2 id="cal-h">All entries for 2027</h2>' in html
 
 
 # --- H-036 V-4 (operator, 2026-11-17): units shown under the server's `group` ---
@@ -285,12 +286,11 @@ def test_units_without_group_fall_back_to_todays_view():
 
 # --- B12 (operator, 2026-11-17; DL-49, H-040): views chosen by a link, dot chart ---
 
-def test_view_switch_marks_the_current_view_and_defaults_to_list(specialist_client, gp_client, at_g1):
+def test_view_switch_ticks_the_view_asked_for_and_defaults_to_list(specialist_client, gp_client, at_g1):
     _publish(specialist_client, at_g1)
-    for query, current in [("", "List"), ("?view=month", "Month"), ("?view=year", "Year"), ("?view=nonsense", "List")]:
+    for query, chosen in [("", "list"), ("?view=month", "month"), ("?view=year", "year"), ("?view=nonsense", "list")]:
         html = gp_client.get("/calendar" + query).text
-        nav = html.split('<nav class="tabs" aria-label="Show the calendar as">', 1)[1].split("</nav>", 1)[0]
-        assert re.findall(r'aria-current="page">([A-Za-z]+)<', nav) == [current], query
+        assert re.findall(r'id="v-([a-z]+)" value="[a-z]+" checked', html) == [chosen], query
 
 
 def test_month_view_is_a_table_with_weekday_headers_and_paging(specialist_client, gp_client, at_g1):
@@ -299,7 +299,7 @@ def test_month_view_is_a_table_with_weekday_headers_and_paging(specialist_client
     table = html.split('<table class="month-table"', 1)[1].split("</table>", 1)[0]
     assert re.findall(r'<th scope="col">([A-Za-z]+)</th>', table) == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     assert "Due next" in table and "May not be required" in table
-    assert 'href="/calendar?view=month&amp;month=2027-05"' in html  # the next-month link
+    assert 'href="/calendar?view=month&amp;month=2027-05#entries"' in html  # lands back on the calendar
     assert "No filings this month." in gp_client.get("/calendar?view=month&month=2027-05").text
 
 
@@ -320,9 +320,12 @@ def test_no_view_shows_moved_or_open_question_marks(specialist_client, gp_client
         assert "Moved off a weekend" not in text and "OQ-7" not in text, query
 
 
-def test_dot_chart_writes_its_counts_as_text(specialist_client, gp_client, at_g1):
+def test_summary_cards_write_their_counts_as_text(specialist_client, gp_client, at_g1):
+    """ux.md page 7 item 5, counted display-only from the entries (operator, 2026-11-17)."""
     _publish(specialist_client, at_g1)
     html = gp_client.get("/calendar").text
-    assert '<h2 class="k" id="dots-h">Entries in 2027: 2</h2>' in html
-    assert "May not be required: 1" in html
-    assert re.search(r'<svg class="dots"[^>]*aria-hidden="true"', html)
+    cards = html.split('<div class="kpis three" role="list" aria-label="Summary">', 1)[1].split('<section', 1)[0]
+    text = " ".join(re.sub(r"<[^>]+>", " ", re.sub(r"<svg[\s\S]*?</svg>", " ", cards)).split())
+    assert "Due next Tue 20 Apr 2027 Stand-in rule 2: quarterly return" in text
+    assert "Entries in 2027: 2" in text and "May not be required 1" in text
+    assert re.search(r'<svg class="dots"[^>]*aria-hidden="true"', cards)
