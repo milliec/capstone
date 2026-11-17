@@ -63,7 +63,7 @@ cards) live in that page.
 | `base.html` | §1.3 | every page | `<title>` (`<Page name> · ACME Compliance calendar (demo)`, prefixed `Not done: ` after a refusal, except on the 403 page, ux.md §1.7); fonts and `site.css`; skip link to `#main`; the sidebar when signed in, else one white panel |
 | `parts/sidebar.html` | §1.3 | every page but sign-in | wordmark and product name; fund block; `<nav aria-label="Main">` with `aria-current="page"`; the "Your turn" pill on Filing rules; identity and its demo line; "Sign out" |
 | `macros.html` · `tag`, `run_tag`, `run_tone` | §1.5 | everywhere | the status pill: word inside, tone → style-note family (§4.2) |
-| `macros.html` · `review_no`, `review_name` | §1.8 | pages 2 to 6 | "Review {n}" (interim: the run ID until H-036 V-1) |
+| `macros.html` · `review_no`, `review_name` | §1.8 | pages 2 to 6 | "Review {n}" (`review_number`, H-036 V-1) |
 | `macros.html` · `breadcrumb`, `run_labels`, `stepper`, `review_head` | §1.3, §1.4 | pages 3 to 6 | the head of a review page in the §1.3 order: breadcrumb → H1 with run labels → lead → refusal → stepper |
 | `macros.html` · `refusal_top`, `refusal_here` | §5 | all forms | the "Not done" box or the short line with "Go to …" at the top; the full sentence beside the control or inside the card the server names (`refusal.anchor`) |
 | `macros.html` · `stage_of`, `not_reached` | pages 4 to 6, "Closed review" | pages 4 to 6 | where a step page stands (before / at / after / ended before) and the one-line "not ready" message |
@@ -80,18 +80,19 @@ stepper and run-labels macros replace them.
 
 ## 2. Each page: states, data read, forms posted
 
-"Reads" names the field the template needs. ✅ = the stub view sends it today. ⏳ = it does not
-yet; it is in §10 for `@backend.eng` (H-036). The template never works a ⏳ field out by itself.
+"Reads" names the field the template needs. ✅ = the stub view sends it (H-036 landed 2026-11-17: V-1 to V-11). ⏳ = still
+not sent: the shared refusal object (V-12, with B2), "Approval blocked" (B7) and the web-layer items of
+§10.2. The template never works a ⏳ field out by itself.
 
-**Interim lookups until H-036 lands** (operator approval of this spec, 2026-11-17). Some ⏳ fields
+**Interim lookups (H-036 has landed; `@frontend.eng` deletes them)** (operator approval of this spec, 2026-11-17). Some ⏳ fields
 are only ux.md's fixed tables keyed by a server value: the status tone (§1.5), the stepper states
 (§1.4), the page H1 and lead per state (page 3), the step a review stopped at (DL-46), and whether a
-step page is before, at or after its step. Until H-036 sends them, `parts/lookups.html` holds these
+step page is before, at or after its step. `parts/lookups.html` still holds these
 tables, keyed by `run.status` and `run.phase`, in **one** file, each marked "interim: replaced by
-H-036 V-n". The page uses the server's field when it is present and the lookup only when it is
+H-036 V-n"; the server now sends every one except V-12. The page uses the server's field when it is present and the lookup only when it is
 not. A lookup only chooses words and which section to show; the server still enforces every rule,
 because every form posts to a service that decides. Counts, dates, reasons and evidence (quote
-checks, flags, facts) are never looked up: until H-036 sends them, the page leaves them out.
+checks, flags, facts) are never looked up: if the server does not send them, the page leaves them out.
 
 ### Page 1 · Sign-in
 
@@ -116,7 +117,7 @@ checks, flags, facts) are never looked up: until H-036 sends them, the page leav
 
 | | |
 |---|---|
-| **Reads** | `runs[]`: `run_id` ✅, `status_words` ✅, `status` ✅, `demo_planted_row` ✅, `started_at` ✅ (ISO, formatted by a filter, §10 W-2), ⏳ `review_number`, ⏳ `status_tone`, ⏳ `ended_because`; `active_run` ✅ with `is_working` / `is_at_gate` ✅; `agents_mode` ✅ (decides whether the failure-demo checkbox is in the form: an option that does not exist in real mode, ux.md page 2, not a hidden button); `fund.fund_id`, `fund.name` ✅; ⏳ `refusal` |
+| **Reads** | `runs[]`: `run_id` ✅, `status_words` ✅, `status` ✅, `demo_planted_row` ✅, `started_at` ✅ (ISO, formatted by a filter, §10 W-2), `review_number` ✅, `status_tone` ✅, `ended_because` ✅; `active_run` ✅ with `is_working` / `is_at_gate` ✅; `agents_mode` ✅ (decides whether the failure-demo checkbox is in the form: an option that does not exist in real mode, ux.md page 2, not a hidden button); `fund.fund_id`, `fund.name` ✅; ⏳ `refusal` |
 | **Table** | Review · Started · Demo rule ("On"/"Off") · Status (pill + words) · Ended because. `<th scope="col">` |
 | **Posts** | `POST /specialist/runs`: checkbox `demo_planted_row` (unticked), checkbox `demo_fail_step1` (unticked, stand-in only), button "Start a new review". The form is **always shown** (H-009) |
 
@@ -150,7 +151,7 @@ it always finishes by itself." On a closed review: nothing.
 
 | | |
 |---|---|
-| **Reads** | `run` ✅ (`status`, `phase`, `status_words`, `is_working`, `is_at_gate`, `agents_mode`, `demo_planted_row`, `demo_fail_step1`, `cost_so_far`, `run_version`, `started_at`); `units[]` ✅ (`stage`, `label`, `status`, `failure_reason`, `stage_attempt`); ⏳ `review_number`, `status_tone`, `steps[]`, `unit_groups[]` (step 1 needs the "Checking the drafts" group, which the stub does not make), `counts` ({n}, {u}), `failure` (step k, step name, unit label, reason sentence), `ended` (date, time, reason), `published_at`, `started_by_label`, `rendered_at`, `refresh_on` |
+| **Reads** | `run` ✅ (`status`, `phase`, `status_words`, `is_working`, `is_at_gate`, `agents_mode`, `demo_planted_row`, `demo_fail_step1`, `cost_so_far`, `run_version`, `started_at`); `units[]` ✅ (`stage`, `label`, `status`, `failure_reason`, `stage_attempt`); `review_number` ✅, `status_tone` ✅, `steps[]` ✅, `counts` ✅ ({n}, {u}), `failure` ✅ (step k, step name, unit label, reason sentence), `ended` ✅ (date, time, reason), `published_at` ✅, `started_by_label` ✅, and per unit `group` ✅ (the stub makes no "Checking the drafts" units until B3); ⏳ `rendered_at`, `refresh_on` (web layer, §10.2) |
 | **Posts** | `POST /specialist/runs/{run_id}/abandon`: `run_version` (hidden), `reason` (the route's field name) |
 
 ### Page 4 · Check the rules (G1)
@@ -166,7 +167,7 @@ it always finishes by itself." On a closed review: nothing.
 
 | | |
 |---|---|
-| **Reads** | `view.rows[]` ✅ `row_id`, `version`, `obligation_name`, `frequency`, `anchor`, `offset`, `recipient_code`, `responsible_role`, `business_day_rule`, `source_paragraph_id`, `quote`, `origin`, `decision` (a text read back from the audit log); ⏳ per row: `index`, `quote_check`, `paragraph` (text and document title), `flags[]`, `has_flag`, `open_question`, `needs_who_files`, `status` (to decide / approved / rejected / approval blocked), `decided` (who, when, choices, reason), `refused` (this card holds the refusal); ⏳ page: `total`, `summary` (rules, decided, to decide, checker flags), `filing_parties[]` (value, label), `unused_paragraphs[]`, `next_undecided`, `show_forms`, `stage` (before / at / after) |
+| **Reads** | `view.rows[]` ✅ `row_id`, `version`, `obligation_name`, `frequency`, `anchor`, `offset`, `recipient_code`, `responsible_role`, `business_day_rule`, `source_paragraph_id`, `quote`, `origin`, `decision` (a text read back from the audit log); per row ✅: `quote_check`, `paragraph` (text and document title), `flags[]`, `has_flag`, `open_question`, `needs_who_files`, `needs_attention[]`, `tags[]`, `recipient_name`, `status` + `status_tone` (to decide / approved / rejected; ⏳ "approval blocked", B7), `decided` (who, when, choices, reason), `filing_parties[]` (value, label); ⏳ per row: `refused` (this card holds the refusal); page ✅: `summary.flags`, `unused_paragraphs[]`, `stage` (before / at / after); not built (dropped from H-036): `index`, `total`, `next_undecided`, `show_forms` |
 | **Posts** | per rule: `POST /specialist/rows/{row_id}/decision` with `version` (hidden), `decision` (`approve` / `reject`), `business_day_rule` (`roll_forward` / `roll_backward` / `no_roll`), `who_files` (only when the source is silent), `approve_reason` (only when the rule has a flag), `reject_reason`. Page: `POST …/g1/complete` with `run_version`; button "Finish checking", always shown at G1 |
 
 ### Page 5 · Confirm what applies (G2)
@@ -181,7 +182,7 @@ it always finishes by itself." On a closed review: nothing.
 
 | | |
 |---|---|
-| **Reads** | `view.verdicts[]` ✅ `verdict_id`, `version`, `row_id`, `obligation_name`, `verdict` (`applies` / `does_not_apply` / `unsure`), `reasoning`, `cited_fact_ids` (one string), `missing_information`, `decision`; ⏳ per card: `index`, `cited_facts[]` (ID, fact, value), `approved_rule` (rule, quote, paragraph ID), `missing_fact` (the phrase in "Nobody has confirmed {the missing fact}."), `overrule_value`, `decided` (outcome, who, when, reason), `refused`; ⏳ page: `progress` (decided, total, can't-tell left), `index_order`, `next_undecided`, `show_forms`, `stage` |
+| **Reads** | `view.verdicts[]` ✅ `verdict_id`, `version`, `row_id`, `obligation_name`, `verdict` (`applies` / `does_not_apply` / `unsure`), `reasoning`, `cited_fact_ids` (one string), `missing_information`, `decision`; per card ✅: `cited_facts[]` (ID, fact, value), `approved_rule` (rule, quote, paragraph ID), `missing_fact` (the phrase in "Nobody has confirmed {the missing fact}."), `overrule_value`, `decided` (outcome, who, when, reason); ⏳ per card: `refused`; page ✅: `stage`; not built (dropped from H-036): `index`, `progress`, `index_order`, `next_undecided`, `show_forms` |
 | **Posts** | per card: `POST /specialist/verdicts/{verdict_id}/decision` with `version`, `decision` (`confirm` / `override` / `decide`), `value` (carried by the button pressed, §3.3), `override_reason`, `decide_reason`. Page: `POST …/g2/complete` with `run_version`; button "Finish and calculate dates" |
 
 ### Page 6 · Check the calendar and publish (G3)
@@ -195,7 +196,7 @@ it always finishes by itself." On a closed review: nothing.
 
 | | |
 |---|---|
-| **Reads** | `view.calendar_id` ✅, `view.entries[]` ✅ (`due_date`, `obligation_name`, `moved`, `precautionary`, `open_question_id`), `view.rejected_row_ids` ✅ (empty in the stub), `view.uncited_paragraph_ids` ✅ (empty); ⏳ per entry: `who_files_label`, `recipient_name`, `why` (the reason the General Partner reads), `source_paragraph_id`, `marks[]` (kind, from and to dates, direction); ⏳ `rejected_rows[]` (rule, reason, demo), `unused_paragraphs[]` (ID, source, text), `previous_publication_at`, `outcome` (published or closed: date, time, reason), `stage` |
+| **Reads** | `view.calendar_id` ✅, `view.entries[]` ✅ (`due_date`, `obligation_name`, `moved`, `precautionary`, `open_question_id`), `view.rejected_row_ids` ✅ (empty in the stub), `view.uncited_paragraph_ids` ✅ (empty); per entry ✅: `who_files_label`, `recipient_name`, `why` (the reason the General Partner reads), `source_paragraph_id`, `marks.moved` (from and to dates, direction); ✅ `rejected_rows[]` (rule, reason, demo; the lists are real since the G1 rejects), `unused_paragraphs[]` (ID, source, text), `previous_publication_at`, `outcome` (published or closed: date, time, reason), `stage` |
 | **Posts** | one form: `decision` (`publish` / `decline`, radio), `run_version`, `rejected_row_ids[]`, `uncited_paragraph_ids[]` (hidden, exactly the lists shown), `acknowledged` (checkbox, unticked), `decline_reason`. Button "Publish calendar" (`formaction=…/publish`), button "Close without publishing" (`formaction=…/decline`) |
 
 ### Page 7 · Calendar
@@ -208,7 +209,7 @@ it always finishes by itself." On a closed review: nothing.
 
 | | |
 |---|---|
-| **Reads** | `published` ✅ (`None` = nothing published; `published_at`, `agents_mode`, `entries[]` with `due_date`, `obligation_name`, `precautionary`); `identity.role` ✅ (picks the General Partner or specialist note); ⏳ `summary` (entries in year, year, due next, "May not be required" count), `weeks` (the two months, days with entries, the "Due next" day), `months[]` (entries grouped by month), per entry `who_files_label`, `why`, `source_document`, `source_paragraph_id`, `quote` |
+| **Reads** | `published` ✅ (`None` = nothing published; `published_at`, `agents_mode`, `entries[]` with `due_date`, `obligation_name`, `precautionary`); `identity.role` ✅ (picks the General Partner or specialist note); per entry ✅ `who_files_label`, `why`, `source_document`, `source_paragraph_id`, `quote`; not built (dropped from H-036; arranged display-only in the web layer, W-5): `summary`, `weeks`, `months[]` |
 | **Posts** | nothing (only "Sign out") |
 | **Never shows** | a "Moved off a weekend" mark, an open-question mark, a flag, a "can't tell", a review status (CR-012, UX-009) |
 
@@ -575,7 +576,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-04 | Breadcrumb, run labels, stepper | ✅ | Built as macros (§1.2), not separate files |
 | S-05 | `pages/sign_in.html` | ✅ | `53f08d8`; two-panel layout with the portfolio panel added 2026-11-17 (H-037) |
 | S-12 | `pages/no_access.html`, `not_found.html`, `server_error.html` | ✅ | `53f08d8`. 403 title without "Not done: " (ux.md §1.7) |
-| S-06 | `pages/filing_rules.html` | ✅ | `4b75b7b`. "Ended because" empty until H-036 V-6 |
+| S-06 | `pages/filing_rules.html` | ✅ | `4b75b7b` |
 | S-07 | `pages/review_status.html` + banner + refresh + units | ✅ | `1ed4fbf`. Count, date and reason clauses wait for H-036 V-5, V-6 (§11) |
 | S-08 | `pages/check_rules.html` + G1 form | ✅ | `3b665d7`. Quote check, paragraph, flags, unused paragraphs wait for H-036 V-8 |
 | S-09 | `pages/confirm_applies.html` + G2 form | ✅ | `16acd65`. Shared `decide_reason` box |
@@ -597,12 +598,12 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 
 ---
 
-## 10. What the templates need that the stub services do not send yet
+## 10. What the templates need from the services (H-036: sent, except V-12)
 
 These are the ⏳ fields of §2. The templates must not work them out (ux.md §1.2, backend.md "Known
 gaps": "B5 moves any such choice into the service view"). Raised as handoff **H-036** to
-`@backend.eng` on 2026-11-17. V-2, V-3 and the "stage" part of V-8 to V-10 are covered by the
-interim lookups (§2) until they land.
+`@backend.eng` on 2026-11-17. **Done 2026-11-17 except V-12** (`backend.md` "View fields for the
+pages"); the interim lookups (§2) are now only a fallback and are `@frontend.eng`'s to delete.
 
 ### 10.1 View fields (services, `@backend.eng`): the exact contract
 
@@ -661,10 +662,12 @@ These are display plumbing, not checks. `@frontend.eng` writes them, with no log
 
 ---
 
-## 11. Stage 2 notes: what the pages show until H-036 and B2 land
+## 11. Stage 2 notes: what the pages show now that H-036 has landed (V-12 and B2 still to come)
 
-The templates read the H-036 field names, so each item below fills in by itself when the field
-arrives. None of them shows a made-up value.
+The templates read the H-036 field names, so each item below filled in by itself when the field
+arrived. None of them shows a made-up value. Since H-036 landed (2026-11-17), the "Shows once"
+column is what the services send for every row except Refusals (V-12, with B2); the "Shows now"
+column is kept as the record of the interim behaviour.
 
 | Where | Shows now | Shows once | Why |
 |---|---|---|---|
@@ -835,3 +838,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   each action" raised as H-043.
 - 2026-11-17 · persona `frontend-eng` · calendar default view is Month (operator); recorded in H-040 and
   H-042. Visual-check flake fixed (M-012).
+- 2026-11-17 · persona `backend-eng` · `sync-docs` · operator approved D1 to D5 after H-036 landed
+  (V-1 to V-11, PRs #68 to #73): ✅/⏳ marks, the interim-lookups note, §10 and §11 headings and
+  intros, S-06 and the `review_no` row updated. Only sentences the change made false; no spec edited.
+  Handoff H-045 tells `@frontend.eng` the lookups are theirs to delete.

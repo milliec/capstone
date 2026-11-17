@@ -34,6 +34,20 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-046: Write two backend rules into the SAD: the review number, and where "ended at" comes from
+- From: @backend.eng (operator approval, 2026-11-17)   To: @system.arch   Date: 2026-11-17
+- Touches: sad.md §4 ("Identifiers and versions" for the number; the "Service functions (H-035)" table or the `runs` / audit text for the time); 2.build/backend.md "View fields for the pages"; ux.md "Review {n}" wording (read-only here)
+- Ask: Record two rules the build had to choose because the SAD is silent. (1) **Review number:** a review's number is its place among the fund's runs, oldest = 1 ("place among the fund's runs, oldest = 1"); runs are never deleted, so a number never changes. ux.md and the pages say "Review 4" but nothing defines it. (2) **"Ended at" comes from the audit log:** the time and reason shown for an abandoned or declined review are read from the review's last `gate_event` audit entry, because `runs` has no "ended at" column. Confirm both, or say what to change (for example, a real `ended_at` column).
+- Why: H-036 V-1 and V-6 needed a rule; the code uses these, and the SAD should own them (`backend.md` Assumptions point here).
+- Outcome: (the owner fills this in)
+
+### H-045: FYI: H-036 landed; frontend.md status marks updated; the interim lookups are yours to delete
+- From: @backend.eng (operator approval, 2026-11-17)   To: @frontend.eng   Date: 2026-11-17
+- Touches: 2.build/frontend.md §2 (intro, "Reads" lines for pages 2 to 7), §10, §11, S-06; `backend/web/templates/parts/lookups.html`, `parts/macros.html`; 2.build/backend.md "View fields for the pages"
+- Ask: For information, plus one action that is yours. (1) The services now send H-036 V-1 to V-11 (PRs #68 to #73), so `frontend.md` was updated with the operator's approval (sync-docs D1 to D5): sent fields marked ✅, §10 and §11 say "done except V-12", and the S-06 note was removed. Still ⏳: the refusal object (V-12, with B2), "Approval blocked" (B7), and `rendered_at` / `refresh_on` (web layer, yours). Dropped fields are marked "not built". (2) The interim lookups in `parts/lookups.html`, and the fallbacks that use them in `macros.html` and the page templates, are now only a fallback. **Deleting them is yours**, as the file says; please check each page still renders when you do.
+- Why: The lookups were marked "interim: replaced by H-036 V-n" so they would go when the fields landed. Two stand-in details to know: the stand-in makes no "Checking the drafts" units until B3, and calendar entry 2 now moves from Sun 18 to Mon 19 Apr 2027. The visual check now fails on 18 snapshots (listed in H-036's Outcome); none were re-recorded, and you propose the refresh for operator approval.
+- Outcome: (the owner fills this in)
+
 ### H-044: FYI: the real-name scan now skips binary files
 - From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
 - Touches: `scripts/git-hooks/run-checks.sh` (check 2), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `1676c8e`
@@ -98,7 +112,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: The page never decides (ux.md §1.2). Until these fields exist, the templates show only what the stubs send, plus interim lookups of ux.md's fixed tables in one file (`parts/lookups.html`), which go as each field lands.
 - Note (2026-11-17, B12 in the Friday demo, H-040): the calendar's Month and Year views and dot chart are being built now. They look sparse with the shell's two placeholder entries; the stand-in fixtures (B3/B4: the full set of rules and dates) make them worth showing. If B3/B4 can land before Friday, the demo benefits.
 - Note (2026-11-17, visual check): these fields will change what the pages show, so `cd tests/visual && npm run test:visual` (CLAUDE.md check 3) **will fail**, at least on the step 4 and calendar snapshots. That is expected (the operator accepted it for baseline v1; `ux-review.md` H-006). Do not re-record the snapshots: report which ones failed in the Outcome, and `@frontend.eng` proposes the refresh for the operator to approve.
-- Outcome: (the owner fills this in)
+- Outcome (`@backend.eng`, 2026-11-17): **Done except V-12.** V-1 to V-11 are in the stub view functions with the H-035 names and signatures (PRs #68 to #73; `backend.md` "View fields for the pages"). `steps`, `failure`, and the unit `group` are included; the dropped fields were not built. **V-12 (the refusal object) waits for B2/B7.** Two choices to confirm: the review number is the run's place among the fund's runs, oldest = 1 (the SAD does not define it); and stand-in calendar entry 2 now moves from Sun 18 to Mon 19 Apr 2027 so its "moved" mark is consistent. **Visual check (`npm run test:visual`) now fails on 18 snapshots, not re-recorded:** `02-filing-rules-populated` (1024, 1280); `03-review-status-your-turn` (1024, 1280), `-failed` (1280), `-published` (1280); `04-check-rules-at-step` (1024, 1280), `-two-decided` (1280); `05-confirm-applies-at-step` (1024, 1280); `06-publish-at-step` (1024, 1280); `07-calendar-gp-list-view` (1280), `-gp-published` (1280, 360), `-gp-year-view` (1280), `-specialist-published` (1280). `@frontend.eng` proposes the refresh for the operator to approve.
 
 ### H-027: The weekend-option refusal is not shown in the mock-up; build it from ux.md
 - From: operator   To: @frontend.eng   Date: 2026-11-14
