@@ -23,3 +23,20 @@ def test_runs_are_numbered_oldest_first_and_carry_tone_and_starter(settings):
     assert runs.get_run(conn, first)["status_tone"] == "neutral"   # abandoned
     assert runs.get_run(conn, second)["status_tone"] == "info"     # AI is drafting
     assert runs.get_run(conn, second)["started_by_label"] == "Compliance specialist (mock)"
+
+
+def test_units_carry_the_group_the_page_shows_them_under(settings):
+    """V-4: the backend assigns the group; the page never works it out."""
+    from backend.services import stage_store
+
+    init_db(settings.database_path)
+    conn = connect(settings.database_path)
+    run_id = _start(conn, settings)
+    run = runs.get_run(conn, run_id)
+    stage_store.add_units(conn, run, "A", [("DOC-1", "Source one"), ("ROW-X-1", "A drafted rule")])
+    stage_store.add_units(conn, run, "B", [("ROW-X-1", "Rule one")])
+    stage_store.add_units(conn, run, "C", [("CALENDAR", "Calendar")])
+
+    groups = {(u["stage"], u["unit_id"]): u["group"] for u in runs.list_units(conn, run_id)}
+    assert groups == {("A", "DOC-1"): "drafting", ("A", "ROW-X-1"): "checking_drafts",
+                      ("B", "ROW-X-1"): "applies", ("C", "CALENDAR"): "dates"}

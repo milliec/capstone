@@ -99,10 +99,23 @@ def get_active_run(conn: sqlite3.Connection, fund_id: str) -> dict | None:
     return _describe(conn, dict(row)) if row else None
 
 
+def _unit_group(unit: dict) -> str:
+    """H-036 V-4. Which card of the review status page a unit belongs to (the page never decides).
+
+    Step 1 (stage A) splits in two: one unit per source document ("drafting") and one per drafted
+    rule ("checking_drafts"). Stage B is step 3 ("applies"); stage C is step 4 ("dates").
+    The stand-in stage A makes only the document units; B3 adds the per-rule checking units.
+    """
+    stage = unit["stage"]
+    if stage == "A":
+        return "checking_drafts" if unit["unit_id"].startswith("ROW-") else "drafting"
+    return {"B": "applies", "C": "dates"}[stage]
+
+
 def list_units(conn: sqlite3.Connection, run_id: str) -> list[dict]:
-    """The run's unit lines, in the order they were added."""
+    """The run's unit lines, in the order they were added, each with its `group` (V-4)."""
     rows = conn.execute("SELECT * FROM units WHERE run_id = ? ORDER BY rowid", (run_id,))
-    return [dict(r) for r in rows]
+    return [{**dict(r), "group": _unit_group(dict(r))} for r in rows]
 
 
 def start_run(conn: sqlite3.Connection, settings: Settings, schedule: Callable, *,
