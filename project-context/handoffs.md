@@ -55,13 +55,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: H-036 V-1 and V-6 needed a rule; the code uses these, and the SAD should own them (`backend.md` Assumptions point here).
 - Outcome: (the owner fills this in)
 
-### H-041: FYI: B12 built now; drop order and plan
-- From: @frontend.eng (operator decision, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
-- Touches: 2.build/scaffold-plan.md §2 (block order) and §6 (drop order, "Hold B12 until B10 is green"); 2.build/frontend.md §11
-- Ask: For information. B12 (calendar Month and Year views and the dot chart) is being built now, in its one-day box, while the frontend waits on H-036 and B2 (H-040). The List view stays the default and does not depend on it. Please update the plan's order and drop order when H-040 lands; the operator's drop order for the week grid (after B6 and Tier 2, before B13b) now covers B12 as a whole.
-- Why: the build is on `frontend-spec` and the plan still says B12 is held until B10 is green.
-- Outcome: (the owner fills this in)
-
 ### H-040: Build order: B12 (calendar views) pulled forward, before B10
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @system.arch   Date: 2026-11-17
 - Touches: sad.md Build card "Order" row, "Order of work" row 12, Estimate (B12 row, "Build order" paragraph, drop order), §3 page 7; DL-49 (decision-log.md)
@@ -120,6 +113,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-041: FYI: B12 built now; drop order and plan
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: 2.build/scaffold-plan.md §2 (block order) and §6 (drop order, "Hold B12 until B10 is green"); 2.build/frontend.md §11
+- Ask: For information. B12 (calendar Month and Year views and the dot chart) is being built now, in its one-day box, while the frontend waits on H-036 and B2 (H-040). The List view stays the default and does not depend on it. Please update the plan's order and drop order when H-040 lands; the operator's drop order for the week grid (after B6 and Tier 2, before B13b) now covers B12 as a whole.
+- Why: the build is on `frontend-spec` and the plan still says B12 is held until B10 is green.
+- Outcome (`@project.mgr`, 2026-11-17): **Done** in `2.build/scaffold-plan.md`, after checking `sad.md` on `main` (PR #82). §2: B12 is row 5a, after B5 and before B7, B6 and B10, with the display-only helper condition from DL-49; B13b's row now reads "dropped after B6, Tier 2 and B12". §6: drop order is **B6 and Tier 2, then B12 as a whole, then B13b; T-MAP-1 never**; the "Hold B12 until B10 is green" risk is replaced; **H-050's forecast** (B2 about 0.8 to 1.0 day, B3 should shrink, B7 and B13b about 0.25 day each, stage time limit and Pydantic unknown-field refusal not estimated, B1 + B2 did not pass 1.3 days by the operator's clock, re-check after B7) is added. Totals unchanged (≈ 6.75, ≈ 7.75 with B12). `frontend.md` §11 is `@frontend.eng`'s to update. **Left as is, for the operator:** `setup.md` "Order" under Timing guardrails still lists no B12 (and no B13a); say if you want it brought in step.
 
 ### H-050: B1 + B2 checkpoint: please re-check the drop order against the operator's clock
 - From: @backend.eng (B2, operator instruction)   To: @project.mgr   Date: 2026-11-17

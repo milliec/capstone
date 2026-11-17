@@ -14,6 +14,10 @@ Appendix A, git tag `sad-full-design`.
 **Branch note.** This branch (`scaffold-plan`) is now on `main` at `986ccad` (2026-11-16). The
 B13 split is DL-54, merged as PR #58.
 
+**Update 2026-11-17 (H-041).** `sad.md` now puts B12 after B5 (PR #82, H-040, DL-49 update) and
+drops B12 as a whole after B6 and Tier 2, before B13b. §2 and §6 follow it, and §6 carries H-050's
+forecast. The other sections are not changed.
+
 Rules that hold for everything below: public repo; mock data and fictional names only
 (`FND-DEMO-01`, Bramblegate, ACME); no secrets; `.env`, `data/` and `reference/` stay git-ignored;
 never `--no-verify`. `sad.md` and `ux.md` are not changed by this plan; conflicts are listed under
@@ -66,6 +70,7 @@ capstone/
 │   ├── evaluation/                 Evaluation runner, report and trace export (B8). Name not fixed by the SAD
 │   └── web/                        Thin page handlers, templates and the stylesheet (SAD §3, §4)
 │       ├── routes/                 One module per area: sign_in, runs, g1, g2, g3, calendar, errors
+│       ├── calendar_view.py            Display-only helper for the calendar Month and Year views (B12, DL-49 update; frontend.md W-5)
 │       ├── templates/
 │       │   ├── base.html           Shared frame: sidebar, breadcrumb, H1, run labels, refusal line (ux.md §1.3)
 │       │   ├── parts/              Shared parts (ux.md §4): row card, flag, decision form, mark label, refusal, stepper, sidebar, run labels
@@ -136,16 +141,16 @@ this split until `@system.arch` makes the matching `sad.md` edit (listed at the 
 | 3a | **B13a** Failure demo and stand-in pause (stand-in, no model; **kept**, see drop order) | `@backend.eng` | **Failure demo** (DL-52, CR-033, rule 11): `runs.demo_fail_step1` accepted by `start_run` only when `AGENTS_MODE=stand_in` (else `VALIDATION`, audited); the start audit entry; the stand-in extractor hook that fails stage A's first unit on the first stage attempt with reason `demo failure`, starting unit 1 alone so the others stay "Waiting". **Stand-in pause**: `STAND_IN_UNIT_PAUSE_S` (default 1) in `settings.py` and `.env.example`; each stand-in agent function waits that long **per unit**, before returning its fixed output, so the units table fills in one row at a time (`ux.md` page 3, "Units finish one by one below"). **Only when `AGENTS_MODE=stand_in`**; in real mode it is never read. It runs inside the backend stage timer, well under every limit: stage A about 11 to 12 s (5 documents plus 6 or 7 rows) against 375 s, stage B about 5 to 6 s against 150 s, stage C about 1 s against 30 s. Tests: T-DEMOFAIL-1 (Tier 1), T-PAUSE-1 (new, Tier 1: real mode never pauses; stand-in pauses by the set amount per unit). Tests set the pause to 0 so the suite stays fast. **Page parts** (the checkbox on page 2, the "Failure demo on" label, the failed page in its "Without Retry" version) are written in B5 with the other templates |
 | 4 | **B4** Stage C | `@backend.eng`, `@qa.eng` | `backend/domain/date_engine.py`, `config/policy/default.yaml`. Tests EC-007 (date test), EC-008, EC-014 (data part) |
 | 5 | **B5** Gate actions and pages | `@frontend.eng`, `@backend.eng` | `backend/web/routes/`, `backend/web/templates/` (base, parts, all seven pages, 403, 404). Tests T-G3ACK-1, EC-013 (route part), EC-014 (page part) |
+| 5a | **B12** Calendar Month and Year views and dot chart (one-day timebox; **pulled forward 2026-11-17, H-040**; dropped as a whole after B6 and Tier 2, before B13b) | `@frontend.eng`, `@ux.designer` | Templates under `pages/`, stylesheet rules, and one display-only helper, `backend/web/calendar_view.py` (DL-49 update: it may group, order and count the entries it is given and pick "due next" by comparing with today; it may not add a field, drop or mark an entry, calculate a date, call a service or model, or read what the viewer may not see). The Month view is the default; a radio group styled as tabs, CSS only, no script; below 960 px only the List view shows. Front end only, so it was built on the stub UI while the frontend waited on B2 (H-036) |
 | 6 | **B7** Planted demo row | `@backend.eng` | `config/demo/planted-row.yaml`, the switch on the start form. Tests T-DEMO-1, T-DEMO-2 |
 | — | **First green path** (a gate, not a block) | `@backend.eng`, `@qa.eng` | `tests/tier1/test_green_path.py`: start → Stage A → G1 with the demo row refused then rejected → Stage B → G2 → Stage C → G3 ack → GP view → audit log. Nothing that spends money starts before it passes |
 | — | Pin DL-40 | operator | Model IDs in `.env` (not committed) and `decision-log.md` |
 | 7 | **B3 spike** and verifier bake-off | `@backend.eng`, operator | No new folders. Timings replace the starting limits in `.env.example` |
 | 8 | **B8** Evaluation runner | `@qa.eng` | `backend/evaluation/`, the responsible-role lookup for T-MAP-1, `project-context/2.build/logs/` |
 | 9 | **B9** Tuning, then one evaluation cycle | `@qa.eng`, operator | Prompt edits in `backend/config/`; reports in `2.build/` |
-| 9a | **B13b** Retry (stand-in, no model; **dropped next after B6**) | `@backend.eng`, `@frontend.eng` | Retry in `services/runs.py` and `POST /specialist/runs/{run_id}/retry` with `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`; the Retry form on page 3 above the existing link. Tests T-RETRY-1 to T-RETRY-3 (Tier 2). With it, the failure demo's "fails once" rule shows its purpose: "Retry step 1" then runs normally |
+| 9a | **B13b** Retry (stand-in, no model; **dropped after B6, Tier 2 and B12**) | `@backend.eng`, `@frontend.eng` | Retry in `services/runs.py` and `POST /specialist/runs/{run_id}/retry` with `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`; the Retry form on page 3 above the existing link. Tests T-RETRY-1 to T-RETRY-3 (Tier 2). With it, the failure demo's "fails once" rule shows its purpose: "Retry step 1" then runs normally |
 | 10 | **B6** Light visual pass (**dropped first**) | `@frontend.eng`, `@ux.designer` | `backend/web/static/site.css`, `static/icons/` |
 | 11 | **B10** Acceptance and rehearsal | `@qa.eng`, `@security.eng`, `@devops.eng` | `README.md` run instructions (section 4), `2.build/qa.md`, the security checklist |
-| 12 | **B12** Calendar Month and Year views (one-day timebox) | `@frontend.eng`, `@ux.designer` | Extra templates under `pages/` and stylesheet rules only |
 
 Tier 2 tests (T-EXAMPLE-1 overlap, T-PROMPT-1, T-D4-1, per-state page tests, T-RETRY-1 to
 T-RETRY-3) go into `tests/tier2/` alongside the block they test, only if time allows.
@@ -272,13 +277,31 @@ day-4 tripwire.
 1. **B6 light visual pass and Tier 2 tests** (including T-RETRY-1 to 3), at once if the tripwire
    fires (first stand-in green path not passed by the end of day 4). Pages stay unstyled but usable
    and accessible.
-2. **B13b Retry**, next after B6 (as SOQ-35 placed B13). The failed page keeps the "Without Retry"
-   version. The stage-end store (rule 9) stays, because B3 builds it.
-3. **Never T-MAP-1.** It must pass before the first evaluation run even if Tier 2 is dropped.
-4. **Kept: B7 planted demo row** (it demonstrates the human checkpoint) and **B13a failure demo
+2. **B12 calendar Month and Year views and dot chart, as a whole** (operator, 2026-11-17, H-040;
+   SAD "Estimate"). It is dropped after B6 and Tier 2 and before B13b. The calendar then shows the
+   List view alone.
+3. **B13b Retry**, after B12 (SOQ-35 placed B13 next after B6; B12 now sits between). The failed
+   page keeps the "Without Retry" version. The stage-end store (rule 9) stays, because B3 builds it.
+4. **Never T-MAP-1.** It must pass before the first evaluation run even if Tier 2 is dropped.
+5. **Kept: B7 planted demo row** (it demonstrates the human checkpoint) and **B13a failure demo
    and pause** (they show the failed and running states in Sprint 3; built before the tripwire, so
    dropping them later would save nothing). T-DEMOFAIL-1 and T-PAUSE-1 stay Tier 1.
-5. **B12** is built after B10 in a one-day timebox and parked first if the hard stop is near.
+
+**B12 is built early, not last (2026-11-17).** It was planned after B10 and parked first. The
+operator moved it to after B5 (before B7, B6 and B10) because it is front end only and the frontend
+was waiting on B2. Its one-day timebox is unchanged: what is not done at the end of the day is
+parked (F-19). B10's accessibility and copy checks now cover the new views.
+
+**Forecast at the B1 + B2 checkpoint (H-050, `@backend.eng`, 2026-11-17; effort only, the
+operator's clock decides).** B2 as scoped (the real checks, V-12, Rule 9 and real stored data, and
+the start-up rule) is about 0.8 to 1.0 day against the SAD's 0.5, so with B1 it was likely at or
+over 1.3 days. Rule 9 and stored data moved here from B3 (H-047), so B3's 1.0 day should shrink by a
+similar amount (not re-estimated). Still to come: B7 about 0.25 day (likely less) and B13b about
+0.25 day. The stage time limit and the Pydantic unknown-field refusal are B2 items in the SAD, not
+started and not estimated; count them. **The operator's clock says B1 + B2 did not pass 1.3 days,
+so nothing is dropped at this checkpoint** and the drop order above is unchanged. **Re-check after
+B7** (operator instruction), with the time then known and the unestimated B2 items. The same note
+is in `setup.md` "Timing guardrails".
 
 | Risk | Effect on day 8 | Signal | Response |
 |---|---|---|---|
@@ -288,18 +311,19 @@ day-4 tripwire.
 | B13a before the green path eats tripwire slack | A quarter day less before day 4 | B1 to B3 over about 2 days | Keep B13a to its quarter day; if B1 + B2 trip the 1.3-day checkpoint, tell the operator then, not at day 4 |
 | The pause hides a real slowness bug, or leaks into real mode | Misleading timings; real runs slowed | T-PAUSE-1 | The pause is read only in stand-in mode, and T-PAUSE-1 (Tier 1) checks that real mode never pauses |
 | Units must actually be stored and shown one by one | If the stage updates every unit line only at the end, the per-unit pause shows nothing new | First stand-in run | Rule 9 already updates each unit line as its output arrives; build it that way in B3 |
-| B13b squeezed between B9 and B6 | Retry dropped late | B9 runs over | Drop B13b per the order above; the fallback page already exists from B5 |
+| B13b squeezed between B9 and B6 | Retry dropped late | B9 runs over | Drop B13b per the order above (after B6, Tier 2 and B12); the fallback page already exists from B5 |
 | Page-first first commit (section 5) | Small rework if B2's service shape differs | Operator decision | Keep commit 1's services read-only and minimal |
 | Stand-in fixtures look like the answer key | T-LEAK-1 / CR-016 failure, rework in B3 | Review of `backend/stand_in/` | Write fixtures without answer-key IDs (`OBL-`, `C-1`, `I-1`, `AMD-`) and not copied from the key file, as CR-027 now does for OQ-7 (Open Question 4) |
 | Env variable names still provisional | Renames across settings and README | `setup.md` Open Points | Decide names before commit 1 |
-| B12 pulls attention before B10 | Rehearsal at risk | B12 started before B10 passes | Hold B12 until B10 is green |
+| B12 built early takes the frontend's day while B2 and B3 are still open | B7 and the first green path start later; tripwire slack shrinks | B12 passes its one-day box | Park what is not done at the end of the day (F-19); the day-4 tripwire and the drop order above still apply. The old "hold B12 until B10 is green" rule is withdrawn (operator, H-040) |
 | Python 3.12 / CrewAI install issues | B2 stalls | Install fails | Already pinned to 3.12.16 in `setup.md` |
 
 **`sad.md` edits the split needs (for `@system.arch`; not made by this persona).** Until they
 land, the Build card as on `main` stays the build instruction.
 
 1. **Build card "Order" row** and **"Order of work"**: B3 (stand-in) → **B13a** → B4 → B5 → B7 →
-   first green path → … → B9 → **B13b** → B6 → B10 → B12.
+   first green path → … → B9 → **B13b** → B6 → B10 → B12. *(Landed with DL-54. B12 has since moved
+   to after B5: see §2 row 5a and H-040, H-041.)*
 2. **Estimate table**: B13 replaced by B13a (0.25) and B13b (0.25); totals unchanged.
 3. **Drop order** (Estimate "Checkpoint" paragraph and SOQ-35): B13b next after B6; B13a kept.
 4. **§4 "Sign-in and secrets"**: new variable `STAND_IN_UNIT_PAUSE_S` (stand-in only, default 1
@@ -388,3 +412,10 @@ land, the Build card as on `main` stays the build instruction.
   that setting and the "setup.md gains it later" note (`setup.md` already lists it). The old name
   `STAND_IN_STAGE_PAUSE_S` stays only in the earlier audit entry, as history. No code, `sad.md` or
   `CLAUDE.md` edited.
+- 2026-11-17 · persona `project-mgr` · action `setup-project` (plan update, handoff H-041) · checked
+  `sad.md` on `main` after PR #82 first (Build card "Order" row, Order of work row 5a, Estimate drop
+  order). §2: B12 moved to row 5a (after B5) with the display-only helper condition; B13b's row says
+  "dropped after B6, Tier 2 and B12". §6: drop order is B6 and Tier 2, then B12, then B13b, T-MAP-1
+  never; the "Hold B12 until B10 is green" risk is replaced; H-050's forecast added. No block, test
+  or estimate figure changed (totals ≈ 6.75 and ≈ 7.75). `sad.md`, `ux.md`, `frontend.md` and
+  `setup.md` not edited. No code. No model call.
