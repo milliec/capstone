@@ -63,8 +63,8 @@ pages with ux.md's wording only.
 
 | ID | Check | Tool | Result | Evidence | Notes |
 |----|-------|------|--------|----------|-------|
-| M-001 | Keyboard, primary task | manual | **not tested** | — | Markup is native links, radios, buttons, a skip link first; a hand pass with Tab is still owed (operator or `@qa.eng`) |
-| M-002 | Visible focus | manual | **not tested** | — | `:focus-visible` 2 px orange outline is in `site.css`; not seen in a browser yet |
+| M-001 | Keyboard, primary task | real key events (DevTools protocol, headless Chrome 157) | passed, with findings K-1 and K-2 | focus-order log (session scratchpad) | Sign in → start with the demo rule → approve rule 1 (weekend option, who files) → reject the demo rule with a typed reason → finish → "can't tell" with a reason → finish → publish with the box ticked: all with Tab, Shift+Tab, arrows, Space, Enter and typing. A short hand check in the operator's own browser is still owed |
+| M-002 | Visible focus | real key events + screenshots | passed | `01-skip-link-focused`, `05-answer-chosen` (scratchpad) | Every Tab stop on 9 pages matched `:focus-visible` with the 2px orange outline, was visible and on screen; the skip link appears on the first Tab and leads into the main content |
 | M-003 | Contrast spot check | — | **not tested** | — | Only style-note token pairs are used (measured in `style-note.md`); no tool run on the pages |
 | M-004 | Target size | screenshots | passed (visual) | `08-check-rules`, `10-…` | Answer options and buttons 40 px tall; checkboxes 18 px inside a full-width label |
 | M-005 | Automated a11y scan | — | **not tested** | — | No scanner installed |
@@ -97,6 +97,8 @@ this table is the agent's reading, not the acceptance decision.
 | H-006 | Empty "Who files", "Sent to", "Why" columns; empty "what's not in this calendar" lists even after a rejection | `/g3`, `/calendar` | at G3, published | 1024, 360 | The specialist cannot check what the General Partner will read | **high for the demo** | open, waits for H-036 V-10, V-11 and B2 | `11-publish-1024`, `frame360-600` |
 | H-007 | At 1024 px the sidebar stacks above the content (the mock-up breakpoint is 1100 px) | all | — | 1024 | Longer scroll; nothing breaks | low | fixed (`40be357`): breakpoint 960 px (operator, 2026-11-17) | `11-publish-1024` |
 | H-008 | **Found by the operator.** Component sizes did not match the mock-ups: stepper boxes in place of the thin line, a 19 px status sentence in place of the 26 px panel heading, 13 px unit-group captions in place of 22 px headings, no avatar, one-column cards | review status, step pages | all | 1280, 1024 | The pages looked unlike the approved design | medium | fixed (`40be357`) with the mock-ups' own component styles (`.steps`, `.cta`, `.evidence`, `.avatar`) | `mock-run-status` beside `04b-running-still` |
+| K-1 | **Keyboard.** While AI works the page reloads every 3 s and focus returns to the top; "Stop automatic refresh" is the 8th Tab stop, so it must be reached within 3 s | review status | AI working | 1280 | The control that makes the refresh acceptable (WCAG 2.2.1) is hard to reach by keyboard | **high** | open: proposed fix, a first Tab stop "Stop automatic refresh" while refreshing (like the skip link) | focus-order log |
+| K-2 | **Screen reader (inferred, not tested with one).** Every decision group has the same legend, "What's your decision on this rule?", so moving between forms does not say which rule | `/g1`, `/g2` | at the step | — | Context lost when jumping between forms | medium | open: proposed fix, the rule's name in the legend for screen readers only | page source |
 
 ## 5. Findings
 
@@ -145,3 +147,6 @@ this table is the agent's reading, not the acceptance decision.
   operator and `@frontend.eng` together).
 - 2026-11-17 · persona `frontend-eng` · evidence: 13 screenshots committed to
   `project-context/2.build/evidence/` with a README, after a real-name scan of the folder.
+- 2026-11-17 · persona `frontend-eng` · keyboard pass with real key events (headless Chrome over
+  the DevTools protocol, the real app with the 1 s pause): primary task completed by keyboard;
+  focus visible everywhere; findings K-1 (high) and K-2 (medium) proposed to the operator.
