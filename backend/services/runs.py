@@ -1,8 +1,7 @@
 """Runs: start, list, abandon, retry, and the run states (SAD §4, "Transitions and guards").
 
-Most functions here are STUBS. They move status and phase so the pages can be clicked through,
-but hold NO check: no one-active-run rule (RUN_ACTIVE), no phase guard (RUN_STAGE_RUNNING), no
-version check, no reason check, and no refusal of the failure demo in real mode. B2 adds them.
+B2: `start_run` and `abandon_run` hold their checks (RUN_ACTIVE, RUN_NOT_ACTIVE, RUN_STAGE_RUNNING,
+VERSION_MISMATCH, REASON_REQUIRED, VALIDATION). `retry_run` is still a stub (B13b).
 """
 
 import sqlite3
@@ -10,9 +9,10 @@ from datetime import date
 from typing import Callable
 
 from backend.domain.ids import new_run_id
-from backend.services import gates
+from backend.services import gates, guards
 from backend.services.audit import now_utc, write_audit
 from backend.services.auth import IDENTITIES
+from backend.services.refusals import NotFound, refuse
 from backend.settings import Settings
 from backend.stand_in import shell_data
 
@@ -258,12 +258,25 @@ def list_units(conn: sqlite3.Connection, run_id: str) -> list[dict]:
 def start_run(conn: sqlite3.Connection, settings: Settings, schedule: Callable, *,
               fund_id: str, started_by: str, demo_planted_row: bool,
               demo_fail_step1: bool) -> str:
-    """STUB — replace in B2 (and B13a for the failure-demo refusal). Start a review.
+    """Start a review (CR-023, rule 5). Returns the new run ID.
 
-    Creates the run in ACTIVE · A_RUNNING, audits the start and each switch that is on, then
-    starts stage A in the background. Returns the new run ID.
-    B2 adds: RUN_ACTIVE (one active run per fund), VALIDATION for demo_fail_step1 in real mode.
+    Refused, and audited, when: a run is already ACTIVE for the fund (RUN_ACTIVE); or the failure
+    demo is asked for outside stand-in mode (VALIDATION, DL-52). Otherwise it creates the run in
+    ACTIVE · A_RUNNING, audits the start and each switch that is on, and starts stage A.
     """
+    # BEGIN IMMEDIATE takes the database's write lock now, so two quick clicks on "Start" cannot
+    # both pass the check below: the second waits, then sees the first run and is refused.
+    conn.execute("BEGIN IMMEDIATE")
+    active = get_active_run(conn, fund_id)
+    if active:
+        n = active["review_number"]
+        refuse(conn, "RUN_ACTIVE", actor=started_by, fund_id=fund_id, run_id=active["run_id"],
+               anchor="start", target_label="Start a new review", n=n,
+               short=f"Not done. A new review can't start while review {n} is in progress.",
+               link_text="Go to 'Start a new review'")
+    if demo_fail_step1 and settings.agents_mode != "stand_in":
+        refuse(conn, "VALIDATION", "field", actor=started_by, fund_id=fund_id, anchor="start",
+               target_label="Start a new review", field="the failure demo")
     run_id = new_run_id(conn, date.today())
     conn.execute(
         """INSERT INTO runs (run_id, fund_id, status, phase, run_version, demo_planted_row,
@@ -288,17 +301,60 @@ def start_run(conn: sqlite3.Connection, settings: Settings, schedule: Callable, 
 
 def abandon_run(conn: sqlite3.Connection, *, run_id: str, run_version: int, reason: str,
                 actor: str) -> None:
-    """STUB — replace in B2. Abandon a review; it ends ABANDONED and keeps its phase (DL-46).
+    """Abandon a review at a gate; it ends ABANDONED and keeps its phase (DL-46, rule 8).
 
-    B2 adds: only in AT_G1/AT_G2/AT_G3 (RUN_STAGE_RUNNING), VERSION_MISMATCH, REASON_REQUIRED.
+    Refused, and audited, in this order: the review has ended (RUN_NOT_ACTIVE); AI or code is
+    still working (RUN_STAGE_RUNNING); the page is stale (VERSION_MISMATCH); no written reason
+    (REASON_REQUIRED). Nothing changes when it is refused.
     """
+    run = get_run(conn, run_id)
+    if run is None:
+        raise NotFound(run_id)
+    where = {"subject_id": run_id}
+    guards.require_active(conn, run, actor, **where)
+    guards.require_at_a_gate(conn, run, actor, **where)
+    guards.require_version(conn, run, run_version, actor, **where)
+    if not (reason or "").strip():
+        refuse(conn, "REASON_REQUIRED", "abandon", actor=actor, fund_id=run["fund_id"],
+               run_id=run_id, subject_id=run_id, anchor="abandon", target_label="abandon",
+               typed={"reason": reason or ""})
     conn.execute("UPDATE runs SET status = 'ABANDONED', run_version = run_version + 1 "
                  "WHERE run_id = ?", (run_id,))
-    run = get_run(conn, run_id)
     write_audit(conn, fund_id=run["fund_id"], actor=actor, event_type="gate_event",
                 run_id=run_id, subject_id=run_id, subject_version=run_version,
-                reason=reason or "(stub: no reason given)")
+                reason=reason.strip())
     conn.commit()
+
+
+def fail_interrupted_runs(conn: sqlite3.Connection) -> int:
+    """Start-up rule (rule 7): a review caught mid-stage by a restart becomes FAILED, reason
+    "service restarted", written to the audit log as a system event. A review waiting at a gate
+    (AT_G1, AT_G2, AT_G3) is unaffected. Returns how many reviews it failed.
+
+    The stage's running unit (or, if none, its first waiting unit) is marked failed with the
+    reason, so run status can name it. Rule 9 means the stage had stored nothing.
+    """
+    interrupted = conn.execute(
+        "SELECT * FROM runs WHERE status = 'ACTIVE' AND phase LIKE '%\\_RUNNING' ESCAPE '\\'"
+    ).fetchall()
+    for run in interrupted:
+        stage = run["phase"][0]
+        unit = conn.execute(
+            """SELECT unit_id FROM units WHERE run_id = ? AND stage = ? AND stage_attempt = ?
+               AND status IN ('running', 'waiting')
+               ORDER BY status = 'waiting', rowid LIMIT 1""",
+            (run["run_id"], stage, run["stage_attempt"])).fetchone()
+        if unit:
+            conn.execute(
+                """UPDATE units SET status = 'failed', failure_reason = 'service restarted'
+                   WHERE run_id = ? AND stage = ? AND stage_attempt = ? AND unit_id = ?""",
+                (run["run_id"], stage, run["stage_attempt"], unit["unit_id"]))
+        conn.execute("UPDATE runs SET status = 'FAILED' WHERE run_id = ?", (run["run_id"],))
+        write_audit(conn, fund_id=run["fund_id"], actor="system", event_type="system",
+                    run_id=run["run_id"], subject_id=run["run_id"],
+                    reason=f"service restarted while stage {stage} was running")
+    conn.commit()
+    return len(interrupted)
 
 
 def retry_run(conn: sqlite3.Connection, settings: Settings, schedule: Callable, *,

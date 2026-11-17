@@ -11,14 +11,26 @@ from backend.web.routes.runs import load_run
 router = APIRouter(prefix="/specialist")
 
 
-@router.get("/runs/{run_id}/g1")
-def check_rules(request: Request, run_id: str, conn=Depends(get_conn),
-                identity: Identity = Depends(specialist)):
-    run = load_run(conn, run_id)
+def page_g1(request: Request, conn, identity: Identity, run: dict, **extra):
+    """Page 4. Also used to show the page again after a refusal."""
     # Display only (frontend.md W-7): ?after=<row just decided> lets the page put its #next marker on
     # the next rule that still needs a decision (operator, 2026-11-17). Decides nothing.
     return render(request, conn, "pages/check_rules.html", identity, run=run,
-                  view=decisions.get_g1_view(conn, run), after=request.query_params.get("after"))
+                  view=decisions.get_g1_view(conn, run), after=request.query_params.get("after"),
+                  **extra)
+
+
+def page_g2(request: Request, conn, identity: Identity, run: dict, **extra):
+    """Page 5. Also used to show the page again after a refusal."""
+    return render(request, conn, "pages/confirm_applies.html", identity, run=run,
+                  view=decisions.get_g2_view(conn, run), after=request.query_params.get("after"),
+                  **extra)
+
+
+@router.get("/runs/{run_id}/g1")
+def check_rules(request: Request, run_id: str, conn=Depends(get_conn),
+                identity: Identity = Depends(specialist)):
+    return page_g1(request, conn, identity, load_run(conn, run_id))
 
 
 @router.post("/rows/{row_id}/decision")
@@ -48,9 +60,7 @@ def complete_g1(request: Request, run_id: str, background: BackgroundTasks,
 @router.get("/runs/{run_id}/g2")
 def confirm_applies(request: Request, run_id: str, conn=Depends(get_conn),
                     identity: Identity = Depends(specialist)):
-    run = load_run(conn, run_id)
-    return render(request, conn, "pages/confirm_applies.html", identity, run=run,
-                  view=decisions.get_g2_view(conn, run), after=request.query_params.get("after"))
+    return page_g2(request, conn, identity, load_run(conn, run_id))
 
 
 @router.post("/verdicts/{verdict_id}/decision")

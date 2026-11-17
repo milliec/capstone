@@ -113,6 +113,11 @@ test("the stubbed UI, page by page", async ({ browser }) => {
       { version: "1", decision: "reject", reject_reason: "Quote doesn't support the rule" });
     await open(sp, `${review}/g1`, "text=Rejected");
     await snap(sp, "04-check-rules-two-decided", [1280]);
+    // B2: the server refuses to finish checking while a rule is undecided, so decide the others.
+    for (const n of [2, 3]) {
+      await form(sp, `/specialist/rows/ROW-${rid}-${n}/decision`,
+        { version: "1", decision: "approve", business_day_rule: "roll_forward" });
+    }
     await form(sp, `${review}/g1/complete`, { run_version: "1" });
   });
 
@@ -122,6 +127,11 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     await snap(sp, "05-confirm-applies-at-step", SPECIALIST);
     await form(sp, `/specialist/verdicts/VER-${rid}-2/decision`,
       { version: "1", decision: "decide", value: "applies", decide_reason: "Not confirmed in fund records yet" });
+    // B2: every answer must be decided before finishing.
+    await form(sp, `/specialist/verdicts/VER-${rid}-1/decision`,
+      { version: "1", decision: "confirm", value: "applies" });
+    await form(sp, `/specialist/verdicts/VER-${rid}-3/decision`,
+      { version: "1", decision: "confirm", value: "does_not_apply" });
     await form(sp, `${review}/g2/complete`, { run_version: "2" });
   });
 
@@ -129,8 +139,12 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     await open(sp, review, `a.btn[href$="/g3"]`);
     await open(sp, `${review}/g3`, "text=Is this calendar ready for the General Partner?");
     await snap(sp, "06-publish-at-step", SPECIALIST);
-    await form(sp, `/specialist/calendars/CAL-${rid}/publish`,
-      { run_version: "3", decision: "publish", acknowledged: "true" });
+    // B2: the server compares the acknowledged lists with its own, so post them as the page does.
+    await sp.request.post(`/specialist/calendars/CAL-${rid}/publish`, {
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      data: `run_version=3&decision=publish&acknowledged=true&rejected_row_ids=ROW-${rid}-4` +
+            `&uncited_paragraph_ids=SRC-STUB-P4&uncited_paragraph_ids=SRC-STUB-P5&uncited_paragraph_ids=SRC-STUB-P6`,
+    });
     await open(sp, review, "text=See the calendar as the General Partner sees it");
     await snap(sp, "03-review-status-published", [1280]);
     await open(gp, "/calendar", "text=All entries");

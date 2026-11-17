@@ -87,11 +87,47 @@ what matter. Built in six small steps on separate branches (PRs #68 to #73), wit
 | V-9 G2 | `decisions.get_g2_view` | Cited facts, approved rule, `missing_fact`, `overrule_value`, `decided.outcome` |
 | V-10 G3 | `calendar.get_g3_view` | `stage`, `rejected_rows` (real), unused paragraphs, `previous_publication_at`, `outcome`; entry words and `marks.moved` |
 | V-11 | `calendar.get_published_calendar` | Same entry builder, so published entries also carry `source_document` and `quote` |
-| V-12 refusal object | — | **Not built.** Shared with B2/B7 (`code`, `sentence`, `anchor`, `target_label`, `typed`) |
+| V-12 refusal object | `services/refusals.py` | **Built in B2** (`code`, `sentence`, `anchor`, `target_label`, `short`, `link_text`, `typed`); see "B2" below |
 
 `runs.page_stage(run, "g1"|"g2"|"g3")` gives `before`, `at`, `after` or `ended_before` for all three
 step pages. Stand-in data changed once: calendar entry 2 now moves from Sun 18 Apr to Mon 19 Apr
 2027, so its "moved off a weekend" mark is consistent.
+
+## B2: gates, run states and the refusal object (branch `b2-gates-and-checks`, 2026-11-17)
+
+**What it does.** The stub services now hold the SAD's checks (§4 "Transitions and guards"), store
+stage outputs through the Rule 9 function, and refuse through one shared object. A refusal does
+three things in this order: writes one `refusal` audit entry, builds the V-12 object, and raises
+`Refused` **before** the service has written anything else. So a refusal changes nothing except its
+own audit entry (each Tier 1 test checks that).
+
+| Part | Where | Notes |
+|---|---|---|
+| Refusal object (V-12) | `services/refusals.py` | All 17 SAD codes with their HTTP status; every ux.md §5 sentence word for word; `refuse()` audits and raises |
+| Same page again | `web/refusal_pages.py`, `main.py` | The form's address says which page to show again; it gets `refusal` and the refusal's status (409 or 422); the pages already read it. Unknown rule, answer, calendar → 404 (`NotFound`) |
+| Shared guards | `services/guards.py` | `RUN_NOT_ACTIVE` → `RUN_STAGE_RUNNING` → `VERSION_MISMATCH`, in that order |
+| Start, abandon | `runs.py` | `RUN_ACTIVE` (the check and the insert run under `BEGIN IMMEDIATE`, so a double click cannot start two reviews), `VALIDATION` for the failure demo outside stand-in mode; abandon only at a gate |
+| Rule 9 | `services/stage_store.py` | `store_stage_outputs`: one transaction; refuses unless the run is `ACTIVE`, in `<stage>_RUNNING`, on the same `stage_attempt`, and every unit is done; otherwise the output is **discarded** and one audit entry says so. `fail_stage` makes the same check. A failed stage stores nothing. Rollback on any error: no half a stage |
+| Stored data | `rows`, `paragraphs`, `quote_checks`, `verdicts`, `calendar_versions`, `calendar_entries` | Stage A, B and C outputs are the fixed stand-in data (B3 swaps in the fixtures); stage B has one verdict per **approved** rule, stage C one entry per rule whose final answer is "applies" |
+| G1 decisions | `decisions.decide_row` | Stored in `row_decisions` (decide-once: checked, and the UNIQUE key as a backstop). Order: already decided → no answer → reject reason, or approve: quote check → weekend rule → filing party (offered values only) → reason over a flag. The other answer's fields are ignored (DL-48) |
+| G2 decisions | `decisions.decide_verdict` | Stored in `verdict_decisions`. The answer must fit AI's verdict (confirm repeats it, overrule gives the opposite, decide only for "can't tell"), else `VALIDATION`; overrule and decide need a reason |
+| Finish G1 / G2 | `gates.py` | Ended → wrong phase → stale page → `GATE_INCOMPLETE` (counts the undecided, and the "can't tell" ones at G2). `stage_attempt` goes back to 1 for the next stage |
+| Publish, decline | `publishing.py`, `web/routes/calendar.py` | Publish compares the posted lists with the server's own (`ACK_REQUIRED`); decline needs a reason; the form's `decision` must match the route (`VALIDATION`, in the route) |
+| Start-up rule | `runs.fail_interrupted_runs`, called in `create_app` | A review caught mid-stage becomes `FAILED`, "service restarted"; reviews at a gate are unaffected. Without it, B2's own checks would leave a restarted review stuck and block every new one |
+
+**Not in B2 (left, with owners):** `DEMO_ROW_NOT_APPROVABLE` and the "Approval blocked" chip (**B7**,
+which uses `refuse()`; until then the demo rule can be approved like any other); Retry and its
+three codes (**B13b**, `retry_run` is still a stub, the sentences exist); the stage time limit
+and timer (rule 6; needs the real stage runner, **B3**); Pydantic form models that refuse unknown
+fields; the `trace` table, cost count and cost cap (**B3**).
+
+**Rule 9 is built here, not in B3.** The SAD's build order puts "the stage-end store with the stage
+attempt (rule 9)" in B3 (Order of work row 3). The operator asked for it in B2 because decisions
+cannot be stored (decide-once) until rows are. B3 therefore only has to replace the stand-in data.
+
+**Checks I chose where the SAD is silent** (listed as Open Questions 5 to 8): the order the checks
+run in; that a row's posted `version` is not compared (the SAD lists `VERSION_MISMATCH` for the
+run, not for a row); `typed` as `{field: text}`; three sentences ux.md does not give.
 
 ## Pattern Decision compliance
 
@@ -100,20 +136,17 @@ No agent loop, no retrieval over live state, no side-effecting tool, no model cl
 (`backend/stand_in/shell_data.py`) is generic, carries no answer-key IDs (`OBL-`, `C-1`, `I-1`,
 `AMD-`) and is not copied from `mock-data/`.
 
-## Known gaps (by design in the shell)
+## Known gaps
 
-- No refusal checks other than `FORBIDDEN`; double-clicking "Start" can create two active runs.
-- Decisions are audit entries only; `rows`, `row_decisions`, `verdicts`, `verdict_decisions`,
-  `calendar_entries` stay empty. `trace` table not created (columns not in the SAD).
-- The pages now read the H-036 view fields (V-1 to V-11), so templates no longer choose from the
-  phase; only V-12 (the refusal object) is missing and comes with B2/B7. The interim lookups in
+- `DEMO_ROW_NOT_APPROVABLE` and "Approval blocked" are **B7**; the demo rule can be approved until then.
+- `retry_run` is a stub (**B13b**). No stage timer (rule 6) and no `trace` table or cost count (**B3**).
+- Stage outputs are fixed stand-in data (`backend/stand_in/shell_data.py`); there are no checker flags,
+  every quote check passes, and the dates are fixed (**B3**, **B4**).
+- No Pydantic form models refusing unknown fields, no ruff/CI (`.github/workflows/ci.yml` is still
+  to do in B1's follow-up).
+- The pages read the H-036 view fields (V-1 to V-12). The interim lookups in
   `parts/lookups.html` are `@frontend.eng`'s to delete.
-- **Stub detail:** an approve's weekend rule and who-files choice are kept in the stub's audit text
-  after `| stub details: `, so the "decided" line can show them. B2 stores them in `row_decisions`
-  and removes the suffix.
-- `Approval blocked` (the demo row's chip after a refused approval) is B7; nothing sends it yet.
-- No start-up rule (`service restarted`), no stage timer, no Pydantic form models refusing
-  unknown fields, no ruff/CI (`.github/workflows/ci.yml` is still to do in B1's follow-up).
+- A row's posted `version` is stored, not compared (the SAD names `VERSION_MISMATCH` for the run only).
 - Starlette 1.x prints a deprecation warning for `httpx` in the test client; harmless.
 - CrewAI adapter items (`backend/config/agents.yaml`, `tasks.yaml`, crew controls) are B3.
 
@@ -147,6 +180,18 @@ No agent loop, no retrieval over live state, no side-effecting tool, no model cl
 4. **Env names.** Only the §4 names the shell needs were added. The `CALL_TIMEOUT_*_S` /
    `STAGE_LIMIT_*_S` renames in `setup.md` Open Points are still waiting.
 
+5. **Order of checks.** Where the SAD lists several codes for one action, the first that applies
+   wins: ended → wrong phase → stale page → the action's own checks; for a decision, already
+   decided comes before no answer / a bad answer. Confirm or change.
+6. **Three sentences ux.md does not give** (marked PROPOSED in `refusals.py`): `GATE_INCOMPLETE`
+   for exactly one item ("1 rule is still undecided…"), and `RUN_STAGE_RUNNING` when the review is
+   at a *different* gate rather than working ("This step is not open for decisions right now…").
+   Handed to `@ux.designer` (H-049).
+7. **`typed` for the abandon box.** The V-12 contract says `typed` is `{field: text}`; the abandon
+   textarea in `review_status.html` prints `refusal.typed` whole. Handed to `@frontend.eng` (H-048).
+8. **Rule 9 in B2.** Built here at the operator's request; the SAD's order puts it in B3. Handed to
+   `@system.arch` (H-047) so the SAD says so.
+
 ## Audit
 
 - 2026-11-16 · persona `backend-eng` · actions `develop-be`, `implement-endpoint`, `stub-nonmvp`,
@@ -174,3 +219,16 @@ No agent loop, no retrieval over live state, no side-effecting tool, no model cl
   to `frontend.md`. Handoffs raised: H-045 (FYI to `@frontend.eng`), H-046 (`@system.arch`: write
   the review-number rule and the audit-log "ended at" source into the SAD). H-036 Outcome filled in.
   Snapshots not re-recorded.
+- 2026-11-17 · persona `backend-eng` · actions `develop-be`, `implement-endpoint`, `document-backend`
+  · `AAMAD_TARGET_RUNTIME=crewai` (CrewAI still not installed or imported) · `AGENTS_MODE=stand_in`
+  · **B2** on `b2-gates-and-checks` in two commits: V-12 refusal object and the same-page handling,
+  the run, decision, gate, publish and decline checks, Rule 9, the start-up rule. 138 Tier 1 and
+  Tier 2 tests pass (up from 90). No model call. LLM, temperature and max-token controls: none
+  resolved (no model in the shell). No diagram needed. `sad.md`, `ux.md`, `style-note.md` and the
+  frozen Netlify page not edited. Snapshots not re-recorded: the visual check still fails on the same
+  18 as H-036; `tests/visual/visual.spec.js` was changed (driving steps only) so a review can get
+  through the new checks.
+- 2026-11-17 · persona `backend-eng` · `sync-docs` · after B2: operator approved 4 items for
+  `frontend.md`; applied on the B2 branch (PR #75). One more stale mark proposed (page 2 `refusal`).
+  Handoff H-050 gives `@project.mgr` the checkpoint estimate. Stage time limit and Pydantic
+  unknown-field refusal deliberately not started (operator).

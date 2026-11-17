@@ -10,6 +10,8 @@ import re
 
 import pytest
 
+from tests import flow
+
 PAGES = ["", "/g1", "/g2", "/g3"]
 FORBIDDEN_WORDS = [
     r"\b[Rr]uns?\b",            # "Review" on screen, never "run" (the RUN- ID is not a word)
@@ -158,11 +160,7 @@ def test_empty_calendar_shows_only_the_message(gp_client):
 
 def test_general_partner_note_reads_exactly(specialist_client, gp_client, at_g1):
     """UX-018: the General Partner's short note; and no moved or open-question mark (UX-009)."""
-    run_id = at_g1
-    specialist_client.post(f"/specialist/runs/{run_id}/g1/complete", data={"run_version": 1})
-    specialist_client.post(f"/specialist/runs/{run_id}/g2/complete", data={"run_version": 2})
-    specialist_client.post(f"/specialist/calendars/CAL-{run_id}/publish",
-                           data={"run_version": 3, "decision": "publish", "acknowledged": "true"})
+    flow.publish_everything_http(specialist_client, at_g1, demo=True)
     html = gp_client.get("/calendar").text
     assert ("These dates are the specialist's approved reading of the rules. Not legal advice. "
             "Date counting hasn't yet been checked against the legal texts.") in html
@@ -221,10 +219,7 @@ def test_failed_sentence_uses_the_servers_failure_when_sent():
 # --- Page 7 week grid and month grouping (operator, 2026-11-17: display-only) ---
 
 def _publish(client, run_id):
-    client.post(f"/specialist/runs/{run_id}/g1/complete", data={"run_version": 1})
-    client.post(f"/specialist/runs/{run_id}/g2/complete", data={"run_version": 2})
-    client.post(f"/specialist/calendars/CAL-{run_id}/publish",
-                data={"run_version": 3, "decision": "publish", "acknowledged": "true"})
+    flow.publish_everything_http(client, run_id, demo=True)
 
 
 def test_calendar_is_one_switch_with_three_views(specialist_client, gp_client, at_g1):
@@ -353,6 +348,7 @@ def test_the_next_card_wraps_round_then_points_at_finish(specialist_client, at_g
 
 
 def test_after_an_answer_decision_the_page_lands_on_the_next_answer(specialist_client, at_g1):
+    flow.decide_every_rule_http(specialist_client, at_g1, demo=True)
     specialist_client.post(f"/specialist/runs/{at_g1}/g1/complete", data={"run_version": 1})
     r = specialist_client.post(f"/specialist/verdicts/VER-{at_g1}-1/decision",
                                data={"version": 1, "decision": "confirm", "value": "applies"}, follow_redirects=False)

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from backend.services import FUND_ID
 from backend.services.audit import write_audit
-from backend.services.refusals import SENTENCES, Refusal
+from backend.services.refusals import Refusal, sentence
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ def require_role(conn: sqlite3.Connection, identity: Identity, role: str, path: 
     """
     if identity.role == role:
         return
-    refusal = Refusal("FORBIDDEN", SENTENCES["FORBIDDEN"])
+    refusal = Refusal("FORBIDDEN", sentence("FORBIDDEN"))
     write_audit(conn, fund_id=FUND_ID, actor=identity.identity_id, event_type="refusal",
                 refusal_code=refusal.code, reason=f"{role} page: {path}")
     conn.commit()

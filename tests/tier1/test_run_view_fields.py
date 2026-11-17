@@ -2,10 +2,14 @@
 
 from backend.db.connection import connect, init_db
 from backend.services import FUND_ID, runs
+from tests import flow
 
 
 def _start(conn, settings):
-    # schedule is a no-op: we only look at the run row, not at stage A
+    # Test setup: close any earlier review directly (B2 allows only one ACTIVE review), and use a
+    # no-op `schedule`, because these tests look at the run row and not at stage A.
+    conn.execute("UPDATE runs SET status = 'ABANDONED' WHERE status = 'ACTIVE'")
+    conn.commit()
     return runs.start_run(conn, settings, lambda *a, **k: None, fund_id=FUND_ID,
                           started_by="specialist-1", demo_planted_row=False,
                           demo_fail_step1=False)
@@ -15,6 +19,8 @@ def test_runs_are_numbered_oldest_first_and_carry_tone_and_starter(settings):
     init_db(settings.database_path)   # creates the tables in the temporary test database
     conn = connect(settings.database_path)
     first = _start(conn, settings)
+    conn.execute("UPDATE runs SET phase = 'AT_G1' WHERE run_id = ?", (first,))   # a gate: abandon ok
+    conn.commit()
     runs.abandon_run(conn, run_id=first, run_version=1, reason="x", actor="specialist-1")
     second = _start(conn, settings)
 
@@ -103,30 +109,29 @@ def test_g1_view_fields_and_decided_line(settings):
 
     init_db(settings.database_path)
     conn = connect(settings.database_path)
-    run = runs.get_run(conn, _run_at(conn, settings, "ACTIVE", "AT_G1"))
+    run_id = flow.start_to_g1(conn, settings)
+    run = runs.get_run(conn, run_id)
     view = decisions.get_g1_view(conn, run)
     assert view["stage"] == "at" and view["summary"] == {"flags": 0}
-    assert len(view["unused_paragraphs"]) == 2
-    first, silent = view["rows"][0], view["rows"][1]
+    assert [p["paragraph_id"] for p in view["unused_paragraphs"]] == ["SRC-STUB-P5", "SRC-STUB-P6"]
+    first, second = view["rows"][0], view["rows"][1]
     assert first["status"] == "To decide" and first["status_tone"] == "action"
     assert first["quote_check"] == {"passed": True} and first["flags"] == [] and first["decided"] is None
-    assert first["needs_who_files"] is True and silent["needs_who_files"] is False
+    assert first["needs_who_files"] is True and second["needs_who_files"] is False
     assert first["filing_parties"][-1] == ["not known", "Not known"]
+    assert first["paragraph"]["document"] == "Stand-in source document 1"
 
-    decisions.decide_row(conn, row_id=first["row_id"], version=1, decision="approve",
-                         business_day_rule="roll_forward", who_files="AIFM",
-                         approve_reason="Looks right", reject_reason=None, actor="specialist-1")
-    decisions.decide_row(conn, row_id=silent["row_id"], version=1, decision="reject",
-                         business_day_rule=None, who_files=None, approve_reason=None,
-                         reject_reason="Wrong quote", actor="specialist-1")
-    rows = {r["row_id"]: r for r in decisions.get_g1_view(conn, run)["rows"]}
-    a, b = rows[first["row_id"]], rows[silent["row_id"]]
+    flow.approve_rule(conn, run_id, 1, who="AIFM")
+    flow.reject_rule(conn, run_id, 2, "Wrong quote")
+    rows = {r["n"]: r for r in decisions.get_g1_view(conn, run)["rows"]}
+    a, b = rows[1], rows[2]
     assert (a["status"], a["status_tone"]) == ("Approved", "success")
     assert a["decided"]["by_label"] == "Compliance specialist (mock)"
-    assert a["decided"]["business_day_rule"] == "roll_forward"
-    assert a["decided"]["who_files"] == "AIFM" and a["decided"]["reason"] == "Looks right"
+    assert a["decided"]["business_day_rule"] == "roll_forward" and a["decided"]["who_files"] == "AIFM"
     assert (b["status"], b["status_tone"]) == ("Rejected", "problem")
     assert b["decided"]["reason"] == "Wrong quote" and b["decided"]["business_day_rule"] is None
+    # A rejected rule stops using its paragraph, so the paragraph joins the unused list.
+    assert "SRC-STUB-P2" in [p["paragraph_id"] for p in decisions.get_g1_view(conn, run)["unused_paragraphs"]]
 
 
 def test_page_stage_before_at_after_and_ended(settings):
@@ -149,7 +154,11 @@ def test_g2_view_fields_and_decided_outcome(settings):
 
     init_db(settings.database_path)
     conn = connect(settings.database_path)
-    run = runs.get_run(conn, _run_at(conn, settings, "ACTIVE", "AT_G2"))
+    run_id = flow.start_to_g1(conn, settings)
+    for n in (1, 2, 3):
+        flow.approve_rule(conn, run_id, n)
+    flow.finish_g1(conn, settings, run_id)
+    run = runs.get_run(conn, run_id)
     view = decisions.get_g2_view(conn, run)
     assert view["stage"] == "at"
     applies, unsure, no = view["verdicts"]
@@ -159,14 +168,10 @@ def test_g2_view_fields_and_decided_outcome(settings):
     assert unsure["overrule_value"] is None and unsure["missing_fact"]
     assert applies["missing_fact"] is None
 
-    for v, decision, value, reason in [(applies, "override", "does_not_apply", "Not for this fund"),
-                                       (unsure, "decide", "applies", "I checked")]:
-        decisions.decide_verdict(
-            conn, verdict_id=v["verdict_id"], version=1, decision=decision, value=value,
-            confirm_reason=None, override_reason=reason if decision == "override" else None,
-            decide_reason=reason if decision == "decide" else None, actor="specialist-1")
-    after = {v["verdict_id"]: v for v in decisions.get_g2_view(conn, run)["verdicts"]}
-    d1, d2 = after[applies["verdict_id"]]["decided"], after[unsure["verdict_id"]]["decided"]
+    flow.answer(conn, run_id, 1, "override", "does_not_apply", "Not for this fund")
+    flow.answer(conn, run_id, 2, "decide", "applies", "I checked")
+    after = {v["n"]: v for v in decisions.get_g2_view(conn, run)["verdicts"]}
+    d1, d2 = after[1]["decided"], after[2]["decided"]
     assert d1["outcome"] == "Overruled: doesn't apply" and d1["reason"] == "Not for this fund"
     assert d2["outcome"] == "Added, marked 'May not be required'" and d2["reason"] == "I checked"
     assert d1["by_label"] == "Compliance specialist (mock)" and d1["at"]
@@ -174,47 +179,48 @@ def test_g2_view_fields_and_decided_outcome(settings):
 
 def test_g3_view_publish_outcome_and_previous_publication(settings):
     """V-10, V-11, and V-6 `published_at`: lists, entry words, outcome, previous publication."""
-    from backend.services import calendar, decisions, publishing, stage_store
+    from backend.services import calendar, publishing
 
     init_db(settings.database_path)
     conn = connect(settings.database_path)
+    run_id = flow.start_to_g1(conn, settings)
+    flow.approve_rule(conn, run_id, 1, who="Auditor")
+    flow.approve_rule(conn, run_id, 2)
+    flow.reject_rule(conn, run_id, 3, "Wrong quote")
+    flow.finish_g1(conn, settings, run_id)
+    flow.answer(conn, run_id, 1, "confirm", "applies")
+    flow.answer(conn, run_id, 2, "decide", "applies", "I checked")
+    flow.finish_g2(conn, settings, run_id)
+    first = runs.get_run(conn, run_id)
 
-    def to_g3(run_id):
-        stage_store.finish_stage(conn, runs.get_run(conn, run_id), "C")   # makes the calendar
-        return runs.get_run(conn, run_id)
-
-    first = to_g3(_run_at(conn, settings, "ACTIVE", "C_RUNNING"))
-    row3 = f"ROW-{first['run_id']}-3"
-    decisions.decide_row(conn, row_id=row3, version=1, decision="reject", business_day_rule=None,
-                         who_files=None, approve_reason=None, reject_reason="Wrong quote",
-                         actor="specialist-1")
-    decisions.decide_row(conn, row_id=f"ROW-{first['run_id']}-1", version=1, decision="approve",
-                         business_day_rule="roll_forward", who_files="Auditor",
-                         approve_reason=None, reject_reason=None, actor="specialist-1")
     view = calendar.get_g3_view(conn, first)
     assert view["stage"] == "at" and view["outcome"] is None and view["previous_publication_at"] is None
+    row3 = f"ROW-{run_id}-3"
     assert view["rejected_rows"] == [{"row_id": row3, "label": "Stand-in rule 3: monthly report",
                                       "reason": "Wrong quote", "is_demo": False}]
-    assert view["rejected_row_ids"] == [row3] and len(view["uncited_paragraph_ids"]) == 2
-    e1, e2 = view["entries"]
+    assert view["rejected_row_ids"] == [row3]
+    assert view["uncited_paragraph_ids"] == ["SRC-STUB-P3", "SRC-STUB-P5", "SRC-STUB-P6"]
+    assert [e["due_date"] for e in view["entries"]] == ["2027-04-19", "2027-04-30"]   # by date
+    by_row = {e["row_id"]: e for e in view["entries"]}
+    e1, e2 = by_row[f"ROW-{run_id}-1"], by_row[f"ROW-{run_id}-2"]
     assert e1["who_files_label"] == "Auditor" and e1["marks"]["moved"] is None
     assert e1["why"] and e1["source_paragraph_id"] == "SRC-STUB-P1" and e1["recipient_name"]
     assert e2["marks"]["moved"] == {"from_date": "2027-04-18", "to_date": "2027-04-19",
                                     "direction": "following working day"}
+    assert (e1["precautionary"], e2["precautionary"]) == (False, True)   # row 2 was "added"
 
-    publishing.publish_calendar(conn, calendar_id=view["calendar_id"], run_version=1,
-                                acknowledged=True, rejected_row_ids=[row3],
-                                uncited_paragraph_ids=[], actor="specialist-1")
-    published = runs.get_run(conn, first["run_id"])
+    flow.publish(conn, run_id)
+    published = runs.get_run(conn, run_id)
     assert published["status"] == "COMPLETED" and published["published_at"]
     after = calendar.get_g3_view(conn, published)
     assert after["stage"] == "after" and after["outcome"]["at"] == published["published_at"]
     live = calendar.get_published_calendar(conn, published["fund_id"])
     assert live["entries"][0]["quote"] and live["entries"][0]["source_document"]
 
-    second = to_g3(_run_at(conn, settings, "ACTIVE", "C_RUNNING"))
-    assert calendar.get_g3_view(conn, second)["previous_publication_at"] == published["published_at"]
-    publishing.decline_calendar(conn, calendar_id=f"CAL-{second['run_id']}", run_version=1,
+    second = flow.to_g3(conn, settings)
+    assert calendar.get_g3_view(conn, runs.get_run(conn, second))["previous_publication_at"] \
+        == published["published_at"]
+    publishing.decline_calendar(conn, calendar_id=f"CAL-{second}", run_version=3,
                                 decline_reason="Dates look off", actor="specialist-1")
-    declined = calendar.get_g3_view(conn, runs.get_run(conn, second["run_id"]))
+    declined = calendar.get_g3_view(conn, runs.get_run(conn, second))
     assert declined["outcome"]["reason"] == "Dates look off" and declined["outcome"]["at"]

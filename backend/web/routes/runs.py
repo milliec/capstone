@@ -22,12 +22,29 @@ def load_run(conn: sqlite3.Connection, run_id: str) -> dict:
     return run
 
 
+def page_filing_rules(request: Request, conn, identity: Identity, **extra):
+    """Page 2. Also used to show the page again after a refusal (`extra` has the refusal)."""
+    return render(request, conn, "pages/filing_rules.html", identity,
+                  runs=runs_service.list_runs(conn, FUND_ID),
+                  active_run=runs_service.get_active_run(conn, FUND_ID), **extra)
+
+
+def page_review_status(request: Request, conn, identity: Identity, run: dict, **extra):
+    """Page 3. Also used to show the page again after a refusal."""
+    # Display only (frontend.md W-1). `refresh_on`: the specialist's "Stop automatic refresh"
+    # choice, carried in the address as ?refresh=off and stored nowhere (ux.md page 3).
+    # `rendered_at`: the time shown in "Last updated at …". Whether the page refreshes at all
+    # still depends on the server's run state (run.is_working), not on this flag alone.
+    return render(request, conn, "pages/review_status.html", identity, run=run,
+                  units=runs_service.list_units(conn, run["run_id"]),
+                  refresh_on=request.query_params.get("refresh") != "off",
+                  rendered_at=now_utc(), **extra)
+
+
 @router.get("/runs")
 def filing_rules(request: Request, conn=Depends(get_conn),
                  identity: Identity = Depends(specialist)):
-    return render(request, conn, "pages/filing_rules.html", identity,
-                  runs=runs_service.list_runs(conn, FUND_ID),
-                  active_run=runs_service.get_active_run(conn, FUND_ID))
+    return page_filing_rules(request, conn, identity)
 
 
 @router.post("/runs")
@@ -44,15 +61,7 @@ def start_review(request: Request, background: BackgroundTasks, conn=Depends(get
 @router.get("/runs/{run_id}")
 def review_status(request: Request, run_id: str, conn=Depends(get_conn),
                   identity: Identity = Depends(specialist)):
-    run = load_run(conn, run_id)
-    # Display only (frontend.md W-1). `refresh_on`: the specialist's "Stop automatic refresh"
-    # choice, carried in the address as ?refresh=off and stored nowhere (ux.md page 3).
-    # `rendered_at`: the time shown in "Last updated at …". Whether the page refreshes at all
-    # still depends on the server's run state (run.is_working), not on this flag alone.
-    return render(request, conn, "pages/review_status.html", identity, run=run,
-                  units=runs_service.list_units(conn, run_id),
-                  refresh_on=request.query_params.get("refresh") != "off",
-                  rendered_at=now_utc())
+    return page_review_status(request, conn, identity, load_run(conn, run_id))
 
 
 @router.post("/runs/{run_id}/abandon")
@@ -71,5 +80,4 @@ def retry(request: Request, run_id: str, background: BackgroundTasks, conn=Depen
     notice = runs_service.retry_run(conn, request.app.state.settings, background.add_task,
                                     run_id=run_id, run_version=run_version,
                                     actor=identity.identity_id)
-    return render(request, conn, "pages/review_status.html", identity, run=run,
-                  units=runs_service.list_units(conn, run_id), notice=notice)
+    return page_review_status(request, conn, identity, run, notice=notice)
