@@ -63,7 +63,7 @@ pages with ux.md's wording only.
 
 | ID | Check | Tool | Result | Evidence | Notes |
 |----|-------|------|--------|----------|-------|
-| M-001 | Keyboard, primary task | real key events (DevTools protocol, headless Chrome 157) | passed, with findings K-1 and K-2 | focus-order log (session scratchpad) | Sign in → start with the demo rule → approve rule 1 (weekend option, who files) → reject the demo rule with a typed reason → finish → "can't tell" with a reason → finish → publish with the box ticked: all with Tab, Shift+Tab, arrows, Space, Enter and typing. A short hand check in the operator's own browser is still owed |
+| M-001 | Keyboard, primary task | real key events (DevTools protocol, headless Chrome 157) | passed, with findings K-1 and K-2 | focus-order log (session scratchpad) | Sign in → start with the demo rule → approve rule 1 (weekend option, who files) → reject the demo rule with a typed reason → finish → "can't tell" with a reason → finish → publish with the box ticked: all with Tab, Shift+Tab, arrows, Space, Enter and typing. Repeated in the operator's own Chrome (Claude in Chrome, 17 Nov 2026): sign-in, skip link, start with the demo rule, "Stop automatic refresh" as the first Tab stop, approve rule 1, switch rule 2 to Reject with the right arrow, typed reason, "Reject rule": all passed, focus ring visible throughout |
 | M-002 | Visible focus | real key events + screenshots | passed | `01-skip-link-focused`, `05-answer-chosen` (scratchpad) | Every Tab stop on 9 pages matched `:focus-visible` with the 2px orange outline, was visible and on screen; the skip link appears on the first Tab and leads into the main content |
 | M-003 | Contrast spot check | — | **not tested** | — | Only style-note token pairs are used (measured in `style-note.md`); no tool run on the pages |
 | M-004 | Target size | screenshots | passed (visual) | `08-check-rules`, `10-…` | Answer options and buttons 40 px tall; checkboxes 18 px inside a full-width label |
@@ -152,3 +152,6 @@ this table is the agent's reading, not the acceptance decision.
   focus visible everywhere; findings K-1 (high) and K-2 (medium) proposed to the operator.
 - 2026-11-17 · persona `frontend-eng` · K-1 and K-2 fixed (operator approval); keyboard pass
   re-run with real key presses: first Tab on the refreshing page is "Stop automatic refresh".
+- 2026-11-17 · persona `frontend-eng` · keyboard pass repeated in the operator's Chrome through
+  Claude in Chrome (41-frame recording kept, not exported). Passed. One tool quirk, not an app
+  fault: the browser tool's arrow key is named "Right", not "ArrowRight".
