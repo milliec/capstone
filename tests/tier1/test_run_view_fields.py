@@ -95,3 +95,49 @@ def test_ended_failure_and_counts(settings):
     assert failure["step"] == 1 and failure["step_name"] == "AI drafts the rules"
     assert failure["unit_label"] == "Source one"
     assert failure["reason_sentence"].startswith("This step failed on purpose")
+
+
+def test_g1_view_fields_and_decided_line(settings):
+    """V-8: the rows carry status, evidence and the decided line; the view carries the stage."""
+    from backend.services import decisions
+
+    init_db(settings.database_path)
+    conn = connect(settings.database_path)
+    run = runs.get_run(conn, _run_at(conn, settings, "ACTIVE", "AT_G1"))
+    view = decisions.get_g1_view(conn, run)
+    assert view["stage"] == "at" and view["summary"] == {"flags": 0}
+    assert len(view["unused_paragraphs"]) == 2
+    first, silent = view["rows"][0], view["rows"][1]
+    assert first["status"] == "To decide" and first["status_tone"] == "action"
+    assert first["quote_check"] == {"passed": True} and first["flags"] == [] and first["decided"] is None
+    assert first["needs_who_files"] is True and silent["needs_who_files"] is False
+    assert first["filing_parties"][-1] == ["not known", "Not known"]
+
+    decisions.decide_row(conn, row_id=first["row_id"], version=1, decision="approve",
+                         business_day_rule="roll_forward", who_files="AIFM",
+                         approve_reason="Looks right", reject_reason=None, actor="specialist-1")
+    decisions.decide_row(conn, row_id=silent["row_id"], version=1, decision="reject",
+                         business_day_rule=None, who_files=None, approve_reason=None,
+                         reject_reason="Wrong quote", actor="specialist-1")
+    rows = {r["row_id"]: r for r in decisions.get_g1_view(conn, run)["rows"]}
+    a, b = rows[first["row_id"]], rows[silent["row_id"]]
+    assert (a["status"], a["status_tone"]) == ("Approved", "success")
+    assert a["decided"]["by_label"] == "Compliance specialist (mock)"
+    assert a["decided"]["business_day_rule"] == "roll_forward"
+    assert a["decided"]["who_files"] == "AIFM" and a["decided"]["reason"] == "Looks right"
+    assert (b["status"], b["status_tone"]) == ("Rejected", "problem")
+    assert b["decided"]["reason"] == "Wrong quote" and b["decided"]["business_day_rule"] is None
+
+
+def test_page_stage_before_at_after_and_ended(settings):
+    """V-8 to V-10 `stage`: forms only at the gate; an ended review is read-only."""
+    init_db(settings.database_path)
+    conn = connect(settings.database_path)
+    for status, phase, g1, g3 in [("ACTIVE", "A_RUNNING", "before", "before"),
+                                  ("ACTIVE", "AT_G1", "at", "before"),
+                                  ("ACTIVE", "AT_G3", "after", "at"),
+                                  ("COMPLETED", "AT_G3", "after", "after"),
+                                  ("ABANDONED", "AT_G1", "after", "ended_before"),
+                                  ("FAILED", "A_RUNNING", "ended_before", "ended_before")]:
+        run = runs.get_run(conn, _run_at(conn, settings, status, phase))
+        assert (runs.page_stage(run, "g1"), runs.page_stage(run, "g3")) == (g1, g3), (status, phase)
