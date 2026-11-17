@@ -34,6 +34,27 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-049: Refusal wording and placement: three sentences ux.md lacks, and which refusals are "page-level"
+- From: @backend.eng (B2)   To: @ux.designer   Date: 2026-11-17
+- Touches: 2.build/ux.md §5 (refusal sentences, "Where"); `backend/services/refusals.py` (sentences marked PROPOSED); 2.build/frontend.md §10.1 V-12 (anchors)
+- Ask: (1) Give the wording for three cases ux.md §5 does not cover; B2 uses these plain sentences until you answer. `GATE_INCOMPLETE` with exactly one item left: "1 rule is still undecided. Decide every rule before you finish checking." (and, at G2, "1 answer is still undecided, {u} of them where AI can't tell. Decide every answer before you finish."). `RUN_STAGE_RUNNING` when the review is at a **different gate** (not working): "This step is not open for decisions right now. The review status page shows where the review is." (2) Settle **placement** for four refusals: ux.md §5 calls `ACK_REQUIRED` page-level (full sentence in a box at the top and again by the control), but frontend.md V-12 lists the anchors `ack`, `decline-reason`, `decision` and `abandon`, and the page then shows only the short line "Not done. The reason is shown beside {target_label}." at the top. B2 sends the anchors, with `target_label` "the box", "the reason", "the question" and "abandon". Say whether those four should have an anchor (short top line) or none (full box at the top).
+- Why: The services must send one or the other, and the two documents disagree.
+- Outcome: (the owner fills this in)
+
+### H-048: FYI and one fix: refusals are live; the abandon box reads `typed` the wrong way; the visual script changed
+- From: @backend.eng (B2)   To: @frontend.eng   Date: 2026-11-17
+- Touches: `backend/web/templates/pages/review_status.html` (the abandon textarea); `tests/visual/visual.spec.js`; 2.build/frontend.md §10.1 V-12
+- Ask: (1) **Fix for you:** the abandon textarea prints `refusal.typed` as a whole, but the V-12 contract (and every other form) uses a dict, `{field name: text typed}`. B2 sends `typed = {"reason": "..."}` for abandon, so the box would show the dict. Please read `refusal.typed.reason`. (2) For information: the services now refuse for real (all 17 codes, `backend/services/refusals.py`). The page is shown again with the refusal and the refusal's HTTP status (409 or 422); anchors are `row-N`, `verdict-N`, `start`, `ack`, `decline-reason`, `decision`, `abandon`, or none; `RUN_ACTIVE` carries `short` and `link_text`. Please look at each page with each refusal once; the new Tier 1 tests only check the data, not how it looks. (3) I changed the **driving steps** (not any snapshot) in `tests/visual/visual.spec.js`: the server now refuses to finish G1 or G2 with an item undecided, and checks the publish lists, so the script decides rules 2 and 3 and answers 1 and 3 after the pictures that need them undecided, and posts the lists the page shows. The same 18 snapshots still differ; none were re-recorded.
+- Why: B2 turns the stub forms into real checks; the page tests (`tests/tier2/test_pages.py`) also needed every item decided before finishing, via `tests/flow.py`.
+- Outcome: (the owner fills this in)
+
+### H-047: Record what B2 built: Rule 9 in B2, the order checks run in, and the start-up rule
+- From: @backend.eng (B2, operator instruction)   To: @system.arch   Date: 2026-11-17
+- Touches: sad.md Order of work row 3 and Build card (the stage-end store, rule 9, is listed under B3); §4 "Transitions and guards" and "Refusals"; run-state rules 7 and 9; 2.build/backend.md "B2"
+- Ask: Record three things the build settled. (1) **Rule 9 is built in B2**, at the operator's request, because decisions cannot be stored (decide-once) before rows are: the store with the stage-attempt check, the discard of late output, and stage outputs written all or nothing. B3 now only replaces the stand-in data. (2) **The order checks run in** where the table lists several codes: the review has ended (`RUN_NOT_ACTIVE`), then wrong phase (`RUN_STAGE_RUNNING`), then a stale page (`VERSION_MISMATCH`), then the action's own checks; for a row or answer, already decided comes before no answer or a bad answer. Also: a row's or verdict's posted `version` is stored but **not compared** (the table lists `VERSION_MISMATCH` for the run only). (3) **The start-up rule (rule 7) is built now**, not later, because without it a restart mid-stage leaves a review `ACTIVE` in a `*_RUNNING` phase, which B2's `RUN_ACTIVE` and abandon checks would never let go of.
+- Why: The SAD should match the build so the next persona does not repeat or undo it.
+- Outcome: (the owner fills this in)
+
 ### H-046: Write two backend rules into the SAD: the review number, and where "ended at" comes from
 - From: @backend.eng (operator approval, 2026-11-17)   To: @system.arch   Date: 2026-11-17
 - Touches: sad.md §4 ("Identifiers and versions" for the number; the "Service functions (H-035)" table or the `runs` / audit text for the time); 2.build/backend.md "View fields for the pages"; ux.md "Review {n}" wording (read-only here)
