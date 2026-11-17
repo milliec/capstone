@@ -106,6 +106,13 @@ pages with ux.md's wording only.
   Refreshed `07-calendar-gp-published-1280`, `07-calendar-specialist-published-1280`,
   `07-calendar-gp-published-360`; new `07-calendar-gp-list-view-1280` and
   `07-calendar-gp-year-view-1280`. 26 snapshots in all; fonts pinned for the tests (M-012).
+- **H-036 refresh: proposed, waiting for operator approval** · 2026-11-17 · `@frontend.eng`. With
+  H-036 (V-1 to V-11) and B2 on main and the interim lookups deleted (H-045), 18 snapshots differ:
+  exactly the 18 in H-036's Outcome. Each was compared with its baseline side by side and every
+  change traced to a server field (review number, counts, published time, ended-because sentence,
+  G1 evidence and unused paragraphs, G2 cited facts and approved rule, G3 entry columns and lists,
+  calendar Who files and Why) or to stand-in data the backend changed on purpose (entry 2 now
+  moves from Sun 18 to Mon 19 Apr 2027). The other 8 are pixel-identical. Nothing re-recorded.
 - **Review status (published) v2** · 2026-11-17 · `@frontend.eng` · operator approved
   `03-review-status-published-1280`: the unit cards in one row with their tops aligned (`93745d3`).
   An earlier refresh of the same snapshot was rejected (cards still not aligned; frontend.md Open
@@ -122,8 +129,8 @@ this table is the agent's reading, not the acceptance decision.
 | H-002 | Row headers kept a divider on the last row; looked heavier than cells | all tables | — | 1280 | Visual noise | low | fixed (`2a46163`) | `08-…` before, `04b-…` after |
 | H-003 | Unstyled, the two nav icons filled the page as black shapes | every page | unstyled | 1280 | Sidebar unusable if B6 is dropped | **high** | fixed (`2a46163`): size and outline on the SVG itself | `08u-unstyled-1280` |
 | H-004 | Mark pills stretched across the Marks column | `/g3` | at G3 | 1024 | Labels read as bars | low | fixed (`2a46163`) | `11-publish-1024` |
-| H-005 | "Review RUN-20261117-1" instead of "Review 4" | pages 2 to 6 | any | — | Machine ID on screen | medium | open, waits for H-036 V-1 | all |
-| H-006 | Empty "Who files", "Sent to", "Why" columns; empty "what's not in this calendar" lists even after a rejection | `/g3`, `/calendar` | at G3, published | 1024, 360 | The specialist cannot check what the General Partner will read | **high for the demo** | **accepted for baseline v1, 17 Nov 2026: empty columns and lists wait for H-036 and B2; step 4 and calendar snapshots need one approved refresh then** (operator) | `11-publish-1024`, `frame360-600` |
+| H-005 | "Review RUN-20261117-1" instead of "Review 4" | pages 2 to 6 | any | — | Machine ID on screen | medium | **closed 17 Nov 2026**: H-036 V-1 sends `review_number`; the candidates show "Review 1", "Review 2" | `02-…`, `03-…` candidates |
+| H-006 | Empty "Who files", "Sent to", "Why" columns; empty "what's not in this calendar" lists even after a rejection | `/g3`, `/calendar` | at G3, published | 1024, 360 | The specialist cannot check what the General Partner will read | **high for the demo** | accepted for baseline v1, 17 Nov 2026 (operator). **Closed 17 Nov 2026: the gaps are filled.** In the candidates, step 4 shows Who files, Sent to, Why with its source, the moved dates, the rejected rule with its reason and the unused paragraphs; the calendar shows Who files, Why, source and quote. The snapshot refresh is proposed in §3b | `06-publish-at-step-*`, `07-calendar-*` candidates |
 | H-007 | At 1024 px the sidebar stacks above the content (the mock-up breakpoint is 1100 px) | all | — | 1024 | Longer scroll; nothing breaks | low | fixed (`40be357`): breakpoint 960 px (operator, 2026-11-17) | `11-publish-1024` |
 | H-008 | **Found by the operator.** Component sizes did not match the mock-ups: stepper boxes in place of the thin line, a 19 px status sentence in place of the 26 px panel heading, 13 px unit-group captions in place of 22 px headings, no avatar, one-column cards | review status, step pages | all | 1280, 1024 | The pages looked unlike the approved design | medium | fixed (`40be357`) with the mock-ups' own component styles (`.steps`, `.cta`, `.evidence`, `.avatar`) | `mock-run-status` beside `04b-running-still` |
 | K-1 | **Keyboard.** While AI works the page reloads every 3 s and focus returns to the top; "Stop automatic refresh" is the 8th Tab stop, so it must be reached within 3 s | review status | AI working | 1280 | The control that makes the refresh acceptable (WCAG 2.2.1) is hard to reach by keyboard | **high** | fixed: "Stop automatic refresh" is the first Tab stop while refreshing; confirmed with real key presses and a page test | focus-order log |
@@ -133,21 +140,23 @@ this table is the agent's reading, not the acceptance decision.
 | H-011 | **Page 7 did not behave like the mock-up (found by the operator).** The first B12 build stacked the chart, the views and the list, and its link-based switch reloaded the page. Rebuilt like `gp-calendar.html`: summary row, one calendar, a tab-styled radio switch that shows only the chosen view in place. Checked with real key presses (Tab to the switch, arrows change the view, focus outline visible, no reload) and a mouse click | `/calendar` | published | 1280, 360 | The calendar was hard to read | medium | fixed (`a3e71dc`) | session screenshots |
 | H-012 | **Found by the operator.** After a decision on steps 2 and 3 the page reloaded at the top, so the specialist had to scroll back to find the next card | `/g1`, `/g2` | at the step | 1280 | Jarring; slows the review (ux.md §7 target) | medium | fixed (`0eed7b4`): lands on the next card to decide; measured 24px from the top, first Tab inside it | real-browser check |
 | H-013 | **Found by the operator.** Switching calendar views made the page jump: a shorter view shrank the page under the scroll position (tabs moved from 85px to 451px on screen) | `/calendar` | published | 1280 | Jarring | medium | fixed (`e827a3e`): the section is at least one screen tall on wide screens; tabs stay at 80px through every switch | real-browser measurement |
+| H-014 | **Found in the H-036 candidates.** The long "Ended because" sentence squeezes the other columns of the Reviews table, so "Review 2" and the start date wrap onto two lines | Filing rules | a failed review listed | 1280, 1024 | Reads as cramped | low | open: proposed fix, keep the Review and Started cells on one line | `02-filing-rules-populated-*` candidates |
+| H-015 | **Found in the H-036 candidates.** In the narrow cited facts table the fact ID breaks at its hyphen ("FACT-" / "STUB-1") | `/g2` | at the step | 1280, 1024 | IDs are harder to read and copy | low | open: proposed fix, never break an ID | `05-confirm-applies-at-step-*` candidates |
 | M-012 | **Visual check flake: fixed.** Some runs reported every page of one browser session as changed (body text only). Cause found: Google Fonts sometimes answers with an on-the-fly build of Inter (`/l/font?kit=…`) instead of the versioned file (`/s/inter/v20/…`), which renders slightly differently (1 answer in 5 when asked directly). Fix: the visual tests serve a pinned copy of the usual stylesheet (`tests/visual/fonts.css`) to every session, plus a stronger font wait; the app is unchanged | all pages | — | all | False alarms | medium | fixed: 8 runs in a row clean; baselines unchanged | `tests/visual/fonts.css` |
 
 ## 5. Findings
 
-1. **H-006 (open, high for the demo).** The G3 and calendar pages cannot show "Who files", "Sent
-   to", "Why" or the rejected and unused lists until H-036 and B2 land. The demo script (§7 of
-   `frontend.md`) works step by step, but step 11 shows empty lists and step 12 shows no "Why".
-2. **H-005 (open, medium).** Review numbers show as run IDs until H-036 V-1.
+1. **H-006 (closed 17 Nov 2026).** H-036 and B2 filled "Who files", "Sent to", "Why" and the
+   rejected and unused lists on step 4 and the calendar (seen in the visual candidates).
+2. **H-005 (closed 17 Nov 2026).** Review numbers come from the server (H-036 V-1).
 3. **F-013, F-014 (not tested).** No refusal can be shown on the page yet; the slots exist and
    are covered by markup only.
 4. **M-001, M-002 (not tested).** A keyboard pass by hand is still needed before acceptance.
+5. **H-014, H-015 (open, low).** Two wrapping issues the filled-in data exposed; fixes proposed.
 
 ## 6. Remaining limitations
 
-- Open: H-005, H-006 (above). All wait on `@backend.eng` (H-036, B2) or an operator call.
+- Open: H-014, H-015 (low, above). H-005 and H-006 closed 17 Nov 2026 when H-036 and B2 landed.
 - Not tested: keyboard, focus, contrast tool, automated scan, visual regression, other
   browsers, refusals, the `:has()` fallback in a real browser without `:has()`.
 - Screenshots are taken from saved pages with the stylesheet beside them, so fonts load from the
@@ -212,3 +221,7 @@ this table is the agent's reading, not the acceptance decision.
   passes on all 26.
 - 2026-11-17 · persona `frontend-eng` · wordmark underline on hover only; 24 sidebar snapshots refreshed
   (operator approved); suite passes.
+- 2026-11-17 · persona `frontend-eng` · after H-036, B2 and H-045: candidates for all 26 snapshots
+  generated (none written to the baselines); 18 changed, each compared side by side with its
+  baseline and traced to a server field or the backend's deliberate stand-in change. H-005 and
+  H-006 closed; H-014 and H-015 (low) found. Refresh proposed to the operator.

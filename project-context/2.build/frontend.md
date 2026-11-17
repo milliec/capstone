@@ -68,7 +68,7 @@ cards) live in that page.
 | `macros.html` · `refusal_top`, `refusal_here` | §5 | all forms | the "Not done" box or the short line with "Go to …" at the top; the full sentence beside the control or inside the card the server names (`refusal.anchor`) |
 | `macros.html` · `stage_of`, `not_reached` | pages 4 to 6, "Closed review" | pages 4 to 6 | where a step page stands (before / at / after / ended before) and the one-line "not ready" message |
 | `macros.html` · `mark_label` | page 6 "Mark labels" | page 6 | "Moved off a weekend", "May not be required", "Depends on open question OQ-7", each with its line |
-| `parts/lookups.html` | §1.4, §1.5, pages 3 to 5 | via the macros and pages | ux.md's fixed tables (step names, failure sentences, weekend words) and the **interim** lookups (§2), each marked with the H-036 field that replaces it |
+| `parts/lookups.html` | §1.4, §1.5, pages 3 to 5 | via the macros and pages | ux.md's fixed wording only (step names, weekend and holiday words, AI answer words, unit words). The interim lookups were deleted with H-045 (§2) |
 | `parts/decision_rule.html` | page 4 item 5.8 | page 4 | G1 answer-first form (§3) |
 | `parts/decision_answer.html` | page 5 item 5.7 | page 5 | G2 answer-first form (§3) |
 | `parts/decision_publish.html` | page 6 item 6 | page 6 | G3 answer-first form (§3) |
@@ -83,15 +83,16 @@ stepper and run-labels macros replace them.
 "Reads" names the field the template needs. ✅ = the stub view sends it (H-036 landed 2026-11-17: V-1 to V-12, V-12 with B2). ⏳ = still
 not sent: "Approval blocked" (B7) and the web-layer items of §10.2. The template never works a ⏳ field out by itself.
 
-**Interim lookups (H-036 has landed; `@frontend.eng` deletes them)** (operator approval of this spec, 2026-11-17). Some ⏳ fields
-are only ux.md's fixed tables keyed by a server value: the status tone (§1.5), the stepper states
-(§1.4), the page H1 and lead per state (page 3), the step a review stopped at (DL-46), and whether a
-step page is before, at or after its step. `parts/lookups.html` still holds these
-tables, keyed by `run.status` and `run.phase`, in **one** file, each marked "interim: replaced by
-H-036 V-n"; the server now sends every one (V-1 to V-12). The page uses the server's field when it is present and the lookup only when it is
-not. A lookup only chooses words and which section to show; the server still enforces every rule,
-because every form posts to a service that decides. Counts, dates, reasons and evidence (quote
-checks, flags, facts) are never looked up: if the server does not send them, the page leaves them out.
+**Interim lookups: deleted (H-045, 17 Nov 2026).** Until H-036 landed, `parts/lookups.html` held
+ux.md's fixed tables keyed by `run.status` and `run.phase` (status tone, stepper states, the step a
+review stopped at, page stage, filing parties, decided words, failure sentences), each marked
+"interim: replaced by H-036 V-n", and the page used them only when the server's field was missing.
+The server now sends every one, so the tables and their fallbacks are gone: the pages show the
+server's values (V-1 to V-11) with no fallback. `parts/lookups.html` keeps only ux.md's fixed
+wording for values the server sends (step names, weekend and holiday words, AI answer words, unit
+words). The "Continue checking" link on Filing rules and "Abandoned at step k" now read the step the
+server marks "Your turn" or `current` in `steps`. Counts, dates, reasons and evidence were never
+looked up.
 
 ### Page 1 · Sign-in
 
@@ -373,8 +374,8 @@ with labels → stepper → banner. The banner is the most visible block on the 
 ### 4.2 Pills: word first, colour second
 
 Every status is a pill **with its word inside**: `<span class="chip {tone}">{words}</span>`.
-Colour never carries the meaning alone (UX-007). The tone comes from the server (⏳ `status_tone`,
-from ux.md §1.5; interim lookup until then); the template maps tone to a class.
+Colour never carries the meaning alone (UX-007). The tone comes from the server (`status_tone` ✅,
+from ux.md §1.5); the template maps tone to a class.
 
 **Decided (operator, 2026-11-17, Open Question 1):** the existing style-note families, no new
 colour. "Always show the word with the colour."
@@ -571,27 +572,28 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-21 | W-1 to W-4 (refresh flag and render time, date filters, static mount, 500 page) | ✅ | `80b9d7e`, `e7bf018`. Display only |
 | S-14 | `static/site.css` + nav icons + `NOTICES` | ✅ | `e7bf018`. Icons inline in the sidebar; Iconoir and font notices added |
 | S-02 | `base.html` + `parts/sidebar.html` + skip link | ✅ | `093c07b` |
-| S-03 | `parts/macros.html` + `parts/lookups.html` (interim) | ✅ | `093c07b`. Lookups go as H-036 lands |
+| S-03 | `parts/macros.html` + `parts/lookups.html` | ✅ | `093c07b`. Interim lookups and their fallbacks deleted with H-045 (`001d348`, `e44f4c7`); `lookups.html` keeps only ux.md's fixed wording |
 | S-04 | Breadcrumb, run labels, stepper | ✅ | Built as macros (§1.2), not separate files |
 | S-05 | `pages/sign_in.html` | ✅ | `53f08d8`; two-panel layout with the portfolio panel added 2026-11-17 (H-037) |
 | S-12 | `pages/no_access.html`, `not_found.html`, `server_error.html` | ✅ | `53f08d8`. 403 title without "Not done: " (ux.md §1.7) |
 | S-06 | `pages/filing_rules.html` | ✅ | `4b75b7b` |
-| S-07 | `pages/review_status.html` + banner + refresh + units | ✅ | `1ed4fbf`. Count, date and reason clauses wait for H-036 V-5, V-6 (§11) |
-| S-08 | `pages/check_rules.html` + G1 form | ✅ | `3b665d7`. Quote check, paragraph, flags, unused paragraphs wait for H-036 V-8 |
+| S-07 | `pages/review_status.html` + banner + refresh + units | ✅ | `1ed4fbf`. Count, date and reason clauses filled by H-036 V-5, V-6 (seen in the 17 Nov candidates) |
+| S-08 | `pages/check_rules.html` + G1 form | ✅ | `3b665d7`. Quote check, paragraph, flags and unused paragraphs filled by H-036 V-8 (seen in the 17 Nov candidates) |
 | S-09 | `pages/confirm_applies.html` + G2 form | ✅ | `16acd65`. Shared `decide_reason` box |
-| S-10 | `pages/publish.html` + G3 form | ✅ | `c78163e`. Rejected and unused lists empty until B2 stores decisions |
-| S-11 | `pages/calendar.html` | ✅ | `36f02cc`, `58760c1`. List grouped by month; week grid display-only (droppable after B6 and Tier 2, before B13b). Summary cards wait for V-11 |
+| S-10 | `pages/publish.html` + G3 form | ✅ | `c78163e`. Who files, Sent to, Why, the moved dates and both "not in this calendar" lists filled by H-036 V-10 and B2 (seen in the 17 Nov candidates) |
+| S-11 | `pages/calendar.html` | ✅ | `36f02cc`, `58760c1`. List grouped by month; week grid display-only (droppable after B6 and Tier 2, before B13b). Who files, Why, source and quote filled by H-036 V-11; summary cards counted from the entries (V-11 `summary` dropped) |
 | S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
-| S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`, `7ef8a0f`. 14 tests; 56 in the suite pass |
+| S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`, `7ef8a0f`. The stepper test no longer checks the deleted fallback (`e44f4c7`); 138 in the suite pass (17 Nov 2026) |
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
-| S-17 | Visual baselines | ✅ | Baseline v1 (24 snapshots) committed 17 Nov 2026 after the operator accepted H-006 for it. Step 4 and calendar snapshots need one approved refresh when H-036 and B2 land |
+| S-17 | Visual baselines | 🟡 | Baseline v1 (24 snapshots) committed 17 Nov 2026 after the operator accepted H-006 for it. H-036 and B2 have landed: the refresh of the 18 changed snapshots is proposed (ux-review.md §3b), **waiting for operator approval**; none re-recorded |
 | S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
 | S-25 | Week grid and month grouping (display-only) | ✅ | Built and tested (`c263fca`, `58760c1`, `8207349`); keyboard pass: no new Tab stops. Calendar baseline v2 approved (4 snapshots) |
 | S-26 | B12 and page 7 like the mock-up (pulled forward, H-040) | ✅ | Summary row, one calendar with a Month / Year / List switch in place, Month by default. Keyboard and click checked; calendar baseline v3 approved (26 snapshots) |
 | S-27 | Click-through feedback: land on the next card after a decision (W-7); no jump when switching calendar views | ✅ | `0eed7b4`, `e827a3e`. Measured in a real browser: next card 24px from the top, first Tab inside it; tabs stay at 80px through every switch |
-| S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
+| S-19 | H-036 view fields from `@backend.eng` | ✅ | V-1 to V-11 landed in PRs #68 to #73, V-12 with B2 (#75) |
+| S-28 | H-045: delete the interim lookups and their fallbacks | ✅ | `001d348` (fallbacks, merged in #78 before it was finished) and `e44f4c7` (the 14 interim tables, an unused import, the stepper test). Every page renders at AT_G1, AT_G2, AT_G3, published, abandoned, declined and failed, plus sign-in, 403 and 404; 138 tests pass |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
 
@@ -602,13 +604,16 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 These are the ⏳ fields of §2. The templates must not work them out (ux.md §1.2, backend.md "Known
 gaps": "B5 moves any such choice into the service view"). Raised as handoff **H-036** to
 `@backend.eng` on 2026-11-17. **Done 2026-11-17, V-12 with B2** (`backend.md` "View fields for the
-pages" and "B2"); the interim lookups (§2) are now only a fallback and are `@frontend.eng`'s to delete.
+pages" and "B2"); the interim lookups (§2) were deleted with H-045 (17 Nov 2026).
 
 ### 10.1 View fields (services, `@backend.eng`): the exact contract
 
-**Exact names and shapes, as the templates read them today** (spec-to-code pass, 17 Nov 2026). Any
-field below may be missing: the page then shows less, never a made-up value (§11). Names are what
-matter; values may be placeholders in stand-in mode.
+**Exact names and shapes, as the templates read them today** (spec-to-code pass, 17 Nov 2026). The
+templates print these as sent. Since H-045 (17 Nov 2026) the fields that choose a word, tone, step or
+form (V-1, V-2, V-3, V-6 `failure`, V-8 to V-10 `stage`, `status`, `filing_parties`,
+`needs_who_files`, `overrule_value`, `decided`) have no fallback. Optional evidence and clauses still
+show less when a value is empty, never a made-up value (§11). Names are what matter; values may be
+placeholders in stand-in mode.
 
 | # | Where the template reads it | Field and shape | Page |
 |---|---|---|---|
@@ -847,3 +852,9 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   still sends a plain sentence. Not touched: the other "⏳ `refusal`" marks (see the proposal).
 - 2026-11-17 · persona `backend-eng` · `sync-docs` · operator asked for the page 2 "Reads" mark to
   be fixed: "⏳ `refusal`" is now "`refusal` ✅" (the shared refusal object, V-12).
+- 2026-11-17 · persona `frontend-eng` · H-045 finished: the 14 interim tables deleted from
+  `parts/lookups.html` (fixed ux.md wording kept), an unused import removed, the stepper test fixed
+  (main had one failing test after #78). Every page rendered in every review state. Visual
+  candidates: 18 changed, the 18 named in H-036's Outcome, each traced to a server field; refresh
+  proposed, not written. §2, §4, §10, §10.1 and S-03, S-07, S-08, S-10, S-11, S-15, S-17, S-19,
+  S-28 updated.
