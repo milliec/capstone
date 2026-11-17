@@ -1001,20 +1001,26 @@ read-only. **Must work at phone width.**
 
    The values are **counted on the page from the entries this viewer is shown**, so the cards can
    never count something the General Partner cannot also read in the calendar (DL-49, CR-012).
-6. **One calendar** (H2 **"All entries for {year}"**) with a three-way switch labelled for screen
-   readers **"Show the calendar as"**: **"Month"** · **"Year"** · **"List"**. The switch changes the
-   view in place, with no page reload and no script, and **only the chosen view shows. Month is
-   the default** (operator decision, 2026-11-17, H-042). Where `:has()` is unsupported, all three
-   views show one under another. The switch is a radio group styled as tabs; the server ticks the
-   one the address asks for (`?view=`), so moving between months keeps the Month view.
+6. **One calendar** (H2 **"All entries for {year}"**; just **"All entries"** when the entries fall
+   in more than one year) with a three-way switch labelled for screen readers **"Show the calendar
+   as"**: **"Month"** · **"Year"** · **"List"**. The switch changes the view in place, with no page
+   reload and no script, and **only the chosen view shows. Month is the default** (operator
+   decision, 2026-11-17, H-042; SAD §3 page 7, DL-49 update). Where `:has()` is unsupported, all
+   three views show one under another. The switch is a radio group styled as tabs (the chosen tab
+   is filled; the tab with the keyboard focus has a visible ring); the server ticks the one the
+   address asks for (`?view=`), so moving between months keeps the Month view. **Only the links
+   between months reload the page**; switching between Month, Year and List does not.
    - **Month view:** one month as a real table, Monday to Sunday, with links to the months either
-     side ("‹ {month}" and "{month} ›"). Each entry shows What, and Who files in words, and "May not
-     be required" where it applies. The next due date carries the word **"Due next"**. A month with
-     no entries shows **"No filings this month."**
+     side ("‹ {month}" and "{month} ›"). It opens on the month asked for, else the month of the
+     next due date, else (when every date has passed) the month of the first entry. Each entry shows
+     What, and Who files in words, and "May not be required" where it applies. The next due date
+     carries the word **"Due next"**. A month with no entries shows **"No filings this month."**
    - **Year view:** a real table, one row per obligation ("What · who files") and a column per
      month; each date is a small weekday-and-day mark. Legend: **"May not be required (dashed)"** ·
      **"Due next (underlined)"**. The words are also in the table for screen readers, so colour or
-     line style never carries the meaning alone.
+     line style never carries the meaning alone. It shows **one year**: the next due date's, else
+     the first entry's. The dot chart counts that same year ("Entries in {year}"); entries in
+     another year show in the Month and List views only.
    - **List view:** the entries table in item 7.
 7. **Entries (List view):** a real table sorted by due date, grouped by month, each month its own
    row group. Columns: **When** (due date) · **What** ·
@@ -1192,6 +1198,7 @@ unstyled.
 | UX-014 | A stand-in happy path from G1 open to G3 published takes a first-time reader under 30 minutes (from audit timestamps) | §7, EC-011 |
 | UX-021 | **With Retry** (B13b built; sad.md rule 10): a failed review shows the "Retry step {k}" button, visible and enabled, and the link "Or start a new review from Filing rules"; clicking Retry puts the review back to "In progress" at that step, keeps every earlier decision, and adds one audit entry | Page 3 "Failed review", D10, G-3 |
 | UX-022 | **Without Retry** (the B5 page, and the page if B13b is dropped; a failure-demo review ends here until B13b is built): a failed review shows only the link "Start a new review from Filing rules"; the page source has no Retry form, button or text (not hidden, not disabled), and a new review can be started | Page 3 "Failed review", §1.2 |
+| UX-023 | On a published calendar at 1024 px or wider, the Month tab is ticked on first load and only the Month view shows; choosing Year or List shows only that view without a page reload; with `?view=list` the List tab is ticked. Below 960 px only the List view shows and the switch is hidden. No view shows a moved mark, a flag or a review status | Page 7 items 6 to 8, H-042, SAD §3 page 7, DL-49 |
 
 ## 9. Post-MVP ideas (not in the Build card; not designed)
 
@@ -1307,7 +1314,9 @@ Not designed, not built, and not shown as a placeholder (§1.2):
   (H-004 to H-026; this revision applies U1 to U11, A3, A4, A7, A9, H-009, H-023 and U9/Q1), and
   H-028 and H-030 (answer-first form; follow-ups from the SAD update).
 - `project-context/1.define/sad.md` DL-47, DL-48, DL-49, §3 pages 4 and 7, §3 "Decision form",
-  §4 routes and validation (read for H-030).
+  §4 routes and validation (read for H-030). Read again for the H-042 second pass: §3 page 7 and the
+  DL-49 update of 2026-11-17 (`decision-log.md`), with `backend/web/templates/pages/calendar.html`,
+  `backend/web/calendar_view.py` and `backend/web/routes/calendar.py` for what is built.
 - `docs/prototype/HANDOVER.md` and `docs/prototype/build.py` (the mock-up wording and layout).
 - `project-context/1.define/sad.md` "Data model: the happy path" (DL-50 ERD), the table list in
   §4 "Data", the run-state model, "Transitions and guards" and the failure reasons (read for §10
@@ -1594,3 +1603,14 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   still says "chosen by a link", List default; H-040) or `frontend.md`. Approval status left
   `approved`: pages 1 and 7 and the §5 placement change layout after approval, so the operator
   should read them. No code. No model call.
+- 2026-11-17 · persona `ux-designer` · action `design-ux` (revision, H-042 second pass, after PR #82) ·
+  branch `ux/h042-page7-after-pr82` · checked page 7 against `sad.md` §3 page 7 and the DL-49 update
+  (H-040, now landed) and against the built page (`calendar.html`, `calendar_view.py`,
+  `routes/calendar.py`, `site.css`). The two now agree on: radio group styled as tabs, Month the
+  default, only the List view below 960 px, the dot chart, no moved marks. Added to page 7 item 6
+  what the SAD and the code say and ux.md did not: only the links between months reload the page;
+  which month the Month view opens on; the Year view and the dot chart show one year; the H2 reads
+  "All entries" when the entries span more than one year; the focus ring on the tabs. New check
+  UX-023. Sources now list the SAD page 7 row and the DL-49 update. The "chosen by a link" note in
+  the entry above is out of date: `sad.md` was corrected in PR #82. Approval status left `approved`:
+  no layout or wording changed, only gaps filled. No code. No model call.
