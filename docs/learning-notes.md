@@ -321,6 +321,16 @@ nothing. The fix was `sleep=None`, looking up `time.sleep` at the moment of paus
 default is a snapshot, not a live link. And a "real mode never pauses" test only means something if
 the matching "stand-in does pause" test exists and can go red.
 
+**A flaky test can be a flaky outside service.** The screenshot tests now and then reported every
+page of one browser session as changed, with only tiny differences in body text. Waiting longer for
+the fonts did not fix it. Asking Google Fonts the same question five times did: one answer in five
+pointed to a different, built-on-the-fly copy of the Inter font, which renders slightly differently.
+The fix was to give the tests a pinned copy of the usual answer, so every run uses the same font
+files; the app itself is unchanged. Lesson: when a test fails "randomly", look for something outside
+your code that can answer differently (a font server, a clock, a network), and pin it in the test.
+It's like comparing two exports of a Figma frame where a shared library font quietly updated between
+them: the design did not change, the font did.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -523,3 +533,5 @@ DL-48).
   fails first can catch the code)
 - 2026-11-17 · added one note from the visual-regression setup (a hand-run check is only as good as
   the tool it runs on; the hook used the system grep and caught what the hand scan missed)
+- 2026-11-17 · added one note from the visual-check flake (a flaky test can be a flaky outside service;
+  pin it in the test)
