@@ -204,7 +204,7 @@ it always finishes by itself." On a closed review: nothing.
 | State | What shows |
 |---|---|
 | nothing published | H1 "Compliance calendar" and the fixed message only: "Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published." |
-| published | "Published on {date}." (+ "Made with stand-in agents (fixed test outputs, no AI model)." when it applies); the role's calendar note; three summary cards (once V-11 sends `summary`); the week grid "The next two months" (display-only, see below); table "All entries for {year}", grouped by month |
+| published | "Published on {date}." (+ "Made with stand-in agents (fixed test outputs, no AI model)." when it applies); the role's calendar note; three summary cards (counted on the page, see below); one calendar "All entries for {year}" with a Month (default), Year and List switch (display-only, see below; the Month view replaced the two-month grid) |
 | error | "The calendar could not be shown just now. Try again in a few minutes." (§10, W-4) |
 
 | | |
@@ -685,7 +685,7 @@ column is kept as the record of the interim behaviour.
 | Page 4 | no quote-check line, paragraph, flags, OQ-7 mark, "Checker flags" card or unused-paragraphs list; decided line is "**Approved**." only | all of them, and "Approved by … at 14:02. …" | V-8 |
 | Page 5 | cited facts as IDs only; no "Show the approved rule"; the can't-tell question without "Nobody has confirmed {fact}." | the facts table, the rule, the full question | V-9 |
 | Page 6 | "Who files", "Sent to", "Why" empty; moved mark without its dates; **both "what's not in this calendar" lists empty**, even after a rejection | filled | V-10; the lists need B2 to store decisions |
-| Page 7 | no summary cards, no two-month grid, heading "All entries" without the year; "Who files" and "Why" empty | filled | V-11 |
+| Page 7 | no summary cards, no two-month grid, heading "All entries" without the year; "Who files" and "Why" empty | **Built (B12, H-040, H-041):** summary cards with the dot chart, and one calendar with Month (default), Year and List views, all arranged on the page from the entries sent (display-only, W-5, W-6); "Who files" and "Why" filled (V-10). V-11 `summary`, `weeks` and `months[]` are not needed and not built | page 7 as built, above |
 | Refusals | every ux.md §5 refusal on the page, with its 409 or 422 status | every ux.md §5 refusal on the page | V-12 and B2 |
 
 **Later (not this sprint).** Collapsible nav below the breakpoint (no-JS `<details>`/`<summary>`
@@ -862,3 +862,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   option A) before the snapshot refresh; S-17 updated.
 - 2026-11-17 · persona `frontend-eng` · H-036 snapshot refresh approved (18) and written; S-17 ✅;
   visual check passes on all 26.
+- 2026-11-17 · persona `frontend-eng` · `frontend.md` brought in step with B12 (H-041, operator): §11
+  Page 7 row now says the summary cards and the Month, Year and List views are built (display-only);
+  §2 Page 7 "published" row no longer names the two-month week grid, which the Month view replaced.
+  Docs only. No code. No snapshots touched.
