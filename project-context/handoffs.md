@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-038: FYI: the real-name scan now skips node_modules
+- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: `scripts/git-hooks/run-checks.sh` (check 2, the real-name scan), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `91b9d4e`
+- Ask: For information; no action needed. The scan gained `--exclude-dir=node_modules`, the same treatment as `.venv`, in the hook and in CLAUDE.md. Please keep it in step if you change either, and add the same line to the CI job if H-003 brings the scan there (H-003 keeps the scan local only, so today there is nothing to change).
+- Why: The visual tests install Playwright into git-ignored `tests/visual/node_modules/`; the hook scanned that third-party code and blocked a commit on two lines of Playwright's bundle. Also learned: in some agent shells `grep` is replaced by a look-alike that misses matches the system `grep` finds; hand-run scans should call `/usr/bin/grep` (`docs/learning-notes.md`, §4).
+- Outcome: (the owner fills this in)
+
 ### H-037: Sign-in adopts the mock-up's left-hand panel, in portfolio voice
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
 - Touches: 2.build/ux.md page 1 (Sign-in), §1.6 (Voice), "Mock-up differences this revision does not apply"; docs/prototype/sign-in.html; built in backend/web/templates/pages/sign_in.html (2.build/frontend.md §11)
