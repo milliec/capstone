@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-051: Stand-in rules 2 and 3 say "central administration"; "Who files" should show one of the six options
+- From: @ux.designer (operator decision, 2026-11-17)   To: @backend.eng   Date: 2026-11-17
+- Touches: `backend/stand_in/shell_data.py` (`ROWS`, rules 2 and 3, `responsible_role`); ux.md UX-016 and page 7 (Who files); `backend/services/calendar.py` line 39 (reads the value, no change asked)
+- Ask: Change `responsible_role` from `"central administration"` to `"fund administrator"` on rules 2 and 3. The calendar capitalizes it, so it then reads "Fund administrator", one of the six "who files" options (UX-016). Expect the calendar (page 7) and publish (step 4) snapshots to change, and probably the check-rules (step 2) ones, which print the value as the source says it. Run `cd tests/visual && npm run test:visual` and report which failed in the Outcome. Do not re-record: `@frontend.eng` proposes the refresh for the operator to approve (`CLAUDE.md` check 3).
+- Why: "Central administration" is not a filing party in the mock profile or in ux.md, so the stand-in calendar showed a "Who files" value the product never offers.
+- Outcome: (the owner fills this in)
+
 ### H-048: FYI and one fix: refusals are live; the abandon box reads `typed` the wrong way; the visual script changed
 - From: @backend.eng (B2)   To: @frontend.eng   Date: 2026-11-17
 - Touches: `backend/web/templates/pages/review_status.html` (the abandon textarea); `tests/visual/visual.spec.js`; 2.build/frontend.md §10.1 V-12
@@ -162,6 +169,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Ask: Record the operator's decisions in ux.md page 7. (1) The page follows `gp-calendar.html`: the three summary cards (Due next on the dark card, Entries in {year} with the dot chart, May not be required), then one calendar, "All entries for {year}", with a Month / Year / List switch that shows only the chosen view (**Month by default**, operator 2026-11-17). (2) The Month view replaces item 6's two-month week grid; the list (item 7) is one of the views, not always shown. (3) The summary cards are counted on the page from the entries the viewer sees. (4) Below 960 px only the List view shows. (5) New wording for the copy review: "No filings this month.", "Entries in {year}: {n}", "None" when nothing is due next, and the Year view legend ("May not be required (dashed)", "Due next (underlined)"). The Month and Year views leave "Mock-up differences".
 - Why: The build follows the operator's decision; ux.md still describes the earlier page 7.
 - Outcome: Done 2026-11-17 by `@ux.designer` in `2.build/ux.md` page 7: items 5 to 8 rewritten (three summary cards in the mock-up's order, one calendar "All entries for {year}" with a Month / Year / List switch, **Month by default**, only the chosen view shows, counted on the page); the two-month week grid is gone; the List table is one of the views; below 960 px only the List view shows. New wording recorded: "No filings this month.", "Entries in {year}: {n}", "None", and the Year legend "May not be required (dashed)" / "Due next (underlined)". The Month and Year views are removed from "Mock-up differences". Not touched: `sad.md` §3 page 7 still says the views are chosen by a link and List is the default; that is `@system.arch`'s (H-040).
+- Second pass (`@ux.designer`, 2026-11-17, after PR #82): `sad.md` §3 page 7 and the DL-49 update now say what ux.md says (radio group styled as tabs, Month the default, only the List view below 960 px, dot chart, helper display-only), so the point above is closed. Checked ux.md page 7 against the SAD and the built page (`calendar.html`, `calendar_view.py`, `routes/calendar.py`, `site.css`); no wording or layout changed. Added what the SAD and the code say and ux.md did not: only the links between months reload the page; the month the Month view opens on; the Year view and the dot chart show one year; the H2 reads "All entries" when the entries span more than one year; the focus ring on the tabs. New check UX-023 (§8). Not touched: `frontend.md` (`@frontend.eng`).
 
 ### H-037: Sign-in adopts the mock-up's left-hand panel, in portfolio voice
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
