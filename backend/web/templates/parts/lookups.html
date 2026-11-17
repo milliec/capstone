@@ -1,0 +1,74 @@
+{#- INTERIM LOOKUPS (frontend.md §2, "Interim lookups until H-036 lands").
+
+    ux.md's fixed tables, keyed by the server's `run.status` and `run.phase`. They only choose
+    WORDS and WHICH SECTION SHOWS; every rule is still enforced by the service the form posts to.
+    Each table names the H-036 field that replaces it. When that field lands, the page uses the
+    server's value (see parts/macros.html) and the table here is deleted.
+
+    Nothing here counts, compares or works out a date, reason or decision. -#}
+
+{#- Step names (ux.md §1.4). Fixed wording, not interim. -#}
+{% set STEP_NAMES = {1: "AI drafts the rules", 2: "You check the rules",
+                     3: "You confirm what applies", 4: "You publish the calendar"} %}
+
+{#- The page each step links to (ux.md §1.4: done and "Your turn" steps link to their page). -#}
+{% set STEP_PATHS = {1: "", 2: "/g1", 3: "/g2", 4: "/g3"} %}
+
+{#- Interim, replaced by H-036 V-2 `status_tone`. ux.md §1.5 tones, keyed by phase (ACTIVE)
+    or by status (ended). Values are ux.md tone names. -#}
+{% set TONE_ACTIVE = {"A_RUNNING": "info", "AT_G1": "action", "B_RUNNING": "info",
+                      "AT_G2": "action", "C_RUNNING": "info", "AT_G3": "action"} %}
+{% set TONE_ENDED = {"FAILED": "problem", "ABANDONED": "neutral", "DECLINED": "neutral",
+                     "COMPLETED": "success"} %}
+
+{#- Interim, replaced by H-036 V-3 `steps`. ux.md §1.4 table, one row per server value. -#}
+{% set STEPS_ACTIVE = {
+  "A_RUNNING": ["In progress", "Not started", "Not started", "Not started"],
+  "AT_G1":     ["Done", "Your turn", "Not started", "Not started"],
+  "B_RUNNING": ["Done", "Done", "In progress", "Not started"],
+  "AT_G2":     ["Done", "Done", "Your turn", "Not started"],
+  "C_RUNNING": ["Done", "Done", "Done", "In progress"],
+  "AT_G3":     ["Done", "Done", "Done", "Your turn"],
+} %}
+{% set STEPS_COMPLETED = ["Done", "Done", "Done", "Done"] %}
+
+{#- Interim, replaced by H-036 V-3 / V-6. The step a review stopped at, from runs.phase (DL-46,
+    ux.md §1.4: "A_RUNNING → step 1, AT_G1 → step 2, B_RUNNING or AT_G2 → step 3, C_RUNNING or
+    AT_G3 → step 4"). -#}
+{% set STOPPED_STEP = {"A_RUNNING": 1, "AT_G1": 2, "B_RUNNING": 3, "AT_G2": 3,
+                       "C_RUNNING": 4, "AT_G3": 4} %}
+{#- ...and the stepper row for a review that ended there ("Ended" or "Failed" goes in the {x}). -#}
+{% set STEPS_STOPPED = {
+  1: ["{x}", "Not started", "Not started", "Not started"],
+  2: ["Done", "{x}", "Not started", "Not started"],
+  3: ["Done", "Done", "{x}", "Not started"],
+  4: ["Done", "Done", "Done", "{x}"],
+} %}
+
+{#- Interim, replaced by H-036 V-8 to V-10 `stage`. Where a step page stands for each phase of
+    an ACTIVE review: "before" (not reached yet), "at" (forms show), "after" (read-only).
+    An ended review never shows forms (ux.md "Closed review"); see stage_of() in macros.html. -#}
+{% set PAGE_STAGE = {
+  "g1": {"A_RUNNING": "before", "AT_G1": "at", "B_RUNNING": "after", "AT_G2": "after",
+         "C_RUNNING": "after", "AT_G3": "after"},
+  "g2": {"A_RUNNING": "before", "AT_G1": "before", "B_RUNNING": "before", "AT_G2": "at",
+         "C_RUNNING": "after", "AT_G3": "after"},
+  "g3": {"A_RUNNING": "before", "AT_G1": "before", "B_RUNNING": "before", "AT_G2": "before",
+         "C_RUNNING": "before", "AT_G3": "at"},
+} %}
+
+{#- Interim, replaced by H-036 V-4 `unit_groups`. Unit status words (ux.md page 3 item 7). -#}
+{% set UNIT_WORDS = {"waiting": "Waiting", "running": "Running", "done": "Done", "failed": "Failed"} %}
+{% set UNIT_TONE = {"waiting": "neutral", "running": "info", "done": "success", "failed": "problem"} %}
+
+{#- Interim, replaced by H-036 V-6 `failure`. ux.md page 3 "Failure reason sentences". Fixed
+    wording keyed by the stored reason code. -#}
+{% set FAILURE_SENTENCES = {
+  "model service": "The model service did not answer in time, or returned an error, twice",
+  "stage time limit": "This step took longer than its time limit",
+  "invalid output": "The AI returned output in the wrong format, so it was not used",
+  "cost cap": "The review reached its cost limit of US$2.50",
+  "service restarted": "The application restarted while AI was working",
+  "calendar generation": "The dates could not be worked out into one complete calendar",
+  "demo failure": "This step failed on purpose, for the demo only, because \"Make step 1 fail (demo)\" was ticked when the review started. Nothing else went wrong",
+} %}
