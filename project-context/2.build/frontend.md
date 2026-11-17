@@ -156,7 +156,7 @@ it always finishes by itself." On a closed review: nothing.
 
 | State | What shows |
 |---|---|
-| not yet (`A_RUNNING`) | `parts/not_reached.html`: "AI is still drafting the rules. They will be here when it finishes." + "Watch progress on the review status page" |
+| not yet (`A_RUNNING`) | the `not_reached` macro: "AI is still drafting the rules. They will be here when it finishes." + "Watch progress on the review status page" |
 | at G1, rules to decide | full page: lead, four summary cards, rule index table, one card per rule, unused paragraphs, finish section, "Abandon this review" link |
 | at G1, all decided | every card shows its decision; "To decide 0"; finish section H2 "All rules decided" |
 | refused, about one rule | lands on `#row-{i}`; full sentence inside the card under "Not done"; short top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; the demo rule's tag becomes "Approval blocked" |
@@ -321,7 +321,7 @@ Question 4).
 
 ### 4.1 The status banner (review status page)
 
-One block, `parts/status_banner.html`, is the first thing under the stepper (ux.md page 3 item 4,
+One section of `pages/review_status.html`, the first thing under the stepper (ux.md page 3 item 4,
 the "status line"). Top to bottom:
 
 1. **The pill**: the status words of ux.md §1.5, in a pill with its tone (§4.2). For example
@@ -545,12 +545,12 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-11 | `pages/calendar.html` (list) | ✅ | `36f02cc`. Summary cards, week grid, month grouping wait for H-036 V-11 |
 | S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
 | S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`. 12 tests; 54 in the suite pass |
-| S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | 🟡 | In progress |
+| S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
 | S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review of `ux-review.md` |
 | S-18 | README notes via `*sync-docs` | ⬜ | Proposal to the operator; nothing written before approval |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
-| S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | ⬜ | Run before asking to merge |
+| S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | 🟡 | First pass 2026-11-17: clean (no markers; every named file exists or is marked deleted). Run again before the merge |
 
 ---
 
