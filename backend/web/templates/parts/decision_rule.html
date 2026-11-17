@@ -9,11 +9,11 @@
     - The demo rule and a quote-check-failed rule get exactly this form; "Approve rule" stays
       visible and active, and the server refuses it (UX-003, H-009). -#}
 {% import "parts/macros.html" as ui with context %}
-{% import "parts/lookups.html" as L %}
 {%- set p = "r" ~ i -%}
-{%- set needs_who = r.needs_who_files if r.needs_who_files is defined else (r.responsible_role in L.WHO_FILES_SILENT) -%}
-{%- set has_flag = r.has_flag if r.has_flag is defined else false -%}
-{%- set parties = r.filing_parties if r.filing_parties is defined else L.FILING_PARTIES -%}
+{#- The server's values (H-036 V-8): whether "Who files" must be chosen, and the choices. -#}
+{%- set needs_who = r.needs_who_files -%}
+{%- set has_flag = r.has_flag -%}
+{%- set parties = r.filing_parties -%}
 {%- set typed = refusal.typed if (refusal and refusal.typed is defined and refusal.anchor == "row-" ~ i) else {} -%}
 <form class="decision" method="post" action="/specialist/rows/{{ r.row_id }}/decision">
   <input type="hidden" name="version" value="{{ r.version }}">

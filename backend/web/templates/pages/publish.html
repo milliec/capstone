@@ -2,12 +2,12 @@
 {#- Page 6 · Check the calendar and publish (G3) (ux.md page 6; route GET …/g3).
     Reads: run, view (calendar.get_g3_view), refusal. Posts: one form, two buttons (publish or
     close without publishing), see parts/decision_publish.html.
-    The rejected and unused lists show exactly what the server sends (the stub sends empty lists
-    until B2 stores decisions). Who files, Sent to and Why fill in with H-036 V-10. -#}
+    The rejected and unused lists, and each entry's Who files, Sent to and Why, show exactly what
+    the server sends (H-036 V-10). -#}
 {% import "parts/macros.html" as ui with context %}
 
 {%- set rid = run.run_id -%}
-{%- set stage = ui.stage_of(run, "g3", view.stage if view.stage is defined else none)|trim -%}
+{%- set stage = view.stage -%}
 {%- set entries = view.entries -%}
 {%- set rejected = view.rejected_rows if view.rejected_rows is defined else none -%}
 {%- set unused = view.unused_paragraphs if view.unused_paragraphs is defined else none -%}
