@@ -36,8 +36,12 @@
 
   <div class="side-foot">
     <div class="who">
-      <p class="n">{{ identity.label }}</p>
-      <p class="small muted">{{ identity.line }}</p>
+      {#- Initials, as in the mock-ups. Decorative: the role name sits beside it. -#}
+      <span class="avatar" aria-hidden="true">{{ {"specialist": "CS", "gp": "GP"}.get(identity.role, "") }}</span>
+      <div>
+        <p class="n">{{ identity.label }}</p>
+        <p class="r">{{ identity.line }}</p>
+      </div>
     </div>
     <form method="post" action="/sign-out"><button class="ghost sm" type="submit">Sign out</button></form>
   </div>

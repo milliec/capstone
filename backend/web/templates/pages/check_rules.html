@@ -88,8 +88,10 @@
   {%- set r = c.r %}{%- set i = c.i %}
   <article class="rule-card{{ ' open' if stage == 'at' and not c.decided }}{{ ' refused' if refusal and refusal.anchor is defined and refusal.anchor == 'row-' ~ i }}" id="row-{{ i }}" aria-labelledby="row-{{ i }}-h">
     <header>
-      <p class="n">Rule {{ i }} of {{ n }} · <span class="id">{{ r.row_id }}</span></p>
-      <h2 id="row-{{ i }}-h">{{ r.obligation_name }}</h2>
+      <div>
+        <p class="n">Rule {{ i }} of {{ n }} · <span class="id">{{ r.row_id }}</span></p>
+        <h2 class="sq{{ ' you' if stage == 'at' and not c.decided }}" id="row-{{ i }}-h">{{ r.obligation_name }}</h2>
+      </div>
       <ul class="tags">
         {%- if r.origin == "demo" %}<li>{{ ui.tag("Demo") }}</li>{% endif %}
         {%- for t in (r.tags if r.tags is defined else []) %}<li>{{ ui.tag(t) }}</li>{% endfor %}
@@ -97,59 +99,59 @@
       </ul>
     </header>
 
-    <div class="part">
-      <h3>Quote</h3>
-      <figure>
-        <blockquote>{{ r.quote }}</blockquote>
-        <figcaption>Quote from paragraph <span class="id">{{ r.source_paragraph_id }}</span></figcaption>
-      </figure>
-      {%- if r.quote_check is defined %}
-      <p class="check">
-        {%- if r.quote_check.passed %}Quote check: passed. The quote appears word for word in paragraph {{ r.source_paragraph_id }}.
-        {%- else %}Quote check: failed. The quote does not appear word for word in paragraph {{ r.source_paragraph_id }}. This rule can only be rejected.{% endif %}
-      </p>
-      {%- endif %}
-    </div>
+    {#- Two columns on wide screens (the mock-up's evidence layout). The left column comes first in
+        the source, so the reading order stays ux.md's: quote → check → paragraph → flags → fields. -#}
+    <div class="evidence">
+      <div>
+        <h3>The source says</h3>
+        <figure>
+          <blockquote>{{ r.quote }}</blockquote>
+          <figcaption>Quote from paragraph <span class="id">{{ r.source_paragraph_id }}</span></figcaption>
+        </figure>
+        {%- if r.quote_check is defined %}
+        <p class="check">
+          {%- if r.quote_check.passed %}Quote check: passed. The quote appears word for word in paragraph {{ r.source_paragraph_id }}.
+          {%- else %}Quote check: failed. The quote does not appear word for word in paragraph {{ r.source_paragraph_id }}. This rule can only be rejected.{% endif %}
+        </p>
+        {%- endif %}
 
-    {%- if r.paragraph is defined %}
-    <div class="part">
-      <h3>Paragraph {{ r.source_paragraph_id }}, {{ r.paragraph.document }}</h3>
-      <p class="para">{{ r.paragraph.text }}</p>
-    </div>
-    {%- endif %}
+        {%- if r.paragraph is defined %}
+        <h3>Paragraph {{ r.source_paragraph_id }}, {{ r.paragraph.document }}</h3>
+        <p class="para">{{ r.paragraph.text }}</p>
+        {%- endif %}
 
-    {%- if r.flags is defined %}
-    <div class="part">
-      <h3>Checker flags</h3>
-      {%- for f in r.flags %}
-      <div class="flag">
-        <h4>Flagged by the AI checker: {{ "two sources disagree" if f.flag_type == "cross_source" else "inside the same document" }}</h4>
-        <p>The checker points out disagreements but never settles them. Approve it with a reason despite the flag, or reject it with a reason.</p>
-        <div class="versus">
-          <div><b>The rule says:</b> {{ f.row_value }}</div>
-          <div><b>The source says:</b> {{ f.quote_says }}, paragraph {{ f.other_paragraph_id }}</div>
+        {%- if r.flags is defined %}
+        <h3>Checker flags</h3>
+        {%- for f in r.flags %}
+        <div class="flag">
+          <h4>Flagged by the AI checker: {{ "two sources disagree" if f.flag_type == "cross_source" else "inside the same document" }}</h4>
+          <p>The checker points out disagreements but never settles them. Approve it with a reason despite the flag, or reject it with a reason.</p>
+          <div class="versus">
+            <div><b>The rule says:</b> {{ f.row_value }}</div>
+            <div><b>The source says:</b> {{ f.quote_says }}, paragraph {{ f.other_paragraph_id }}</div>
+          </div>
         </div>
+        {%- else %}
+        <p>No checker flags.</p>
+        {%- endfor %}
+        {%- endif %}
       </div>
-      {%- else %}
-      <p>No checker flags.</p>
-      {%- endfor %}
-    </div>
-    {%- endif %}
 
-    <div class="part">
-      <h3>The rule</h3>
-      <dl class="draft">
-        <dt>What must be done</dt><dd>{{ r.obligation_name }}</dd>
-        <dt>Frequency</dt><dd>{{ r.frequency }}</dd>
-        <dt>Due relative to</dt><dd>{{ r.anchor }}</dd>
-        <dt>Offset</dt><dd>{{ r.offset }}</dd>
-        <dt>Recipient</dt><dd>{{ r.recipient_name if r.recipient_name is defined else r.recipient_code }}</dd>
-        <dt>Who files, as the source says</dt><dd>{{ "Not stated in source" if r.responsible_role in L.WHO_FILES_SILENT else r.responsible_role }}</dd>
-        <dt>Weekend or holiday, as the source says</dt><dd>{{ L.BDR_SOURCE_WORDS.get(r.business_day_rule, r.business_day_rule) }}</dd>
-      </dl>
-      {%- if r.open_question is defined and r.open_question %}
-      <p class="note">What happens on a weekend or holiday for this rule depends on open question OQ-7, which is not yet answered. Nothing is chosen for you. Whatever you choose, the dates will carry the OQ-7 mark when you publish.</p>
-      {%- endif %}
+      <div>
+        <h3>The AI's reading</h3>
+        <dl class="draft">
+          <dt>What must be done</dt><dd>{{ r.obligation_name }}</dd>
+          <dt>Frequency</dt><dd>{{ r.frequency }}</dd>
+          <dt>Due relative to</dt><dd>{{ r.anchor }}</dd>
+          <dt>Offset</dt><dd>{{ r.offset }}</dd>
+          <dt>Recipient</dt><dd>{{ r.recipient_name if r.recipient_name is defined else r.recipient_code }}</dd>
+          <dt>Who files, as the source says</dt><dd>{{ "Not stated in source" if r.responsible_role in L.WHO_FILES_SILENT else r.responsible_role }}</dd>
+          <dt>Weekend or holiday, as the source says</dt><dd>{{ L.BDR_SOURCE_WORDS.get(r.business_day_rule, r.business_day_rule) }}</dd>
+        </dl>
+        {%- if r.open_question is defined and r.open_question %}
+        <p class="note">What happens on a weekend or holiday for this rule depends on open question OQ-7, which is not yet answered. Nothing is chosen for you. Whatever you choose, the dates will carry the OQ-7 mark when you publish.</p>
+        {%- endif %}
+      </div>
     </div>
 
     {%- if stage == "at" and not c.decided %}

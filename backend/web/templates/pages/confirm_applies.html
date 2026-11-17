@@ -72,11 +72,16 @@
   {%- set v = c.v %}{%- set i = c.i %}
   <article class="rule-card{{ ' open' if stage == 'at' and not c.decided }}{{ ' refused' if refusal and refusal.anchor is defined and refusal.anchor == 'verdict-' ~ i }}" id="verdict-{{ i }}" aria-labelledby="verdict-{{ i }}-h">
     <header>
-      <p class="n"><span class="id">{{ v.row_id }}</span></p>
-      <h2 id="verdict-{{ i }}-h">{{ v.obligation_name }}</h2>
+      <div>
+        <p class="n"><span class="id">{{ v.row_id }}</span></p>
+        <h2 class="sq{{ ' you' if stage == 'at' and not c.decided }}" id="verdict-{{ i }}-h">{{ v.obligation_name }}</h2>
+      </div>
     </header>
 
-    <div class="part">
+    {#- Two columns on wide screens; the reading order stays ux.md's (answer → reasoning → missing →
+        cited facts). -#}
+    <div class="evidence">
+    <div>
       <p class="answer{{ ' unsure' if v.verdict == 'unsure' }}">{{ L.AI_ANSWER_WORDS[v.verdict] }}</p>
       <h3>{{ "Why AI couldn't decide" if v.verdict == "unsure" else "Why AI says this" }}</h3>
       <p>{{ v.reasoning }}</p>
@@ -85,7 +90,7 @@
       {%- endif %}
     </div>
 
-    <div class="part">
+    <div>
       <h3>Cited facts</h3>
       {%- if v.cited_facts is defined %}
       <table>
@@ -99,6 +104,7 @@
       {%- else %}
       <p><span class="id">{{ v.cited_fact_ids }}</span></p>
       {%- endif %}
+    </div>
     </div>
 
     {%- if v.approved_rule is defined %}

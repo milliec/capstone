@@ -38,17 +38,31 @@
 {% block main %}
 {{ ui.review_head(run, H1, refusal) }}
 
-{#- The status line (banner): pill, sentence, "Last updated at …", refresh controls, next step.
+{#- The status line: the page's one call to action (the mock-up's ivory panel, .cta).
+    Active review: a small pill with the workflow word ("AI is working" / "Your turn", ux.md
+    §10.1), then the status words as the heading, then the sentence. Ended review: the pill
+    carries the status words (the H1 already names the state). The bar colour follows the tone.
     role="status" only when the page is not reloading itself, so a screen reader is not made to
     read it again every 3 seconds; the <title> carries the status words as well. -#}
-<section class="banner" aria-labelledby="status-h"{% if not refreshing %} role="status"{% endif %}>
-  <h2 class="sr" id="status-h">Status</h2>
+{%- set tone = ui.run_tone(run)|trim %}
+{%- set CTA_CLASS = {"info": "wait", "action": "", "success": "done", "problem": "no", "neutral": "plain"} %}
+<section class="cta {{ CTA_CLASS.get(tone, '') }}" aria-labelledby="status-h"{% if not refreshing %} role="status"{% endif %}>
+  <div class="body">
   <div class="top">
-    {{ ui.run_tag(run, lg=true) }}
+    {%- if run.status == "ACTIVE" %}
+    {{ ui.tag("AI is working" if run.is_working else "Your turn", tone) }}
+    {%- else %}
+    {{ ui.run_tag(run) }}
+    {%- endif %}
     {%- if refreshing %}
-    <span class="small muted">Last updated at {{ rendered_at|time_seconds }}.</span>
+    <span class="small">Last updated at {{ rendered_at|time_seconds }}.</span>
     {%- endif %}
   </div>
+  {%- if run.status == "ACTIVE" %}
+  <h2 id="status-h">{{ run.status_words }}</h2>
+  {%- else %}
+  <h2 class="sr" id="status-h">Status</h2>
+  {%- endif %}
 
   <p class="sentence">
   {%- if run.status == "ACTIVE" and run.phase == "A_RUNNING" -%}
@@ -104,9 +118,10 @@
     "ABANDONED": ("Go to Filing rules", "/specialist/runs"),
     "FAILED": ("Start a new review from Filing rules", "/specialist/runs#start"),
   } -%}
-  {%- set next = NEXT.get(run.phase) if run.status == "ACTIVE" else NEXT.get(run.status) -%}
+  {%- set next = NEXT.get(run.phase) if run.status == "ACTIVE" else NEXT.get(run.status) %}
+  </div>
   {%- if next %}
-  <p class="next"><a class="btn" href="{{ next[1] }}">{{ next[0] }}</a></p>
+  <a class="btn" href="{{ next[1] }}">{{ next[0] }}</a>
   {%- endif %}
 </section>
 
@@ -123,9 +138,12 @@
   <div class="units-grid">
     {%- for stage, group in units|groupby("stage") %}
     <div class="card">
-      <table>
-        <caption>{{ GROUPS[stage][0] }}<span class="m small muted">{{ GROUPS[stage][1] }}</span></caption>
-        <thead><tr><th scope="col">Unit</th><th scope="col">Status</th></tr></thead>
+      <div class="card-h">
+        <h3 class="sq {{ 'agent' if stage != 'C' else '' }}" id="units-{{ stage }}">{{ GROUPS[stage][0] }}</h3>
+        <p>{{ GROUPS[stage][1] }}</p>
+      </div>
+      <table aria-labelledby="units-{{ stage }}">
+        <thead class="sr"><tr><th scope="col">Unit</th><th scope="col">Status</th></tr></thead>
         <tbody>
           {%- for u in group %}
           <tr>

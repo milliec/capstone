@@ -87,7 +87,10 @@ a:hover { color: var(--brass); }
 .nav a[aria-current="page"] { background: var(--panel); font-weight: 500; }
 .nav a[aria-current="page"] svg { stroke: var(--orange); }
 .side-foot { margin-top: auto; padding: 16px 28px 0; border-top: 1px solid var(--rule); display: grid; gap: 10px; }
+.who { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--panel); color: var(--ink); display: grid; place-items: center; font: 500 12px/1 var(--font-body); flex: none; }
 .who .n { font: 500 13px/1.3 var(--font-body); color: var(--ink); }
+.who .r { font-size: 12px; color: var(--muted); }
 .demo { justify-self: start; font: 500 12px/1 var(--font-body); color: var(--brass); background: var(--brass-wash); border: 1px solid var(--brass-line); padding: 6px 10px; border-radius: var(--r-pill); display: inline-block; margin-top: 6px; }
 .main { padding: 28px 32px 64px; min-width: 0; max-width: 1240px; }
 
@@ -166,34 +169,65 @@ td .m { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px;
 .refusal b { display: block; font: 500 13px/1.3 var(--font-body); color: var(--bordeaux); margin-bottom: 2px; }
 .refline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--card); border-left: 3px solid var(--orange); border-radius: 0 var(--r-ctl) var(--r-ctl) 0; padding: 10px 16px; font-size: 14px; color: var(--ink); margin-top: 16px; }
 
-/* The stepper: four steps as pale pillars (ux.md §1.4). The state word is always printed */
-.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 24px 0 0; padding: 0; list-style: none; }
-.steps .p { display: block; height: 100%; padding: 14px 16px 12px; border-radius: var(--r-ctl); background: var(--panel); border: 1px solid transparent; border-bottom: 3px solid transparent; text-decoration: none; color: var(--ink); }
+/* The stepper (ux.md §1.4): a progress line to read, not buttons to press (app.css .steps).
+   Each step has a 3px top rule; the state word is always printed. Colours follow the operator's
+   status families (2026-11-17): slate done · brass AI working · orange your turn · bordeaux failed ·
+   ink ended. (The mock-up drew "In progress" in orange; brass keeps it in step with the pills.) */
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 24px 0 0; padding: 0; list-style: none; }
+.steps li { border-top: 3px solid var(--rule); padding: 10px 16px 0 0; }
+.steps .p { display: block; text-decoration: none; color: inherit; }
+.steps a.p:hover .t { text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; }
 .steps .n, .steps .t, .steps .s { display: block; }
 .steps .n { font: 500 12px/1.3 var(--font-body); color: var(--muted); }
-.steps .t { font: 400 16px/1.25 var(--font-head); letter-spacing: -0.02em; margin-top: 6px; }
-.steps .s { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-.steps .done .p { background: var(--slate-wash); } .steps .done .s { color: var(--slate); }
-.steps .working .p { background: var(--brass-wash); border-bottom-color: var(--brass); } .steps .working .s { color: #6b5420; font-weight: 500; }
-.steps .you .p { background: var(--orange-wash); border-color: var(--orange-line); border-bottom-color: var(--orange); } .steps .you .s { color: var(--orange-text); font-weight: 500; }
-.steps .failed .p { background: var(--bordeaux-wash); border-bottom-color: var(--bordeaux); } .steps .failed .s { color: var(--bordeaux); font-weight: 500; }
-.steps .ended .p { border-bottom-color: var(--ink); } .steps .ended .s { color: var(--ink); font-weight: 500; }
+.steps .t { font: 400 15px/1.3 var(--font-head); letter-spacing: -0.01em; color: var(--muted); margin-top: 3px; }
+.steps .s { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.steps .done { border-top-color: var(--slate); } .steps .done .t { color: var(--ink); } .steps .done .s { color: var(--slate); }
+.steps [aria-current] .t { color: var(--ink); font-weight: 500; } .steps [aria-current] .s { font-weight: 500; }
+.steps .working { border-top-color: var(--brass); } .steps .working .s { color: #6b5420; }
+.steps .you { border-top-color: var(--orange); } .steps .you .s { color: var(--orange-text); }
+.steps .failed { border-top-color: var(--bordeaux); } .steps .failed .s { color: var(--bordeaux); }
+.steps .ended { border-top-color: var(--ink); } .steps .ended .s { color: var(--ink); }
 
-/* 6. Review status: the status line (banner) and units */
-.banner { background: var(--card); border-radius: var(--r-panel); padding: 22px 24px; margin-top: 16px; display: grid; gap: 12px; }
-.banner .top { display: flex; gap: 10px 16px; align-items: center; flex-wrap: wrap; }
-.banner .sentence { font: 400 19px/1.35 var(--font-head); letter-spacing: -0.02em; color: var(--ink); max-width: 64ch; }
-.banner .refresh { display: flex; gap: 6px 16px; flex-wrap: wrap; align-items: baseline; font-size: 13px; color: var(--muted); }
-.banner .next { margin-top: 4px; }
+/* 6. Review status: the status line and units */
+/* The status line is the page's one call to action (app.css .cta): the ivory stage with a 3px
+   left bar. The bar follows the status family: brass while AI works (.wait), orange at your turn,
+   slate published, bordeaux failed, ink ended. Content on the left, the primary button on the right. */
+.cta { margin-top: 24px; background: var(--ivory); border-left: 3px solid var(--orange); border-radius: 0 var(--r-card) var(--r-card) 0; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+.cta.wait { border-left-color: var(--brass); }
+.cta.done { border-left-color: var(--slate); }
+.cta.no { border-left-color: var(--bordeaux); }
+.cta.plain { border-left-color: var(--ink); }
+.cta .body { display: grid; gap: 8px; min-width: 0; flex: 1 1 420px; }
+.cta .top { display: flex; gap: 10px 16px; align-items: center; flex-wrap: wrap; }
+.cta .top .small { color: var(--ink); }
+.cta h2 { font-size: 26px; }
+.cta p { color: var(--ink); max-width: 60ch; }
+.cta p.refresh { max-width: none; }
+.cta .refresh { display: flex; gap: 6px 16px; flex-wrap: wrap; align-items: baseline; font-size: 13.5px; color: var(--ink); }
+.cta .btn { min-height: 48px; padding: 0 26px; font-size: 16px; }
+/* Units: one card per group, as in the mock-up (22px heading with its square, 15px row titles).
+   They stay real tables (ux.md §7); the column header row is for screen readers only. */
 .units-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+.units-grid .card-h h3 { font-size: 22px; line-height: 1.15; letter-spacing: -0.02em; }
+.units-grid th[scope="row"] { font: 500 15px/1.35 var(--font-body); color: var(--ink); }
+.units-grid td, .units-grid th { padding-top: 13px; padding-bottom: 13px; }
+.units-grid td:last-child { text-align: right; }
 .facts { display: grid; gap: 6px; font-size: 14px; }
 
 /* 7. Rule and answer cards (page 4, page 5) */
 .stack { display: grid; gap: 12px; margin-top: 16px; }
 .rule-card { background: var(--card); border-radius: var(--r-panel); overflow: hidden; }
 .rule-card.open { box-shadow: inset 3px 0 0 var(--orange); } /* still needs a person: orange gate bar */
-.rule-card > header { padding: 20px 24px 16px; display: grid; gap: 10px; }
-.rule-card > header .n { font: 500 12px/1.3 var(--font-body); color: var(--muted); }
+/* Card head (app.css): rule number above a 22px title with its square; tags on the right */
+.rule-card > header { padding: 20px 24px 16px; display: flex; justify-content: space-between; gap: 12px 16px; align-items: flex-start; flex-wrap: wrap; }
+.rule-card > header .n { font: 500 12px/1.3 var(--font-body); color: var(--muted); margin-bottom: 4px; }
+/* Evidence (app.css): what the source says on the left, the AI's reading on the right.
+   In the page source the left column comes first, so the reading order stays ux.md's:
+   quote → check → paragraph → flags → fields → decision. */
+.evidence { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); border-top: 1px solid var(--rule); }
+.evidence > div { padding: 18px 24px 20px; display: grid; gap: 10px; align-content: start; }
+.evidence > div + div { border-left: 1px solid var(--rule); }
+.evidence h3 { font: 500 12px/1.3 var(--font-body); color: var(--brass); letter-spacing: 0; }
 .rule-card .part { padding: 16px 24px; border-top: 1px solid var(--rule); display: grid; gap: 8px; }
 .rule-card .part > h3 { font: 500 12px/1.3 var(--font-body); color: var(--brass); letter-spacing: 0; }
 blockquote { margin: 0; font: 400 15.5px/1.6 var(--font-body); color: var(--ink); border-left: 2px solid var(--brass-line); padding-left: 14px; }
@@ -274,8 +308,20 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
 .rule-card.refused { animation: pulse 1400ms var(--ease) 300ms 1 both; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
-/* 12. Narrow screens */
+/* 12. Narrow screens
+   Breakpoint 960px (operator, 2026-11-17): 1024px keeps the sidebar beside the content; below
+   960px the sidebar stacks above it. No collapsible nav this sprint (frontend.md §11). */
+@media (max-width: 1180px) {
+  .evidence { grid-template-columns: minmax(0, 1fr); }
+  .evidence > div + div { border-left: 0; border-top: 1px solid var(--rule); }
+}
 @media (max-width: 1100px) {
+  .shell { grid-template-columns: 232px minmax(0, 1fr); }
+  .main { padding: 24px 20px 56px; }
+  .brand, .product, .nav a, .side-foot { padding-left: 20px; padding-right: 20px; }
+  .fund { margin-left: 20px; margin-right: 20px; }
+}
+@media (max-width: 959px) {
   .shell { grid-template-columns: minmax(0, 1fr); } .side { position: static; height: auto; }
   .kpis, .kpis.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .main { padding: 24px 12px 48px; }
