@@ -84,31 +84,48 @@ Review {{ review_no(run) }}
 {%- endmacro %}
 
 
-{#- The four-step stepper (ux.md §1.4). Interim lookup until H-036 V-3 sends `steps`. -#}
+{#- The four-step stepper (ux.md §1.4).
+    The server's `run.steps` (H-036 V-3, operator 2026-11-17): four items of
+    {state, href, current}, where state is one of "Done", "In progress", "Your turn",
+    "Not started", "Failed", "Ended"; href is the step's page or none; current is true on the step
+    the review is at. Until the server sends it, the same list is built from ux.md's fixed table
+    (parts/lookups.html), so the page looks the same either way. -#}
 {% macro stepper(run) -%}
-{%- if run.status == "ACTIVE" -%}
-  {%- set states = L.STEPS_ACTIVE.get(run.phase, L.STEPS_ACTIVE["A_RUNNING"]) -%}
-{%- elif run.status == "COMPLETED" -%}
-  {%- set states = L.STEPS_COMPLETED -%}
+{%- if run.steps is defined and run.steps -%}
+  {%- set rows = run.steps -%}
 {%- else -%}
-  {%- set word = "Failed" if run.status == "FAILED" else "Ended" -%}
-  {%- set states = L.STEPS_STOPPED[L.STOPPED_STEP.get(run.phase, 1)]|map("replace", "{x}", word)|list -%}
+  {%- if run.status == "ACTIVE" -%}
+    {%- set states = L.STEPS_ACTIVE.get(run.phase, L.STEPS_ACTIVE["A_RUNNING"]) -%}
+  {%- elif run.status == "COMPLETED" -%}
+    {%- set states = L.STEPS_COMPLETED -%}
+  {%- else -%}
+    {%- set word = "Failed" if run.status == "FAILED" else "Ended" -%}
+    {%- set states = L.STEPS_STOPPED[L.STOPPED_STEP.get(run.phase, 1)]|map("replace", "{x}", word)|list -%}
+  {%- endif -%}
+  {%- set ns = namespace(rows=[]) -%}
+  {%- for state in states -%}
+    {%- set ns.rows = ns.rows + [{
+          "state": state,
+          "href": ("/specialist/runs/" ~ run.run_id ~ L.STEP_PATHS[loop.index]) if state in ("Done", "Your turn") else none,
+          "current": state in ("In progress", "Your turn", "Failed", "Ended")}] -%}
+  {%- endfor -%}
+  {%- set rows = ns.rows -%}
 {%- endif -%}
 {%- set css = {"Done": "done", "In progress": "working", "Your turn": "you",
                "Failed": "failed", "Ended": "ended", "Not started": ""} -%}
 <ol class="steps" aria-label="Where this review is">
-  {%- for state in states %}
+  {%- for step in rows %}
   {%- set i = loop.index %}
-  <li class="{{ css.get(state, '') }}"{% if state in ("In progress", "Your turn", "Failed", "Ended") %} aria-current="step"{% endif %}>
-    {%- if state in ("Done", "Your turn") %}
-    <a class="p" href="/specialist/runs/{{ run.run_id }}{{ L.STEP_PATHS[i] }}">
+  <li class="{{ css.get(step.state, '') }}"{% if step.current %} aria-current="step"{% endif %}>
+    {%- if step.href %}
+    <a class="p" href="{{ step.href }}">
     {%- else %}
     <span class="p">
     {%- endif %}
       <span class="n">Step {{ i }}</span>
       <span class="t">{{ L.STEP_NAMES[i] }}</span>
-      <span class="s">{{ state }}</span>
-    {%- if state in ("Done", "Your turn") %}</a>{% else %}</span>{% endif %}
+      <span class="s">{{ step.state }}</span>
+    {%- if step.href %}</a>{% else %}</span>{% endif %}
   </li>
   {%- endfor %}
 </ol>

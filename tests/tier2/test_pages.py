@@ -174,3 +174,45 @@ def test_every_page_links_the_stylesheet_and_a_skip_link(specialist_client, at_g
     for path, html in _all_pages(specialist_client, at_g1).items():
         assert '<link rel="stylesheet" href="/static/site.css">' in html, path
         assert 'href="#main"' in html and 'id="main"' in html, path
+
+
+# --- H-036 V-3 and V-6 (operator, 2026-11-17): the templates use the server's values when sent ---
+# The stub services do not send `steps` or `failure` yet, so these render the templates directly
+# with server-style values, and check they win over the fixed ux.md tables (the fallback).
+
+FUND = {"fund_id": "FND-DEMO-01", "name": "Fictional fund", "regime": "Regime", "year_end": "31 Dec"}
+
+
+def _render(template, **context):
+    from backend.web.deps import templates
+    return templates.env.get_template(template).render(**context)
+
+
+def test_stepper_uses_the_servers_steps_when_sent():
+    from backend.web.deps import templates
+    macros = templates.env.get_template("parts/macros.html").make_module({"fund": FUND})
+    run = {"run_id": "RUN-X", "status": "ACTIVE", "phase": "A_RUNNING", "steps": [
+        {"state": "Done", "href": "/step-1", "current": False},
+        {"state": "Your turn", "href": "/step-2", "current": True},
+        {"state": "Not started", "href": None, "current": False},
+        {"state": "Not started", "href": None, "current": False}]}
+    html = str(macros.stepper(run))
+    assert 'href="/step-2"' in html and ">Your turn<" in html
+    assert "In progress" not in html  # what the fallback would say for A_RUNNING
+    assert html.count('aria-current="step"') == 1
+    without = str(macros.stepper({k: v for k, v in run.items() if k != "steps"}))
+    assert "In progress" in without  # no server steps: the fixed table
+
+
+def test_failed_sentence_uses_the_servers_failure_when_sent():
+    run = {"run_id": "RUN-X", "status": "FAILED", "phase": "B_RUNNING", "status_words": "Failed",
+           "is_working": False, "is_at_gate": False, "agents_mode": "stand_in",
+           "demo_planted_row": 0, "demo_fail_step1": 0, "cost_so_far": 0, "run_version": 3,
+           "started_at": "2026-11-17T09:00:00+00:00", "fund_id": "FND-DEMO-01",
+           "failure": {"step": 3, "step_name": "You confirm what applies",
+                       "unit_label": "Server unit label", "reason_sentence": "Server reason sentence"}}
+    html = _render("pages/review_status.html", run=run, units=[], fund=FUND, identity=None,
+                   agents_mode="stand_in", your_turn=False, current_path="/", refresh_on=True,
+                   rendered_at="2026-11-17T09:00:00+00:00")
+    assert ("This review failed at step 3 (You confirm what applies), at unit Server unit label. "
+            "Server reason sentence. Nothing moved forward.") in " ".join(html.split())

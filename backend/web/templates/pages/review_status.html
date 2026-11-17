@@ -10,8 +10,20 @@
 {%- set rid = run.run_id -%}
 {%- set refreshing = run.is_working and refresh_on -%}
 {%- set k = L.STOPPED_STEP.get(run.phase, 1) -%}
-{%- set failed_unit = units|selectattr("status", "equalto", "failed")|first -%}
 {%- set ended = run.ended if run.ended is defined else none -%}
+
+{#- Failed review: the server's `run.failure` (H-036 V-6, operator 2026-11-17) =
+    {step, step_name, unit_label, reason_sentence}. Until it is sent, the same four values come from
+    the run's phase and the failed unit through ux.md's fixed tables (parts/lookups.html). -#}
+{%- if run.failure is defined and run.failure -%}
+  {%- set fail = run.failure -%}
+{%- else -%}
+  {%- set failed_unit = units|selectattr("status", "equalto", "failed")|first -%}
+  {%- set fail = {
+        "step": k, "step_name": L.STEP_NAMES[k],
+        "unit_label": failed_unit.label if failed_unit else none,
+        "reason_sentence": L.FAILURE_SENTENCES.get(failed_unit.failure_reason, failed_unit.failure_reason) if failed_unit else none} -%}
+{%- endif -%}
 
 {#- Fixed ux.md wording per state (page 3 "States and their words"). Clauses that need a count,
     date or reason only show when the server sends it (H-036 V-5, V-6); until then the sentence is
@@ -85,7 +97,7 @@
     Abandoned at step {{ k }} ({{ L.STEP_NAMES[k] }}){% if ended %} on {{ ended.at|date }} at {{ ended.at|time }}{% endif %}. Nothing was published, and the decisions made so far stay in the audit log.
   {%- elif run.status == "FAILED" -%}
     {#- "Without Retry" version (ux.md page 3 "Failed review"). -#}
-    This review failed at step {{ k }} ({{ L.STEP_NAMES[k] }}){% if failed_unit %}, at unit {{ failed_unit.label }}. {{ L.FAILURE_SENTENCES.get(failed_unit.failure_reason, failed_unit.failure_reason) }}{% endif %}. Nothing moved forward. Decisions you already made stay in the audit log.
+    This review failed at step {{ fail.step }} ({{ fail.step_name }}){% if fail.unit_label %}, at unit {{ fail.unit_label }}{% endif %}.{% if fail.reason_sentence %} {{ fail.reason_sentence }}.{% endif %} Nothing moved forward. Decisions you already made stay in the audit log.
   {%- endif -%}
   </p>
 
