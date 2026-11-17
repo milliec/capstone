@@ -207,6 +207,9 @@ td .m { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px;
 /* Units: one card per group, as in the mock-up (22px heading with its square, 15px row titles).
    They stay real tables (ux.md §7); the column header row is for screen readers only. */
 .units-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+/* Side-by-side cards: the stacked-card spacing (.card + .card) would push every card after the
+   first down by 12px, so their tops would not line up. The grid gap does the spacing here. */
+.units-grid > .card + .card { margin-top: 0; }
 .units-grid .card-h h3 { font-size: 22px; line-height: 1.15; letter-spacing: -0.02em; }
 .units-grid th[scope="row"] { font: 500 15px/1.35 var(--font-body); color: var(--ink); }
 .units-grid td, .units-grid th { padding-top: 13px; padding-bottom: 13px; }
