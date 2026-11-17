@@ -32,8 +32,8 @@ it, DL-44).
   moved here from B3 (H-047), so B3's 1.0 day should shrink by a similar amount (not re-estimated).
   Still to come: B7 about 0.25 day, B13b about 0.25 day. The stage time limit and the Pydantic
   unknown-field refusal are B2 items in the SAD, not started and not estimated; count them.
-  **Open: the operator says whether B1 + B2 passed 1.3 days.** If yes, the SAD drops B6 and Tier 2
-  at this checkpoint (never T-MAP-1); the drop order itself is `@system.arch`'s file.
+  **Operator, 2026-11-17: B1 + B2 did not pass 1.3 days**, so nothing is dropped at this
+  checkpoint. **Re-check after B7**, with the then-known time and the unestimated B2 items.
 - Order: B1 → B2 → B3 (stand-in only) → B4 → B5 → B7 → **first green path** → pin DL-40 → B3 spike
   → B8 → B9 → B6 → B10.
 
