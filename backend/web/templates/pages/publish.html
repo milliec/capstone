@@ -1,39 +1,124 @@
 {% extends "base.html" %}
+{#- Page 6 · Check the calendar and publish (G3) (ux.md page 6; route GET …/g3).
+    Reads: run, view (calendar.get_g3_view), refusal. Posts: one form, two buttons (publish or
+    close without publishing), see parts/decision_publish.html.
+    The rejected and unused lists show exactly what the server sends (the stub sends empty lists
+    until B2 stores decisions). Who files, Sent to and Why fill in with H-036 V-10. -#}
+{% import "parts/macros.html" as ui with context %}
+
+{%- set rid = run.run_id -%}
+{%- set stage = ui.stage_of(run, "g3", view.stage if view.stage is defined else none)|trim -%}
+{%- set entries = view.entries -%}
+{%- set rejected = view.rejected_rows if view.rejected_rows is defined else none -%}
+{%- set unused = view.unused_paragraphs if view.unused_paragraphs is defined else none -%}
+
 {% block title %}Check the calendar and publish{% endblock %}
-{% block ux_ref %}ux.md page 6 (G3).{% endblock %}
 {% block main %}
-{% include "parts/review_nav.html" %}
-<h1>Step 4: Check the calendar and publish</h1>
-{% include "parts/run_labels.html" %}
+{% call ui.review_head(run, "Check the calendar and publish", refusal) %}
+  {%- if stage == "at" %}
+  <p class="lead">These {{ entries|length }} dates were calculated from the rules you approved. Check them, read what was left out, then publish for the General Partner. Some marks are shown only to you.</p>
+  {%- elif stage == "after" %}
+  {%- set out = view.outcome if view.outcome is defined else none %}
+  <p class="lead">
+    {%- if run.status == "COMPLETED" %}Published{% if out %} on {{ out.at|date }} at {{ out.at|time }}{% endif %}.
+    {%- elif run.status == "DECLINED" %}Closed without publishing{% if out %} on {{ out.at|date }} at {{ out.at|time }}. What needs to change: {{ out.reason }}{% else %}.{% endif %}
+    {%- endif %}</p>
+  {%- endif %}
+{% endcall %}
 
-{% if not view.calendar_id %}
-<p>Not reached yet: no calendar has been worked out for this review.</p>
-{% else %}
-<p>Calendar {{ view.calendar_id }}</p>
-<table>
-  <thead><tr><th>Due date</th><th>Rule</th><th>Period</th><th>Moved</th><th>Precautionary</th><th>Open question</th></tr></thead>
-  <tbody>
-  {% for e in view.entries %}
-    <tr><td>{{ e.due_date }}</td><td>{{ e.obligation_name }}</td><td>{{ e.period }}</td>
-        <td>{{ "yes" if e.moved else "no" }}</td><td>{{ "yes" if e.precautionary else "no" }}</td><td>{{ e.open_question_id or "" }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
-<p>Rejected rules to acknowledge: {{ view.rejected_row_ids or "none" }} · Unused paragraphs: {{ view.uncited_paragraph_ids or "none" }}</p>
+{%- if stage in ("before", "ended_before") %}
+{{ ui.not_reached(run, stage, "The calendar is not ready yet.") }}
+{%- else %}
 
-{% if run.phase == "AT_G3" and run.status == "ACTIVE" %}
-<form method="post" action="/specialist/calendars/{{ view.calendar_id }}/publish">
-  <input type="hidden" name="run_version" value="{{ run.run_version }}">
-  {% for id in view.rejected_row_ids %}<input type="hidden" name="rejected_row_ids" value="{{ id }}">{% endfor %}
-  {% for id in view.uncited_paragraph_ids %}<input type="hidden" name="uncited_paragraph_ids" value="{{ id }}">{% endfor %}
-  <p><label><input type="checkbox" name="acknowledged" value="true"> I have read the rejected rules and unused paragraphs</label></p>
-  <button type="submit">Publish calendar</button>
-</form>
-<form method="post" action="/specialist/calendars/{{ view.calendar_id }}/decline">
-  <input type="hidden" name="run_version" value="{{ run.run_version }}">
-  <p><label>Reason <input type="text" name="decline_reason"></label></p>
-  <button type="submit">Close without publishing</button>
-</form>
-{% endif %}
-{% endif %}
+{#- Date conventions note, specialist version (DL-12). -#}
+<p class="note section">Before anyone relies on these dates: the way deadlines are counted (for example, the day 'six months after year end' falls on) has not yet been checked against the legal texts. This does not stop you publishing. The General Partner sees a short note saying the same.</p>
+
+<section class="section" aria-labelledby="cal-h">
+  <div class="sec-h"><h2 id="cal-h">Calendar</h2></div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Due date</th><th scope="col">What</th><th scope="col">Who files</th>
+          <th scope="col">Sent to</th><th scope="col">Marks</th><th scope="col">Why (the General Partner sees this)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for e in entries %}
+        <tr>
+          <th scope="row" class="when">{{ e.due_date|date }}</th>
+          <td>{{ e.obligation_name }}</td>
+          <td>{{ e.who_files_label if e.who_files_label is defined else "" }}</td>
+          <td>{{ e.recipient_name if e.recipient_name is defined else "" }}</td>
+          <td>
+            {%- if e.moved %}{{ ui.mark_label("moved", e.marks.moved if e.marks is defined else none) }}{% endif %}
+            {%- if e.precautionary %}{{ ui.mark_label("precautionary") }}{% endif %}
+            {%- if e.open_question_id %}{{ ui.mark_label("open_question") }}{% endif %}
+          </td>
+          <td>
+            {%- if e.why is defined %}{{ e.why }}{% endif %}
+            {%- if e.source_paragraph_id is defined %}<span class="m">Source: paragraph <span class="id">{{ e.source_paragraph_id }}</span></span>{% endif %}
+          </td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="left-out-h">
+  <div class="sec-h"><div><h2 id="left-out-h">What's not in this calendar</h2><p>Read both lists before you publish.</p></div></div>
+
+  <div class="card">
+    <div class="card-h"><h3>Rules you rejected</h3></div>
+    {%- if (rejected if rejected is not none else view.rejected_row_ids) %}
+    <table>
+      <thead><tr><th scope="col">Rule</th><th scope="col">Your reason</th></tr></thead>
+      <tbody>
+        {%- if rejected is not none %}
+        {%- for r in rejected %}
+        <tr><th scope="row">{{ r.label }}{% if r.is_demo %} {{ ui.tag("Demo") }}{% endif %}</th><td>{{ r.reason }}</td></tr>
+        {%- endfor %}
+        {%- else %}
+        {%- for id in view.rejected_row_ids %}
+        <tr><th scope="row"><span class="id">{{ id }}</span></th><td></td></tr>
+        {%- endfor %}
+        {%- endif %}
+      </tbody>
+    </table>
+    {%- else %}
+    <p class="card-b">No rules were rejected.</p>
+    {%- endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Paragraphs no rule uses</h3><p>No approved rule uses these paragraphs. The calendar has nothing from them.</p></div>
+    {%- if (unused if unused is not none else view.uncited_paragraph_ids) %}
+    <table>
+      <thead><tr><th scope="col">Paragraph ID</th><th scope="col">Source</th><th scope="col">What it says</th></tr></thead>
+      <tbody>
+        {%- if unused is not none %}
+        {%- for p in unused %}
+        <tr><th scope="row"><span class="id">{{ p.paragraph_id }}</span></th><td>{{ p.document }}</td><td>{{ p.text }}</td></tr>
+        {%- endfor %}
+        {%- else %}
+        {%- for id in view.uncited_paragraph_ids %}
+        <tr><th scope="row"><span class="id">{{ id }}</span></th><td></td><td></td></tr>
+        {%- endfor %}
+        {%- endif %}
+      </tbody>
+    </table>
+    {%- else %}
+    <p class="card-b">None.</p>
+    {%- endif %}
+  </div>
+</section>
+
+{%- if stage == "at" %}
+<section class="section" aria-label="Publish or close">
+  {% include "parts/decision_publish.html" %}
+  <p class="section small"><a href="/specialist/runs/{{ rid }}#abandon">Abandon this review</a></p>
+</section>
+{%- endif %}
+{%- endif %}
 {% endblock %}

@@ -1,0 +1,44 @@
+{#- G3 answer-first decision form (ux.md page 6 item 6, §4, DL-48). Needs run, view, refusal.
+
+    One form, radio `decision` (publish / decline), nothing chosen. Each button posts to its own
+    route with `formaction`; the server checks the form's `decision` matches the route and ignores
+    the other answer's fields. The two ID lists go in as hidden fields exactly as the page shows
+    them; the server compares them with its own (CR-028). The acknowledgement checkbox is
+    unticked on every load, including after a refusal (UX-011). -#}
+{% import "parts/macros.html" as ui with context %}
+{%- set cal = view.calendar_id -%}
+{%- set r_count = (view.rejected_rows if view.rejected_rows is defined else view.rejected_row_ids)|length -%}
+{%- set k_count = (view.unused_paragraphs if view.unused_paragraphs is defined else view.uncited_paragraph_ids)|length -%}
+{%- set typed = refusal.typed if (refusal and refusal.typed is defined) else {} -%}
+<form class="decision card" method="post" action="/specialist/calendars/{{ cal }}/publish">
+  <input type="hidden" name="run_version" value="{{ run.run_version }}">
+  {%- for id in view.rejected_row_ids %}<input type="hidden" name="rejected_row_ids" value="{{ id }}">{% endfor %}
+  {%- for id in view.uncited_paragraph_ids %}<input type="hidden" name="uncited_paragraph_ids" value="{{ id }}">{% endfor %}
+
+  <fieldset>
+    <legend>Is this calendar ready for the General Partner?</legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="decision" value="publish" data-answer="publish"> Yes, publish it</label>
+      <label class="opt"><input type="radio" name="decision" value="decline" data-answer="decline"> No, don't publish</label>
+    </div>
+  </fieldset>
+  {{ ui.refusal_here(refusal, "decision") }}
+
+  <div class="if" data-answer="publish" id="ack">
+    <p>The General Partner will see these {{ view.entries|length }} dates straight away, in place of {% if view.previous_publication_at is defined and view.previous_publication_at %}the calendar published on {{ view.previous_publication_at|date }}{% else %}anything they saw before{% endif %}. It cannot be withdrawn in this version. A later review can publish a new calendar.</p>
+    <label class="ack"><input type="checkbox" name="acknowledged" value="true"> I've read the {{ r_count }} rejected rules and the {{ k_count }} unused paragraphs above. Nothing from them will be on the published calendar.</label>
+    {{ ui.refusal_here(refusal, "ack") }}
+    <button class="btn" type="submit" formaction="/specialist/calendars/{{ cal }}/publish">Publish calendar</button>
+  </div>
+
+  <div class="if" data-answer="decline">
+    <p>Nothing changes for the General Partner. They keep seeing what they see now, and this review closes. You can start a new review.</p>
+    <div class="field">
+      <label for="decline-reason">What needs to change before it can be published?</label>
+      <textarea id="decline-reason" name="decline_reason" aria-describedby="decline-hint">{{ typed.decline_reason or "" }}</textarea>
+      <p class="hint" id="decline-hint">Recorded in the audit log with your name and the time. Specialists only.</p>
+    </div>
+    {{ ui.refusal_here(refusal, "decline-reason") }}
+    <button class="ghost" type="submit" formaction="/specialist/calendars/{{ cal }}/decline">Close without publishing</button>
+  </div>
+</form>
