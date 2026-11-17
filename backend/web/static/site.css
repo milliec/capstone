@@ -220,6 +220,8 @@ td .m { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px;
 
 /* 7. Rule and answer cards (page 4, page 5) */
 .stack { display: grid; gap: 12px; margin-top: 16px; }
+/* The landing point after a decision (#next): takes no space, so it never adds a gap in the grid */
+.jump { display: block; height: 0; overflow: hidden; } /* first thing in the card: lands on its top edge */
 .rule-card { background: var(--card); border-radius: var(--r-panel); overflow: hidden; }
 .rule-card.open { box-shadow: inset 3px 0 0 var(--orange); } /* still needs a person: orange gate bar */
 /* Card head (app.css): rule number above a 22px title with its square; tags on the right */
@@ -312,6 +314,11 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
   .switch:has(#v-list:checked) .view.list { display: block; }
 }
 .switch .view + .view { margin-top: 12px; } /* the fallback, when every view shows */
+/* No jump when switching views (operator, 2026-11-17): the views differ in height, and a shorter one
+   made the page shrink under the scroll position, so the browser pulled the page back and the tabs
+   moved by half a screen. At least one screen tall, the section keeps the tabs where they were
+   clicked. Wide screens only: below 960px only the List view shows. */
+@media (min-width: 960px) { .switch { min-height: 100vh; } }
 @supports selector(:has(*)) { .switch .view + .view { margin-top: 0; } }
 /* Summary cards (as in the mock-up): Due next on ink, Entries with its dot chart, May not be required */
 .kpi .m { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
