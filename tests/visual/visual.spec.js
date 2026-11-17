@@ -115,6 +115,12 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     await snap(sp, "03-review-status-published", [1280]);
     await open(gp, "/calendar", "text=All entries");
     await snap(gp, "07-calendar-gp-published", WIDE_AND_PHONE);
+    // B12 views (DL-49, H-040): wide only; below 960px the list alone shows, so set the width first.
+    await gp.setViewportSize({ width: 1280, height: 900 });
+    await open(gp, "/calendar?view=month", "table.month-table");
+    await snap(gp, "07-calendar-gp-month-view", [1280]);
+    await open(gp, "/calendar?view=year", "table.year-table");
+    await snap(gp, "07-calendar-gp-year-view", [1280]);
     await open(sp, "/calendar", "text=All entries");
     await snap(sp, "07-calendar-specialist-published", [1280]);
   });

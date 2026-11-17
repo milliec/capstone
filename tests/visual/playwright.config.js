@@ -12,6 +12,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1, // the spec is one story told in order (sign in, start, decide, publish)
   retries: 0,
+  // Proposal mode (npm run test:visual:candidates): write every picture into candidates/ (git-ignored)
+  // instead of the baseline folder, so a refresh can be proposed with all images to look at and the
+  // approved baselines are never overwritten by a run. Approved images are then copied over by hand.
+  ...(process.env.VR_CANDIDATES ? { snapshotPathTemplate: "candidates/{arg}{ext}" } : {}),
   reporter: [["list"], ["html", { open: "never" }]],
   expect: {
     toHaveScreenshot: {
