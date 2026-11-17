@@ -1,13 +1,18 @@
 {% extends "base.html" %}
-{# ux.md §1.7: unexpected server error. A plain page: one sentence for the role, no working
-   content (CR-012 for the General Partner). #}
+{#- Unexpected server error (ux.md §1.7). A plain page with the role's one sentence and no
+    working content (CR-012 for the General Partner). Never shows the error's details. -#}
 {% block title %}Something went wrong{% endblock %}
 {% block main %}
-{% if identity and identity.role == "gp" %}
-<h1>Compliance calendar</h1>
-<p>The calendar could not be shown just now. Try again in a few minutes.</p>
-{% else %}
-<h1>Something went wrong</h1>
-<p>Something went wrong on the server. Nothing was changed by this request. Go back to <a href="/specialist/runs">Filing rules</a> and try again.</p>
-{% endif %}
+{%- if identity and identity.role == "gp" %}
+<header class="head"><h1>Compliance calendar</h1></header>
+<div class="card pad section">
+  <p>The calendar could not be shown just now. Try again in a few minutes.</p>
+</div>
+{%- else %}
+<header class="head"><h1>Something went wrong</h1></header>
+<div class="card pad section">
+  <p>Something went wrong on the server. Nothing was changed by this request. Go back to Filing rules and try again.</p>
+  <p><a class="more" href="/specialist/runs">Go to Filing rules</a></p>
+</div>
+{%- endif %}
 {% endblock %}

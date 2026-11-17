@@ -1,12 +1,19 @@
 {% extends "base.html" %}
+{#- 403 (ux.md §1.7). The shared frame, the H1, one line, one link. No status, no review content.
+    The refusal was already written to the audit log by the service (auth.require_role). The
+    <title> is "No access", without the "Not done: " prefix (ux.md §1.7). -#}
+{% set title_prefix_off = true %}
 {% block title %}No access{% endblock %}
-{% block ux_ref %}ux.md §1.7 (403).{% endblock %}
 {% block main %}
-<h1>You don't have access to this</h1>
-<p>{{ refusal.sentence }}</p>
-{% if identity and identity.role == "gp" %}
-<p><a href="/calendar">Go to the calendar</a></p>
-{% else %}
-<p><a href="/specialist/runs">Go to Filing rules</a></p>
-{% endif %}
+<header class="head">
+  <h1>You don't have access to this</h1>
+</header>
+<div class="card pad section">
+  <p>{{ refusal.sentence }}</p>
+  {%- if identity and identity.role == "gp" %}
+  <p><a class="more" href="/calendar">Go to the calendar</a></p>
+  {%- else %}
+  <p><a class="more" href="/specialist/runs">Go to Filing rules</a></p>
+  {%- endif %}
+</div>
 {% endblock %}

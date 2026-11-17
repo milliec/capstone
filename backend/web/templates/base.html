@@ -12,7 +12,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if refusal %}Not done: {% endif %}{% block title %}{% endblock %} · ACME Compliance calendar (demo)</title>
+  <title>{% if refusal and not title_prefix_off %}Not done: {% endif %}{% block title %}{% endblock %} · ACME Compliance calendar (demo)</title>
   {% block head %}{% endblock %}
   {#- Fonts from a public source (style-note); the pages still work if they do not load. -#}
   <link rel="preconnect" href="https://fonts.googleapis.com">
