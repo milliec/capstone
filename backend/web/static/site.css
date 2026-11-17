@@ -91,7 +91,6 @@ a:hover { color: var(--brass); }
 .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--panel); color: var(--ink); display: grid; place-items: center; font: 500 12px/1 var(--font-body); flex: none; }
 .who .n { font: 500 13px/1.3 var(--font-body); color: var(--ink); }
 .who .r { font-size: 12px; color: var(--muted); }
-.demo { justify-self: start; font: 500 12px/1 var(--font-body); color: var(--brass); background: var(--brass-wash); border: 1px solid var(--brass-line); padding: 6px 10px; border-radius: var(--r-pill); display: inline-block; margin-top: 6px; }
 .main { padding: 28px 32px 64px; min-width: 0; max-width: 1240px; }
 
 /* 4. Page parts */
@@ -287,7 +286,6 @@ textarea { width: 100%; min-height: 76px; resize: vertical; }
 .when { font-weight: 500; color: var(--ink); white-space: nowrap; }
 .mark { display: grid; gap: 4px; justify-items: start; }
 .mark + .mark { margin-top: 8px; }
-.month-h { font: 400 17px/1.2 var(--font-head); color: var(--ink); padding: 18px 24px 0; }
 blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
 
 /* 10. Sign-in (app.css section 8 and the sign-in cluster of section 10).
