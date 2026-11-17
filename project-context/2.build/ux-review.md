@@ -96,6 +96,10 @@ pages with ux.md's wording only.
   `07-calendar-gp-published-360` (week grid and month grouping) and `07-calendar-gp-empty-360`
   (v1 had captured the sidebar empty-gap bug at phone width; fixed in `58760c1`). The other 20
   snapshots stay v1. The H-006 refresh of the step 4 and calendar snapshots is still to come.
+- **Review status (published) v2** · 2026-11-17 · `@frontend.eng` · operator approved
+  `03-review-status-published-1280`: the unit cards in one row with their tops aligned (`93745d3`).
+  An earlier refresh of the same snapshot was rejected (cards still not aligned; frontend.md Open
+  Question 11).
 
 ## 4. Human judgment gate
 
@@ -115,6 +119,7 @@ this table is the agent's reading, not the acceptance decision.
 | K-1 | **Keyboard.** While AI works the page reloads every 3 s and focus returns to the top; "Stop automatic refresh" is the 8th Tab stop, so it must be reached within 3 s | review status | AI working | 1280 | The control that makes the refresh acceptable (WCAG 2.2.1) is hard to reach by keyboard | **high** | fixed: "Stop automatic refresh" is the first Tab stop while refreshing; confirmed with real key presses and a page test | focus-order log |
 | K-2 | **Screen reader (inferred, not tested with one).** Every decision group has the same legend, "What's your decision on this rule?", so moving between forms does not say which rule | `/g1`, `/g2` | at the step | — | Context lost when jumping between forms | medium | fixed: the rule's name is in each legend for screen readers only (page test); still to be heard with a real screen reader | page source |
 | H-009 | **Week grid added (display-only).** Rendered at 1280 px (two months, "Due next" underlined, entries as chips) and 360 px (grid hidden, list grouped by month). Found and fixed while rendering: at phone width a short page stretched the stacked sidebar (empty gap); the month header row sat inset when the table stacked. **Baseline v1 had captured the sidebar empty-gap bug** (`07-calendar-gp-empty-360`); it is fixed now and the calendar baseline is v2 | `/calendar` | published | 1280, 360 | Layout gaps on phones | low | fixed (`58760c1`) | session screenshots |
+| H-010 | **Found by the operator.** Unit cards on review status did not line up at the top: the stacked-card margin pushed every card after the first down, and at 1280 px the third card wrapped onto a second row | review status | any with several unit groups | 1280 | Cards look misplaced | low | fixed (`5a1ad3e`, `93745d3`): no margin inside the grid; always one row, stacked below 760 px | `03-review-status-published-1280` v2 |
 
 ## 5. Findings
 
@@ -180,3 +185,5 @@ this table is the agent's reading, not the acceptance decision.
   360 px; keyboard pass with real key presses: the calendar has the same 5 Tab stops as before.
 - 2026-11-17 · persona `frontend-eng` · calendar baseline v2: the 4 approved snapshots copied from the
   run's candidates (no other file changed); suite passes.
+- 2026-11-17 · persona `frontend-eng` · H-010 fixed; `03-review-status-published-1280` refreshed (v2)
+  after operator approval; the other 23 snapshots unchanged; suite passes.
