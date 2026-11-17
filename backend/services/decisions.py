@@ -25,6 +25,16 @@ FILING_PARTIES = [["AIFM", "AIFM"], ["Fund administrator", "Fund administrator"]
                   ["Local reporting agent (Spain)", "Local reporting agent (Spain)"],
                   ["Tax advisor", "Tax advisor"], ["not known", "Not known"]]
 
+# ux.md page 5 item 8: the decided outcome in words, keyed by "<decision> <value>".
+ANSWER_WORDS = {"confirm applies": "Confirmed: applies",
+                "confirm does_not_apply": "Confirmed: doesn't apply",
+                "override applies": "Overruled: applies",
+                "override does_not_apply": "Overruled: doesn't apply",
+                "decide applies": "Added, marked 'May not be required'",
+                "decide does_not_apply": "Left off"}
+# Override at G2 flips the verdict to its opposite; there is no third value (ux.md Assumptions).
+OPPOSITE = {"applies": "does_not_apply", "does_not_apply": "applies"}
+
 # Words for a row's decision (ux.md page 4) and the tone of each (ux.md §1.5).
 ROW_STATUS = {"approve": ("Approved", "success"), "reject": ("Rejected", "problem")}
 
@@ -98,16 +108,40 @@ def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
 
 
 def get_g2_view(conn: sqlite3.Connection, run: dict) -> dict:
-    """STUB — replace in B2/B3. The verdicts to confirm at G2 (placeholder data)."""
+    """STUB — replace in B2/B3. The verdicts to confirm at G2 (placeholder data).
+
+    H-036 V-9: the fields the page reads. The facts and the missing-fact phrase are placeholders
+    until B3 supplies the stand-in fixtures.
+    """
     decided = _stub_decisions(conn, run["run_id"])
-    names = {r["n"]: r["obligation_name"] for r in shell_data.ROWS}
+    records = _stub_records(conn, run["run_id"])
+    rows = {r["n"]: r for r in shell_data.ROWS}
     verdicts = []
     for v in shell_data.VERDICTS:
         verdict_id = f"VER-{run['run_id']}-{v['n']}"
-        verdicts.append({**v, "verdict_id": verdict_id, "version": 1,
-                         "row_id": f"ROW-{run['run_id']}-{v['n']}",
-                         "obligation_name": names[v["n"]], "decision": decided.get(verdict_id)})
-    return {"verdicts": verdicts}
+        row = rows[v["n"]]
+        record = records.get(verdict_id)
+        outcome = None
+        if record:   # the stub's audit text is "<decision> <value> (stub, not stored): <reason>"
+            outcome = ANSWER_WORDS.get(record["reason"].partition(" (stub")[0].strip())
+        unsure = v["verdict"] == "unsure"
+        verdicts.append({
+            **v, "verdict_id": verdict_id, "version": 1,
+            "row_id": f"ROW-{run['run_id']}-{v['n']}",
+            "obligation_name": row["obligation_name"], "decision": decided.get(verdict_id),
+            "cited_facts": [{"fact_id": fid.strip(), "label": f"Stand-in fact {fid.strip()[-1]}",
+                             "value": "Placeholder value"}
+                            for fid in v["cited_fact_ids"].split(",")],
+            "approved_rule": {"text": row["obligation_name"], "quote": row["quote"],
+                              "paragraph_id": row["source_paragraph_id"]},
+            "missing_fact": "a placeholder fact about the fund" if unsure else None,
+            "overrule_value": None if unsure else OPPOSITE[v["verdict"]],
+            "decided": ({"outcome": outcome or record["reason"].partition(" (stub")[0],
+                         "by_label": runs.actor_label(record["actor"]), "at": record["at"],
+                         "reason": record["reason"].partition(": ")[2] or None}
+                        if record else None),
+        })
+    return {"verdicts": verdicts, "stage": runs.page_stage(run, "g2")}
 
 
 def decide_row(conn: sqlite3.Connection, *, row_id: str, version: int, decision: str,
