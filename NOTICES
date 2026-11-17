@@ -12,3 +12,15 @@ The draw-diagram skill vendors Diagram Design at `.cursor/skills/draw-diagram/ve
 - License: MIT (see `LICENSE` in that directory)
 
 Icons, and the other bundled sources, are listed in `THIRD_PARTY_LICENSES.md` inside that directory (Tabler Icons, Simple Icons, log-z/logos, Devicon, and the SIL OFL faces named there). The generated HTML uses system fonts and does not download those faces.
+
+## Iconoir
+
+The app's sidebar inlines two Iconoir line icons ("calendar" and "book") as SVG in `backend/web/templates/parts/sidebar.html`.
+
+- Upstream: https://github.com/iconoir-icons/iconoir
+- Copyright: Luca Burgio
+- License: MIT
+
+## Web fonts
+
+The pages load Lexend, Inter and DM Mono from Google Fonts at run time (SIL Open Font License 1.1). No font file is committed.

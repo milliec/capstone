@@ -5,8 +5,11 @@ Run it with `make run` (or: .venv/bin/python -m uvicorn backend.main:create_app 
 do) creates no app and no database file.
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -32,6 +35,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     for module in (sign_in, runs, gates, calendar):
         app.include_router(module.router)
+
+    # Display only (frontend.md W-3): serve the one stylesheet at /static/site.css (SAD §3).
+    app.mount("/static", StaticFiles(directory=Path(__file__).parent / "web" / "static"),
+              name="static")
 
     @app.exception_handler(NotSignedIn)
     def not_signed_in(request: Request, exc: NotSignedIn):
