@@ -113,6 +113,8 @@ pages with ux.md's wording only.
   G1 evidence and unused paragraphs, G2 cited facts and approved rule, G3 entry columns and lists,
   calendar Who files and Why) or to stand-in data the backend changed on purpose (entry 2 now
   moves from Sun 18 to Mon 19 Apr 2027). The other 8 are pixel-identical. Nothing re-recorded.
+  Candidates made again after the H-014 and H-015 fix (`c84d181`): the same 18, the two fixes
+  visible, every page at its screen width.
 - **Review status (published) v2** · 2026-11-17 · `@frontend.eng` · operator approved
   `03-review-status-published-1280`: the unit cards in one row with their tops aligned (`93745d3`).
   An earlier refresh of the same snapshot was rejected (cards still not aligned; frontend.md Open
@@ -140,8 +142,8 @@ this table is the agent's reading, not the acceptance decision.
 | H-011 | **Page 7 did not behave like the mock-up (found by the operator).** The first B12 build stacked the chart, the views and the list, and its link-based switch reloaded the page. Rebuilt like `gp-calendar.html`: summary row, one calendar, a tab-styled radio switch that shows only the chosen view in place. Checked with real key presses (Tab to the switch, arrows change the view, focus outline visible, no reload) and a mouse click | `/calendar` | published | 1280, 360 | The calendar was hard to read | medium | fixed (`a3e71dc`) | session screenshots |
 | H-012 | **Found by the operator.** After a decision on steps 2 and 3 the page reloaded at the top, so the specialist had to scroll back to find the next card | `/g1`, `/g2` | at the step | 1280 | Jarring; slows the review (ux.md §7 target) | medium | fixed (`0eed7b4`): lands on the next card to decide; measured 24px from the top, first Tab inside it | real-browser check |
 | H-013 | **Found by the operator.** Switching calendar views made the page jump: a shorter view shrank the page under the scroll position (tabs moved from 85px to 451px on screen) | `/calendar` | published | 1280 | Jarring | medium | fixed (`e827a3e`): the section is at least one screen tall on wide screens; tabs stay at 80px through every switch | real-browser measurement |
-| H-014 | **Found in the H-036 candidates.** The long "Ended because" sentence squeezes the other columns of the Reviews table, so "Review 2" and the start date wrap onto two lines | Filing rules | a failed review listed | 1280, 1024 | Reads as cramped | low | open: proposed fix, keep the Review and Started cells on one line | `02-filing-rules-populated-*` candidates |
-| H-015 | **Found in the H-036 candidates.** In the narrow cited facts table the fact ID breaks at its hyphen ("FACT-" / "STUB-1") | `/g2` | at the step | 1280, 1024 | IDs are harder to read and copy | low | open: proposed fix, never break an ID | `05-confirm-applies-at-step-*` candidates |
+| H-014 | **Found in the H-036 candidates.** The long "Ended because" sentence squeezes the other columns of the Reviews table, so "Review 2" and the start date wrap onto two lines | Filing rules | a failed review listed | 1280, 1024 | Reads as cramped | low | fixed (`c84d181`): the Review and Started cells stay on one line from 760 px up | `02-filing-rules-populated-*` candidates |
+| H-015 | **Found in the H-036 candidates.** In the narrow cited facts table the fact ID breaks at its hyphen ("FACT-" / "STUB-1") | `/g2` | at the step | 1280, 1024 | IDs are harder to read and copy | low | fixed (`c84d181`): an ID heading a table row never breaks (limited to row headers: on every ID it made step 4 at 1024 px wider than the screen) | `05-confirm-applies-at-step-*` candidates |
 | M-012 | **Visual check flake: fixed.** Some runs reported every page of one browser session as changed (body text only). Cause found: Google Fonts sometimes answers with an on-the-fly build of Inter (`/l/font?kit=…`) instead of the versioned file (`/s/inter/v20/…`), which renders slightly differently (1 answer in 5 when asked directly). Fix: the visual tests serve a pinned copy of the usual stylesheet (`tests/visual/fonts.css`) to every session, plus a stronger font wait; the app is unchanged | all pages | — | all | False alarms | medium | fixed: 8 runs in a row clean; baselines unchanged | `tests/visual/fonts.css` |
 
 ## 5. Findings
@@ -152,11 +154,12 @@ this table is the agent's reading, not the acceptance decision.
 3. **F-013, F-014 (not tested).** No refusal can be shown on the page yet; the slots exist and
    are covered by markup only.
 4. **M-001, M-002 (not tested).** A keyboard pass by hand is still needed before acceptance.
-5. **H-014, H-015 (open, low).** Two wrapping issues the filled-in data exposed; fixes proposed.
+5. **H-014, H-015 (fixed, low).** Two wrapping issues the filled-in data exposed (`c84d181`).
 
 ## 6. Remaining limitations
 
-- Open: H-014, H-015 (low, above). H-005 and H-006 closed 17 Nov 2026 when H-036 and B2 landed.
+- Open: none from this review. H-005 and H-006 closed 17 Nov 2026 when H-036 and B2 landed; H-014
+  and H-015 fixed.
 - Not tested: keyboard, focus, contrast tool, automated scan, visual regression, other
   browsers, refusals, the `:has()` fallback in a real browser without `:has()`.
 - Screenshots are taken from saved pages with the stylesheet beside them, so fonts load from the
@@ -225,3 +228,6 @@ this table is the agent's reading, not the acceptance decision.
   generated (none written to the baselines); 18 changed, each compared side by side with its
   baseline and traced to a server field or the backend's deliberate stand-in change. H-005 and
   H-006 closed; H-014 and H-015 (low) found. Refresh proposed to the operator.
+- 2026-11-17 · persona `frontend-eng` · H-014 and H-015 fixed (operator chose to fix before the
+  refresh); first attempt widened step 4 at 1024 px and was narrowed to row headers; candidates
+  made again.

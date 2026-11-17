@@ -585,7 +585,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
 | S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`, `7ef8a0f`. The stepper test no longer checks the deleted fallback (`e44f4c7`); 138 in the suite pass (17 Nov 2026) |
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
-| S-17 | Visual baselines | 🟡 | Baseline v1 (24 snapshots) committed 17 Nov 2026 after the operator accepted H-006 for it. H-036 and B2 have landed: the refresh of the 18 changed snapshots is proposed (ux-review.md §3b), **waiting for operator approval**; none re-recorded |
+| S-17 | Visual baselines | 🟡 | Baseline v1 (24 snapshots) committed 17 Nov 2026 after the operator accepted H-006 for it. H-036 and B2 have landed: the refresh of the 18 changed snapshots is proposed (ux-review.md §3b) after the H-014 and H-015 fix (`c84d181`), **waiting for operator approval**; none re-recorded |
 | S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
@@ -858,3 +858,5 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   candidates: 18 changed, the 18 named in H-036's Outcome, each traced to a server field; refresh
   proposed, not written. §2, §4, §10, §10.1 and S-03, S-07, S-08, S-10, S-11, S-15, S-17, S-19,
   S-28 updated.
+- 2026-11-17 · persona `frontend-eng` · H-014 and H-015 fixed in `site.css` (`c84d181`, operator
+  option A) before the snapshot refresh; S-17 updated.
