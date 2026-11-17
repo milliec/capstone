@@ -244,3 +244,37 @@ def test_list_is_grouped_by_month_with_row_group_headers(specialist_client, gp_c
     list_part = html.split('id="entries-h"', 1)[1]
     assert re.search(r'<th colspan="4" scope="rowgroup">April 2027</th>', list_part)
     assert "All entries for 2027" in html
+
+
+# --- H-036 V-4 (operator, 2026-11-17): units shown under the server's `group` ---
+
+def _status_page(units):
+    run = {"run_id": "RUN-X", "status": "ACTIVE", "phase": "AT_G1", "status_words": "Your turn: check the rules",
+           "is_working": False, "is_at_gate": True, "agents_mode": "stand_in", "demo_planted_row": 0,
+           "demo_fail_step1": 0, "cost_so_far": 0, "run_version": 1,
+           "started_at": "2026-11-17T09:00:00+00:00", "fund_id": "FND-DEMO-01"}
+    return " ".join(_render("pages/review_status.html", run=run, units=units, fund=FUND, identity=None,
+                            agents_mode="stand_in", your_turn=False, current_path="/", refresh_on=True,
+                            rendered_at="2026-11-17T09:00:00+00:00").split())
+
+
+def _unit(label, stage, **extra):
+    return {"label": label, "stage": stage, "status": "done", "stage_attempt": 1, **extra}
+
+
+def test_units_follow_the_servers_group_in_ux_order():
+    html = _status_page([
+        _unit("Rule check one", "A", group="checking_drafts"),   # sent first, shown second
+        _unit("Source doc one", "A", group="drafting"),
+        _unit("Odd unit", "A", group="something_new"),
+    ])
+    headings = re.findall(r'<h3 class="sq[^"]*" id="units-([a-z_]+)">([^<]+)</h3>', html)
+    assert headings == [("drafting", "Drafting the rules"), ("checking_drafts", "Checking the drafts"),
+                        ("other", "Other units")]
+    assert html.index("Source doc one") < html.index("Rule check one") < html.index("Odd unit")
+
+
+def test_units_without_group_fall_back_to_todays_view():
+    html = _status_page([_unit("Source doc one", "A"), _unit("Source doc two", "A")])
+    headings = re.findall(r'id="units-([a-z_]+)">([^<]+)</h3>', html)
+    assert headings == [("drafting", "Drafting the rules")]  # no "Checking the drafts" yet

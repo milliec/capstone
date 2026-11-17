@@ -137,27 +137,48 @@
   {%- endif %}
 </section>
 
-{#- Units, one real table per group (ux.md page 3 item 7). Interim grouping by stage until
-    H-036 V-4 sends unit_groups (which also adds step 1's "Checking the drafts" group). -#}
-{%- set GROUPS = {
-  "A": ("Drafting the rules", "The first AI reads each source and writes a rule, quoting the exact words it relied on."),
-  "B": ("Checking what applies", "One unit per approved rule."),
-  "C": ("Working out the dates", "Code, no AI model."),
+{#- Units, one real table per group (ux.md page 3 item 7).
+    The server's `group` on each unit (H-036 V-4, operator 2026-11-17): one of the four codes below;
+    the backend assigns it, the page never works it out. The page only maps each code to ux.md's
+    fixed heading and intro, in this order. Until units carry `group`, each card shows the units of
+    the matching stage (today's view; "Checking the drafts" then has none). A unit whose group is
+    not one of the four is shown under "Other units", so nothing the server sends is dropped. -#}
+{%- set GROUP_ORDER = ["drafting", "checking_drafts", "applies", "dates"] %}
+{%- set GROUP_TEXT = {
+  "drafting": ("Drafting the rules", "The first AI reads each source and writes a rule, quoting the exact words it relied on.", "agent"),
+  "checking_drafts": ("Checking the drafts", "A second, separate AI compares every draft with all the sources and tells you where they disagree. It never changes a rule.", "agent"),
+  "applies": ("Checking what applies", "One unit per approved rule.", "agent"),
+  "dates": ("Working out the dates", "Code, no AI model.", ""),
 } %}
+{%- set GROUP_STAGE = {"drafting": "A", "applies": "B", "dates": "C"} %}
+{%- set grouped = units|selectattr("group", "defined")|list %}
+{%- set ns = namespace(cards=[]) %}
+{%- for code in GROUP_ORDER %}
+  {%- if grouped %}
+    {%- set members = units|selectattr("group", "equalto", code)|list %}
+  {%- else %}
+    {%- set members = units|selectattr("stage", "equalto", GROUP_STAGE.get(code, "-"))|list %}
+  {%- endif %}
+  {%- if members %}{% set ns.cards = ns.cards + [(code, GROUP_TEXT[code], members)] %}{% endif %}
+{%- endfor %}
+{%- if grouped %}
+  {%- set others = units|rejectattr("group", "in", GROUP_ORDER)|list %}
+  {%- if others %}{% set ns.cards = ns.cards + [("other", ("Other units", "", ""), others)] %}{% endif %}
+{%- endif %}
 <section class="section" aria-labelledby="units-h">
   <div class="sec-h"><h2 id="units-h">Units</h2></div>
   {%- if units %}
   <div class="units-grid">
-    {%- for stage, group in units|groupby("stage") %}
+    {%- for code, text, members in ns.cards %}
     <div class="card">
       <div class="card-h">
-        <h3 class="sq {{ 'agent' if stage != 'C' else '' }}" id="units-{{ stage }}">{{ GROUPS[stage][0] }}</h3>
-        <p>{{ GROUPS[stage][1] }}</p>
+        <h3 class="sq {{ text[2] }}" id="units-{{ code }}">{{ text[0] }}</h3>
+        {%- if text[1] %}<p>{{ text[1] }}</p>{% endif %}
       </div>
-      <table aria-labelledby="units-{{ stage }}">
+      <table aria-labelledby="units-{{ code }}">
         <thead class="sr"><tr><th scope="col">Unit</th><th scope="col">Status</th></tr></thead>
         <tbody>
-          {%- for u in group %}
+          {%- for u in members %}
           <tr>
             <th scope="row">{{ u.label }}</th>
             <td>{{ ui.tag(L.UNIT_WORDS.get(u.status, u.status), L.UNIT_TONE.get(u.status, "neutral")) }}</td>
