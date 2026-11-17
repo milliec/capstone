@@ -104,7 +104,11 @@ button, no "someone may be mid-run" line.
 6. The page content.
 
 Page `<title>` pattern: `<Page name> · ACME Compliance calendar (demo)`. After a refusal, prefix it
-with `Not done: ` so a screen reader announces the refusal when the page loads.
+with `Not done: ` so a screen reader announces the refusal when the page loads. On the review
+status page the title starts with the review and its status words instead:
+`Review {n}: {status words} · ACME Compliance calendar (demo)`, for example `Review 4: AI is
+drafting the rules`, so a screen-reader user can check progress from the tab while the page refreshes
+(operator, 2026-11-17).
 
 ### 1.4 The four-step stepper (one sitting, not three interruptions)
 
@@ -179,6 +183,12 @@ A status is always a word first; colour only supports it.
 - Buttons say what they do: verb + object ("Approve rule", "Publish calendar"), never "OK" or
   "Submit".
 - Dates in full: "Mon 2 Feb 2027". Times: "14:02".
+
+**One exception: the sign-in page's left-hand panel** (operator decision, 2026-11-17, option C,
+H-037). Its tagline and two paragraphs are written in the first person, as the portfolio's author
+speaking ("I designed this tool …"). That is allowed on page 1 only. Every other page, and the
+right-hand sign-in box on page 1, keeps the product voice above. The copy review (CR-019) treats
+those three lines as exempt from this section.
 
 All wording in this note goes through the copy review before the demo (CR-019).
 
@@ -258,7 +268,9 @@ role's first page when already signed in.
 
 **On screen, in order**
 
-1. No sidebar (no identity, no navigation). The "acme" wordmark at the top.
+1. No sidebar (no identity, no navigation). The page has two panels side by side: the ivory
+   **left-hand panel** (see "Left-hand panel" below), then the sign-in box with everything in
+   items 2 to 5. Items 2 to 5 sit in the right-hand box.
 2. H1 **"Sign in to the demo"**
 3. Line: **"Choose a role to explore the demo with mock data. You don't need a password."** This
    line carries the demo label on this page (UX-001), since there is no sidebar.
@@ -268,6 +280,29 @@ role's first page when already signed in.
    - **"Sign in as the General Partner / Fund Manager"** (U6, H-018), with hint below: "Sees the
      published calendar only. Cannot change anything."
 5. Line: **"The fund and the firm are fictional."**
+
+**Left-hand panel** (operator decision, 2026-11-17, option C, H-037; layout and look from
+`docs/prototype/sign-in.html`). Portfolio voice is allowed here only (§1.6). In order:
+
+- The **"acme"** wordmark.
+- **Three decorative cards**, hidden from screen readers (`aria-hidden`) and **hidden below 1100 px**
+  so the sign-in box comes first on small screens. They carry no information the page depends on:
+  1. A dot calendar headed **"2027 filing calendar"**, with **"Fictional fund · 22 deadlines"**
+     and the key **"Due date"** · **"May not be required"**. **No per-date labels**, so the
+     evaluation answer key is not shipped in the app.
+  2. A two-bar comparison: tag **"Sources disagree"**; **"The law"** 6 mo against **"A practitioner
+     guide"** 4 mo.
+  3. A ring: **"6 of 7"** **"rules approved by a person. One was rejected."**
+- The tagline, **"AI drafts. People approve."** It is a paragraph, not a heading, so "Sign in to the
+  demo" stays the page's one H1.
+- Two first-person paragraphs, word for word: **"I designed this tool to read fund regulations and
+  draft a compliance calendar: who must file what, and by when. A wrong date has real consequences,
+  so I started from one question: where can I trust AI, and where can't I?"** and **"My approach is:
+  decide what must never go wrong, make code and people responsible for that, and let AI speed up
+  everything else. Then scope ruthlessly to what can actually ship."**
+
+The panel has no links, buttons or form fields. The right-hand box keeps the words in items 2 to 5
+exactly as written.
 
 **Actions**
 
@@ -382,6 +417,8 @@ and what to do next. **Who:** specialist. **No re-run of a whole review.** The o
 **Automatic refresh (running only).** While the phase is `A_RUNNING`, `B_RUNNING` or `C_RUNNING`,
 the page reloads itself every 3 seconds (§3 Freshness). Next to the status line:
 
+- Beside the status words: **"Last updated at 14:02:09."**, the time the server drew the page,
+  with seconds so each 3-second refresh is visible (operator, 2026-11-17).
 - Text: **"This page refreshes every 3 seconds while AI is working."** (In step 4: "… while the
   dates are worked out.")
 - Link: **"Refresh now"** (reloads the same page).
@@ -597,6 +634,10 @@ See §9.
       question OQ-7"** as applicable, and the status tag (**"To decide"**, or **"Approval
       blocked"** on the demo rule after a refused approval).
    2. **Quote** (blockquote): the word-for-word quote. Caption: "Quote from paragraph {para_id}".
+      On wide screens the card has two columns (the mock-up's evidence layout), each with a small
+      heading: **"The source says"** over the quote and its check and paragraph, and **"The AI's
+      reading"** over the rule fields (item 6). The reading order is unchanged: quote → check →
+      paragraph → flags → fields. (Wording built from the mock-ups; confirmed 2026-11-17.)
    3. **Quote check**, one line, on **every** rule, the demo rule included (D5, operator decision
       2026-11-14; SAD §3 page 4; H-030):
       - pass: **"Quote check: passed. The quote appears word for word in paragraph {para_id}."**
@@ -699,7 +740,7 @@ See §9.
 
 | Action | Then |
 |---|---|
-| Approve rule / Reject rule | Success: redirect to G1 at that rule's anchor, now showing the decision and the "Next rule to decide" link |
+| Approve rule / Reject rule | Success: redirect to G1 at the **next rule still to decide** (`#row-{i}` of that rule), wrapping round to the first undecided rule if the one just decided was the last; when every rule is decided, to the "Finish checking" section. The rule just decided still shows its decision and the "Next rule to decide" link (operator decision, 2026-11-17, H-043). Refusals are different: they land on the rule they are about (§5) |
 | Approve on the demo rule | Refused: same page, landing on the demo rule card (`#row-{i}`). The `DEMO_ROW_NOT_APPROVABLE` sentence sits in the card; its status tag changes to "Approval blocked"; the top shows the short line and "Go to rule {i}". The rule stays undecided, nothing is preselected, and the refusal is recorded in the audit log. The specialist then uses Reject |
 | Finish checking | Success: redirect to review status (step 3, AI checking what applies, auto-refresh) |
 
@@ -708,7 +749,8 @@ row, so G1 takes about 15 minutes for 7 rows. Supporting decisions:
 
 - Everything a decision needs is on one card, in reading order: quote → check → paragraph → flags →
   fields → decision. No clicking away.
-- The redirect returns to the same row with a link to the next one.
+- After a decision the page lands on the next rule still to decide, so the specialist moves
+  straight on without scrolling (H-043). The rule just decided keeps its link to the next one.
 - No confirmation dialogs; the decision forms are already explicit.
 
 ---
@@ -822,7 +864,7 @@ reuse that layout; this note sets their behaviour and words (H-026, gap e).
 
 | Action | Then |
 |---|---|
-| Confirm / Overrule / Decide | Success: redirect to G2 at that card. Refused: `REASON_REQUIRED`, `ALREADY_DECIDED`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE`, `VALIDATION` |
+| Confirm / Overrule / Decide | Success: redirect to G2 at the **next card still to decide** (`#verdict-{i}` of that card), wrapping round to the first undecided card; when every card is decided, to the "Finish and calculate dates" section (operator decision, 2026-11-17, H-043). The card just decided still shows its decision. Refused (lands on the card the refusal is about, §5): `REASON_REQUIRED`, `ALREADY_DECIDED`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE`, `VALIDATION` |
 | Finish and calculate dates | Success: redirect to review status (step 4, dates being worked out; usually ready within one refresh). Refused: `GATE_INCOMPLETE`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE` |
 
 **Budget:** about 1 minute per verdict, 6 minutes for G2.
@@ -870,7 +912,7 @@ the review without publishing, with a reason. **Who:** specialist.
    - **Rules you rejected**: Rule · Your reason. The demo rule appears here tagged **"Demo"**. If
      none: **"No rules were rejected."**
    - **Paragraphs no rule uses**: Paragraph ID · Source · What it says. Line: **"No approved rule
-     uses these paragraphs. The calendar has nothing from them."**
+     uses these paragraphs. The calendar has nothing from them."** If none: **"None."**
 6. **Decision**: one answer-first form (§4 "Decision form"; A9 reversed, H-011, H-028;
    `publish.html`), with the run version and the two ID lists exactly as shown above as hidden
    fields. Radio question **"Is this calendar ready for the General Partner?"** (named `decision`,
@@ -930,7 +972,7 @@ read-only. **Must work at phone width.**
 1. Shared frame.
 2. H1 **"Compliance calendar"**
 3. The fixed message, word for word, **and nothing else**: no count, no review, no status, no
-   summary cards, no week grid:
+   summary cards, no calendar:
    **"Your compliance calendar is being prepared and checked by a specialist. Nothing has been
    published yet. The deadlines will appear here once it is published."** (operator, 2026-11-16,
    Open Question 12). It replaces the DL-27 text; `@system.arch` updates DL-27 and EC-014 (D11).
@@ -948,15 +990,34 @@ read-only. **Must work at phone width.**
    - **Specialist** (the longer boxed note): **"This calendar is not legal advice. Before anyone
      relies on these dates: the way deadlines are counted (for example, the day 'six months after
      year end' falls on) has not yet been checked against the legal texts."**
-5. **Summary cards** (a row of three; operator decision, 2026-11-13): **Entries in {year}** {n} ·
-   **Due next** {date} · **May not be required** {p}. Every value is a fact of the published
-   calendar, computed by the server.
-6. **Week grid** (H2 **"The next two months"**): the two calendar months from the next due date,
-   seven columns Mon to Sun. Each entry shows What and Who files in words, and "May not be
-   required" where it applies. The next due date carries the word **"Due next"**. Published
-   entries only: nothing the General Partner cannot also read in the table below.
-7. **Entries** (H2 **"All entries for {year}"**): a real table sorted by due date, grouped by
-   month. Columns: **When** (due date) · **What** ·
+5. **Summary cards** (a row of three; operator decisions 2026-11-13 and 2026-11-17, H-042; layout
+   from `docs/prototype/gp-calendar.html`), in this order:
+   - **Due next** (the dark card): the next due date in full, then what is due and who files it.
+     **"None"** when nothing is due next.
+   - **"Entries in {year}: {n}"**, with a dot chart of the year (one dot per entry, a column per
+     month, hollow for "May not be required"; key **"Due date"** · **"May not be required"**). The
+     chart is decoration; its numbers are written as text in the card's heading.
+   - **May not be required** {p}.
+
+   The values are **counted on the page from the entries this viewer is shown**, so the cards can
+   never count something the General Partner cannot also read in the calendar (DL-49, CR-012).
+6. **One calendar** (H2 **"All entries for {year}"**) with a three-way switch labelled for screen
+   readers **"Show the calendar as"**: **"Month"** · **"Year"** · **"List"**. The switch changes the
+   view in place, with no page reload and no script, and **only the chosen view shows. Month is
+   the default** (operator decision, 2026-11-17, H-042). Where `:has()` is unsupported, all three
+   views show one under another. The switch is a radio group styled as tabs; the server ticks the
+   one the address asks for (`?view=`), so moving between months keeps the Month view.
+   - **Month view:** one month as a real table, Monday to Sunday, with links to the months either
+     side ("‹ {month}" and "{month} ›"). Each entry shows What, and Who files in words, and "May not
+     be required" where it applies. The next due date carries the word **"Due next"**. A month with
+     no entries shows **"No filings this month."**
+   - **Year view:** a real table, one row per obligation ("What · who files") and a column per
+     month; each date is a small weekday-and-day mark. Legend: **"May not be required (dashed)"** ·
+     **"Due next (underlined)"**. The words are also in the table for screen readers, so colour or
+     line style never carries the meaning alone.
+   - **List view:** the entries table in item 7.
+7. **Entries (List view):** a real table sorted by due date, grouped by month, each month its own
+   row group. Columns: **When** (due date) · **What** ·
    **Who files** ("Not confirmed" for "not known") · **Why** (the reason, then "Source: {document},
    paragraph {id}" and the quote in a smaller blockquote).
    Entries the specialist added without confirmation carry the label **"May not be required"**
@@ -965,16 +1026,16 @@ read-only. **Must work at phone width.**
    missed. It does not mean that any registration or marketing is permitted."** The specialist's
    reason is still shown as the "Why".
 8. Nothing else: no draft, flag, other mark, review status, or link to a failed, abandoned or
-   closed review. The summary cards and the week grid show published facts only.
+   closed review. The summary cards and all three views show published facts only.
    **Moved marks are specialist-only** (operator decision 2026-11-14, Open Question 15; SAD §3
    page 7, DL-49): this page has no "Moved off a weekend" card, count, chip, chart colour or legend
-   entry, and no open-question mark. The Month and Year views and charts (block B12) follow the
-   same rule.
+   entry, and no open-question mark, in any view.
 
-**Phone width (≤ 480 px).** The table keeps its table markup but each row stacks as a block:
-"When" first in bold, then What, Who files, Why, each with its column name as a visible label.
-The week grid becomes a list of the days that have entries ("Mon 11 Jan"). No horizontal page
-scroll.
+**Narrow screens.** **Below 960 px the switch and the Month and Year views are hidden and only the
+List view shows** (operator decision, 2026-11-17, H-042), because a seven-column month or a
+twelve-column year does not fit. At phone width (≤ 480 px) the List table keeps its table markup
+but each row stacks as a block: "When" first in bold, then What, Who files, Why, each with its
+column name as a visible label. The summary cards stack. No horizontal page scroll.
 
 **States**
 
@@ -1017,9 +1078,17 @@ specialist.
 - **`RUN_ACTIVE`** (start a new review): the same pattern, about the button (H-009). The full
   sentence sits beside **"Start a new review"**; the top shows the short line and **"Go to 'Start
   a new review'"** (page 2).
-- **About the page or the review** (for example `GATE_INCOMPLETE`, `VERSION_MISMATCH`,
-  `ACK_REQUIRED`): the full sentence in a box at the top under the H1, headed **"Not done"**, and
-  again next to the control it concerns.
+- **About one control** (`ACK_REQUIRED`, `REASON_REQUIRED` on abandon or on "Close without
+  publishing", and `VALIDATION` when no answer was chosen; **decided 2026-11-17, H-049**): the same
+  pattern as a rule card. The page lands on the control (the redirect carries its anchor: `#ack`,
+  `#abandon`, `#decline-reason`, `#decision`). The full sentence sits **beside that control**,
+  headed **"Not done"**. The top of the page, under the H1, shows only the short line **"Not done.
+  The reason is shown beside {target}."** with a link **"Go to {target}"**, where {target} is
+  **"the box"** (`#ack`), **"the reason"** (`#decline-reason`), **"the question"** (`#decision`) or
+  **"abandon"** (`#abandon`). This avoids showing a 30-word sentence twice on one page.
+- **About the page or the review as a whole** (for example `GATE_INCOMPLETE`, `VERSION_MISMATCH`,
+  `RUN_NOT_ACTIVE`, `RUN_STAGE_RUNNING`, `FORBIDDEN`): no anchor. The full sentence in a box at the
+  top under the H1, headed **"Not done"**, and nowhere else.
 - **Always:** on the page, never as a browser pop-up, and recorded in the audit log (W-18,
   H-009). Any text the specialist typed in a reason field is shown again so it is not lost; radio
   choices and the G3 checkbox are shown **empty** again (nothing preselected).
@@ -1043,12 +1112,15 @@ for that sentence. `{…}` are values the server fills in.
 | `WHO_FILES_REQUIRED` | Approve, source silent | **"The source does not say who files this. Choose a filing party, or 'Not known', to approve the rule."** |
 | `GATE_INCOMPLETE` | Finish G1 | **"{x} rules are still undecided. Decide every rule before you finish checking."** |
 | `GATE_INCOMPLETE` | Finish G2 | **"{x} answers are still undecided, {u} of them where AI can't tell. Decide every answer before you finish."** |
+| `GATE_INCOMPLETE` | Finish G1, exactly one rule left (H-049) | **"1 rule is still undecided. Decide every rule before you finish checking."** |
+| `GATE_INCOMPLETE` | Finish G2, exactly one answer left (H-049) | **"1 answer is still undecided, {u} of them where AI can't tell. Decide every answer before you finish."** |
 | `ACK_REQUIRED` | Publish, box not ticked | **"Tick the box to confirm you have read the rejected rules and the unused paragraphs. Then publish again."** |
 | `ACK_REQUIRED` | Publish, lists changed | **"The lists of rejected rules or unused paragraphs are not the ones shown when you ticked the box. Read the lists above and tick the box again."** |
 | `VERSION_MISMATCH` | Any review-level action | **"This review has moved on since the page was opened. The page now shows where it is. Check it, then try again if you still need to."** |
 | `RUN_ACTIVE` | Start a new review | **"Review {n} is still in progress, so a new review can't start. Finish it, or abandon it at its step, first."** + link **"Open review {n}"**, then the line **"Recorded in the audit trail."** (H-009) |
 | `RUN_NOT_ACTIVE` | Any decision on an ended review | **"This review has ended ({status words}), so it cannot take more decisions. Start a new review from Filing rules."** |
 | `RUN_STAGE_RUNNING` | Abandon or decide while AI or code works | **"AI is still working on step {k}, so this cannot be done yet. It finishes by itself; follow it on the review status page."** (step 4: "The dates are still being worked out, …") |
+| `RUN_STAGE_RUNNING` | A decision or finish sent while the review is at a **different gate**, with nothing working (H-049) | **"This step is not open for decisions right now. The review status page shows where the review is."** |
 | `RUN_NOT_FAILED` | Retry on a review that has not failed (B13b; sentence **proposed**, Open Question 24) | **"This review has not failed, so there is nothing to retry. The page now shows where it is."** |
 | `RETRY_LIMIT_REACHED` | Retry a step that was already retried (B13b; **proposed**, Open Question 24) | **"Step {k} has already been tried again once and failed again. Start a new review from Filing rules."** |
 | `RETRY_NOT_ALLOWED` | Retry refused for one of four reasons (B13b; **proposed**, Open Question 24). The sentence names which one | **"This step can't be tried again, because {reason}. Start a new review from Filing rules."** where {reason} is one of: "the review reached its cost limit"; "the dates could not be worked out, and trying again would give the same result"; "this is an evaluation run"; "a newer review has been started" |
@@ -1383,8 +1455,7 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
 ## Mock-up differences this revision does not apply
 
 These are in `docs/prototype/` but are not among the decisions applied here, so ux.md does not
-follow them yet: the calendar's Month and Year views and charts (A10, H-012: built last, one-day
-timebox); the "For December 2026" period line (A8, H-010: post-MVP); the Funds pages (future
+follow them yet: the "For December 2026" period line (A8, H-010: post-MVP); the Funds pages (future
 scope, H-026); the summary cards and Sources table on Filing rules; the fund facts strip on the
 calendar; the "Why" expand link and the filters on the calendar list; and the left-hand panel on
 sign-in. Items 11, 12, 14 and 15 above are also mock-up differences.
@@ -1512,3 +1583,14 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   session's stash (`stash@{0}`, "ux.md follow-ups to DL-51..53") was read, not applied: it said
   "B13" instead of B13a and B13b and set approval back to `pending`. Edited only this file. No
   code. No model call.
+- 2026-11-17 · persona `ux-designer` · action `design-ux` (revision, H-037, H-042, H-043, H-049 and
+  the wording `frontend.md` asked for) · branch `h045-lookups-cleanup` · page 1: left-hand panel and
+  the portfolio-voice exception in §1.6 (H-037); page 7: summary cards, one calendar with Month /
+  Year / List switch, Month default, List only below 960 px, new wording (H-042); pages 4 and 5:
+  land on the next card to decide (H-043); §5: two new sentences and a placement rule, **the
+  four control-level refusals get an anchor** (H-049, my decision, for the operator to confirm);
+  page 4 column headings "The source says" / "The AI's reading", page 6 empty list "None.", page 3
+  "Last updated at 14:02:09." and the review-status tab title. Did not edit `sad.md` (§3 page 7
+  still says "chosen by a link", List default; H-040) or `frontend.md`. Approval status left
+  `approved`: pages 1 and 7 and the §5 placement change layout after approval, so the operator
+  should read them. No code. No model call.
