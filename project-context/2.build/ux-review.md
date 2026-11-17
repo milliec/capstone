@@ -96,6 +96,11 @@ pages with ux.md's wording only.
   `07-calendar-gp-published-360` (week grid and month grouping) and `07-calendar-gp-empty-360`
   (v1 had captured the sidebar empty-gap bug at phone width; fixed in `58760c1`). The other 20
   snapshots stay v1. The H-006 refresh of the step 4 and calendar snapshots is still to come.
+- **Wordmark refresh** · 2026-11-17 · `@frontend.eng` · operator approved: the 24 snapshots with the
+  sidebar, after the wordmark lost its default underline (`ab85e33`). The change fitted inside the
+  150-pixel tolerance, so the check stayed green; the baselines were refreshed anyway so the full
+  tolerance is available again. A difference image confirmed the underline was the only change; the
+  two sign-in pictures were identical and not touched.
 - **Calendar baseline v3** · 2026-11-17 · `@frontend.eng` · operator approved all 5: page 7 like the
   mock-up (summary row, one calendar with the Month / Year / List switch, Month by default).
   Refreshed `07-calendar-gp-published-1280`, `07-calendar-specialist-published-1280`,
@@ -205,3 +210,5 @@ this table is the agent's reading, not the acceptance decision.
   8 consecutive clean runs.
 - 2026-11-17 · persona `frontend-eng` · calendar baseline v3 (5 snapshots, operator approved); suite
   passes on all 26.
+- 2026-11-17 · persona `frontend-eng` · wordmark underline on hover only; 24 sidebar snapshots refreshed
+  (operator approved); suite passes.
