@@ -7,32 +7,44 @@ calendar lookup is real: the newest publications row for the fund is the live on
 import sqlite3
 
 from backend.services import decisions, runs
-from backend.stand_in import shell_data
+
+
+DIRECTION = {"roll_forward": "following working day", "roll_backward": "preceding working day"}
 
 
 def _entries(conn: sqlite3.Connection, run: dict) -> list[dict]:
-    """The run's calendar entries with the fields the pages read (H-036 V-10, V-11). STUB: B4.
+    """The run's calendar entries, read from what stage C stored, with the fields the pages read
+    (H-036 V-10, V-11). STUB: the dates are fixed stand-in dates (B4 works them out).
 
-    Each entry is a placeholder date joined to its rule (as G1 shows it) and to what the
-    specialist chose there. The page prints these words as sent and works nothing out.
+    Each entry is joined to its rule (as G1 shows it) and to what the specialist chose there. The
+    page prints these words as sent and works nothing out.
     """
-    g1 = {r["n"]: r for r in decisions.get_g1_view(conn, run)["rows"]}
+    g1 = {r["row_id"]: r for r in decisions.get_g1_view(conn, run)["rows"]}
+    stored = conn.execute(
+        """SELECT e.* FROM calendar_entries e JOIN calendar_versions c
+           ON c.calendar_id = e.calendar_id WHERE c.run_id = ? ORDER BY e.due_date, e.rowid""",
+        (run["run_id"],))
     entries = []
-    for e in shell_data.ENTRIES:
-        row = g1[e["row_n"]]
+    for e in stored:
+        row = g1[e["row_id"]]
         chosen = row["decided"]["who_files"] if row["decided"] else None
-        silent = row["needs_who_files"]
         offset = row["offset"].lstrip("+")
+        moved = bool(e["moved"])
         entries.append({
-            **e, "row_id": row["row_id"], "obligation_name": row["obligation_name"],
-            "who_files_label": chosen or ("Not known" if silent else row["responsible_role"].capitalize()),
+            "entry_id": e["entry_id"], "row_id": e["row_id"], "period": e["period"],
+            "due_date": e["due_date"], "moved": moved, "precautionary": bool(e["precautionary"]),
+            "open_question_id": e["open_question_id"],
+            "obligation_name": row["obligation_name"],
+            "who_files_label": chosen or ("Not known" if row["needs_who_files"]
+                                          else row["responsible_role"].capitalize()),
             "recipient_name": row["recipient_name"],
             "why": f"{row['frequency'].capitalize()} rule: due {offset} after {row['anchor']}.",
             "source_paragraph_id": row["source_paragraph_id"],
             "source_document": row["paragraph"]["document"],
             "quote": row["quote"],
-            "marks": {"moved": ({"from_date": e["moved_from"], "to_date": e["due_date"],
-                                 "direction": "following working day"} if e["moved"] else None)},
+            "marks": {"moved": ({"from_date": e["unadjusted_date"], "to_date": e["due_date"],
+                                 "direction": DIRECTION.get(e["business_day_rule"], "next working day")}
+                                if moved else None)},
         })
     return entries
 
@@ -48,7 +60,7 @@ def _previous_publication_at(conn: sqlite3.Connection, run: dict) -> str | None:
 
 
 def get_g3_view(conn: sqlite3.Connection, run: dict) -> dict:
-    """STUB — replace in B2/B4. The calendar to check and publish at G3 (placeholder entries).
+    """The calendar to check and publish at G3, read from what stage C stored (dates: STUB, B4).
 
     H-036 V-10: stage, the two lists with their words, the previous publication and the outcome
     of an ended review. The two ID lists are what the publish form posts back (CR-028).
@@ -56,7 +68,7 @@ def get_g3_view(conn: sqlite3.Connection, run: dict) -> dict:
     cal = conn.execute("SELECT calendar_id FROM calendar_versions WHERE run_id = ?",
                        (run["run_id"],)).fetchone()
     rejected = decisions.rejected_rows(conn, run)
-    unused = decisions.stub_unused_paragraphs()
+    unused = decisions.unused_paragraphs(conn, run)
     if run["status"] == "COMPLETED":
         outcome = {"at": run["published_at"], "reason": None}
     else:
@@ -67,7 +79,7 @@ def get_g3_view(conn: sqlite3.Connection, run: dict) -> dict:
         "stage": runs.page_stage(run, "g3"),
         "rejected_rows": rejected,
         "rejected_row_ids": [r["row_id"] for r in rejected],
-        "unused_paragraphs": unused,                                      # B3: from the loader
+        "unused_paragraphs": unused,
         "uncited_paragraph_ids": [p["paragraph_id"] for p in unused],
         "previous_publication_at": _previous_publication_at(conn, run),
         "outcome": outcome,

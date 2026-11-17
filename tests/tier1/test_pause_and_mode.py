@@ -68,5 +68,5 @@ def test_stand_in_pauses_once_per_unit_during_a_stage(specialist_client, setting
     specialist_client.post("/specialist/runs", data={})
 
     run = runs_service.list_runs(db, FUND_ID)[0]
-    assert sleep.calls == [1.0] * len(stage_units(run, "A"))
+    assert sleep.calls == [1.0] * len(stage_units(db, run, "A"))
     assert run["phase"] == "AT_G1"

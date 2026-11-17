@@ -326,6 +326,37 @@ def abandon_run(conn: sqlite3.Connection, *, run_id: str, run_version: int, reas
     conn.commit()
 
 
+def fail_interrupted_runs(conn: sqlite3.Connection) -> int:
+    """Start-up rule (rule 7): a review caught mid-stage by a restart becomes FAILED, reason
+    "service restarted", written to the audit log as a system event. A review waiting at a gate
+    (AT_G1, AT_G2, AT_G3) is unaffected. Returns how many reviews it failed.
+
+    The stage's running unit (or, if none, its first waiting unit) is marked failed with the
+    reason, so run status can name it. Rule 9 means the stage had stored nothing.
+    """
+    interrupted = conn.execute(
+        "SELECT * FROM runs WHERE status = 'ACTIVE' AND phase LIKE '%\\_RUNNING' ESCAPE '\\'"
+    ).fetchall()
+    for run in interrupted:
+        stage = run["phase"][0]
+        unit = conn.execute(
+            """SELECT unit_id FROM units WHERE run_id = ? AND stage = ? AND stage_attempt = ?
+               AND status IN ('running', 'waiting')
+               ORDER BY status = 'waiting', rowid LIMIT 1""",
+            (run["run_id"], stage, run["stage_attempt"])).fetchone()
+        if unit:
+            conn.execute(
+                """UPDATE units SET status = 'failed', failure_reason = 'service restarted'
+                   WHERE run_id = ? AND stage = ? AND stage_attempt = ? AND unit_id = ?""",
+                (run["run_id"], stage, run["stage_attempt"], unit["unit_id"]))
+        conn.execute("UPDATE runs SET status = 'FAILED' WHERE run_id = ?", (run["run_id"],))
+        write_audit(conn, fund_id=run["fund_id"], actor="system", event_type="system",
+                    run_id=run["run_id"], subject_id=run["run_id"],
+                    reason=f"service restarted while stage {stage} was running")
+    conn.commit()
+    return len(interrupted)
+
+
 def retry_run(conn: sqlite3.Connection, settings: Settings, schedule: Callable, *,
               run_id: str, run_version: int, actor: str) -> str:
     """STUB — replace in B13b (Retry, DL-51). Not built in the shell: changes nothing.

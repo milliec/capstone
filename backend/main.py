@@ -13,9 +13,10 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
-from backend.db.connection import init_db
+from backend.db.connection import connect, init_db
 from backend.services.auth import Forbidden, identity_from_session
 from backend.services.refusals import NotFound, Refused
+from backend.services.runs import fail_interrupted_runs
 from backend.settings import Settings, load_settings
 from backend.web.deps import NotSignedIn, render
 from backend.web.refusal_pages import render_refused
@@ -26,6 +27,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """Make one app. Tests pass their own settings (temporary database, pause 0)."""
     settings = settings or load_settings()
     init_db(settings.database_path)
+    # Start-up rule (SAD rule 7): a review that was mid-stage when the app stopped cannot finish.
+    conn = connect(settings.database_path)
+    try:
+        fail_interrupted_runs(conn)
+    finally:
+        conn.close()
 
     app = FastAPI(title="Compliance calendar (demo)", docs_url=None, redoc_url=None)
     app.state.settings = settings

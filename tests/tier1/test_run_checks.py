@@ -139,3 +139,38 @@ def test_the_page_is_shown_again_with_the_refusal_and_its_status(specialist_clie
     assert page.status_code == 422
     assert "Write a reason to abandon this review." in page.text
     assert "Abandon this review" in page.text
+
+
+def test_start_up_rule_fails_a_review_caught_mid_stage_and_leaves_gates_alone(conn, settings):
+    """Rule 7: after a restart, A_RUNNING / B_RUNNING / C_RUNNING reviews become FAILED."""
+    from backend.services import stage_store
+
+    running = _start(conn, settings)                        # A_RUNNING, one unit running
+    run = runs.get_run(conn, running)
+    stage_store.add_units(conn, run, "A", [("DOC-STUB-1", "Doc 1"), ("DOC-STUB-2", "Doc 2")])
+    stage_store.mark_unit(conn, run, "A", "DOC-STUB-1", "done")
+    stage_store.mark_unit(conn, run, "A", "DOC-STUB-2", "running")
+    assert runs.fail_interrupted_runs(conn) == 1
+    failed = runs.get_run(conn, running)
+    assert (failed["status"], failed["phase"]) == ("FAILED", "A_RUNNING")
+    assert failed["failure"]["unit_label"] == "Doc 2"
+    assert failed["failure"]["reason_sentence"] == "The application restarted while AI was working"
+    units = {u["unit_id"]: u["status"] for u in runs.list_units(conn, running)}
+    assert units == {"DOC-STUB-1": "done", "DOC-STUB-2": "failed"}
+    assert conn.execute("SELECT COUNT(*) FROM rows").fetchone()[0] == 0     # nothing was stored
+    note = conn.execute("SELECT actor, reason FROM audit_log WHERE event_type = 'system' "
+                        "ORDER BY audit_id DESC LIMIT 1").fetchone()
+    assert note["actor"] == "system" and "service restarted while stage A" in note["reason"]
+
+    at_gate = _start(conn, settings)                        # a review waiting at a gate is unaffected
+    conn.execute("UPDATE runs SET phase = 'AT_G2' WHERE run_id = ?", (at_gate,))
+    conn.commit()
+    assert runs.fail_interrupted_runs(conn) == 0
+    assert runs.get_run(conn, at_gate)["status"] == "ACTIVE"
+    assert _start_is_refused_while_active(conn, settings)
+
+
+def _start_is_refused_while_active(conn, settings):
+    with pytest.raises(Refused):
+        _start(conn, settings)
+    return True
