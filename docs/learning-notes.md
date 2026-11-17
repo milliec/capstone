@@ -331,6 +331,15 @@ your code that can answer differently (a font server, a clock, a network), and p
 It's like comparing two exports of a Figma frame where a shared library font quietly updated between
 them: the design did not change, the font did.
 
+**Run a failing visual test on the untouched code too.** A two-word data change made 10 screenshot
+tests fail, and an older note in the handoffs said 18 already differed, so it was not clear which
+failures were new. Setting the change aside and running the same test on plain `main` gave a clean pass,
+which proved all 10 came from the change. Lesson: before you report what a change broke, get a baseline
+from the code without it, and do not trust an old count. It's like comparing a new Figma version with
+the last published one instead of with a screenshot someone remembers. A failing picture test after a
+text change is expected; the job is to list the pictures, not to re-record them, so the person who owns
+the approval can see exactly what moved.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -546,3 +555,5 @@ page's width with the screen's, which a look at the fixed page alone would have 
   pin it in the test)
 - 2026-11-17 · added one note from the H-036 snapshot refresh (a fix in one place can break another;
   check every page's width, not only the page you fixed)
+- 2026-11-17 · added one note from H-051 (run a failing visual test on the untouched code too, to know
+  which failures are yours)

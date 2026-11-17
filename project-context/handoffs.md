@@ -34,13 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-051: Stand-in rules 2 and 3 say "central administration"; "Who files" should show one of the six options
-- From: @ux.designer (operator decision, 2026-11-17)   To: @backend.eng   Date: 2026-11-17
-- Touches: `backend/stand_in/shell_data.py` (`ROWS`, rules 2 and 3, `responsible_role`); ux.md UX-016 and page 7 (Who files); `backend/services/calendar.py` line 39 (reads the value, no change asked)
-- Ask: Change `responsible_role` from `"central administration"` to `"fund administrator"` on rules 2 and 3. The calendar capitalizes it, so it then reads "Fund administrator", one of the six "who files" options (UX-016). Expect the calendar (page 7) and publish (step 4) snapshots to change, and probably the check-rules (step 2) ones, which print the value as the source says it. Run `cd tests/visual && npm run test:visual` and report which failed in the Outcome. Do not re-record: `@frontend.eng` proposes the refresh for the operator to approve (`CLAUDE.md` check 3).
-- Why: "Central administration" is not a filing party in the mock profile or in ux.md, so the stand-in calendar showed a "Who files" value the product never offers.
-- Outcome: (the owner fills this in)
-
 ### H-048: FYI and one fix: refusals are live; the abandon box reads `typed` the wrong way; the visual script changed
 - From: @backend.eng (B2)   To: @frontend.eng   Date: 2026-11-17
 - Touches: `backend/web/templates/pages/review_status.html` (the abandon textarea); `tests/visual/visual.spec.js`; 2.build/frontend.md §10.1 V-12
@@ -120,6 +113,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-051: Stand-in rules 2 and 3 say "central administration"; "Who files" should show one of the six options
+- From: @ux.designer (operator decision, 2026-11-17)   To: @backend.eng   Date: 2026-11-17
+- Touches: `backend/stand_in/shell_data.py` (`ROWS`, rules 2 and 3, `responsible_role`); ux.md UX-016 and page 7 (Who files); `backend/services/calendar.py` line 39 (reads the value, no change asked)
+- Ask: Change `responsible_role` from `"central administration"` to `"fund administrator"` on rules 2 and 3. The calendar capitalizes it, so it then reads "Fund administrator", one of the six "who files" options (UX-016). Expect the calendar (page 7) and publish (step 4) snapshots to change, and probably the check-rules (step 2) ones, which print the value as the source says it. Run `cd tests/visual && npm run test:visual` and report which failed in the Outcome. Do not re-record: `@frontend.eng` proposes the refresh for the operator to approve (`CLAUDE.md` check 3).
+- Why: "Central administration" is not a filing party in the mock profile or in ux.md, so the stand-in calendar showed a "Who files" value the product never offers.
+- Outcome: Done by @backend.eng on branch `backend/h051-fund-administrator`. `responsible_role` is now `"fund administrator"` on rules 2 and 3 in `backend/stand_in/shell_data.py` (two lines; `calendar.py` unchanged), so "Who files" reads "Fund administrator". Tier 1 and Tier 2 (`pytest tests`): 138 passed. Real-name scan prints nothing. `aamad validate`: only the known missing-artifact findings (`qa.md` H-002, `integration.md`, `evals.md`). **Visual check: 10 snapshots differ, nothing re-recorded.** Plain `main` passes the visual check, so all 10 come from this change. Step 2 (check rules): `04-check-rules-at-step-1280`, `04-check-rules-at-step-1024`, `04-check-rules-two-decided-1280`. Step 4 (publish): `06-publish-at-step-1280`, `06-publish-at-step-1024`. Page 7 (calendar): `07-calendar-gp-published-1280`, `07-calendar-gp-published-360`, `07-calendar-gp-list-view-1280`, `07-calendar-gp-year-view-1280`, `07-calendar-specialist-published-1280`. Next: @frontend.eng proposes the new snapshots for the operator to approve (`CLAUDE.md` check 3).
 
 ### H-041: FYI: B12 built now; drop order and plan
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @project.mgr   Date: 2026-11-17

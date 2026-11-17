@@ -20,11 +20,11 @@ ROWS = [
      "source_paragraph_id": "SRC-STUB-P1", "quote": "Placeholder quote one.", "origin": "model"},
     {"n": 2, "obligation_name": "Stand-in rule 2: quarterly return", "frequency": "quarterly",
      "anchor": "quarter end", "offset": "+20 days", "recipient_code": "STUB-REG",
-     "responsible_role": "central administration", "business_day_rule": "roll_forward",
+     "responsible_role": "fund administrator", "business_day_rule": "roll_forward",
      "source_paragraph_id": "SRC-STUB-P2", "quote": "Placeholder quote two.", "origin": "model"},
     {"n": 3, "obligation_name": "Stand-in rule 3: monthly report", "frequency": "monthly",
      "anchor": "month end", "offset": "+10 days", "recipient_code": "STUB-REG",
-     "responsible_role": "central administration", "business_day_rule": "no_roll",
+     "responsible_role": "fund administrator", "business_day_rule": "no_roll",
      "source_paragraph_id": "SRC-STUB-P3", "quote": "Placeholder quote three.", "origin": "model"},
 ]
 
