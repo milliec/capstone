@@ -141,3 +141,32 @@ def test_page_stage_before_at_after_and_ended(settings):
                                   ("FAILED", "A_RUNNING", "ended_before", "ended_before")]:
         run = runs.get_run(conn, _run_at(conn, settings, status, phase))
         assert (runs.page_stage(run, "g1"), runs.page_stage(run, "g3")) == (g1, g3), (status, phase)
+
+
+def test_g2_view_fields_and_decided_outcome(settings):
+    """V-9: facts, approved rule, missing fact, overrule value, and the decided outcome words."""
+    from backend.services import decisions
+
+    init_db(settings.database_path)
+    conn = connect(settings.database_path)
+    run = runs.get_run(conn, _run_at(conn, settings, "ACTIVE", "AT_G2"))
+    view = decisions.get_g2_view(conn, run)
+    assert view["stage"] == "at"
+    applies, unsure, no = view["verdicts"]
+    assert applies["cited_facts"][0]["fact_id"] == "FACT-STUB-1" and applies["decided"] is None
+    assert applies["approved_rule"]["paragraph_id"] == "SRC-STUB-P1" and applies["approved_rule"]["quote"]
+    assert (applies["overrule_value"], no["overrule_value"]) == ("does_not_apply", "applies")
+    assert unsure["overrule_value"] is None and unsure["missing_fact"]
+    assert applies["missing_fact"] is None
+
+    for v, decision, value, reason in [(applies, "override", "does_not_apply", "Not for this fund"),
+                                       (unsure, "decide", "applies", "I checked")]:
+        decisions.decide_verdict(
+            conn, verdict_id=v["verdict_id"], version=1, decision=decision, value=value,
+            confirm_reason=None, override_reason=reason if decision == "override" else None,
+            decide_reason=reason if decision == "decide" else None, actor="specialist-1")
+    after = {v["verdict_id"]: v for v in decisions.get_g2_view(conn, run)["verdicts"]}
+    d1, d2 = after[applies["verdict_id"]]["decided"], after[unsure["verdict_id"]]["decided"]
+    assert d1["outcome"] == "Overruled: doesn't apply" and d1["reason"] == "Not for this fund"
+    assert d2["outcome"] == "Added, marked 'May not be required'" and d2["reason"] == "I checked"
+    assert d1["by_label"] == "Compliance specialist (mock)" and d1["at"]
