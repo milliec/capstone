@@ -1069,6 +1069,28 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   H-020), so the estimate is about 6.25 days likely, about 7.25 with B12 (refines DL-42).
 - **Changed**: SAD §3 page 7, Estimate (new block B12, build order, drop order), Build card
   "Order" row, "Order of work", Future Work F-19.
+- **Update 2026-11-17 (operator; H-040, H-041, H-042):** B12 is **built now, not last**: the
+  frontend was waiting on the backend (H-036, B2) and the operator wants the views in the Friday
+  demo. Four departures from the decision above, all recorded here and checked against the code:
+  1. **Build order.** B12 comes before B6 and B10 (SAD Build card "Order" row, Order of work row 5a).
+     It is **dropped as a whole after B6 and Tier 2 and before B13b**; the calendar then shows the
+     List view alone. Scope and the one-day timebox are unchanged. Totals stay at about 7.75 days
+     likely: the block moved, it did not grow.
+  2. **Switch.** The views are switched by a **radio group styled as tabs**, with CSS (`:has()`), in
+     place, no script, no reload (as in `docs/prototype/gp-calendar.html`), not "chosen by a
+     link". Only the Month view's month-to-month links reload the page.
+  3. **Default.** The **Month view is the default**, not the List view (operator: "the view the
+     tests and the demo use"). The List view is one click away and is the only view below 960 px.
+  4. **Helper (confirmed by the architect).** The layout is arranged by a small web-layer module,
+     `backend/web/calendar_view.py` (`frontend.md` W-5), not by templates and the stylesheet alone.
+     **Condition: it stays display-only.** It may only group, order and count the published entries
+     the page is already given, and pick which entry is "due next" by comparing dates with today.
+     It may **not** add a field or an entry, drop or mark an entry, calculate or change any
+     obligation date, call a service or a model, or read anything the viewer may not already see
+     (CR-012). If it needs more than that, it is a SAD edit first.
+- **Changed (update)**: SAD §3 page 7, Estimate (B12 row, "Build order", drop order), Build card
+  "Order" row, Order of work (row 5a), DL-49 summary row. `ux.md`, `frontend.md` and
+  `scaffold-plan.md` were not edited: H-041 and H-042 tell their owners.
 
 ## 2026-11-16 · Data model diagram
 
@@ -1377,3 +1399,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction; `ux.md` revision D9 to D12, §10.3) · action `update` · new DL-51 (Retry a failed stage once; stage outputs stored when the stage ends; refusal codes `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`), DL-52 (failure demo switch, stand-in only, reason `demo failure`), DL-53 (data gaps G-1 to G-10 answered); DL-27 update (new "being prepared" text); DL-44 update (new refusal copy); DL-22 pointer to DL-51. Operator decisions, with the architect's additions to confirm in SAD SOQ-31 to SOQ-33
 - 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-51 update (refusals confirmed; `calendar generation` refuses a retry; B13 after B9, dropped next after B6), DL-52 update (T-DEMOFAIL-1 Tier 1 once B13 is built), DL-53 update (CR-027 names the OQ-7 rows by source paragraph and recipient code); operator decisions
 - 2026-11-16 · persona `system-arch` (at the operator's instruction; handoff H-033) · action `update` · new DL-54 (B13 split into B13a Failure demo and stand-in pause, kept, after B3, and B13b Retry, after B9, dropped next after B6; new setting `STAND_IN_UNIT_PAUSE_S`; T-DEMOFAIL-1 Tier 1 from B13a; new Tier 1 test T-PAUSE-1); DL-52 update (the failure demo no longer depends on Retry). Operator decisions
+- 2026-11-17 · persona `system-arch` (at the operator's instruction; handoff H-040) · action `update` · DL-49 update: B12 built now (before B6 and B10), switch is a `:has()` radio group, Month is the default, the display-only helper is confirmed with its condition; B12 dropped as a whole after B6 and Tier 2, before B13b. Operator decisions
