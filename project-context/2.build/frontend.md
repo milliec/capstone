@@ -404,6 +404,16 @@ them.
 | **Unstyled test** | Every page must read and work in order with the stylesheet removed: real headings, lists, tables and forms, the main column in reading order, no meaning carried by CSS alone. Checked by loading each page with `site.css` blocked (§6) |
 | **Third-party comments** | The new file carries no comment naming a third-party site or brand (operator, 2026-11-17, Open Question 9) |
 
+**Matching the mock-ups (operator, 2026-11-17).** The first pass rebuilt components from
+`app.css`'s generic rules and missed the mock-ups' own component styles, so sizes were off. The
+second pass uses them: the stepper is `.steps` (thin top line, 15 px step names), the status line
+is `.cta` (ivory panel, 3 px tone bar, 26 px heading, button on the right), unit groups are cards
+with a 22 px `.sq` heading and 15 px rows, cards use `.evidence` (source and AI's reading side by
+side above 1180 px) and the sidebar foot has the `.avatar`. One deliberate difference: the
+mock-up draws the in-progress step in orange; here it is brass, matching the operator's status
+families (orange is "Your turn" only). **Breakpoint:** the sidebar stays beside the content down to
+960 px (was 1100 px in the mock-up, which was a guess); below that it stacks.
+
 **Sections taken from `app.css`**
 
 | `app.css` section | Take | Leave out |
@@ -547,7 +557,9 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`. 12 tests; 54 in the suite pass |
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
 | S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review of `ux-review.md` |
-| S-18 | README notes via `*sync-docs` | ⬜ | Proposal to the operator; nothing written before approval |
+| S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
+| S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
+| S-24 | Screenshots as evidence | ⏸️ | Saved to `docs/screenshots/` on disk; committing there needs a `.gitignore` and CLAUDE.md change (asked 2026-11-17) |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | 🟡 | First pass 2026-11-17: clean (no markers; every named file exists or is marked deleted). Run again before the merge |
@@ -612,8 +624,14 @@ arrives. None of them shows a made-up value.
 | Page 7 | no summary cards, no two-month grid, heading "All entries" without the year; "Who files" and "Why" empty | filled | V-11 |
 | Refusals | only `FORBIDDEN` (403) and the sign-in `VALIDATION` show; every form redirects | every ux.md §5 refusal on the page | V-12 and B2 |
 
+**Later (not this sprint).** Collapsible nav below the breakpoint (no-JS `<details>`/`<summary>`
+first, then keyboard and screen-reader checks). Until then, below 960 px the sidebar stacks above
+the content (operator, 2026-11-17).
+
 **Wording to confirm with `@ux.designer`** (not in ux.md): the empty "Paragraphs no rule uses" list
-on page 6 shows "None."; the fallback lines above that drop a count or date.
+on page 6 shows "None."; the fallback lines above that drop a count or date; the rule-card column
+headings "The source says" and "The AI's reading" (taken from the mock-ups; ux.md names no headings
+there); the "AI is working" / "Your turn" pill above the status heading (ux.md §10.1 words).
 
 **For `@backend.eng` (add to H-036 V-12).** The refusal object the templates read: `code`,
 `sentence`, `anchor` (`row-3`, `verdict-2`, `start`, `ack`, `decline-reason`, `decision`, `abandon`;
@@ -697,3 +715,12 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   closed with the answers above. Added the interim lookups (§2) so the demo can be clicked through
   before H-036 lands. Raised H-036 to `@backend.eng` in `handoffs.md`; noted H-027 (owned by
   `@frontend.eng`) in the Spec Sync checklist. Stage 2 starts on `frontend-spec`.
+- 2026-11-17 · persona `frontend-eng` · stage 2 · templates, `site.css`, web-layer display edits
+  (W-1 to W-4) and Tier 2 page tests on `frontend-spec`; rendered review in `ux-review.md`. After
+  the operator's review, matched the mock-ups' component styles and lowered the breakpoint to
+  960 px (`40be357`). No model call; `AGENTS_MODE=stand_in` untouched; `ux.md` and `sad.md` not
+  edited.
+- 2026-11-17 · persona `frontend-eng` · `sync-docs` · operator approved items 1 to 3; applied to
+  `README.md` ("Status" note and "Run the app shell": the pages are no longer placeholders; one
+  paragraph on where the CrewAI crews connect, B3, `backend/runtime/agents.py`). `backend.md` still
+  says "placeholder templates": left for `@backend.eng` (its owner). No spec drift found.

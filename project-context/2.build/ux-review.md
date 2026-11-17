@@ -16,6 +16,9 @@ database) driven over HTTP; pages saved as the server rendered them and screensh
 Chrome 157. The 360 px view is a 360 px `<iframe>`, because desktop Chrome will not open a window
 that narrow.
 **Viewports inspected**: 1280 px and 1024 px (specialist pages), 360 px (General Partner calendar).
+**Compared with**: the mock-ups in `docs/prototype/` side by side at 1280 px (`run-status`,
+`review-rules`, `frameworks`), added after the operator found H-008. The first pass compared the
+pages with ux.md's wording only.
 
 ## 1. Scope
 
@@ -91,7 +94,8 @@ this table is the agent's reading, not the acceptance decision.
 | H-004 | Mark pills stretched across the Marks column | `/g3` | at G3 | 1024 | Labels read as bars | low | fixed (`2a46163`) | `11-publish-1024` |
 | H-005 | "Review RUN-20261117-1" instead of "Review 4" | pages 2 to 6 | any | — | Machine ID on screen | medium | open, waits for H-036 V-1 | all |
 | H-006 | Empty "Who files", "Sent to", "Why" columns; empty "what's not in this calendar" lists even after a rejection | `/g3`, `/calendar` | at G3, published | 1024, 360 | The specialist cannot check what the General Partner will read | **high for the demo** | open, waits for H-036 V-10, V-11 and B2 | `11-publish-1024`, `frame360-600` |
-| H-007 | At 1024 px the sidebar stacks above the content (the mock-up breakpoint is 1100 px) | all | — | 1024 | Longer scroll; nothing breaks | low | accepted as in `app.css`; operator to confirm | `11-publish-1024` |
+| H-007 | At 1024 px the sidebar stacks above the content (the mock-up breakpoint is 1100 px) | all | — | 1024 | Longer scroll; nothing breaks | low | fixed (`40be357`): breakpoint 960 px (operator, 2026-11-17) | `11-publish-1024` |
+| H-008 | **Found by the operator.** Component sizes did not match the mock-ups: stepper boxes in place of the thin line, a 19 px status sentence in place of the 26 px panel heading, 13 px unit-group captions in place of 22 px headings, no avatar, one-column cards | review status, step pages | all | 1280, 1024 | The pages looked unlike the approved design | medium | fixed (`40be357`) with the mock-ups' own component styles (`.steps`, `.cta`, `.evidence`, `.avatar`) | `mock-run-status` beside `04b-running-still` |
 
 ## 5. Findings
 
@@ -105,7 +109,7 @@ this table is the agent's reading, not the acceptance decision.
 
 ## 6. Remaining limitations
 
-- Open: H-005, H-006, H-007 (above). All wait on `@backend.eng` (H-036, B2) or an operator call.
+- Open: H-005, H-006 (above). All wait on `@backend.eng` (H-036, B2) or an operator call.
 - Not tested: keyboard, focus, contrast tool, automated scan, visual regression, other
   browsers, refusals, the `:has()` fallback in a real browser without `:has()`.
 - Screenshots are taken from saved pages with the stylesheet beside them, so fonts load from the
@@ -125,11 +129,11 @@ this table is the agent's reading, not the acceptance decision.
 
 ## Open Questions
 
-1. **Evidence.** The screenshots are in the session scratchpad, which is temporary. Commit a small
-   set (fictional data only) under `project-context/2.build/evidence/`, or keep the review
-   without committed images?
-2. **H-007.** Keep the 1100 px breakpoint, or lower it so 1024 px keeps the sidebar beside the
-   content?
+1. **Evidence location.** The operator asked for `docs/screenshots/`. `docs/` is git-ignored and
+   private by CLAUDE.md rule, apart from two named files, so the screenshots are saved there on
+   disk but not committed until the operator confirms a `.gitignore` exception and the CLAUDE.md
+   change, or another path.
+2. Closed 2026-11-17: H-007, breakpoint lowered to 960 px.
 
 ## Audit
 
@@ -137,3 +141,7 @@ this table is the agent's reading, not the acceptance decision.
   pause 1 s) and headless Chrome 157 · viewports 1280, 1024, 360 · `project.mode` greenfield ·
   four findings fixed in `2a46163`; three open. Keyboard, focus, scan and visual regression
   recorded as not tested. No model call.
+- 2026-11-17 · persona `frontend-eng` · action `review-ui` (second pass) · the operator found
+  H-008; compared the pages with the mock-ups side by side and fixed it with their component
+  styles; H-007 fixed (breakpoint 960 px). Open: H-005, H-006. Keyboard pass still owed (the
+  operator and `@frontend.eng` together).
