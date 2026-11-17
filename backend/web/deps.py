@@ -70,6 +70,11 @@ templates.env.filters["time"] = format_time
 templates.env.filters["time_seconds"] = format_time_seconds
 templates.env.filters["datetime"] = format_datetime
 
+# Page 7's month grouping and two-month week grid, display-only (calendar_view.py).
+from backend.web.calendar_view import calendar_layout  # noqa: E402
+
+templates.env.filters["calendar_layout"] = calendar_layout
+
 
 class NotSignedIn(Exception):
     """No valid session: the web layer redirects to /sign-in (ux.md §1.7)."""
