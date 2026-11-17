@@ -203,7 +203,7 @@ it always finishes by itself." On a closed review: nothing.
 | State | What shows |
 |---|---|
 | nothing published | H1 "Compliance calendar" and the fixed message only: "Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published." |
-| published | "Published on {date}." (+ "Made with stand-in agents (fixed test outputs, no AI model)." when it applies); the role's calendar note; three summary cards; week grid "The next two months"; table "All entries for {year}", grouped by month |
+| published | "Published on {date}." (+ "Made with stand-in agents (fixed test outputs, no AI model)." when it applies); the role's calendar note; three summary cards (once V-11 sends `summary`); table "All entries for {year}". **Not built:** the week grid "The next two months" and month grouping (§10.1) |
 | error | "The calendar could not be shown just now. Try again in a few minutes." (§10, W-4) |
 
 | | |
@@ -212,8 +212,8 @@ it always finishes by itself." On a closed review: nothing.
 | **Posts** | nothing (only "Sign out") |
 | **Never shows** | a "Moved off a weekend" mark, an open-question mark, a flag, a "can't tell", a review status (CR-012, UX-009) |
 
-Phone width (≤ 480 px): each table row stacks as a block with visible column labels; the week grid
-becomes a list of days with entries; no horizontal page scroll (UX-012).
+Phone width (≤ 480 px): each table row stacks as a block with visible column labels; no horizontal
+page scroll (UX-012). (The week grid, when built, becomes a list of days with entries.)
 
 ### 403, 404, 500
 
@@ -426,9 +426,9 @@ families (orange is "Your turn" only). **Breakpoint:** the sidebar stays beside 
 | 5 Components | buttons, chips, kpi, card, card-h, tables, refusal, pillars (as the stepper), units | — |
 | 6 Calendar | the list table and the GP card styles only | month and year grids (B12) |
 | 7 Review | rule card, quote, paragraph, flag | the two-column source/draft layout's "source picking" (A5, out of scope) |
-| 8 Sign-in | the `.enter` panel and `.role` buttons | the left-hand ivory "stage" with floating cards (ux.md "Mock-up differences") |
+| 8 Sign-in | the `.enter` panel, `.role` buttons and, since H-037, the ivory `.stage` with its tagline and text | the `.float` cards (an older version of the cluster) |
 | 9 Second pass | `.decision`, `.opt`, `.if` and its `@supports` block, `.refusal` / `.refline`, `pulse` | `.design-note`, prototype-only classes |
-| 10 Charts, 11 Source picker, 12 View switch, 13 Add fund | — | all (B12, A5, future scope) |
+| 10 Charts, 11 Source picker, 12 View switch, 13 Add fund | the sign-in cluster only (`.cluster`, `.dcard`, dots, bars, ring; H-037) | the calendar charts (B12), the source picker (A5), the view switch and the Funds pages (future scope) |
 | Responsive and reduced motion | the 1100 px stacking, the phone-width table stacking, `prefers-reduced-motion` | — |
 
 **Motion kept from the mock-ups** (all switched off under `prefers-reduced-motion`):
@@ -440,8 +440,8 @@ families (orange is "Your turn" only). **Breakpoint:** the sidebar stays beside 
 | `slidein`: fade in from 10 px, 500 ms | the in-card refusal box | the refusal appears beside the form without a jump |
 | `.more` underline draw, 400 ms | the next-step links ("Check the rules ›") | a quiet "go here next" |
 
-Left out: `settle` (sign-in floating cards, not built), `draw`, `arc`, `grow`, `dotIn` (charts,
-B12). **No new motion** for running states: no spinner, no pulsing dot. The units table filling in
+Also kept since H-037, on the sign-in cluster only: `settle`, `dotIn`, `arc`, `grow`, each once on
+load. Left out: `draw` (source highlight, not built). **No new motion** for running states: no spinner, no pulsing dot. The units table filling in
 is the progress signal, and it is real.
 
 ---
@@ -512,9 +512,9 @@ Optional, if B2 is in: click "Start a new review" while a review is in progress 
 | D-1 | The templates in §1 (pages and parts), replacing every placeholder; `parts/review_nav.html` deleted | `backend/web/templates/` |
 | D-2 | `site.css` and the two nav icons | `backend/web/static/` |
 | D-3 | The Iconoir MIT notice | `NOTICES` |
-| D-4 | Page tests (SAD Tier 2 "per-state page tests"): nothing preselected (UX-004), no forbidden words (UX-019), no Retry form on a failed review (UX-022), auto-refresh only while running (UX-006), the empty calendar message (UX-008). The Tier 1 tests keep passing | `tests/tier2/test_pages.py` |
+| D-4 | Page tests (SAD Tier 2 "per-state page tests"): nothing preselected (UX-004), no forbidden words (UX-019), no Retry form on a failed review (UX-022), auto-refresh only while running (UX-006), the empty calendar message (UX-008), "Stop automatic refresh" first while refreshing (K-1), each decision question names its rule for screen readers (K-2). 14 tests. The Tier 1 tests keep passing | `tests/tier2/test_pages.py` |
 | D-5 | The rendered review: screenshots at 1280, 1024 and 360 px, keyboard and greyscale checks, findings and fixes | `project-context/2.build/ux-review.md` |
-| D-6 | Visual regression: Playwright snapshot tests and the first baseline, **after** the operator's review has no open high-severity finding (`.cursor/skills/visual-regression/SKILL.md`). Playwright is not installed yet; if it cannot be added in the time box, `ux-review.md` records "not tested" and why | `tests/visual/` (proposed) |
+| D-6 | Visual regression: Playwright Test 1.64.1, 24 snapshots, baseline v1 committed 17 Nov 2026 after the operator accepted H-006 for it (§11.1) | `tests/visual/` |
 | D-7 | README notes, proposed through `*sync-docs` and written only after approval (below) | `README.md` |
 | D-8 | This file, kept current: the Spec Sync checklist after every commit | `project-context/2.build/frontend.md` |
 
@@ -553,9 +553,9 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-08 | `pages/check_rules.html` + G1 form | ✅ | `3b665d7`. Quote check, paragraph, flags, unused paragraphs wait for H-036 V-8 |
 | S-09 | `pages/confirm_applies.html` + G2 form | ✅ | `16acd65`. Shared `decide_reason` box |
 | S-10 | `pages/publish.html` + G3 form | ✅ | `c78163e`. Rejected and unused lists empty until B2 stores decisions |
-| S-11 | `pages/calendar.html` (list) | ✅ | `36f02cc`. Summary cards, week grid, month grouping wait for H-036 V-11 |
+| S-11 | `pages/calendar.html` (list) | ✅ | `36f02cc`. Summary cards wait for V-11; the week grid and month grouping are not built (§10.1) |
 | S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
-| S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`. 12 tests; 54 in the suite pass |
+| S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`, `7ef8a0f`. 14 tests; 56 in the suite pass |
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
 | S-17 | Visual baselines | ✅ | Baseline v1 (24 snapshots) committed 17 Nov 2026 after the operator accepted H-006 for it. Step 4 and calendar snapshots need one approved refresh when H-036 and B2 land |
 | S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
@@ -563,7 +563,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
-| S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | 🟡 | First pass 2026-11-17: clean (no markers; every named file exists or is marked deleted). Run again before the merge |
+| S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
 
 ---
 
@@ -574,22 +574,39 @@ gaps": "B5 moves any such choice into the service view"). Raised as handoff **H-
 `@backend.eng` on 2026-11-17. V-2, V-3 and the "stage" part of V-8 to V-10 are covered by the
 interim lookups (§2) until they land.
 
-### 10.1 View fields (services, `@backend.eng`)
+### 10.1 View fields (services, `@backend.eng`): the exact contract
 
-| # | Field | Service function | Why |
+**Exact names and shapes, as the templates read them today** (spec-to-code pass, 17 Nov 2026). Any
+field below may be missing: the page then shows less, never a made-up value (§11). Names are what
+matter; values may be placeholders in stand-in mode.
+
+| # | Where the template reads it | Field and shape | Page |
 |---|---|---|---|
-| V-1 | `review_number` on every run | `runs._describe` | "Review {n}" everywhere; the run ID (`RUN-20261116-1`) is not the on-screen name (ux.md §1.8) |
-| V-2 | `status_tone` (`info`, `action`, `problem`, `neutral`, `success`) | `runs._describe` | the pill colour, from ux.md §1.5 |
-| V-3 | `steps[]` (number, state word, link or none, current) | `runs._describe` or a view helper | the stepper (§1.4), including "Failed" and "Ended" on ended reviews |
-| V-4 | `unit_groups[]` (heading, intro, units); step 1 split into "Drafting the rules" and "Checking the drafts" | `runs.list_units` | ux.md page 3 item 7; the stub has document units only |
-| V-5 | `counts` for the status sentence ({n} rules, {u} can't tell, {n} dates) | `runs.get_run` or the page view | page 3 sentences |
-| V-6 | `failure` (step k, step name, unit label, reason sentence); `ended` (date, time, reason); `published_at`; `ended_because` for Filing rules | `runs` | page 3 failed and closed states; page 2 column. The reason sentences are ux.md page 3's table |
-| V-7 | `started_by_label` ("Compliance specialist (mock)") | `runs` | details line |
-| V-8 | G1: `index`, `total`, `quote_check`, `paragraph`, `flags[]`, `has_flag`, `open_question`, `needs_who_files`, `filing_parties[]`, row `status`, `decided`, `summary`, `unused_paragraphs[]`, `next_undecided`, `show_forms`, `stage` | `decisions.get_g1_view` | page 4. `show_forms` and `stage` replace the placeholder's phase checks in the template |
-| V-9 | G2: `index`, `cited_facts[]`, `approved_rule`, `missing_fact`, `overrule_value`, `decided`, `progress`, `index_order`, `next_undecided`, `show_forms`, `stage` | `decisions.get_g2_view` | page 5 |
-| V-10 | G3: per entry `who_files_label`, `recipient_name`, `why`, `source_paragraph_id`, `marks[]`; `rejected_rows[]`, `unused_paragraphs[]`, `previous_publication_at`, `outcome`, `stage` | `calendar.get_g3_view` | page 6 |
-| V-11 | Calendar: `summary`, `weeks`, `months[]`, per entry `who_files_label`, `why`, `source_document`, `quote` | `calendar.get_published_calendar` | page 7 |
-| V-12 | `refusal` object on a re-rendered page: `code`, `sentence`, `scope` (page, card or start form), `anchor` (`row-3`), `target_label` ("rule 3"), and the typed reason text to show again | every refusing service + its handler (B2) | ux.md §5; today only `FORBIDDEN` exists and every POST redirects |
+| V-1 | every run (`runs._describe`) | `review_number` (int) | all review pages, Filing rules |
+| V-2 | every run; every G1 row | run `status_tone`; row `status_tone`: one of `info`, `action`, `problem`, `neutral`, `success` (ux.md §1.5) | pills |
+| V-5 | `run` (review status) | `counts.rules`, `counts.unsure`, `counts.dates` (ints) | page 3 sentences |
+| V-6 | `run` | `ended.at` (ISO time), `ended.reason` (text, first line shown); `published_at` (ISO time); on Filing rules rows `ended_because` (text: the failure sentence or the first line of the reason) | pages 2, 3 |
+| V-7 | `run` | `started_by_label` ("Compliance specialist (mock)") | page 3 |
+| V-8 | `view` (G1) | `stage` (`before`, `at`, `after`, `ended_before`); `summary.flags` (int); `unused_paragraphs[]` of `{paragraph_id, document, text}` | page 4 |
+| V-8 | each `view.rows[]` | `status` (word: "To decide", "Approved", "Rejected", "Approval blocked") + `status_tone`; `quote_check.passed` (bool); `paragraph.document`, `paragraph.text`; `flags[]` of `{flag_type: internal or cross_source, row_value, quote_says, other_paragraph_id}` (an empty list prints "No checker flags."); `has_flag` (bool); `needs_who_files` (bool); `filing_parties[]` of `[value, label]` pairs, in the fund's order, "not known" last; `open_question` (bool); `needs_attention[]` (words for the index column); `tags[]` (extra card tags); `recipient_name`; `decided` = `{by_label, at, business_day_rule, who_files, reason}` | page 4 |
+| V-9 | `view` (G2) | `stage` | page 5 |
+| V-9 | each `view.verdicts[]` | `cited_facts[]` of `{fact_id, label, value}`; `approved_rule` = `{text, quote, paragraph_id}`; `missing_fact` (phrase that fits "Nobody has confirmed {…}."); `overrule_value` (`applies` or `does_not_apply`); `decided` = `{outcome (ux.md page 5 words), by_label, at, reason}` | page 5 |
+| V-10 | `view` (G3) | `stage`; `rejected_rows[]` of `{label, reason, is_demo}`; `unused_paragraphs[]` of `{paragraph_id, document, text}`; `previous_publication_at`; `outcome` = `{at, reason}` | page 6 |
+| V-10 | each `view.entries[]` | `who_files_label`; `recipient_name`; `why`; `source_paragraph_id`; `marks.moved` = `{from_date, to_date, direction}` (direction in words, for example "following working day") | page 6 |
+| V-11 | `published` | `summary` = `{year, entries, due_next, may_not_be_required}` | page 7 |
+| V-11 | each `published.entries[]` | `who_files_label`; `why`; `source_document`; `source_paragraph_id`; `quote` | page 7 |
+| V-12 | `refusal` (any page) | `code`; `sentence`; `anchor` (`row-3`, `verdict-2`, `start`, `ack`, `decline-reason`, `decision`, `abandon`; none for a page-level refusal); `target_label` ("rule 3"); `short` and `link_text` (optional, for `RUN_ACTIVE`); `typed` = `{field name: text typed}` | all forms |
+
+**Listed earlier but read by no template** (pending the operator, Open Question 10; `@backend.eng`
+should not build these yet):
+
+- `steps` (V-3), `failure` (V-6): the stepper and the failed sentence come from ux.md's fixed tables in
+  `parts/lookups.html`, keyed by `status`, `phase` and the failed unit's `failure_reason`.
+- `index`, `total`, `next_undecided`, `show_forms` (V-8, V-9), `progress`, `index_order` (V-9): the
+  page numbers, counts and orders the lists the server sends; `stage` already decides which forms show.
+- `unit_groups` (V-4): units are grouped by `stage`. Step 1's second group, "Checking the drafts",
+  needs the units to say which group they belong to: a `group` field the template would then read.
+- `weeks`, `months` (V-11): the two-month week grid and month grouping on page 7 are **not built**.
 
 ### 10.2 Web-layer items (`backend/web/`, `backend/main.py`)
 
@@ -715,6 +732,11 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 8. **Closed: commits.** Stage 2 commits go on `frontend-spec`. No push, no merge.
 9. **Closed: "ventriloc.ca".** Not in the repository; ignore it. No third-party comments in the new
    stylesheet.
+10. **Open (spec-to-code pass, 17 Nov 2026): fields no template reads.** §10.1 ends with a list that
+    H-036 asked for but no template reads (`steps`, `failure`, `index`, `progress`, … and `weeks`,
+    `months`). Either keep the fixed ux.md tables and the counting of server lists as they are and
+    drop those fields from H-036, or ask `@backend.eng` for them and change the templates to read
+    them. Separately: is the page 7 week grid still wanted for Friday, or after?
 
 ## Audit
 
@@ -741,3 +763,8 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   panel, portfolio voice on this page only). Built from `docs/prototype/sign-in.html` after a
   real-name scan; per-date labels removed from the dot chart. Raised H-037 to `@ux.designer` so
   ux.md records it. Rendered at 1280 px and 800 px.
+- 2026-11-17 · persona `frontend-eng` · spec-to-code pass (S-20): checked named files, macros, form
+  field names, answer markers against the CSS reveal rules, CSS classes both ways, view fields both
+  ways, and leftover markers. §10.1 now lists the exact names and shapes the templates read; fields
+  no template reads moved to a pending list (Open Question 10). Removed the unused `.demo` and
+  `.month-h` rules; unit tests (56) and the visual check (24) still pass.
