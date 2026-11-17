@@ -215,27 +215,33 @@ it always finishes by itself." On a closed review: nothing.
 Phone width (≤ 480 px): each table row stacks as a block with visible column labels; no horizontal
 page scroll (UX-012).
 
-**B12: dot chart and List / Month / Year views (operator, 2026-11-17; DL-49; H-040, pulled
-forward before B10).** Chosen by a link (`?view=list|month|year`, `?month=YYYY-MM`), no script; List
-is the default and keeps the two-month grid. Month and Year are **real tables** (weekday and month
-column headers, row headers), so a screen reader can use the view it chose; "May not be required"
-is a dashed tile plus words; due next is underlined plus words. The dot chart's counts are written
-as text ("Entries in 2027: 2", "May not be required: 1"); the drawing is decorative. The list stays
-below every view. Below 960 px the views and their switch are hidden: the chart and the list remain.
-No moved or open-question mark anywhere (CR-012). Arranged by `backend/web/calendar_view.py` (W-5);
-the view choice is W-6. **Drop order:** after B6 and Tier 2, before B13b. New wording for the copy
-review: "No filings this month.", "Entries in {year}: {n}", the legend lines.
+**Page 7 as built (operator, 2026-11-17: "behave like `docs/prototype/gp-calendar.html`"; B12,
+DL-49, H-040).** Top to bottom:
 
-**Week grid and month grouping (operator, 2026-11-17: back in scope, display-only).** Built from the
-entries the server already sends, with no new backend field, by the web-layer helper
-`backend/web/calendar_view.py` (W-5). The grid shows the two months from the next due date, Monday
-first; each entry with What, Who files when sent, and "May not be required"; the next due date
-underlined with the words "Due next". **The list stays the main accessible view:** the grid is a
-visual view of the same entries, `aria-hidden`, with no links or buttons (no Tab stops), and hidden
-below 960 px, where the list alone shows (in place of ux.md's phone "list of days"). The list is
-grouped by month with row-group headers. Never a moved or open-question mark (CR-012). **Drop
-order:** the grid is dropped after B6 and Tier 2 and before B13b if time runs out; the list,
-without the grid, is the fallback.
+1. **Summary cards** (ux.md item 5), as in the mock-up: *Due next* (dark card: date and what), *Entries
+   in {year}: {n}* with the dot chart (one dot per entry per month, hollow for "May not be
+   required"; the drawing is decorative, the numbers are text), *May not be required* with its count.
+   Counted **display-only** from the entries already sent, so they count only what this viewer may
+   see (CR-012). V-11 `summary` is no longer needed from the server.
+2. **One calendar**, "All entries for {year}", with a **Month · Year · List** switch: a radio group
+   styled as tabs. CSS (`:has()`) shows **only the chosen view, in place, no reload, no script**;
+   Tab reaches the switch, arrow keys change the view. The server ticks the radio for `?view=`
+   (**List by default**, SAD), so the Month view's "‹ March 2027" / "May 2027 ›" links (which reload,
+   to `#entries`) keep it. Without `:has()` every view shows, one under another.
+   - **Month:** one month as a real table (weekday column headers), "Due next" and "May not be
+     required" in words. It replaces the two-month week grid of ux.md item 6.
+   - **Year:** a real table, one row per obligation, a column per month; "May not be required" is a
+     dashed tile plus words; due next underlined plus words.
+   - **List:** the entries grouped by month, with row-group headers (ux.md item 7).
+3. **Below 960 px:** the switch and the Month and Year views hide; the List view shows.
+
+No moved or open-question mark anywhere (CR-012). Arranged by `backend/web/calendar_view.py` (W-5);
+the view choice is W-6. **Drop order:** after B6 and Tier 2, before B13b; without it, the List view
+alone. **Departures from approved documents, recorded for their owners:** the switch is a radio
+group, not "chosen by a link" (SAD §3 page 7; H-040); the Month view replaces the two-month grid and
+the list is one view, not always shown (ux.md page 7 items 6 and 7; H-042); the summary cards are
+counted on the page (ux.md item 5, V-11; H-036, H-042). New wording for the copy review: "No filings
+this month.", "Entries in {year}: {n}", "None" (no date due next), the legend lines.
 
 ### 403, 404, 500
 
@@ -584,7 +590,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
 | S-25 | Week grid and month grouping (display-only) | ✅ | Built and tested (`c263fca`, `58760c1`, `8207349`); keyboard pass: no new Tab stops. Calendar baseline v2 approved (4 snapshots) |
-| S-26 | B12: dot chart and List / Month / Year views (pulled forward, H-040) | 🟡 | Built and tested (`223b082`, `f311130`, `63fb377`); keyboard pass clean. Snapshot proposal (3 changed, 2 new) waiting for approval |
+| S-26 | B12 and page 7 like the mock-up (pulled forward, H-040) | 🟡 | Rebuilt as the mock-up (`a3e71dc`, `d2e3e3b`): summary row, one calendar, Month / Year / List switch in place. Keyboard and click checked. Snapshot proposal (3 changed, 2 new) waiting for approval |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
@@ -620,7 +626,6 @@ matter; values may be placeholders in stand-in mode.
 | V-9 | each `view.verdicts[]` | `cited_facts[]` of `{fact_id, label, value}`; `approved_rule` = `{text, quote, paragraph_id}`; `missing_fact` (phrase that fits "Nobody has confirmed {…}."); `overrule_value` (`applies` or `does_not_apply`); `decided` = `{outcome (ux.md page 5 words), by_label, at, reason}` | page 5 |
 | V-10 | `view` (G3) | `stage`; `rejected_rows[]` of `{label, reason, is_demo}`; `unused_paragraphs[]` of `{paragraph_id, document, text}`; `previous_publication_at`; `outcome` = `{at, reason}` | page 6 |
 | V-10 | each `view.entries[]` | `who_files_label`; `recipient_name`; `why`; `source_paragraph_id`; `marks.moved` = `{from_date, to_date, direction}` (direction in words, for example "following working day") | page 6 |
-| V-11 | `published` | `summary` = `{year, entries, due_next, may_not_be_required}` | page 7 |
 | V-11 | each `published.entries[]` | `who_files_label`; `why`; `source_document`; `source_paragraph_id`; `quote` | page 7 |
 | V-12 | `refusal` (any page) | `code`; `sentence`; `anchor` (`row-3`, `verdict-2`, `start`, `ack`, `decline-reason`, `decision`, `abandon`; none for a page-level refusal); `target_label` ("rule 3"); `short` and `link_text` (optional, for `RUN_ACTIVE`); `typed` = `{field name: text typed}` | all forms |
 
@@ -631,8 +636,9 @@ out from the lists the server sends, or they are not built:
   order of the lists; `show_forms`: `stage` already decides which forms show.
 - `progress`, `index_order` (V-9): the step 3 counts and the "can't tell first" order are counted and
   sorted from `view.verdicts`.
-- `weeks`, `months` (V-11): not needed. The week grid and month grouping are built **display-only**
-  in the web layer from the entries already sent (operator, 2026-11-17; §2 page 7, W-5).
+- `weeks`, `months`, `summary` (V-11): not needed. The calendar's month grouping, views and summary
+  cards are arranged **display-only** in the web layer from the entries already sent (operator,
+  2026-11-17; §2 page 7, W-5).
 
 **Decided 2026-11-17 (operator): unit groups.** V-4 is a `group` on each unit (contract table above),
 not a separate `unit_groups` list. Until units carry it, page 3 shows today's view, grouped by stage
@@ -817,3 +823,8 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-17 · persona `frontend-eng` · B12 pulled forward (operator; H-040, H-041): dot chart and
   List / Month / Year views, display-only (W-5, W-6); 10 layout tests and 5 page tests (77 in all);
   keyboard pass with real key presses clean; snapshot refresh proposed, not written.
+- 2026-11-17 · persona `frontend-eng` · page 7 rebuilt like `gp-calendar.html` (operator): summary
+  cards with the dot chart, one calendar with a tab-styled radio switch (only the chosen view shows,
+  no reload, no script); the two-month grid replaced by the Month view and removed from the helper.
+  75 tests; switch checked with real key presses and a click. Departures recorded in H-036, H-040,
+  H-042.
