@@ -326,7 +326,7 @@ def test_summary_cards_write_their_counts_as_text(specialist_client, gp_client, 
     html = gp_client.get("/calendar").text
     cards = html.split('<div class="kpis three" role="list" aria-label="Summary">', 1)[1].split('<section', 1)[0]
     text = " ".join(re.sub(r"<[^>]+>", " ", re.sub(r"<svg[\s\S]*?</svg>", " ", cards)).split())
-    assert "Due next Tue 20 Apr 2027 Stand-in rule 2: quarterly return" in text
+    assert "Due next Mon 19 Apr 2027 Stand-in rule 2: quarterly return" in text
     assert "Entries in 2027: 2" in text and "May not be required 1" in text
     assert re.search(r'<svg class="dots"[^>]*aria-hidden="true"', cards)
 

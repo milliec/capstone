@@ -65,6 +65,19 @@ def _decided_line(record: dict) -> dict:
             "who_files": details.get("who_files"), "reason": reason}
 
 
+def stub_unused_paragraphs() -> list[dict]:
+    """Paragraphs no rule uses (placeholders). Shown at G1 and again at G3 (W-03b)."""
+    return [{"paragraph_id": f"SRC-STUB-P{n}", "document": f"Stand-in source document {n}",
+             "text": f"Placeholder paragraph text for SRC-STUB-P{n}."} for n in (5, 6)]
+
+
+def rejected_rows(conn: sqlite3.Connection, run: dict) -> list[dict]:
+    """H-036 V-10 `rejected_rows`: [{row_id, label, reason, is_demo}] for rules rejected at G1."""
+    return [{"row_id": r["row_id"], "label": r["obligation_name"],
+             "reason": r["decided"]["reason"], "is_demo": r["origin"] == "demo"}
+            for r in get_g1_view(conn, run)["rows"] if r["status"] == "Rejected"]
+
+
 def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
     """STUB — replace in B2/B3. The rows to check at G1 (placeholder data).
 
@@ -101,9 +114,7 @@ def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
         "rows": rows,
         "stage": runs.page_stage(run, "g1"),
         "summary": {"flags": sum(1 for r in rows if r["has_flag"])},
-        "unused_paragraphs": [
-            {"paragraph_id": f"SRC-STUB-P{n}", "document": f"Stand-in source document {n}",
-             "text": f"Placeholder paragraph text for SRC-STUB-P{n}."} for n in (5, 6)],
+        "unused_paragraphs": stub_unused_paragraphs(),
     }
 
 
