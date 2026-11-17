@@ -5,7 +5,10 @@ from backend.services import FUND_ID, runs
 
 
 def _start(conn, settings):
-    # schedule is a no-op: we only look at the run row, not at stage A
+    # Test setup: close any earlier review directly (B2 allows only one ACTIVE review), and use a
+    # no-op `schedule`, because these tests look at the run row and not at stage A.
+    conn.execute("UPDATE runs SET status = 'ABANDONED' WHERE status = 'ACTIVE'")
+    conn.commit()
     return runs.start_run(conn, settings, lambda *a, **k: None, fund_id=FUND_ID,
                           started_by="specialist-1", demo_planted_row=False,
                           demo_fail_step1=False)
@@ -15,6 +18,8 @@ def test_runs_are_numbered_oldest_first_and_carry_tone_and_starter(settings):
     init_db(settings.database_path)   # creates the tables in the temporary test database
     conn = connect(settings.database_path)
     first = _start(conn, settings)
+    conn.execute("UPDATE runs SET phase = 'AT_G1' WHERE run_id = ?", (first,))   # a gate: abandon ok
+    conn.commit()
     runs.abandon_run(conn, run_id=first, run_version=1, reason="x", actor="specialist-1")
     second = _start(conn, settings)
 

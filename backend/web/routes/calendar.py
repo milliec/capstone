@@ -12,12 +12,16 @@ from backend.web.routes.runs import load_run
 router = APIRouter()
 
 
+def page_g3(request: Request, conn, identity: Identity, run: dict, **extra):
+    """Page 6. Also used to show the page again after a refusal."""
+    return render(request, conn, "pages/publish.html", identity, run=run,
+                  view=calendar_service.get_g3_view(conn, run), **extra)
+
+
 @router.get("/specialist/runs/{run_id}/g3")
 def publish_page(request: Request, run_id: str, conn=Depends(get_conn),
                  identity: Identity = Depends(specialist)):
-    run = load_run(conn, run_id)
-    return render(request, conn, "pages/publish.html", identity, run=run,
-                  view=calendar_service.get_g3_view(conn, run))
+    return page_g3(request, conn, identity, load_run(conn, run_id))
 
 
 @router.post("/specialist/calendars/{calendar_id}/publish")

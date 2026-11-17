@@ -15,8 +15,10 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from backend.db.connection import init_db
 from backend.services.auth import Forbidden, identity_from_session
+from backend.services.refusals import NotFound, Refused
 from backend.settings import Settings, load_settings
 from backend.web.deps import NotSignedIn, render
+from backend.web.refusal_pages import render_refused
 from backend.web.routes import calendar, gates, runs, sign_in
 
 
@@ -49,6 +51,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # The refusal was already written to the audit log by auth.require_role.
         return render(request, None, "pages/no_access.html", exc.identity, status_code=403,
                       refusal=exc.refusal)
+
+    @app.exception_handler(Refused)
+    def refused(request: Request, exc: Refused):
+        # A service refused the request and already audited it (ux.md §5): show the same page
+        # again, with the refusal and the text the person typed.
+        return render_refused(request, exc.refusal)
+
+    @app.exception_handler(NotFound)
+    def not_found(request: Request, exc: NotFound):
+        identity = identity_from_session(request.session)
+        return render(request, None, "pages/not_found.html", identity, status_code=404)
 
     @app.exception_handler(StarletteHTTPException)
     def http_error(request: Request, exc: StarletteHTTPException):
