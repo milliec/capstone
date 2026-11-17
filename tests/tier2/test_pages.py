@@ -281,3 +281,48 @@ def test_units_without_group_fall_back_to_todays_view():
     html = _status_page([_unit("Source doc one", "A"), _unit("Source doc two", "A")])
     headings = re.findall(r'id="units-([a-z_]+)">([^<]+)</h3>', html)
     assert headings == [("drafting", "Drafting the rules")]  # no "Checking the drafts" yet
+
+
+# --- B12 (operator, 2026-11-17; DL-49, H-040): views chosen by a link, dot chart ---
+
+def test_view_switch_marks_the_current_view_and_defaults_to_list(specialist_client, gp_client, at_g1):
+    _publish(specialist_client, at_g1)
+    for query, current in [("", "List"), ("?view=month", "Month"), ("?view=year", "Year"), ("?view=nonsense", "List")]:
+        html = gp_client.get("/calendar" + query).text
+        nav = html.split('<nav class="tabs" aria-label="Show the calendar as">', 1)[1].split("</nav>", 1)[0]
+        assert re.findall(r'aria-current="page">([A-Za-z]+)<', nav) == [current], query
+
+
+def test_month_view_is_a_table_with_weekday_headers_and_paging(specialist_client, gp_client, at_g1):
+    _publish(specialist_client, at_g1)
+    html = gp_client.get("/calendar?view=month").text
+    table = html.split('<table class="month-table"', 1)[1].split("</table>", 1)[0]
+    assert re.findall(r'<th scope="col">([A-Za-z]+)</th>', table) == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    assert "Due next" in table and "May not be required" in table
+    assert 'href="/calendar?view=month&amp;month=2027-05"' in html  # the next-month link
+    assert "No filings this month." in gp_client.get("/calendar?view=month&month=2027-05").text
+
+
+def test_year_view_is_a_table_with_row_and_column_headers(specialist_client, gp_client, at_g1):
+    _publish(specialist_client, at_g1)
+    html = gp_client.get("/calendar?view=year").text
+    table = html.split('<table class="year-table">', 1)[1].split("</table>", 1)[0]
+    assert '<caption class="sr">Filings in 2027, by month</caption>' in table
+    assert len(re.findall(r'<th scope="col"', table)) == 13 and re.search(r'<th scope="row">', table)
+    assert "(may not be required)" in table  # the dashed tile also says it in words
+
+
+def test_no_view_shows_moved_or_open_question_marks(specialist_client, gp_client, at_g1):
+    """CR-012, DL-49: the views and the chart count only what the General Partner may see."""
+    _publish(specialist_client, at_g1)
+    for query in ["", "?view=month", "?view=year"]:
+        text = _visible_text(gp_client.get("/calendar" + query).text)
+        assert "Moved off a weekend" not in text and "OQ-7" not in text, query
+
+
+def test_dot_chart_writes_its_counts_as_text(specialist_client, gp_client, at_g1):
+    _publish(specialist_client, at_g1)
+    html = gp_client.get("/calendar").text
+    assert '<h2 class="k" id="dots-h">Entries in 2027: 2</h2>' in html
+    assert "May not be required: 1" in html
+    assert re.search(r'<svg class="dots"[^>]*aria-hidden="true"', html)
