@@ -109,6 +109,7 @@ this table is the agent's reading, not the acceptance decision.
 | H-008 | **Found by the operator.** Component sizes did not match the mock-ups: stepper boxes in place of the thin line, a 19 px status sentence in place of the 26 px panel heading, 13 px unit-group captions in place of 22 px headings, no avatar, one-column cards | review status, step pages | all | 1280, 1024 | The pages looked unlike the approved design | medium | fixed (`40be357`) with the mock-ups' own component styles (`.steps`, `.cta`, `.evidence`, `.avatar`) | `mock-run-status` beside `04b-running-still` |
 | K-1 | **Keyboard.** While AI works the page reloads every 3 s and focus returns to the top; "Stop automatic refresh" is the 8th Tab stop, so it must be reached within 3 s | review status | AI working | 1280 | The control that makes the refresh acceptable (WCAG 2.2.1) is hard to reach by keyboard | **high** | fixed: "Stop automatic refresh" is the first Tab stop while refreshing; confirmed with real key presses and a page test | focus-order log |
 | K-2 | **Screen reader (inferred, not tested with one).** Every decision group has the same legend, "What's your decision on this rule?", so moving between forms does not say which rule | `/g1`, `/g2` | at the step | — | Context lost when jumping between forms | medium | fixed: the rule's name is in each legend for screen readers only (page test); still to be heard with a real screen reader | page source |
+| H-009 | **Week grid added (display-only).** Rendered at 1280 px (two months, "Due next" underlined, entries as chips) and 360 px (grid hidden, list grouped by month). Found and fixed while rendering: at phone width a short page stretched the stacked sidebar (empty gap); the month header row sat inset when the table stacked | `/calendar` | published | 1280, 360 | Layout gaps on phones | low | fixed (`58760c1`) | session screenshots |
 
 ## 5. Findings
 
@@ -170,3 +171,5 @@ this table is the agent's reading, not the acceptance decision.
   accept H-006.
 - 2026-11-17 · persona `frontend-eng` · first visual baseline (v1, 24 snapshots) committed after the
   operator accepted H-006 for it; scanned with `/usr/bin/grep` first.
+- 2026-11-17 · persona `frontend-eng` · week grid and month grouping rendered and checked at 1280 and
+  360 px; keyboard pass with real key presses: the calendar has the same 5 Tab stops as before.

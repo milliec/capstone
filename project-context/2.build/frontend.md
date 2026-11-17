@@ -203,7 +203,7 @@ it always finishes by itself." On a closed review: nothing.
 | State | What shows |
 |---|---|
 | nothing published | H1 "Compliance calendar" and the fixed message only: "Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published." |
-| published | "Published on {date}." (+ "Made with stand-in agents (fixed test outputs, no AI model)." when it applies); the role's calendar note; three summary cards (once V-11 sends `summary`); table "All entries for {year}". **Not built:** the week grid "The next two months" and month grouping (§10.1) |
+| published | "Published on {date}." (+ "Made with stand-in agents (fixed test outputs, no AI model)." when it applies); the role's calendar note; three summary cards (once V-11 sends `summary`); the week grid "The next two months" (display-only, see below); table "All entries for {year}", grouped by month |
 | error | "The calendar could not be shown just now. Try again in a few minutes." (§10, W-4) |
 
 | | |
@@ -213,7 +213,18 @@ it always finishes by itself." On a closed review: nothing.
 | **Never shows** | a "Moved off a weekend" mark, an open-question mark, a flag, a "can't tell", a review status (CR-012, UX-009) |
 
 Phone width (≤ 480 px): each table row stacks as a block with visible column labels; no horizontal
-page scroll (UX-012). (The week grid, when built, becomes a list of days with entries.)
+page scroll (UX-012).
+
+**Week grid and month grouping (operator, 2026-11-17: back in scope, display-only).** Built from the
+entries the server already sends, with no new backend field, by the web-layer helper
+`backend/web/calendar_view.py` (W-5). The grid shows the two months from the next due date, Monday
+first; each entry with What, Who files when sent, and "May not be required"; the next due date
+underlined with the words "Due next". **The list stays the main accessible view:** the grid is a
+visual view of the same entries, `aria-hidden`, with no links or buttons (no Tab stops), and hidden
+below 960 px, where the list alone shows (in place of ux.md's phone "list of days"). The list is
+grouped by month with row-group headers. Never a moved or open-question mark (CR-012). **Drop
+order:** the grid is dropped after B6 and Tier 2 and before B13b if time runs out; the list,
+without the grid, is the fallback.
 
 ### 403, 404, 500
 
@@ -512,7 +523,7 @@ Optional, if B2 is in: click "Start a new review" while a review is in progress 
 | D-1 | The templates in §1 (pages and parts), replacing every placeholder; `parts/review_nav.html` deleted | `backend/web/templates/` |
 | D-2 | `site.css` and the two nav icons | `backend/web/static/` |
 | D-3 | The Iconoir MIT notice | `NOTICES` |
-| D-4 | Page tests (SAD Tier 2 "per-state page tests"): nothing preselected (UX-004), no forbidden words (UX-019), no Retry form on a failed review (UX-022), auto-refresh only while running (UX-006), the empty calendar message (UX-008), "Stop automatic refresh" first while refreshing (K-1), each decision question names its rule for screen readers (K-2). 14 tests. The Tier 1 tests keep passing | `tests/tier2/test_pages.py` |
+| D-4 | Page tests (SAD Tier 2 "per-state page tests"): nothing preselected (UX-004), no forbidden words (UX-019), no Retry form on a failed review (UX-022), auto-refresh only while running (UX-006), the empty calendar message (UX-008), "Stop automatic refresh" first while refreshing (K-1), each decision question names its rule for screen readers (K-2). 18 page tests (incl. the week grid: no Tab stops, hidden from screen readers, no moved marks; month grouping) and 7 layout tests (`tests/tier2/test_calendar_layout.py`). The Tier 1 tests keep passing | `tests/tier2/test_pages.py` |
 | D-5 | The rendered review: screenshots at 1280, 1024 and 360 px, keyboard and greyscale checks, findings and fixes | `project-context/2.build/ux-review.md` |
 | D-6 | Visual regression: Playwright Test 1.64.1, 24 snapshots, baseline v1 committed 17 Nov 2026 after the operator accepted H-006 for it (§11.1) | `tests/visual/` |
 | D-7 | README notes, proposed through `*sync-docs` and written only after approval (below) | `README.md` |
@@ -553,7 +564,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-08 | `pages/check_rules.html` + G1 form | ✅ | `3b665d7`. Quote check, paragraph, flags, unused paragraphs wait for H-036 V-8 |
 | S-09 | `pages/confirm_applies.html` + G2 form | ✅ | `16acd65`. Shared `decide_reason` box |
 | S-10 | `pages/publish.html` + G3 form | ✅ | `c78163e`. Rejected and unused lists empty until B2 stores decisions |
-| S-11 | `pages/calendar.html` (list) | ✅ | `36f02cc`. Summary cards wait for V-11; the week grid and month grouping are not built (§10.1) |
+| S-11 | `pages/calendar.html` | ✅ | `36f02cc`, `58760c1`. List grouped by month; week grid display-only (droppable after B6 and Tier 2, before B13b). Summary cards wait for V-11 |
 | S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
 | S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`, `7ef8a0f`. 14 tests; 56 in the suite pass |
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
@@ -561,6 +572,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
+| S-25 | Week grid and month grouping (display-only) | 🟡 | Built and tested (`c263fca`, `58760c1`, `8207349`); keyboard pass: no new Tab stops. Calendar snapshot refresh proposed, waiting for approval |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
@@ -606,8 +618,8 @@ out from the lists the server sends, or they are not built:
   order of the lists; `show_forms`: `stage` already decides which forms show.
 - `progress`, `index_order` (V-9): the step 3 counts and the "can't tell first" order are counted and
   sorted from `view.verdicts`.
-- `weeks`, `months` (V-11): the page 7 two-month week grid and month grouping are **not built** this
-  sprint (ux.md page 7 item 6 lists the grid; not in the Friday demo).
+- `weeks`, `months` (V-11): not needed. The week grid and month grouping are built **display-only**
+  in the web layer from the entries already sent (operator, 2026-11-17; §2 page 7, W-5).
 
 **Still open:** `unit_groups` (V-4). Step 1's second group, "Checking the drafts", needs each unit to
 say its group (a `group` field), and the template a small change to read it. Not decided.
@@ -623,6 +635,7 @@ These are display plumbing, not checks. `@frontend.eng` writes them, with no log
 | W-2 | Jinja filters for dates and times in ux.md's format ("Fri 13 Nov 2026", "14:02") | `backend/web/deps.py` |
 | W-3 | Mount `backend/web/static/` at `/static` | `backend/main.py` |
 | W-4 | A 500 handler that renders `pages/server_error.html` with the role's sentence | `backend/main.py` |
+| W-5 | Page 7's month grouping and two-month week grid, display-only: arranges the entries the server sends, adds and marks nothing (operator, 2026-11-17) | `backend/web/calendar_view.py`, filter `calendar_layout` in `backend/web/deps.py` |
 
 ---
 
@@ -774,3 +787,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-17 · persona `frontend-eng` · Open Question 10 closed (operator split): `steps` and
   `failure` added to the §10.1 contract and read by the templates when sent; counts, ordering and the
   week grid / month grouping dropped from H-036. Tests 58, visual 24 of 24.
+- 2026-11-17 · persona `frontend-eng` · page 7 week grid and month grouping, display-only (operator):
+  web-layer helper (W-5), template, styles, 7 layout tests and 2 page tests; rendered at 1280 and
+  360 px; keyboard pass unchanged on the calendar (5 Tab stops). Marked droppable after B6 and
+  Tier 2, before B13b. Snapshot refresh proposed, not written.
