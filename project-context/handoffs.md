@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-037: Sign-in adopts the mock-up's left-hand panel, in portfolio voice
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
+- Touches: 2.build/ux.md page 1 (Sign-in), §1.6 (Voice), "Mock-up differences this revision does not apply"; docs/prototype/sign-in.html; built in backend/web/templates/pages/sign_in.html (2.build/frontend.md §11)
+- Ask: Record the operator's decision (option C): page 1 gets the mock-up's ivory left-hand panel with the wordmark, three decorative cards (dot calendar, bars, ring; hidden from screen readers and below 1100 px), the tagline "AI drafts. People approve." and the two first-person paragraphs, word for word. **Portfolio voice is allowed on the sign-in page only; every other page keeps the product voice of §1.6.** The right-hand sign-in box keeps ux.md page 1's wording. Remove "the left-hand panel on sign-in" from "Mock-up differences this revision does not apply", and tell the copy review (CR-019) that these lines are exempt from §1.6.
+- Why: The operator wants the demo's first screen to carry the portfolio story; ux.md currently rules the panel out, and only its owner edits it.
+- Outcome: (the owner fills this in)
+
 ### H-036: View fields the B5 templates need from the services
 - From: @frontend.eng (operator approval, 2026-11-17)   To: @backend.eng   Date: 2026-11-17
 - Touches: 2.build/frontend.md §10.1 (V-1 to V-12) and §2; backend/services/runs.py, decisions.py, calendar.py (view functions only); 2.build/backend.md "Known gaps" (templates choosing from the phase); ux.md §1.2, §5, §10

@@ -100,6 +100,7 @@ checks, flags, facts) are never looked up: until H-036 sends them, the page leav
 | **States** | default; refused (`VALIDATION`: an identity that does not exist) |
 | **Reads** | `identities[]` (`identity_id`, `label`) ✅; `refusal` ✅ (a plain string today; ⏳ the shared refusal object) |
 | **Shows** | no sidebar; "acme"; H1 "Sign in to the demo"; the intro line (carries the demo label, UX-001); two forms, equal weight, each with its hint; "The fund and the firm are fictional." |
+| **Left panel** | **Operator decision 2026-11-17 (option C, H-037):** the mock-up's ivory panel: wordmark, three decorative cards (`aria-hidden`, hidden below 1100 px, no per-date labels so the answer key is not shipped), the tagline "AI drafts. People approve." and two first-person paragraphs. **Portfolio voice on this page only**; every other page keeps the product voice (ux.md §1.6). The tagline is a paragraph, so "Sign in to the demo" stays the one H1 |
 | **Posts** | `POST /sign-in` with `identity_id` (hidden), one form per identity. Buttons: "Sign in as the compliance specialist", "Sign in as the General Partner / Fund Manager" |
 
 ### Page 2 · Filing rules
@@ -545,7 +546,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-02 | `base.html` + `parts/sidebar.html` + skip link | ✅ | `093c07b` |
 | S-03 | `parts/macros.html` + `parts/lookups.html` (interim) | ✅ | `093c07b`. Lookups go as H-036 lands |
 | S-04 | Breadcrumb, run labels, stepper | ✅ | Built as macros (§1.2), not separate files |
-| S-05 | `pages/sign_in.html` | ✅ | `53f08d8` |
+| S-05 | `pages/sign_in.html` | ✅ | `53f08d8`; two-panel layout with the portfolio panel added 2026-11-17 (H-037) |
 | S-12 | `pages/no_access.html`, `not_found.html`, `server_error.html` | ✅ | `53f08d8`. 403 title without "Not done: " (ux.md §1.7) |
 | S-06 | `pages/filing_rules.html` | ✅ | `4b75b7b`. "Ended because" empty until H-036 V-6 |
 | S-07 | `pages/review_status.html` + banner + refresh + units | ✅ | `1ed4fbf`. Count, date and reason clauses wait for H-036 V-5, V-6 (§11) |
@@ -631,7 +632,7 @@ the content (operator, 2026-11-17).
 **Wording to confirm with `@ux.designer`** (not in ux.md): the empty "Paragraphs no rule uses" list
 on page 6 shows "None."; the fallback lines above that drop a count or date; the rule-card column
 headings "The source says" and "The AI's reading" (taken from the mock-ups; ux.md names no headings
-there); the "AI is working" / "Your turn" pill above the status heading (ux.md §10.1 words).
+there); the "AI is working" / "Your turn" pill above the status heading (ux.md §10.1 words); the sign-in panel's portfolio-voice lines (H-037).
 
 **For `@backend.eng` (add to H-036 V-12).** The refusal object the templates read: `code`,
 `sentence`, `anchor` (`row-3`, `verdict-2`, `start`, `ack`, `decline-reason`, `decision`, `abandon`;
@@ -724,3 +725,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   `README.md` ("Status" note and "Run the app shell": the pages are no longer placeholders; one
   paragraph on where the CrewAI crews connect, B3, `backend/runtime/agents.py`). `backend.md` still
   says "placeholder templates": left for `@backend.eng` (its owner). No spec drift found.
+- 2026-11-17 · persona `frontend-eng` · sign-in: operator chose option C (the mock-up's left-hand
+  panel, portfolio voice on this page only). Built from `docs/prototype/sign-in.html` after a
+  real-name scan; per-date labels removed from the dot chart. Raised H-037 to `@ux.designer` so
+  ux.md records it. Rendered at 1280 px and 800 px.

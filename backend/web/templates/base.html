@@ -30,7 +30,9 @@
     </main>
   </div>
   {%- else %}
-  <div class="signin">
+  <div class="signin{% block signin_class %}{% endblock %}">
+    {#- Sign-in only: the ivory panel beside the sign-in box (operator, 2026-11-17, H-037). -#}
+    {% block stage %}{% endblock %}
     <main class="enter" id="main">
       {{ self.main() }}
     </main>
