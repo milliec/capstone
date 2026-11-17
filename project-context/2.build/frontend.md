@@ -116,7 +116,7 @@ checks, flags, facts) are never looked up: if the server does not send them, the
 
 | | |
 |---|---|
-| **Reads** | `runs[]`: `run_id` ✅, `status_words` ✅, `status` ✅, `demo_planted_row` ✅, `started_at` ✅ (ISO, formatted by a filter, §10 W-2), `review_number` ✅, `status_tone` ✅, `ended_because` ✅; `active_run` ✅ with `is_working` / `is_at_gate` ✅; `agents_mode` ✅ (decides whether the failure-demo checkbox is in the form: an option that does not exist in real mode, ux.md page 2, not a hidden button); `fund.fund_id`, `fund.name` ✅; ⏳ `refusal` |
+| **Reads** | `runs[]`: `run_id` ✅, `status_words` ✅, `status` ✅, `demo_planted_row` ✅, `started_at` ✅ (ISO, formatted by a filter, §10 W-2), `review_number` ✅, `status_tone` ✅, `ended_because` ✅; `active_run` ✅ with `is_working` / `is_at_gate` ✅; `agents_mode` ✅ (decides whether the failure-demo checkbox is in the form: an option that does not exist in real mode, ux.md page 2, not a hidden button); `fund.fund_id`, `fund.name` ✅; `refusal` ✅ (the shared refusal object, V-12) |
 | **Table** | Review · Started · Demo rule ("On"/"Off") · Status (pill + words) · Ended because. `<th scope="col">` |
 | **Posts** | `POST /specialist/runs`: checkbox `demo_planted_row` (unticked), checkbox `demo_fail_step1` (unticked, stand-in only), button "Start a new review". The form is **always shown** (H-009) |
 
@@ -845,3 +845,5 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   (page 1 `refusal` wording, V-12 marked done in the intro and in §10 and §11, the §11 Refusals row,
   `refused` marked "not built"). Item 1 was worded "a plain sentence on this page" because sign-in
   still sends a plain sentence. Not touched: the other "⏳ `refusal`" marks (see the proposal).
+- 2026-11-17 · persona `backend-eng` · `sync-docs` · operator asked for the page 2 "Reads" mark to
+  be fixed: "⏳ `refusal`" is now "`refusal` ✅" (the shared refusal object, V-12).
