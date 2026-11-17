@@ -41,13 +41,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: The SAD says B6 and Tier 2 are dropped at this checkpoint if B1 + B2 pass 1.3 days; a forecast that ignores the pulled-forward Rule 9 work, or the two deferred B2 items, would misjudge it either way.
 - Outcome: (the owner fills this in)
 
-### H-049: Refusal wording and placement: three sentences ux.md lacks, and which refusals are "page-level"
-- From: @backend.eng (B2)   To: @ux.designer   Date: 2026-11-17
-- Touches: 2.build/ux.md §5 (refusal sentences, "Where"); `backend/services/refusals.py` (sentences marked PROPOSED); 2.build/frontend.md §10.1 V-12 (anchors)
-- Ask: (1) Give the wording for three cases ux.md §5 does not cover; B2 uses these plain sentences until you answer. `GATE_INCOMPLETE` with exactly one item left: "1 rule is still undecided. Decide every rule before you finish checking." (and, at G2, "1 answer is still undecided, {u} of them where AI can't tell. Decide every answer before you finish."). `RUN_STAGE_RUNNING` when the review is at a **different gate** (not working): "This step is not open for decisions right now. The review status page shows where the review is." (2) Settle **placement** for four refusals: ux.md §5 calls `ACK_REQUIRED` page-level (full sentence in a box at the top and again by the control), but frontend.md V-12 lists the anchors `ack`, `decline-reason`, `decision` and `abandon`, and the page then shows only the short line "Not done. The reason is shown beside {target_label}." at the top. B2 sends the anchors, with `target_label` "the box", "the reason", "the question" and "abandon". Say whether those four should have an anchor (short top line) or none (full box at the top).
-- Why: The services must send one or the other, and the two documents disagree.
-- Outcome: (the owner fills this in)
-
 ### H-048: FYI and one fix: refusals are live; the abandon box reads `typed` the wrong way; the visual script changed
 - From: @backend.eng (B2)   To: @frontend.eng   Date: 2026-11-17
 - Touches: `backend/web/templates/pages/review_status.html` (the abandon textarea); `tests/visual/visual.spec.js`; 2.build/frontend.md §10.1 V-12
@@ -83,20 +76,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: Compressed image bytes sometimes spell a listed word by chance: a visual-snapshot refresh was blocked on two PNGs whose only change was a 1-pixel underline. A text search cannot see a name drawn as pixels. Trade-off: a binary file with readable text (PDF, Word) is no longer scanned; such files are not committed here.
 - Outcome: (the owner fills this in)
 
-### H-043: After a decision, land on the next card to decide
-- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
-- Touches: 2.build/ux.md page 4 "After each action" (Approve rule / Reject rule) and page 5 "After each action" (Confirm / Overrule / Decide); 2.build/frontend.md W-7
-- Ask: Record the operator's decision: after a successful decision on step 2 or 3, the page lands on the **next card still to decide** (wrapping round to the first undecided one; the finish section when all are decided), not on the card just decided. The decided card still shows its decision and the "Next rule to decide" link. Refusals are unchanged: they still land on the card they are about (§5).
-- Why: The operator found landing at the top, or on the card just decided, jarring during the click-through; the 30-minute review target (§7) favours moving straight on.
-- Outcome: (the owner fills this in)
-
-### H-042: Page 7 now follows the gp-calendar mock-up
-- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
-- Touches: 2.build/ux.md page 7 (items 5 to 8, phone width), "Mock-up differences this revision does not apply" (the Month and Year views); `docs/prototype/gp-calendar.html`; 2.build/frontend.md §2 page 7
-- Ask: Record the operator's decisions in ux.md page 7. (1) The page follows `gp-calendar.html`: the three summary cards (Due next on the dark card, Entries in {year} with the dot chart, May not be required), then one calendar, "All entries for {year}", with a Month / Year / List switch that shows only the chosen view (**Month by default**, operator 2026-11-17). (2) The Month view replaces item 6's two-month week grid; the list (item 7) is one of the views, not always shown. (3) The summary cards are counted on the page from the entries the viewer sees. (4) Below 960 px only the List view shows. (5) New wording for the copy review: "No filings this month.", "Entries in {year}: {n}", "None" when nothing is due next, and the Year view legend ("May not be required (dashed)", "Due next (underlined)"). The Month and Year views leave "Mock-up differences".
-- Why: The build follows the operator's decision; ux.md still describes the earlier page 7.
-- Outcome: (the owner fills this in)
-
 ### H-041: FYI: B12 built now; drop order and plan
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
 - Touches: 2.build/scaffold-plan.md §2 (block order) and §6 (drop order, "Hold B12 until B10 is green"); 2.build/frontend.md §11
@@ -109,27 +88,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Touches: sad.md Build card "Order" row, "Order of work" row 12, Estimate (B12 row, "Build order" paragraph, drop order), §3 page 7; DL-49 (decision-log.md)
 - Ask: Record that the operator moved B12 forward: it is built now, before B6 and B10, in its one-day box, because the frontend is waiting on the backend (H-036, B2) and the operator wants the views in the Friday demo. Scope unchanged from DL-49: Month and Year views and the dot chart (the only chart the calendar mock-ups use), chosen by a link, no script, front end only, the List view the default. One deviation to confirm or reject: the layout is arranged by a small display-only helper in the web layer (`backend/web/calendar_view.py`, frontend.md W-5), not by templates and the stylesheet alone. It reads only the entries the List view already gets and adds no field. **Second deviation (operator, 2026-11-17: "behave like the mock-up"):** the views are switched by a tab-styled radio group with CSS (`:has()`), in place and with no script, as in `docs/prototype/gp-calendar.html`, not "chosen by a link" (SAD §3 page 7). **Third (operator, 2026-11-17, later):** the **Month view is the default**, as in the mock-up, not the List view ("the view the tests and the demo use"); tests and the demo now open on Month, and the List view is one click away. Drop order (operator): dropped after B6 and Tier 2, before B13b.
 - Why: The Build card "Order" row is authoritative (H-001); the order changed by operator decision, so the SAD should say so.
-- Outcome: (the owner fills this in)
-
-### H-039: Record the visual check in setup.md
-- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
-- Touches: 2.build/setup.md (tooling and test commands); `tests/visual/` (Playwright Test 1.64.1, pinned); root `CLAUDE.md` check 3; 2.build/frontend.md §11.1
-- Ask: Add the visual check to setup.md next to the other test commands, as the visual-regression skill asks: install once with `cd tests/visual && npm install --ignore-scripts && npx playwright install chromium` (Node; the app itself stays Python); run with `cd tests/visual && npm run test:visual` (Playwright starts the app on port 8777 with a fresh database, stand-in agents, no pause). Note that it is not part of `make test`, the commit hook or CI, and that snapshots are re-recorded only after operator approval (CLAUDE.md check 3).
-- Why: setup.md is where every persona looks for how to run things; today the commands are only in `frontend.md`, which other personas do not read.
-- Outcome: (the owner fills this in)
-
-### H-038: FYI: the real-name scan now skips node_modules
-- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
-- Touches: `scripts/git-hooks/run-checks.sh` (check 2, the real-name scan), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `91b9d4e`
-- Ask: For information; no action needed. The scan gained `--exclude-dir=node_modules`, the same treatment as `.venv`, in the hook and in CLAUDE.md. Please keep it in step if you change either, and add the same line to the CI job if H-003 brings the scan there (H-003 keeps the scan local only, so today there is nothing to change).
-- Why: The visual tests install Playwright into git-ignored `tests/visual/node_modules/`; the hook scanned that third-party code and blocked a commit on two lines of Playwright's bundle. Also learned: in some agent shells `grep` is replaced by a look-alike that misses matches the system `grep` finds; hand-run scans should call `/usr/bin/grep` (`docs/learning-notes.md`, §4).
-- Outcome: (the owner fills this in)
-
-### H-037: Sign-in adopts the mock-up's left-hand panel, in portfolio voice
-- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
-- Touches: 2.build/ux.md page 1 (Sign-in), §1.6 (Voice), "Mock-up differences this revision does not apply"; docs/prototype/sign-in.html; built in backend/web/templates/pages/sign_in.html (2.build/frontend.md §11)
-- Ask: Record the operator's decision (option C): page 1 gets the mock-up's ivory left-hand panel with the wordmark, three decorative cards (dot calendar, bars, ring; hidden from screen readers and below 1100 px), the tagline "AI drafts. People approve." and the two first-person paragraphs, word for word. **Portfolio voice is allowed on the sign-in page only; every other page keeps the product voice of §1.6.** The right-hand sign-in box keeps ux.md page 1's wording. Remove "the left-hand panel on sign-in" from "Mock-up differences this revision does not apply", and tell the copy review (CR-019) that these lines are exempt from §1.6.
-- Why: The operator wants the demo's first screen to carry the portfolio story; ux.md currently rules the panel out, and only its owner edits it.
 - Outcome: (the owner fills this in)
 
 ### H-036: View fields the B5 templates need from the services
@@ -183,6 +141,48 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-049: Refusal wording and placement: three sentences ux.md lacks, and which refusals are "page-level"
+- From: @backend.eng (B2)   To: @ux.designer   Date: 2026-11-17
+- Touches: 2.build/ux.md §5 (refusal sentences, "Where"); `backend/services/refusals.py` (sentences marked PROPOSED); 2.build/frontend.md §10.1 V-12 (anchors)
+- Ask: (1) Give the wording for three cases ux.md §5 does not cover; B2 uses these plain sentences until you answer. `GATE_INCOMPLETE` with exactly one item left: "1 rule is still undecided. Decide every rule before you finish checking." (and, at G2, "1 answer is still undecided, {u} of them where AI can't tell. Decide every answer before you finish."). `RUN_STAGE_RUNNING` when the review is at a **different gate** (not working): "This step is not open for decisions right now. The review status page shows where the review is." (2) Settle **placement** for four refusals: ux.md §5 calls `ACK_REQUIRED` page-level (full sentence in a box at the top and again by the control), but frontend.md V-12 lists the anchors `ack`, `decline-reason`, `decision` and `abandon`, and the page then shows only the short line "Not done. The reason is shown beside {target_label}." at the top. B2 sends the anchors, with `target_label` "the box", "the reason", "the question" and "abandon". Say whether those four should have an anchor (short top line) or none (full box at the top).
+- Why: The services must send one or the other, and the two documents disagree.
+- Outcome: Done 2026-11-17 by `@ux.designer` in `2.build/ux.md` §5. (1) Two sentences added to the table, as B2 wrote them: `GATE_INCOMPLETE` with one rule left (G1) or one answer left (G2), and `RUN_STAGE_RUNNING` when the review is at a different gate. (2) Placement: the four refusals **do get an anchor**. `ACK_REQUIRED` (`#ack`, "the box"), `REASON_REQUIRED` on abandon (`#abandon`, "abandon") and on "Close without publishing" (`#decline-reason`, "the reason"), and `VALIDATION` with no answer chosen (`#decision`, "the question") show the short top line with a "Go to {target}" link, and the full sentence beside the control, like a rule card. Refusals about the whole review (`GATE_INCOMPLETE`, `VERSION_MISMATCH`, `RUN_NOT_ACTIVE`, `RUN_STAGE_RUNNING`, `FORBIDDEN`) have no anchor and show the full box at the top only; the old "and again by the control" is dropped for them. `@frontend.eng`: V-12 already matches, and "Go to abandon" is the one link that reads oddly (operator may prefer a different `target_label`). §5 changes where `ACK_REQUIRED` is shown; ux.md approval is unchanged but the operator should read it.
+
+### H-043: After a decision, land on the next card to decide
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
+- Touches: 2.build/ux.md page 4 "After each action" (Approve rule / Reject rule) and page 5 "After each action" (Confirm / Overrule / Decide); 2.build/frontend.md W-7
+- Ask: Record the operator's decision: after a successful decision on step 2 or 3, the page lands on the **next card still to decide** (wrapping round to the first undecided one; the finish section when all are decided), not on the card just decided. The decided card still shows its decision and the "Next rule to decide" link. Refusals are unchanged: they still land on the card they are about (§5).
+- Why: The operator found landing at the top, or on the card just decided, jarring during the click-through; the 30-minute review target (§7) favours moving straight on.
+- Outcome: Done 2026-11-17 by `@ux.designer` in `2.build/ux.md`: page 4 and page 5 "After each action" (and the page 4 review-time bullet) now say a successful decision lands on the next card still to decide, wrapping round to the first undecided one, and on the finish section when all are decided; the decided card still shows its decision and the "Next rule to decide" link; refusals still land on the card they are about. `frontend.md` W-7 is `@frontend.eng`'s to mark as no longer a departure.
+
+### H-042: Page 7 now follows the gp-calendar mock-up
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
+- Touches: 2.build/ux.md page 7 (items 5 to 8, phone width), "Mock-up differences this revision does not apply" (the Month and Year views); `docs/prototype/gp-calendar.html`; 2.build/frontend.md §2 page 7
+- Ask: Record the operator's decisions in ux.md page 7. (1) The page follows `gp-calendar.html`: the three summary cards (Due next on the dark card, Entries in {year} with the dot chart, May not be required), then one calendar, "All entries for {year}", with a Month / Year / List switch that shows only the chosen view (**Month by default**, operator 2026-11-17). (2) The Month view replaces item 6's two-month week grid; the list (item 7) is one of the views, not always shown. (3) The summary cards are counted on the page from the entries the viewer sees. (4) Below 960 px only the List view shows. (5) New wording for the copy review: "No filings this month.", "Entries in {year}: {n}", "None" when nothing is due next, and the Year view legend ("May not be required (dashed)", "Due next (underlined)"). The Month and Year views leave "Mock-up differences".
+- Why: The build follows the operator's decision; ux.md still describes the earlier page 7.
+- Outcome: Done 2026-11-17 by `@ux.designer` in `2.build/ux.md` page 7: items 5 to 8 rewritten (three summary cards in the mock-up's order, one calendar "All entries for {year}" with a Month / Year / List switch, **Month by default**, only the chosen view shows, counted on the page); the two-month week grid is gone; the List table is one of the views; below 960 px only the List view shows. New wording recorded: "No filings this month.", "Entries in {year}: {n}", "None", and the Year legend "May not be required (dashed)" / "Due next (underlined)". The Month and Year views are removed from "Mock-up differences". Not touched: `sad.md` §3 page 7 still says the views are chosen by a link and List is the default; that is `@system.arch`'s (H-040).
+
+### H-037: Sign-in adopts the mock-up's left-hand panel, in portfolio voice
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
+- Touches: 2.build/ux.md page 1 (Sign-in), §1.6 (Voice), "Mock-up differences this revision does not apply"; docs/prototype/sign-in.html; built in backend/web/templates/pages/sign_in.html (2.build/frontend.md §11)
+- Ask: Record the operator's decision (option C): page 1 gets the mock-up's ivory left-hand panel with the wordmark, three decorative cards (dot calendar, bars, ring; hidden from screen readers and below 1100 px), the tagline "AI drafts. People approve." and the two first-person paragraphs, word for word. **Portfolio voice is allowed on the sign-in page only; every other page keeps the product voice of §1.6.** The right-hand sign-in box keeps ux.md page 1's wording. Remove "the left-hand panel on sign-in" from "Mock-up differences this revision does not apply", and tell the copy review (CR-019) that these lines are exempt from §1.6.
+- Why: The operator wants the demo's first screen to carry the portfolio story; ux.md currently rules the panel out, and only its owner edits it.
+- Outcome: Done 2026-11-17 by `@ux.designer` in `2.build/ux.md`: page 1 now describes the left-hand panel word for word (wordmark, three decorative cards hidden from screen readers and below 1100 px with no per-date labels, the tagline, the two first-person paragraphs); §1.6 allows portfolio voice on page 1's panel only and says the copy review (CR-019) treats those three lines as exempt; "the left-hand panel on sign-in" is removed from "Mock-up differences". The right-hand box keeps its wording.
+
+### H-038: FYI: the real-name scan now skips node_modules
+- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: `scripts/git-hooks/run-checks.sh` (check 2, the real-name scan), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `91b9d4e`
+- Ask: For information; no action needed. The scan gained `--exclude-dir=node_modules`, the same treatment as `.venv`, in the hook and in CLAUDE.md. Please keep it in step if you change either, and add the same line to the CI job if H-003 brings the scan there (H-003 keeps the scan local only, so today there is nothing to change).
+- Why: The visual tests install Playwright into git-ignored `tests/visual/node_modules/`; the hook scanned that third-party code and blocked a commit on two lines of Playwright's bundle. Also learned: in some agent shells `grep` is replaced by a look-alike that misses matches the system `grep` finds; hand-run scans should call `/usr/bin/grep` (`docs/learning-notes.md`, §4).
+- Outcome: Done 2026-11-17 by `@project.mgr`. Information only. `setup.md` "Git hooks" check 2 now lists what the scan skips (`node_modules` as well as `reference/`, `.venv`, `.git`) and says to keep the hook and `CLAUDE.md` in step. CI does not run the scan (H-003), so no CI change.
+
+### H-039: Record the visual check in setup.md
+- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: 2.build/setup.md (tooling and test commands); `tests/visual/` (Playwright Test 1.64.1, pinned); root `CLAUDE.md` check 3; 2.build/frontend.md §11.1
+- Ask: Add the visual check to setup.md next to the other test commands, as the visual-regression skill asks: install once with `cd tests/visual && npm install --ignore-scripts && npx playwright install chromium` (Node; the app itself stays Python); run with `cd tests/visual && npm run test:visual` (Playwright starts the app on port 8777 with a fresh database, stand-in agents, no pause). Note that it is not part of `make test`, the commit hook or CI, and that snapshots are re-recorded only after operator approval (CLAUDE.md check 3).
+- Why: setup.md is where every persona looks for how to run things; today the commands are only in `frontend.md`, which other personas do not read.
+- Outcome: Done 2026-11-17 by `@project.mgr` in `2.build/setup.md`. New "Tests and checks" section after "Git hooks": the install-once command, the run command, port 8777 with a fresh database, stand-in agents and no pause; says it is not part of `make test`, the commit hook or CI; says snapshots are re-recorded only after operator approval (`CLAUDE.md` check 3). Commands checked against `tests/visual/package.json` and `playwright.config.js`.
 
 ### H-035: Record the B2 service names, the stub rule, two ID schemes and the `trace` columns
 - From: @backend.eng (operator decisions, 2026-11-16)   To: @system.arch   Date: 2026-11-16
