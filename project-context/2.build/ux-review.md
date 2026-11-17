@@ -189,6 +189,5 @@ this table is the agent's reading, not the acceptance decision.
   run's candidates (no other file changed); suite passes.
 - 2026-11-17 · persona `frontend-eng` · H-010 fixed; `03-review-status-published-1280` refreshed (v2)
   after operator approval; the other 23 snapshots unchanged; suite passes.
-
 - 2026-11-17 · persona `frontend-eng` · B12 views rendered and keyboard-checked; one visual-check flake
   (text anti-aliasing) recorded as M-012; refresh of 3 snapshots and 2 new ones proposed.
