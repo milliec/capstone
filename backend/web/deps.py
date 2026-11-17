@@ -71,9 +71,13 @@ templates.env.filters["time_seconds"] = format_time_seconds
 templates.env.filters["datetime"] = format_datetime
 
 # Page 7's month grouping and two-month week grid, display-only (calendar_view.py).
-from backend.web.calendar_view import calendar_layout  # noqa: E402
+from backend.web.calendar_view import (  # noqa: E402
+    calendar_dots, calendar_layout, calendar_month, calendar_year)
 
 templates.env.filters["calendar_layout"] = calendar_layout
+templates.env.filters["calendar_month"] = calendar_month  # B12 Month view
+templates.env.filters["calendar_year"] = calendar_year    # B12 Year view
+templates.env.filters["calendar_dots"] = calendar_dots    # B12 dot chart
 
 
 class NotSignedIn(Exception):

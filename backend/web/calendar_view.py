@@ -69,3 +69,90 @@ def calendar_layout(entries, today: date | None = None) -> dict:
 
     return {"year": years.pop() if len(years) == 1 else None, "months": months,
             "due_next": due_next.isoformat() if due_next else None, "grid": grid}
+
+
+# --- B12: Month view, Year view and the dot chart (operator, 2026-11-17; DL-49, H-040) ----------
+# Same rule as above: these only arrange the entries the page already has. They count only what
+# the viewer may already see (DL-49): the entries themselves and their "May not be required" flag.
+
+SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def _due_next(ordered, today):
+    upcoming = [_day(e["due_date"]) for e in ordered if _day(e["due_date"]) >= today]
+    return upcoming[0] if upcoming else None
+
+
+def _parse_month(value):
+    """'2027-04' → (2027, 4), or None if it is not a valid year-month (the page then uses its default)."""
+    try:
+        year, month = (int(part) for part in str(value).split("-"))
+        return (year, month) if 1 <= month <= 12 and 1900 < year < 2200 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def calendar_month(entries, ym=None, today: date | None = None) -> dict:
+    """One month for the Month view: the asked-for month ('YYYY-MM'), else the next due date's
+    month, else the first entry's month. Weeks are Monday first, as in the two-month grid."""
+    today = today or date.today()
+    ordered = sorted(entries or [], key=lambda e: _day(e["due_date"]))
+    due_next = _due_next(ordered, today)
+    default = due_next or (_day(ordered[0]["due_date"]) if ordered else today)
+    year, month = _parse_month(ym) or (default.year, default.month)
+    by_day = {}
+    for entry in ordered:
+        by_day.setdefault(_day(entry["due_date"]), []).append(entry)
+    weeks = [[{"day": d.day, "iso": d.isoformat(), "weekday": WEEKDAYS[d.weekday()],
+               "in_month": d.month == month, "is_due_next": d == due_next and d.month == month,
+               "entries": by_day.get(d, []) if d.month == month else []}
+              for d in week]
+             for week in calendar.Calendar(firstweekday=0).monthdatescalendar(year, month)]
+    prev_y, prev_m = (year - 1, 12) if month == 1 else (year, month - 1)
+    next_y, next_m = (year + 1, 1) if month == 12 else (year, month + 1)
+    return {"label": _month_label(year, month), "ym": f"{year:04d}-{month:02d}", "weeks": weeks,
+            "count": sum(len(c["entries"]) for w in weeks for c in w),
+            "prev": {"ym": f"{prev_y:04d}-{prev_m:02d}", "label": _month_label(prev_y, prev_m)},
+            "next": {"ym": f"{next_y:04d}-{next_m:02d}", "label": _month_label(next_y, next_m)}}
+
+
+def calendar_year(entries, today: date | None = None) -> dict:
+    """The Year view: one row per obligation (in the order of its first date that year), a column
+    per month, the dates in the cells. The year is the next due date's, else the first entry's."""
+    today = today or date.today()
+    ordered = sorted(entries or [], key=lambda e: _day(e["due_date"]))
+    if not ordered:
+        return {"year": None, "months": SHORT_MONTHS, "now_month": None, "rows": []}
+    due_next = _due_next(ordered, today)
+    year = (due_next or _day(ordered[0]["due_date"])).year
+    rows, index = [], {}
+    for entry in ordered:
+        d = _day(entry["due_date"])
+        if d.year != year:
+            continue
+        name = entry["obligation_name"]
+        if name not in index:
+            index[name] = len(rows)
+            rows.append({"name": name, "who_files": entry.get("who_files_label"),
+                         "cells": [[] for _ in range(12)]})
+        rows[index[name]]["cells"][d.month - 1].append(
+            {"iso": d.isoformat(), "day": d.day, "weekday": WEEKDAYS[d.weekday()],
+             "precautionary": bool(entry.get("precautionary")), "is_due_next": d == due_next})
+    return {"year": year, "months": SHORT_MONTHS, "rows": rows,
+            "now_month": due_next.month if due_next and due_next.year == year else None}
+
+
+def calendar_dots(entries, today: date | None = None) -> dict:
+    """The dot chart: for the Year view's year, one dot per entry in each month, hollow where the
+    entry is marked "May not be required". Also the two counts printed beside it."""
+    year = calendar_year(entries, today)["year"]
+    months = [{"label": SHORT_MONTHS[m][0], "dots": []} for m in range(12)]
+    for entry in sorted(entries or [], key=lambda e: _day(e["due_date"])):  # dots in date order
+        d = _day(entry["due_date"])
+        if d.year == year:
+            months[d.month - 1]["dots"].append(bool(entry.get("precautionary")))
+    total = sum(len(m["dots"]) for m in months)
+    hollow = sum(sum(m["dots"]) for m in months)
+    return {"year": year, "months": months, "total": total, "may_not_be_required": hollow,
+            "tallest": max([len(m["dots"]) for m in months] + [1])}

@@ -62,3 +62,34 @@ def test_year_end_rolls_into_january_and_mixed_years_have_no_single_year():
 
 def test_no_entries_gives_an_empty_layout():
     assert calendar_layout([], today=date(2027, 1, 1)) == {"year": None, "months": [], "due_next": None, "grid": []}
+
+
+# --- B12 (operator, 2026-11-17): Month view, Year view and dot chart -------------------------
+from backend.web.calendar_view import calendar_dots, calendar_month, calendar_year  # noqa: E402
+
+
+def test_month_view_defaults_to_the_next_due_month_and_pages():
+    m = calendar_month(ENTRIES, today=date(2027, 4, 25))
+    assert m["label"] == "April 2027" and m["count"] == 2
+    assert (m["prev"]["ym"], m["next"]["ym"]) == ("2027-03", "2027-05")
+    june = calendar_month(ENTRIES, "2027-06", today=date(2027, 4, 25))
+    assert june["label"] == "June 2027" and june["count"] == 1
+    assert calendar_month(ENTRIES, "not-a-month", today=date(2027, 4, 25))["label"] == "April 2027"
+    assert calendar_month(ENTRIES, "2027-12", today=date(2027, 4, 25))["next"]["label"] == "January 2028"
+
+
+def test_year_view_has_one_row_per_obligation_and_a_column_per_month():
+    y = calendar_year(ENTRIES, today=date(2027, 4, 25))
+    assert y["year"] == 2027 and len(y["months"]) == 12 and y["now_month"] == 4
+    assert [r["name"] for r in y["rows"]] == ["Quarterly return", "Annual report", "Monthly report"]
+    quarterly = y["rows"][0]["cells"]
+    assert quarterly[3] == [{"iso": "2027-04-20", "day": 20, "weekday": "Tue",
+                             "precautionary": True, "is_due_next": False}]
+    assert all(c == [] for i, c in enumerate(quarterly) if i != 3)
+
+
+def test_dot_chart_counts_only_the_entries_and_their_flag():
+    dots = calendar_dots(ENTRIES, today=date(2027, 1, 1))
+    assert dots["year"] == 2027 and dots["total"] == 3 and dots["may_not_be_required"] == 1
+    assert dots["months"][3]["dots"] == [True, False]  # 20 Apr (hollow) before 30 Apr
+    assert dots["months"][5]["dots"] == [False] and dots["tallest"] == 2
