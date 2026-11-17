@@ -34,6 +34,20 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-041: FYI: B12 built now; drop order and plan
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: 2.build/scaffold-plan.md §2 (block order) and §6 (drop order, "Hold B12 until B10 is green"); 2.build/frontend.md §11
+- Ask: For information. B12 (calendar Month and Year views and the dot chart) is being built now, in its one-day box, while the frontend waits on H-036 and B2 (H-040). The List view stays the default and does not depend on it. Please update the plan's order and drop order when H-040 lands; the operator's drop order for the week grid (after B6 and Tier 2, before B13b) now covers B12 as a whole.
+- Why: the build is on `frontend-spec` and the plan still says B12 is held until B10 is green.
+- Outcome: (the owner fills this in)
+
+### H-040: Build order: B12 (calendar views) pulled forward, before B10
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @system.arch   Date: 2026-11-17
+- Touches: sad.md Build card "Order" row, "Order of work" row 12, Estimate (B12 row, "Build order" paragraph, drop order), §3 page 7; DL-49 (decision-log.md)
+- Ask: Record that the operator moved B12 forward: it is built now, before B6 and B10, in its one-day box, because the frontend is waiting on the backend (H-036, B2) and the operator wants the views in the Friday demo. Scope unchanged from DL-49: Month and Year views and the dot chart (the only chart the calendar mock-ups use), chosen by a link, no script, front end only, the List view the default. One deviation to confirm or reject: the layout is arranged by a small display-only helper in the web layer (`backend/web/calendar_view.py`, frontend.md W-5), not by templates and the stylesheet alone. It reads only the entries the List view already gets and adds no field. Drop order (operator): dropped after B6 and Tier 2, before B13b.
+- Why: The Build card "Order" row is authoritative (H-001); the order changed by operator decision, so the SAD should say so.
+- Outcome: (the owner fills this in)
+
 ### H-039: Record the visual check in setup.md
 - From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
 - Touches: 2.build/setup.md (tooling and test commands); `tests/visual/` (Playwright Test 1.64.1, pinned); root `CLAUDE.md` check 3; 2.build/frontend.md §11.1
@@ -61,6 +75,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Ask: Add the view fields in the contract table of `frontend.md` §10.1 to the stub view functions, keeping the H-035 names and signatures. **The table gives the exact names and shapes the templates read** (rewritten 2026-11-17): review number, status tone, step states (`steps`), the status-sentence counts, end and failure details (`ended`, `failure`, `published_at`, `ended_because`), the starter's label, G1 / G2 / G3 card evidence and decided lines, the calendar summary, and the shared refusal object with the typed text to show again (V-12, with B2). Placeholder values are fine in stand-in mode; the names are what matter.
 - Update (operator, 2026-11-17, frontend.md Open Question 10): **added** `steps` (V-3) and `failure` (V-6); the templates already read them when sent. **Dropped, do not build:** `index`, `total`, `next_undecided`, `show_forms`, `progress`, `index_order`, `weeks`, `months` (the page counts and orders the lists you send; the calendar week grid and month grouping are not built). **Unit groups (operator, 2026-11-17): build it**, as a `group` field on each unit, not a separate list: one of `drafting`, `checking_drafts`, `applies`, `dates`, assigned by the backend (step 1 splits into the source-document units and the rule-checking units). Shape in `frontend.md` §10.1, V-4. The page already reads it. Sending it changes the step 1 review status snapshots: report them as with the others.
 - Why: The page never decides (ux.md §1.2). Until these fields exist, the templates show only what the stubs send, plus interim lookups of ux.md's fixed tables in one file (`parts/lookups.html`), which go as each field lands.
+- Note (2026-11-17, B12 in the Friday demo, H-040): the calendar's Month and Year views and dot chart are being built now. They look sparse with the shell's two placeholder entries; the stand-in fixtures (B3/B4: the full set of rules and dates) make them worth showing. If B3/B4 can land before Friday, the demo benefits.
 - Note (2026-11-17, visual check): these fields will change what the pages show, so `cd tests/visual && npm run test:visual` (CLAUDE.md check 3) **will fail**, at least on the step 4 and calendar snapshots. That is expected (the operator accepted it for baseline v1; `ux-review.md` H-006). Do not re-record the snapshots: report which ones failed in the Outcome, and `@frontend.eng` proposes the refresh for the operator to approve.
 - Outcome: (the owner fills this in)
 
