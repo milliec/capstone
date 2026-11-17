@@ -33,7 +33,8 @@ pages with ux.md's wording only.
   nothing until B2, H-036 V-12); keyboard pass by hand; screen reader; automated accessibility
   scan; visual regression; Firefox and Safari; the `:has()` fallback in a browser without
   `:has()` (checked only as markup).
-- **Evidence:** screenshots in the session scratchpad (not committed; see Open Questions):
+- **Evidence:** `project-context/2.build/evidence/` (13 screenshots, listed in its README). The
+  first-pass images named below were in the session scratchpad and are replaced by that set:
   `01-sign-in-1280`, `04b-running-still-1280`, `07-review-status-your-turn-1280`,
   `08-check-rules-1280`, `08u-unstyled-1280`, `10-confirm-applies-1280`, `11-publish-1024`,
   `13-gp-calendar-360`, `frame360-600` (the real 360 px view), `16-review-status-failed-1280`,
@@ -119,7 +120,7 @@ this table is the agent's reading, not the acceptance decision.
 
 - `project-context/2.build/ux.md`, `frontend.md`, `style-note.md`; `docs/prototype/` mock-ups.
 - `tests/tier2/test_pages.py`; Tier 1 tests in `tests/tier1/`.
-- Screenshots listed in §1 (session scratchpad).
+- Screenshots in `project-context/2.build/evidence/` (see its README).
 
 ## Assumptions
 
@@ -129,10 +130,7 @@ this table is the agent's reading, not the acceptance decision.
 
 ## Open Questions
 
-1. **Evidence location.** The operator asked for `docs/screenshots/`. `docs/` is git-ignored and
-   private by CLAUDE.md rule, apart from two named files, so the screenshots are saved there on
-   disk but not committed until the operator confirms a `.gitignore` exception and the CLAUDE.md
-   change, or another path.
+1. Closed 2026-11-17: evidence committed to `project-context/2.build/evidence/` (operator, option b).
 2. Closed 2026-11-17: H-007, breakpoint lowered to 960 px.
 
 ## Audit
@@ -145,3 +143,5 @@ this table is the agent's reading, not the acceptance decision.
   H-008; compared the pages with the mock-ups side by side and fixed it with their component
   styles; H-007 fixed (breakpoint 960 px). Open: H-005, H-006. Keyboard pass still owed (the
   operator and `@frontend.eng` together).
+- 2026-11-17 · persona `frontend-eng` · evidence: 13 screenshots committed to
+  `project-context/2.build/evidence/` with a README, after a real-name scan of the folder.

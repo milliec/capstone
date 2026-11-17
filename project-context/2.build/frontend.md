@@ -560,7 +560,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review of `ux-review.md` |
 | S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
-| S-24 | Screenshots as evidence | ⏸️ | Saved to `docs/screenshots/` on disk; committing there needs a `.gitignore` and CLAUDE.md change (asked 2026-11-17) |
+| S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | 🟡 | First pass 2026-11-17: clean (no markers; every named file exists or is marked deleted). Run again before the merge |
