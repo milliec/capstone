@@ -591,6 +591,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
 | S-25 | Week grid and month grouping (display-only) | ✅ | Built and tested (`c263fca`, `58760c1`, `8207349`); keyboard pass: no new Tab stops. Calendar baseline v2 approved (4 snapshots) |
 | S-26 | B12 and page 7 like the mock-up (pulled forward, H-040) | 🟡 | Rebuilt as the mock-up (`a3e71dc`, `d2e3e3b`): summary row, one calendar, Month / Year / List switch in place. Keyboard and click checked. Snapshot proposal (3 changed, 2 new) waiting for approval |
+| S-27 | Click-through feedback: land on the next card after a decision (W-7); no jump when switching calendar views | ✅ | `0eed7b4`, `e827a3e`. Measured in a real browser: next card 24px from the top, first Tab inside it; tabs stay at 80px through every switch |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
@@ -657,6 +658,7 @@ These are display plumbing, not checks. `@frontend.eng` writes them, with no log
 | W-4 | A 500 handler that renders `pages/server_error.html` with the role's sentence | `backend/main.py` |
 | W-5 | Page 7's month grouping and two-month week grid, display-only: arranges the entries the server sends, adds and marks nothing (operator, 2026-11-17) | `backend/web/calendar_view.py`, filter `calendar_layout` in `backend/web/deps.py` |
 | W-6 | Page 7's view choice, display only: `?view=list|month|year` (anything else is List) and `?month=YYYY-MM`, passed as `cal_view` and `cal_month` (B12, operator 2026-11-17) | `backend/web/routes/calendar.py` |
+| W-7 | Where steps 2 and 3 land after a decision: the redirect adds `?after=<decided id>#next`; the page passes `after` on, and puts a zero-height `#next` marker at the top of the next card still to decide (wrapping round), or before Finish when all are decided (operator, 2026-11-17) | `backend/web/routes/gates.py`, `pages/check_rules.html`, `pages/confirm_applies.html` |
 
 ---
 
@@ -828,3 +830,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   no reload, no script); the two-month grid replaced by the Month view and removed from the helper.
   75 tests; switch checked with real key presses and a click. Departures recorded in H-036, H-040,
   H-042.
+- 2026-11-17 · persona `frontend-eng` · operator's click-through feedback: after a decision, steps 2
+  and 3 land on the next card to decide (W-7); switching calendar views no longer moves the page
+  (section at least one screen tall on wide screens). 78 tests. Departure from ux.md page 4 "After
+  each action" raised as H-043.

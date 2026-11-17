@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-043: After a decision, land on the next card to decide
+- From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
+- Touches: 2.build/ux.md page 4 "After each action" (Approve rule / Reject rule) and page 5 "After each action" (Confirm / Overrule / Decide); 2.build/frontend.md W-7
+- Ask: Record the operator's decision: after a successful decision on step 2 or 3, the page lands on the **next card still to decide** (wrapping round to the first undecided one; the finish section when all are decided), not on the card just decided. The decided card still shows its decision and the "Next rule to decide" link. Refusals are unchanged: they still land on the card they are about (§5).
+- Why: The operator found landing at the top, or on the card just decided, jarring during the click-through; the 30-minute review target (§7) favours moving straight on.
+- Outcome: (the owner fills this in)
+
 ### H-042: Page 7 now follows the gp-calendar mock-up
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
 - Touches: 2.build/ux.md page 7 (items 5 to 8, phone width), "Mock-up differences this revision does not apply" (the Month and Year views); `docs/prototype/gp-calendar.html`; 2.build/frontend.md §2 page 7
