@@ -485,6 +485,15 @@ mean different things (an approve reason and a reject reason) need different nam
 overwrites the other. The rule for the app lives on the server, never in what the page shows (SAD
 DL-48).
 
+**A fix in one place can break another; check every page.** Real data made an ID break at its hyphen
+("FACT-" / "STUB-1") on step 3. The first fix, "an ID never wraps" for every ID, fixed step 3 and
+passed every test, but the visual check showed step 4 at 1024px had become 12px wider than the
+screen: an ID in a narrow "Why" column could no longer wrap, so it pushed the table out. One style
+rule reaches every page that uses the class, not only the one you were looking at. The fix was a
+narrower rule (only IDs that head a table row), and the check that caught it was comparing every
+page's width with the screen's, which a look at the fixed page alone would have missed
+(ux-review H-015, `c84d181`).
+
 ---
 
 ## Audit
@@ -535,3 +544,5 @@ DL-48).
   the tool it runs on; the hook used the system grep and caught what the hand scan missed)
 - 2026-11-17 · added one note from the visual-check flake (a flaky test can be a flaky outside service;
   pin it in the test)
+- 2026-11-17 · added one note from the H-036 snapshot refresh (a fix in one place can break another;
+  check every page's width, not only the page you fixed)

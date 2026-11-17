@@ -174,9 +174,9 @@ def test_every_page_links_the_stylesheet_and_a_skip_link(specialist_client, at_g
         assert 'href="#main"' in html and 'id="main"' in html, path
 
 
-# --- H-036 V-3 and V-6 (operator, 2026-11-17): the templates use the server's values when sent ---
-# The stub services do not send `steps` or `failure` yet, so these render the templates directly
-# with server-style values, and check they win over the fixed ux.md tables (the fallback).
+# --- H-036 V-3 and V-6 (operator, 2026-11-17): the templates show the server's values ---
+# These render the templates directly with made-up server values, so a test can tell the page
+# printed what it was sent. There is no fallback: the interim lookups went with H-045.
 
 FUND = {"fund_id": "FND-DEMO-01", "name": "Fictional fund", "regime": "Regime", "year_end": "31 Dec"}
 
@@ -196,10 +196,8 @@ def test_stepper_uses_the_servers_steps_when_sent():
         {"state": "Not started", "href": None, "current": False}]}
     html = str(macros.stepper(run))
     assert 'href="/step-2"' in html and ">Your turn<" in html
-    assert "In progress" not in html  # what the fallback would say for A_RUNNING
+    assert "In progress" not in html  # what the phase alone would suggest for A_RUNNING
     assert html.count('aria-current="step"') == 1
-    without = str(macros.stepper({k: v for k, v in run.items() if k != "steps"}))
-    assert "In progress" in without  # no server steps: the fixed table
 
 
 def test_failed_sentence_uses_the_servers_failure_when_sent():

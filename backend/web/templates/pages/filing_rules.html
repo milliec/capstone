@@ -4,7 +4,6 @@
     Posts: POST /specialist/runs (start a new review). The form is ALWAYS shown, even while a
     review is in progress (H-009): the server refuses a second one with RUN_ACTIVE. -#}
 {% import "parts/macros.html" as ui with context %}
-{% import "parts/lookups.html" as L %}
 {% block title %}Filing rules{% endblock %}
 {% block main %}
 <header class="head">
@@ -31,7 +30,7 @@
   <div class="sec-h"><h2 id="reviews-h">Reviews</h2></div>
   {%- if runs %}
   <div class="card">
-    <table>
+    <table class="reviews">
       <thead>
         <tr>
           <th scope="col">Review</th>
