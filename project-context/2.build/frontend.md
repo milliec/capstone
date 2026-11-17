@@ -215,6 +215,17 @@ it always finishes by itself." On a closed review: nothing.
 Phone width (≤ 480 px): each table row stacks as a block with visible column labels; no horizontal
 page scroll (UX-012).
 
+**B12: dot chart and List / Month / Year views (operator, 2026-11-17; DL-49; H-040, pulled
+forward before B10).** Chosen by a link (`?view=list|month|year`, `?month=YYYY-MM`), no script; List
+is the default and keeps the two-month grid. Month and Year are **real tables** (weekday and month
+column headers, row headers), so a screen reader can use the view it chose; "May not be required"
+is a dashed tile plus words; due next is underlined plus words. The dot chart's counts are written
+as text ("Entries in 2027: 2", "May not be required: 1"); the drawing is decorative. The list stays
+below every view. Below 960 px the views and their switch are hidden: the chart and the list remain.
+No moved or open-question mark anywhere (CR-012). Arranged by `backend/web/calendar_view.py` (W-5);
+the view choice is W-6. **Drop order:** after B6 and Tier 2, before B13b. New wording for the copy
+review: "No filings this month.", "Entries in {year}: {n}", the legend lines.
+
 **Week grid and month grouping (operator, 2026-11-17: back in scope, display-only).** Built from the
 entries the server already sends, with no new backend field, by the web-layer helper
 `backend/web/calendar_view.py` (W-5). The grid shows the two months from the next due date, Monday
@@ -573,6 +584,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
 | S-25 | Week grid and month grouping (display-only) | ✅ | Built and tested (`c263fca`, `58760c1`, `8207349`); keyboard pass: no new Tab stops. Calendar baseline v2 approved (4 snapshots) |
+| S-26 | B12: dot chart and List / Month / Year views (pulled forward, H-040) | 🟡 | Built and tested (`223b082`, `f311130`, `63fb377`); keyboard pass clean. Snapshot proposal (3 changed, 2 new) waiting for approval |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
@@ -638,6 +650,7 @@ These are display plumbing, not checks. `@frontend.eng` writes them, with no log
 | W-3 | Mount `backend/web/static/` at `/static` | `backend/main.py` |
 | W-4 | A 500 handler that renders `pages/server_error.html` with the role's sentence | `backend/main.py` |
 | W-5 | Page 7's month grouping and two-month week grid, display-only: arranges the entries the server sends, adds and marks nothing (operator, 2026-11-17) | `backend/web/calendar_view.py`, filter `calendar_layout` in `backend/web/deps.py` |
+| W-6 | Page 7's view choice, display only: `?view=list|month|year` (anything else is List) and `?month=YYYY-MM`, passed as `cal_view` and `cal_month` (B12, operator 2026-11-17) | `backend/web/routes/calendar.py` |
 
 ---
 
@@ -801,3 +814,6 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   contract and to H-036; page 3 shows units under their group headings when sent, today's stage
   view until then (`6a2fb2b`). Tests 69; visual 24 of 24, so no snapshot refresh now; the step 1
   status snapshots will change when the backend sends `group` (with the H-006 refresh).
+- 2026-11-17 · persona `frontend-eng` · B12 pulled forward (operator; H-040, H-041): dot chart and
+  List / Month / Year views, display-only (W-5, W-6); 10 layout tests and 5 page tests (77 in all);
+  keyboard pass with real key presses clean; snapshot refresh proposed, not written.
