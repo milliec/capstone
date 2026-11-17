@@ -51,6 +51,7 @@ VERDICTS = [
 ENTRIES = [
     {"row_n": 1, "period": "FY2026", "due_date": "2027-04-30", "moved": False,
      "precautionary": False, "open_question_id": None},
-    {"row_n": 2, "period": "2027-03", "due_date": "2027-04-20", "moved": True,
-     "precautionary": True, "open_question_id": None},
+    # Moved off a weekend: due Sunday 18 Apr 2027, so the following working day (Monday 19 Apr).
+    {"row_n": 2, "period": "2027-03", "due_date": "2027-04-19", "moved": True,
+     "moved_from": "2027-04-18", "precautionary": True, "open_question_id": None},
 ]

@@ -170,3 +170,51 @@ def test_g2_view_fields_and_decided_outcome(settings):
     assert d1["outcome"] == "Overruled: doesn't apply" and d1["reason"] == "Not for this fund"
     assert d2["outcome"] == "Added, marked 'May not be required'" and d2["reason"] == "I checked"
     assert d1["by_label"] == "Compliance specialist (mock)" and d1["at"]
+
+
+def test_g3_view_publish_outcome_and_previous_publication(settings):
+    """V-10, V-11, and V-6 `published_at`: lists, entry words, outcome, previous publication."""
+    from backend.services import calendar, decisions, publishing, stage_store
+
+    init_db(settings.database_path)
+    conn = connect(settings.database_path)
+
+    def to_g3(run_id):
+        stage_store.finish_stage(conn, runs.get_run(conn, run_id), "C")   # makes the calendar
+        return runs.get_run(conn, run_id)
+
+    first = to_g3(_run_at(conn, settings, "ACTIVE", "C_RUNNING"))
+    row3 = f"ROW-{first['run_id']}-3"
+    decisions.decide_row(conn, row_id=row3, version=1, decision="reject", business_day_rule=None,
+                         who_files=None, approve_reason=None, reject_reason="Wrong quote",
+                         actor="specialist-1")
+    decisions.decide_row(conn, row_id=f"ROW-{first['run_id']}-1", version=1, decision="approve",
+                         business_day_rule="roll_forward", who_files="Auditor",
+                         approve_reason=None, reject_reason=None, actor="specialist-1")
+    view = calendar.get_g3_view(conn, first)
+    assert view["stage"] == "at" and view["outcome"] is None and view["previous_publication_at"] is None
+    assert view["rejected_rows"] == [{"row_id": row3, "label": "Stand-in rule 3: monthly report",
+                                      "reason": "Wrong quote", "is_demo": False}]
+    assert view["rejected_row_ids"] == [row3] and len(view["uncited_paragraph_ids"]) == 2
+    e1, e2 = view["entries"]
+    assert e1["who_files_label"] == "Auditor" and e1["marks"]["moved"] is None
+    assert e1["why"] and e1["source_paragraph_id"] == "SRC-STUB-P1" and e1["recipient_name"]
+    assert e2["marks"]["moved"] == {"from_date": "2027-04-18", "to_date": "2027-04-19",
+                                    "direction": "following working day"}
+
+    publishing.publish_calendar(conn, calendar_id=view["calendar_id"], run_version=1,
+                                acknowledged=True, rejected_row_ids=[row3],
+                                uncited_paragraph_ids=[], actor="specialist-1")
+    published = runs.get_run(conn, first["run_id"])
+    assert published["status"] == "COMPLETED" and published["published_at"]
+    after = calendar.get_g3_view(conn, published)
+    assert after["stage"] == "after" and after["outcome"]["at"] == published["published_at"]
+    live = calendar.get_published_calendar(conn, published["fund_id"])
+    assert live["entries"][0]["quote"] and live["entries"][0]["source_document"]
+
+    second = to_g3(_run_at(conn, settings, "ACTIVE", "C_RUNNING"))
+    assert calendar.get_g3_view(conn, second)["previous_publication_at"] == published["published_at"]
+    publishing.decline_calendar(conn, calendar_id=f"CAL-{second['run_id']}", run_version=1,
+                                decline_reason="Dates look off", actor="specialist-1")
+    declined = calendar.get_g3_view(conn, runs.get_run(conn, second["run_id"]))
+    assert declined["outcome"]["reason"] == "Dates look off" and declined["outcome"]["at"]
