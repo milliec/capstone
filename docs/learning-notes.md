@@ -409,6 +409,17 @@ intended files. Lesson: a protection is defined by its exact pattern, not by wha
 protect. It's like a Figma share setting on a page: a link to that page from another file is a
 separate thing with its own settings. Before relying on a rule, test the edge case.
 
+**A check you run by hand is only as good as the tool it runs on.** All through the stubbed-UI
+build, the agent ran the real-name scan by hand before each commit and it came back clean. Then the
+commit hook blocked a commit: two lines in downloaded test-tool code (Playwright, git-ignored) matched
+a word on the identifier list. The agent's scans had missed them because, in its environment, `grep`
+was quietly swapped for a look-alike tool that decides where a "word" starts and ends differently.
+The hook calls the system's own `grep`, so it was right, and every earlier commit had passed it.
+Lesson: two copies of "the same" check can disagree; trust the one that guards the door (the hook),
+and when a hand check matters, call the exact tool by its full path (`/usr/bin/grep`). It's like
+checking colour contrast with a different plug-in from the one the design review uses: same
+question, different answer.
+
 ## 5. Domain: fund compliance calendars
 
 **Anchor + offset.** A deadline is stored as a rule ("year-end + 6 months"), not a date, so the same
@@ -510,3 +521,5 @@ DL-48).
   covered by that folder's ignore rule)
 - 2026-11-16 · added one note from the app-shell build (a default value is a snapshot; a test that
   fails first can catch the code)
+- 2026-11-17 · added one note from the visual-regression setup (a hand-run check is only as good as
+  the tool it runs on; the hook used the system grep and caught what the hand scan missed)
