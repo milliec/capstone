@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-039: Record the visual check in setup.md
+- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: 2.build/setup.md (tooling and test commands); `tests/visual/` (Playwright Test 1.64.1, pinned); root `CLAUDE.md` check 3; 2.build/frontend.md §11.1
+- Ask: Add the visual check to setup.md next to the other test commands, as the visual-regression skill asks: install once with `cd tests/visual && npm install --ignore-scripts && npx playwright install chromium` (Node; the app itself stays Python); run with `cd tests/visual && npm run test:visual` (Playwright starts the app on port 8777 with a fresh database, stand-in agents, no pause). Note that it is not part of `make test`, the commit hook or CI, and that snapshots are re-recorded only after operator approval (CLAUDE.md check 3).
+- Why: setup.md is where every persona looks for how to run things; today the commands are only in `frontend.md`, which other personas do not read.
+- Outcome: (the owner fills this in)
+
 ### H-038: FYI: the real-name scan now skips node_modules
 - From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
 - Touches: `scripts/git-hooks/run-checks.sh` (check 2, the real-name scan), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `91b9d4e`
