@@ -3,30 +3,22 @@
     Reads: run, view (decisions.get_g1_view), refusal. Posts: one decision form per undecided rule
     (POST /specialist/rows/{row_id}/decision) and "Finish checking" (POST …/g1/complete).
     Every card is in reading order: quote → check → paragraph → flags → fields → decision.
-    Evidence the stub does not send yet (quote check, paragraph, flags, OQ-7 mark, unused
-    paragraphs) is left out until H-036 V-8 sends it: the page never claims what it was not told. -#}
+    The evidence (quote check, paragraph, flags, OQ-7 mark, unused paragraphs) and each rule's
+    status are the server's (H-036 V-8): the page never claims what it was not told. -#}
 {% import "parts/macros.html" as ui with context %}
 {% import "parts/lookups.html" as L %}
 
 {%- set rid = run.run_id -%}
-{%- set stage = ui.stage_of(run, "g1", view.stage if view.stage is defined else none)|trim -%}
+{%- set stage = view.stage -%}
 {%- set rows = view.rows -%}
 {%- set n = rows|length -%}
 
-{#- Each rule's status words and tone: the server's (H-036 V-8), else the interim reading of the
-    stub's recorded decision. "Approval blocked" when this request's refusal is the demo-rule one
-    for this card (ux.md page 4, UX-003). -#}
+{#- Each rule's status words and tone: the server's (H-036 V-8). "Approval blocked" when this
+    request's refusal is the demo-rule one for this card (ux.md page 4, UX-003). -#}
 {%- set ns = namespace(cards=[], undecided=[]) -%}
 {%- for r in rows -%}
   {%- set i = loop.index -%}
-  {%- set st = namespace(words="To decide", tone="action", decided=false) -%}
-  {%- if r.status is defined and r.status -%}
-    {%- set st.words = r.status -%}{%- set st.tone = r.status_tone -%}{%- set st.decided = r.status in ("Approved", "Rejected") -%}
-  {%- elif r.decision -%}
-    {%- for key, words, tone in L.STUB_ROW_STATUS -%}
-      {%- if r.decision.startswith(key) -%}{%- set st.words = words -%}{%- set st.tone = tone -%}{%- set st.decided = true -%}{%- endif -%}
-    {%- endfor -%}
-  {%- endif -%}
+  {%- set st = namespace(words=r.status, tone=r.status_tone, decided=r.decided is not none) -%}
   {%- if refusal and refusal.code is defined and refusal.code == "DEMO_ROW_NOT_APPROVABLE" and refusal.anchor == "row-" ~ i -%}
     {%- set st.words = "Approval blocked" -%}{%- set st.tone = "problem" -%}
   {%- endif -%}
@@ -154,7 +146,7 @@
           <dt>Due relative to</dt><dd>{{ r.anchor }}</dd>
           <dt>Offset</dt><dd>{{ r.offset }}</dd>
           <dt>Recipient</dt><dd>{{ r.recipient_name if r.recipient_name is defined else r.recipient_code }}</dd>
-          <dt>Who files, as the source says</dt><dd>{{ "Not stated in source" if r.responsible_role in L.WHO_FILES_SILENT else r.responsible_role }}</dd>
+          <dt>Who files, as the source says</dt><dd>{{ "Not stated in source" if r.needs_who_files else r.responsible_role }}</dd>
           <dt>Weekend or holiday, as the source says</dt><dd>{{ L.BDR_SOURCE_WORDS.get(r.business_day_rule, r.business_day_rule) }}</dd>
         </dl>
         {%- if r.open_question is defined and r.open_question %}

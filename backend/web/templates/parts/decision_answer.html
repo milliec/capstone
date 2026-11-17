@@ -43,7 +43,7 @@
 {%- else %}
   {#- AI said applies or doesn't apply: Confirm, or Overrule with a reason (H-026 gap e). -#}
   {%- set ai = v.verdict -%}
-  {%- set other = v.overrule_value if v.overrule_value is defined else L.OPPOSITE[ai] -%}
+  {%- set other = v.overrule_value -%}{#- the server's (H-036 V-9) -#}
   <fieldset>
     {#- K-2: the rule's name for screen readers only. -#}
     <legend>What's your answer on this rule?<span class="sr"> {{ v.obligation_name }}</span></legend>

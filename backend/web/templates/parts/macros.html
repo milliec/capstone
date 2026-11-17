@@ -2,8 +2,9 @@
     of page, like a component. Pages import this file with:
         {% import "parts/macros.html" as ui with context %}
 
-    Rule for everything here (ux.md §1.2): show what the server sent. Where H-036 has not landed
-    yet, fall back to the interim lookups in parts/lookups.html, never to a calculation. -#}
+    Rule for everything here (ux.md §1.2): show what the server sent (H-036 V-1 to V-11). There
+    is no fallback: the interim lookups were deleted when H-036 landed (H-045, 2026-11-17).
+    parts/lookups.html now holds only ux.md's fixed wording, such as the step names. -#}
 {% import "parts/lookups.html" as L %}
 
 {#- ux.md §1.5 tone → the style-note chip family (operator decision 2026-11-17, frontend.md §4.2):
@@ -18,12 +19,9 @@
 {%- endmacro %}
 
 
-{#- The tone of a review's status: the server's value (H-036 V-2), else the interim lookup. -#}
+{#- The tone of a review's status: the server's value (H-036 V-2). -#}
 {% macro run_tone(run) -%}
-{%- if run.status_tone is defined and run.status_tone -%}{{ run.status_tone }}
-{%- elif run.status == "ACTIVE" -%}{{ L.TONE_ACTIVE.get(run.phase, "neutral") }}
-{%- else -%}{{ L.TONE_ENDED.get(run.status, "neutral") }}
-{%- endif -%}
+{{ run.status_tone or "neutral" }}
 {%- endmacro %}
 
 
@@ -33,30 +31,14 @@
 {%- endmacro %}
 
 
-{#- The review's number ("4"). Interim: the run ID until H-036 V-1 sends `review_number`. -#}
+{#- The review's number ("4"): the server's `review_number` (H-036 V-1). -#}
 {% macro review_no(run) -%}
-{{ run.review_number if run.review_number is defined and run.review_number else run.run_id }}
+{{ run.review_number }}
 {%- endmacro %}
 
 {#- "Review 4" (ux.md §1.8: "Review", never "Run", on screen). -#}
 {% macro review_name(run) -%}
 Review {{ review_no(run) }}
-{%- endmacro %}
-
-
-{#- Where a step page stands: "before", "at", "after", or "ended_before" (ux.md "Closed review").
-    The server's value (H-036 V-8 to V-10) if sent, else the interim PAGE_STAGE lookup. An ended
-    review never shows forms: a reached step becomes "after" (read-only). -#}
-{% macro stage_of(run, page, server_stage=none) -%}
-{%- if server_stage -%}{{ server_stage }}
-{%- else -%}
-  {%- set s = L.PAGE_STAGE[page].get(run.phase, "before") -%}
-  {%- if run.status == "ACTIVE" -%}{{ s }}
-  {%- elif run.status == "COMPLETED" -%}after
-  {%- elif s == "before" -%}ended_before
-  {%- else -%}after
-  {%- endif -%}
-{%- endif -%}
 {%- endmacro %}
 
 
@@ -88,29 +70,9 @@ Review {{ review_no(run) }}
     The server's `run.steps` (H-036 V-3, operator 2026-11-17): four items of
     {state, href, current}, where state is one of "Done", "In progress", "Your turn",
     "Not started", "Failed", "Ended"; href is the step's page or none; current is true on the step
-    the review is at. Until the server sends it, the same list is built from ux.md's fixed table
-    (parts/lookups.html), so the page looks the same either way. -#}
+    the review is at. The step names are ux.md's fixed wording (parts/lookups.html). -#}
 {% macro stepper(run) -%}
-{%- if run.steps is defined and run.steps -%}
-  {%- set rows = run.steps -%}
-{%- else -%}
-  {%- if run.status == "ACTIVE" -%}
-    {%- set states = L.STEPS_ACTIVE.get(run.phase, L.STEPS_ACTIVE["A_RUNNING"]) -%}
-  {%- elif run.status == "COMPLETED" -%}
-    {%- set states = L.STEPS_COMPLETED -%}
-  {%- else -%}
-    {%- set word = "Failed" if run.status == "FAILED" else "Ended" -%}
-    {%- set states = L.STEPS_STOPPED[L.STOPPED_STEP.get(run.phase, 1)]|map("replace", "{x}", word)|list -%}
-  {%- endif -%}
-  {%- set ns = namespace(rows=[]) -%}
-  {%- for state in states -%}
-    {%- set ns.rows = ns.rows + [{
-          "state": state,
-          "href": ("/specialist/runs/" ~ run.run_id ~ L.STEP_PATHS[loop.index]) if state in ("Done", "Your turn") else none,
-          "current": state in ("In progress", "Your turn", "Failed", "Ended")}] -%}
-  {%- endfor -%}
-  {%- set rows = ns.rows -%}
-{%- endif -%}
+{%- set rows = run.steps -%}
 {%- set css = {"Done": "done", "In progress": "working", "Your turn": "you",
                "Failed": "failed", "Ended": "ended", "Not started": ""} -%}
 <ol class="steps" aria-label="Where this review is">

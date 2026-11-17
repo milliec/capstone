@@ -116,8 +116,32 @@ blocked):
    `reference` or `.venv` (`.gitignore`'s `reference/` only matches real folders, so a symlink to
    one is not ignored; found 2026-11-16).
 2. Real-name scan against `reference/real-identifiers.txt` (the same command as `CLAUDE.md`). On a
-   hit it prints file and line only, so the log never repeats a real name.
+   hit it prints file and line only, so the log never repeats a real name. The scan skips
+   `reference/`, `.venv`, `node_modules` and `.git` (H-038), and skips binary files with `-I`
+   (H-044). If you change the command in the hook or in `CLAUDE.md`, change the other too. CI does
+   not run the scan (H-003 keeps it local), so there is nothing to change there today.
 3. `.venv/bin/aamad validate`.
+
+## Tests and checks
+
+| Check | Command | Runs in the hook or CI? |
+|---|---|---|
+| All Python tests (stand-in agents, no model call) | `make test` | No. Run by hand |
+| Visual check (Playwright snapshots of the stubbed UI) | `cd tests/visual && npm run test:visual` | **No.** Not part of `make test`, the commit hook or CI |
+
+**Visual check: install once** (needs Node; the app itself stays Python):
+
+```bash
+cd tests/visual && npm install --ignore-scripts && npx playwright install chromium
+```
+
+Playwright Test is pinned at 1.64.1 in `tests/visual/package.json`. To run it: `cd tests/visual && npm run test:visual`. Playwright starts the app itself on port 8777 with a fresh database, stand-in
+agents and no pause (`STAND_IN_UNIT_PAUSE_S=0`), so no model is called and every run starts from
+the same nothing.
+
+**Snapshots are never re-recorded by the persona that changed the page.** A failed snapshot is
+reported; `@frontend.eng` proposes the new snapshots and the operator approves them (`CLAUDE.md`,
+check 3; `frontend.md` §11.1).
 
 ## What is not done in this block
 

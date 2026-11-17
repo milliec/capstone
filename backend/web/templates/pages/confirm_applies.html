@@ -2,29 +2,21 @@
 {#- Page 5 · Confirm what applies (G2) (ux.md page 5; route GET /specialist/runs/{run_id}/g2).
     Reads: run, view (decisions.get_g2_view), refusal. Posts: one decision form per undecided
     answer (POST /specialist/verdicts/{verdict_id}/decision) and "Finish and calculate dates"
-    (POST …/g2/complete). Cited facts and the approved rule show in full once H-036 V-9 sends them. -#}
+    (POST …/g2/complete). Cited facts, the approved rule and each decided line are the server's
+    (H-036 V-9). -#}
 {% import "parts/macros.html" as ui with context %}
 {% import "parts/lookups.html" as L %}
 
 {%- set rid = run.run_id -%}
-{%- set stage = ui.stage_of(run, "g2", view.stage if view.stage is defined else none)|trim -%}
+{%- set stage = view.stage -%}
 {%- set verdicts = view.verdicts -%}
 {%- set n = verdicts|length -%}
 
-{#- Each answer's decided line: the server's (H-036 V-9), else the interim reading of the stub's
-    recorded decision. -#}
+{#- Each answer's decided line: the server's (H-036 V-9). -#}
 {%- set ns = namespace(cards=[], undecided=[]) -%}
 {%- for v in verdicts -%}
   {%- set i = loop.index -%}
-  {%- set st = namespace(words=none) -%}
-  {%- if v.decided is defined and v.decided -%}
-    {%- set st.words = v.decided.outcome -%}
-  {%- elif v.decision -%}
-    {%- for key, words in L.STUB_ANSWER_WORDS -%}
-      {%- if v.decision.startswith(key) -%}{%- set st.words = words -%}{%- endif -%}
-    {%- endfor -%}
-    {%- if not st.words %}{% set st.words = "Decided" %}{% endif -%}
-  {%- endif -%}
+  {%- set st = namespace(words=v.decided.outcome if v.decided else none) -%}
   {%- set ns.cards = ns.cards + [{"i": i, "v": v, "decided": st.words}] -%}
   {%- if not st.words -%}{%- set ns.undecided = ns.undecided + [i] -%}{%- endif -%}
 {%- endfor -%}

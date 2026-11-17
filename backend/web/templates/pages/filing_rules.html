@@ -19,7 +19,8 @@
   <p class="k" id="active-h">{{ "Waiting for you" if active_run.is_at_gate else "AI is working" }}</p>
   <p><b>{{ ui.review_name(active_run) }}:</b> {{ active_run.status_words }}.</p>
   {%- if active_run.is_at_gate %}
-  <p><a class="more" href="/specialist/runs/{{ active_run.run_id }}{{ L.STEP_PATHS[L.STOPPED_STEP[active_run.phase]] }}">Continue checking</a></p>
+  {#- The link of the step the server marks "Your turn" (H-036 V-3). -#}
+  <p><a class="more" href="{{ (active_run.steps|selectattr('state', 'equalto', 'Your turn')|first).href }}">Continue checking</a></p>
   {%- else %}
   <p><a class="more" href="/specialist/runs/{{ active_run.run_id }}">Open review {{ ui.review_no(active_run) }}</a></p>
   {%- endif %}

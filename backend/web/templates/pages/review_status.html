@@ -9,21 +9,16 @@
 
 {%- set rid = run.run_id -%}
 {%- set refreshing = run.is_working and refresh_on -%}
-{%- set k = L.STOPPED_STEP.get(run.phase, 1) -%}
-{%- set ended = run.ended if run.ended is defined else none -%}
+{#- The step the review is at, or stopped at: the one the server marks `current` (H-036 V-3).
+    Used for "Abandoned at step k". -#}
+{%- set at = namespace(k=1) -%}
+{%- for s in run.steps %}{% if s.current %}{% set at.k = loop.index %}{% endif %}{% endfor -%}
+{%- set k = at.k -%}
+{%- set ended = run.ended -%}
 
-{#- Failed review: the server's `run.failure` (H-036 V-6, operator 2026-11-17) =
-    {step, step_name, unit_label, reason_sentence}. Until it is sent, the same four values come from
-    the run's phase and the failed unit through ux.md's fixed tables (parts/lookups.html). -#}
-{%- if run.failure is defined and run.failure -%}
-  {%- set fail = run.failure -%}
-{%- else -%}
-  {%- set failed_unit = units|selectattr("status", "equalto", "failed")|first -%}
-  {%- set fail = {
-        "step": k, "step_name": L.STEP_NAMES[k],
-        "unit_label": failed_unit.label if failed_unit else none,
-        "reason_sentence": L.FAILURE_SENTENCES.get(failed_unit.failure_reason, failed_unit.failure_reason) if failed_unit else none} -%}
-{%- endif -%}
+{#- Failed review: the server's `run.failure` (H-036 V-6) =
+    {step, step_name, unit_label, reason_sentence}. -#}
+{%- set fail = run.failure -%}
 
 {#- Fixed ux.md wording per state (page 3 "States and their words"). Clauses that need a count,
     date or reason only show when the server sends it (H-036 V-5, V-6); until then the sentence is
