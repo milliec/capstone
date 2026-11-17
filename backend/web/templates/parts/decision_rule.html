@@ -1,0 +1,71 @@
+{#- G1 answer-first decision form for one rule (ux.md page 4 item 5.8, §4 "Decision form", DL-48).
+    Included inside a rule card; needs `r` (the row), `i` (its number on the page) and `refusal`.
+
+    - The question comes first: radio `decision`, nothing chosen.
+    - Only the chosen answer's fields and button show (site.css, :has()); without :has() both show.
+    - No required / disabled / pattern: a missing field is refused by the server on the page.
+    - Approve and Reject have DIFFERENT reason names (approve_reason, reject_reason), so a reason
+      typed under one answer is never read as the other's. The server reads only the chosen one.
+    - The demo rule and a quote-check-failed rule get exactly this form; "Approve rule" stays
+      visible and active, and the server refuses it (UX-003, H-009). -#}
+{% import "parts/macros.html" as ui with context %}
+{% import "parts/lookups.html" as L %}
+{%- set p = "r" ~ i -%}
+{%- set needs_who = r.needs_who_files if r.needs_who_files is defined else (r.responsible_role in L.WHO_FILES_SILENT) -%}
+{%- set has_flag = r.has_flag if r.has_flag is defined else false -%}
+{%- set parties = r.filing_parties if r.filing_parties is defined else L.FILING_PARTIES -%}
+{%- set typed = refusal.typed if (refusal and refusal.typed is defined and refusal.anchor == "row-" ~ i) else {} -%}
+<form class="decision" method="post" action="/specialist/rows/{{ r.row_id }}/decision">
+  <input type="hidden" name="version" value="{{ r.version }}">
+  <fieldset>
+    <legend>What's your decision on this rule?</legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="decision" value="approve" data-answer="approve"> Approve</label>
+      <label class="opt"><input type="radio" name="decision" value="reject" data-answer="reject"> Reject</label>
+    </div>
+  </fieldset>
+
+  {{ ui.refusal_here(refusal, "row-" ~ i) }}
+
+  <div class="if" data-answer="approve">
+    <fieldset>
+      <legend>If the deadline falls on a weekend or holiday (choose one to approve)</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="business_day_rule" value="roll_forward"> Move to the following working day</label>
+        <label class="opt"><input type="radio" name="business_day_rule" value="roll_backward"> Move to the preceding working day</label>
+        <label class="opt"><input type="radio" name="business_day_rule" value="no_roll"> Keep the date</label>
+      </div>
+    </fieldset>
+
+    {%- if needs_who %}
+    <fieldset aria-describedby="{{ p }}-who-hint">
+      <legend>Who files this? The source doesn't say.</legend>
+      <div class="opts">
+        {%- for value, label in parties %}
+        <label class="opt"><input type="radio" name="who_files" value="{{ value }}"> {{ label }}</label>
+        {%- endfor %}
+      </div>
+      <p class="hint" id="{{ p }}-who-hint">Choose the party, or 'Not known'. The compliance specialist and the General Partner are not filing parties.</p>
+    </fieldset>
+    {%- endif %}
+
+    {%- if has_flag %}
+    <div class="field">
+      <label for="{{ p }}-approve-reason">Why are you approving it although the checker flagged it?</label>
+      <textarea id="{{ p }}-approve-reason" name="approve_reason" aria-describedby="{{ p }}-approve-hint">{{ typed.approve_reason or "" }}</textarea>
+      <p class="hint" id="{{ p }}-approve-hint">Required because the checker raised a flag. Saved in the audit log with your name and the time. Specialists only.</p>
+    </div>
+    {%- endif %}
+
+    <button class="btn" type="submit">Approve rule</button>
+  </div>
+
+  <div class="if" data-answer="reject">
+    <div class="field">
+      <label for="{{ p }}-reject-reason">Why are you rejecting it?</label>
+      <textarea id="{{ p }}-reject-reason" name="reject_reason" aria-describedby="{{ p }}-reject-hint">{{ typed.reject_reason or "" }}</textarea>
+      <p class="hint" id="{{ p }}-reject-hint">Required. If you reject it, no filing dates are created from this rule. Shown again when you publish and kept in the audit log. Specialists only.</p>
+    </div>
+    <button class="ghost" type="submit">Reject rule</button>
+  </div>
+</form>

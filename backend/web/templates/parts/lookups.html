@@ -57,6 +57,32 @@
          "C_RUNNING": "before", "AT_G3": "at"},
 } %}
 
+{#- Fixed wording (not interim): the weekend-or-holiday value as the source says it (ux.md page 4
+    item 5.6, U9). The extractor may output not_confirmed when the source is silent: "Not stated". -#}
+{% set BDR_SOURCE_WORDS = {"roll_forward": "Following working day", "roll_backward": "Preceding working day",
+                           "no_roll": "Keep the date", "not_confirmed": "Not stated"} %}
+{#- ...and as the specialist's choice, for the decided line ("Weekend or holiday: move to …"). -#}
+{% set BDR_CHOICE_WORDS = {"roll_forward": "move to the following working day",
+                           "roll_backward": "move to the preceding working day", "no_roll": "keep the date"} %}
+
+{#- Interim, replaced by H-036 V-8 `filing_parties` (built from the fund configuration, DL-39).
+    The labels and order are fixed by ux.md page 4 and SAD CR-007; the server validates the value
+    (VALIDATION for anything else). -#}
+{% set FILING_PARTIES = [("AIFM", "AIFM"), ("Fund administrator", "Fund administrator"),
+                         ("Auditor", "Auditor"), ("Local reporting agent (Spain)", "Local reporting agent (Spain)"),
+                         ("Tax advisor", "Tax advisor"), ("not known", "Not known")] %}
+
+{#- Interim, replaced by H-036 V-8 `needs_who_files`: the source value that means "silent". -#}
+{% set WHO_FILES_SILENT = ["not stated in source"] %}
+
+{#- Interim, replaced by H-036 V-8 / V-9 `status` and `decided`. The stub records a decision as
+    audit text that starts with the posted answer ("approve …", "reject …", "confirm …"); these are
+    the ux.md words for each. -#}
+{% set STUB_ROW_STATUS = [("approve", "Approved", "success"), ("reject", "Rejected", "problem")] %}
+{% set STUB_ANSWER_WORDS = [("confirm", "Confirmed"), ("override", "Overruled"),
+                            ("decide applies", "Added, marked 'May not be required'"),
+                            ("decide does_not_apply", "Left off")] %}
+
 {#- Interim, replaced by H-036 V-4 `unit_groups`. Unit status words (ux.md page 3 item 7). -#}
 {% set UNIT_WORDS = {"waiting": "Waiting", "running": "Running", "done": "Done", "failed": "Failed"} %}
 {% set UNIT_TONE = {"waiting": "neutral", "running": "info", "done": "success", "failed": "problem"} %}
