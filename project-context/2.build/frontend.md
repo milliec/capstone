@@ -584,8 +584,10 @@ matter; values may be placeholders in stand-in mode.
 |---|---|---|---|
 | V-1 | every run (`runs._describe`) | `review_number` (int) | all review pages, Filing rules |
 | V-2 | every run; every G1 row | run `status_tone`; row `status_tone`: one of `info`, `action`, `problem`, `neutral`, `success` (ux.md §1.5) | pills |
+| V-3 | every run (review pages) | `steps` = four items of `{state, href, current}`: `state` one of "Done", "In progress", "Your turn", "Not started", "Failed", "Ended"; `href` the step's page or none; `current` true on the step the review is at (operator, 17 Nov 2026) | stepper, pages 3 to 6 |
 | V-5 | `run` (review status) | `counts.rules`, `counts.unsure`, `counts.dates` (ints) | page 3 sentences |
 | V-6 | `run` | `ended.at` (ISO time), `ended.reason` (text, first line shown); `published_at` (ISO time); on Filing rules rows `ended_because` (text: the failure sentence or the first line of the reason) | pages 2, 3 |
+| V-6 | `run` (failed review) | `failure` = `{step (int), step_name, unit_label, reason_sentence}`; the reason sentence is ux.md page 3's wording for the failure reason, without the final full stop (operator, 17 Nov 2026) | page 3 |
 | V-7 | `run` | `started_by_label` ("Compliance specialist (mock)") | page 3 |
 | V-8 | `view` (G1) | `stage` (`before`, `at`, `after`, `ended_before`); `summary.flags` (int); `unused_paragraphs[]` of `{paragraph_id, document, text}` | page 4 |
 | V-8 | each `view.rows[]` | `status` (word: "To decide", "Approved", "Rejected", "Approval blocked") + `status_tone`; `quote_check.passed` (bool); `paragraph.document`, `paragraph.text`; `flags[]` of `{flag_type: internal or cross_source, row_value, quote_says, other_paragraph_id}` (an empty list prints "No checker flags."); `has_flag` (bool); `needs_who_files` (bool); `filing_parties[]` of `[value, label]` pairs, in the fund's order, "not known" last; `open_question` (bool); `needs_attention[]` (words for the index column); `tags[]` (extra card tags); `recipient_name`; `decided` = `{by_label, at, business_day_rule, who_files, reason}` | page 4 |
@@ -597,16 +599,18 @@ matter; values may be placeholders in stand-in mode.
 | V-11 | each `published.entries[]` | `who_files_label`; `why`; `source_document`; `source_paragraph_id`; `quote` | page 7 |
 | V-12 | `refusal` (any page) | `code`; `sentence`; `anchor` (`row-3`, `verdict-2`, `start`, `ack`, `decline-reason`, `decision`, `abandon`; none for a page-level refusal); `target_label` ("rule 3"); `short` and `link_text` (optional, for `RUN_ACTIVE`); `typed` = `{field name: text typed}` | all forms |
 
-**Listed earlier but read by no template** (pending the operator, Open Question 10; `@backend.eng`
-should not build these yet):
+**Dropped from H-036** (operator, 17 Nov 2026, Open Question 10, option A). The page works these
+out from the lists the server sends, or they are not built:
 
-- `steps` (V-3), `failure` (V-6): the stepper and the failed sentence come from ux.md's fixed tables in
-  `parts/lookups.html`, keyed by `status`, `phase` and the failed unit's `failure_reason`.
-- `index`, `total`, `next_undecided`, `show_forms` (V-8, V-9), `progress`, `index_order` (V-9): the
-  page numbers, counts and orders the lists the server sends; `stage` already decides which forms show.
-- `unit_groups` (V-4): units are grouped by `stage`. Step 1's second group, "Checking the drafts",
-  needs the units to say which group they belong to: a `group` field the template would then read.
-- `weeks`, `months` (V-11): the two-month week grid and month grouping on page 7 are **not built**.
+- `index`, `total`, `next_undecided` (V-8, V-9): rule numbers and "next rule to decide" come from the
+  order of the lists; `show_forms`: `stage` already decides which forms show.
+- `progress`, `index_order` (V-9): the step 3 counts and the "can't tell first" order are counted and
+  sorted from `view.verdicts`.
+- `weeks`, `months` (V-11): the page 7 two-month week grid and month grouping are **not built** this
+  sprint (ux.md page 7 item 6 lists the grid; not in the Friday demo).
+
+**Still open:** `unit_groups` (V-4). Step 1's second group, "Checking the drafts", needs each unit to
+say its group (a `group` field), and the template a small change to read it. Not decided.
 
 ### 10.2 Web-layer items (`backend/web/`, `backend/main.py`)
 
@@ -732,11 +736,10 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 8. **Closed: commits.** Stage 2 commits go on `frontend-spec`. No push, no merge.
 9. **Closed: "ventriloc.ca".** Not in the repository; ignore it. No third-party comments in the new
    stylesheet.
-10. **Open (spec-to-code pass, 17 Nov 2026): fields no template reads.** §10.1 ends with a list that
-    H-036 asked for but no template reads (`steps`, `failure`, `index`, `progress`, … and `weeks`,
-    `months`). Either keep the fixed ux.md tables and the counting of server lists as they are and
-    drop those fields from H-036, or ask `@backend.eng` for them and change the templates to read
-    them. Separately: is the page 7 week grid still wanted for Friday, or after?
+10. **Closed 2026-11-17 (operator): split.** Option B for step states and failure details: added to
+    H-036 (`steps`, `failure`, §10.1) and the templates read them when sent (`688a983`). Option A for
+    counts, ordering on step 3, and the calendar week grid and month grouping: dropped from H-036; the
+    grid stays not built. `unit_groups` (V-4) was not part of the answer and stays open.
 
 ## Audit
 
@@ -768,3 +771,6 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   ways, and leftover markers. §10.1 now lists the exact names and shapes the templates read; fields
   no template reads moved to a pending list (Open Question 10). Removed the unused `.demo` and
   `.month-h` rules; unit tests (56) and the visual check (24) still pass.
+- 2026-11-17 · persona `frontend-eng` · Open Question 10 closed (operator split): `steps` and
+  `failure` added to the §10.1 contract and read by the templates when sent; counts, ordering and the
+  week grid / month grouping dropped from H-036. Tests 58, visual 24 of 24.
