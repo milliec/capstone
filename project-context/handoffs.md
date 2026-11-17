@@ -53,6 +53,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Touches: 2.build/frontend.md §10.1 (V-1 to V-12) and §2; backend/services/runs.py, decisions.py, calendar.py (view functions only); 2.build/backend.md "Known gaps" (templates choosing from the phase); ux.md §1.2, §5, §10
 - Ask: Add the view fields listed in `frontend.md` §10.1 to the stub view functions, keeping the H-035 names and signatures: review number, status tone, stepper states, unit groups, counts, failure and end details, G1 / G2 / G3 card evidence and decided lines, calendar summary and grouping, and the shared refusal object with the typed text to show again (V-12, with B2). Placeholder values are fine in stand-in mode; the field names are what the templates read.
 - Why: The page never decides (ux.md §1.2). Until these fields exist, the templates show only what the stubs send, plus interim lookups of ux.md's fixed tables in one file (`parts/lookups.html`), which go as each field lands.
+- Note (2026-11-17, visual check): these fields will change what the pages show, so `cd tests/visual && npm run test:visual` (CLAUDE.md check 3) **will fail**, at least on the step 4 and calendar snapshots. That is expected (the operator accepted it for baseline v1; `ux-review.md` H-006). Do not re-record the snapshots: report which ones failed in the Outcome, and `@frontend.eng` proposes the refresh for the operator to approve.
 - Outcome: (the owner fills this in)
 
 ### H-027: The weekend-option refusal is not shown in the mock-up; build it from ux.md
