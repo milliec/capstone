@@ -29,3 +29,13 @@ Real-name scan run on this folder and on the HTML the images were taken from: no
 
 `04b-running-still` is the running page with its 3-second reload removed, so the browser could take
 a still picture; nothing else differs.
+
+## Keyboard pass recording
+
+| File | What it shows | Size |
+|---|---|---|
+| `keyboard-pass-2026-11-17.gif` | The keyboard pass in the operator's own Chrome (Claude in Chrome, 17 Nov 2026), keyboard only: sign in, skip link, start a review with the demo rule, "Stop automatic refresh" as the first Tab stop while AI works, approve rule 1 (weekend option and who files), switch rule 2 to Reject with the right arrow, type a reason, "Reject rule". 41 frames, 960 px wide, shrunk from 5.5 MB | 1.2 MB |
+
+The black labels name each key press. One step shows "Pressed key: ArrowRight" with no change on
+screen: the browser tool expected the name "Right", so that key press never reached the page. The
+next attempt, with "Right", switches the answer to Reject as it should (`ux-review.md`, M-001).
