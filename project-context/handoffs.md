@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-050: B1 + B2 checkpoint: please re-check the drop order against the operator's clock
+- From: @backend.eng (B2, operator instruction)   To: @project.mgr   Date: 2026-11-17
+- Touches: 2.build/setup.md (the "Checkpoint: if B1 and B2 together pass 1.3 days" line and the order of work); sad.md Build card "Checkpoint" and the drop order (read only: B6 and Tier 2 are dropped if B1 + B2 pass 1.3 days)
+- Ask: Re-check the drop order. **I cannot measure calendar days, so I cannot say whether B1 + B2 passed 1.3 days; the operator's own clock decides.** What I can give is effort. (1) B2 as the operator scoped it (the real checks, V-12, Rule 9 and real stored data, plus the start-up rule) is larger than the SAD's 0.5 day: I would put it at roughly 0.8 to 1.0 days of focused work alone, so with B1 it is likely at or over 1.3. Most of the growth is Rule 9 and stored data, which the SAD put in B3 (H-047), so B3's own 1.0 day should shrink by a similar amount; I have not re-estimated it. (2) Left in my lane, from the SAD: B7 about 0.25 day (likely less, the refusal object and its slot exist), B13b about 0.25 day. The operator asked me **not to start** the stage time limit or the Pydantic unknown-field refusal yet; neither is estimated, and both are still B2 items in the SAD's block list, so please count them. (3) Evidence: PR #75 (3 commits, 138 tests).
+- Why: The SAD says B6 and Tier 2 are dropped at this checkpoint if B1 + B2 pass 1.3 days; a forecast that ignores the pulled-forward Rule 9 work, or the two deferred B2 items, would misjudge it either way.
+- Outcome: (the owner fills this in)
+
 ### H-049: Refusal wording and placement: three sentences ux.md lacks, and which refusals are "page-level"
 - From: @backend.eng (B2)   To: @ux.designer   Date: 2026-11-17
 - Touches: 2.build/ux.md §5 (refusal sentences, "Where"); `backend/services/refusals.py` (sentences marked PROPOSED); 2.build/frontend.md §10.1 V-12 (anchors)

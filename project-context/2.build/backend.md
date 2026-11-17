@@ -228,3 +228,7 @@ No agent loop, no retrieval over live state, no side-effecting tool, no model cl
   frozen Netlify page not edited. Snapshots not re-recorded: the visual check still fails on the same
   18 as H-036; `tests/visual/visual.spec.js` was changed (driving steps only) so a review can get
   through the new checks.
+- 2026-11-17 · persona `backend-eng` · `sync-docs` · after B2: operator approved 4 items for
+  `frontend.md`; applied on the B2 branch (PR #75). One more stale mark proposed (page 2 `refusal`).
+  Handoff H-050 gives `@project.mgr` the checkpoint estimate. Stage time limit and Pydantic
+  unknown-field refusal deliberately not started (operator).
