@@ -39,7 +39,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Touches: 2.build/setup.md (the "Checkpoint: if B1 and B2 together pass 1.3 days" line and the order of work); sad.md Build card "Checkpoint" and the drop order (read only: B6 and Tier 2 are dropped if B1 + B2 pass 1.3 days)
 - Ask: Re-check the drop order. **I cannot measure calendar days, so I cannot say whether B1 + B2 passed 1.3 days; the operator's own clock decides.** What I can give is effort. (1) B2 as the operator scoped it (the real checks, V-12, Rule 9 and real stored data, plus the start-up rule) is larger than the SAD's 0.5 day: I would put it at roughly 0.8 to 1.0 days of focused work alone, so with B1 it is likely at or over 1.3. Most of the growth is Rule 9 and stored data, which the SAD put in B3 (H-047), so B3's own 1.0 day should shrink by a similar amount; I have not re-estimated it. (2) Left in my lane, from the SAD: B7 about 0.25 day (likely less, the refusal object and its slot exist), B13b about 0.25 day. The operator asked me **not to start** the stage time limit or the Pydantic unknown-field refusal yet; neither is estimated, and both are still B2 items in the SAD's block list, so please count them. (3) Evidence: PR #75 (3 commits, 138 tests).
 - Why: The SAD says B6 and Tier 2 are dropped at this checkpoint if B1 + B2 pass 1.3 days; a forecast that ignores the pulled-forward Rule 9 work, or the two deferred B2 items, would misjudge it either way.
-- Outcome: (the owner fills this in)
+- Outcome: (open) Interim 2026-11-17 by `@project.mgr`: the effort figures are recorded in `setup.md` "Timing guardrails". Waiting on the operator to say whether B1 + B2 passed 1.3 days; the drop order is `@system.arch`'s if it must change.
 
 ### H-048: FYI and one fix: refusals are live; the abandon box reads `typed` the wrong way; the visual script changed
 - From: @backend.eng (B2)   To: @frontend.eng   Date: 2026-11-17
@@ -60,13 +60,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Touches: sad.md §4 ("Identifiers and versions" for the number; the "Service functions (H-035)" table or the `runs` / audit text for the time); 2.build/backend.md "View fields for the pages"; ux.md "Review {n}" wording (read-only here)
 - Ask: Record two rules the build had to choose because the SAD is silent. (1) **Review number:** a review's number is its place among the fund's runs, oldest = 1 ("place among the fund's runs, oldest = 1"); runs are never deleted, so a number never changes. ux.md and the pages say "Review 4" but nothing defines it. (2) **"Ended at" comes from the audit log:** the time and reason shown for an abandoned or declined review are read from the review's last `gate_event` audit entry, because `runs` has no "ended at" column. Confirm both, or say what to change (for example, a real `ended_at` column).
 - Why: H-036 V-1 and V-6 needed a rule; the code uses these, and the SAD should own them (`backend.md` Assumptions point here).
-- Outcome: (the owner fills this in)
-
-### H-044: FYI: the real-name scan now skips binary files
-- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
-- Touches: `scripts/git-hooks/run-checks.sh` (check 2), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `1676c8e`
-- Ask: For information; no action needed. The scan gained `-I` (skip binary files) in the hook and in CLAUDE.md. Keep both in step if you change either, and use the same flags in CI if H-003 ever brings the scan there.
-- Why: Compressed image bytes sometimes spell a listed word by chance: a visual-snapshot refresh was blocked on two PNGs whose only change was a 1-pixel underline. A text search cannot see a name drawn as pixels. Trade-off: a binary file with readable text (PDF, Word) is no longer scanned; such files are not committed here.
 - Outcome: (the owner fills this in)
 
 ### H-041: FYI: B12 built now; drop order and plan
@@ -134,6 +127,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-044: FYI: the real-name scan now skips binary files
+- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: `scripts/git-hooks/run-checks.sh` (check 2), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `1676c8e`
+- Ask: For information; no action needed. The scan gained `-I` (skip binary files) in the hook and in CLAUDE.md. Keep both in step if you change either, and use the same flags in CI if H-003 ever brings the scan there.
+- Why: Compressed image bytes sometimes spell a listed word by chance: a visual-snapshot refresh was blocked on two PNGs whose only change was a 1-pixel underline. A text search cannot see a name drawn as pixels. Trade-off: a binary file with readable text (PDF, Word) is no longer scanned; such files are not committed here.
+- Outcome: Done 2026-11-17 by `@project.mgr`. Information only. `setup.md` "Git hooks" check 2 names the `-I` flag and says to keep the hook and `CLAUDE.md` in step; CI does not run the scan (H-003).
 
 ### H-045: FYI: H-036 landed; frontend.md status marks updated; the interim lookups are yours to delete
 - From: @backend.eng (operator approval, 2026-11-17)   To: @frontend.eng   Date: 2026-11-17

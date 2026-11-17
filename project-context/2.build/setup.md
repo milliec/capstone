@@ -26,6 +26,14 @@ it, DL-44).
 - Plan 5 days, **8 days hard stop**. Tripwire: if the first stand-in green path has not passed by
   the end of day 4, drop B6 and Tier 2, never T-MAP-1.
 - Checkpoint: if B1 and B2 together pass 1.3 days, tell the operator at once.
+  **Forecast at 2026-11-17 (H-050, `@backend.eng`; effort only, the operator's clock decides):**
+  B2 as scoped (real checks, V-12, Rule 9 and real stored data, start-up rule) is about 0.8 to
+  1.0 day against the SAD's 0.5, so with B1 it is likely at or over 1.3. Rule 9 and stored data
+  moved here from B3 (H-047), so B3's 1.0 day should shrink by a similar amount (not re-estimated).
+  Still to come: B7 about 0.25 day, B13b about 0.25 day. The stage time limit and the Pydantic
+  unknown-field refusal are B2 items in the SAD, not started and not estimated; count them.
+  **Open: the operator says whether B1 + B2 passed 1.3 days.** If yes, the SAD drops B6 and Tier 2
+  at this checkpoint (never T-MAP-1); the drop order itself is `@system.arch`'s file.
 - Order: B1 → B2 → B3 (stand-in only) → B4 → B5 → B7 → **first green path** → pin DL-40 → B3 spike
   → B8 → B9 → B6 → B10.
 
