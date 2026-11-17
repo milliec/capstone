@@ -56,10 +56,36 @@ def _review_number(conn: sqlite3.Connection, run: dict) -> int:
     return count
 
 
-def _started_by_label(started_by: str) -> str:
-    """H-036 V-7. 'Compliance specialist (mock)': the sign-in label, marked as a demo identity."""
+def actor_label(started_by: str) -> str:
+    """H-036 V-7, V-8. 'Compliance specialist (mock)': the sign-in label, marked as a demo identity."""
     identity = IDENTITIES.get(started_by)
     return f"{identity.label} (mock)" if identity else started_by
+
+
+# Where a step page stands for each phase of an ACTIVE review: "before" (not reached yet), "at"
+# (forms show), "after" (read-only). H-036 V-8 to V-10 `stage`.
+PAGE_STAGE = {
+    "g1": {"A_RUNNING": "before", "AT_G1": "at", "B_RUNNING": "after", "AT_G2": "after",
+           "C_RUNNING": "after", "AT_G3": "after"},
+    "g2": {"A_RUNNING": "before", "AT_G1": "before", "B_RUNNING": "before", "AT_G2": "at",
+           "C_RUNNING": "after", "AT_G3": "after"},
+    "g3": {"A_RUNNING": "before", "AT_G1": "before", "B_RUNNING": "before", "AT_G2": "before",
+           "C_RUNNING": "before", "AT_G3": "at"},
+}
+
+
+def page_stage(run: dict, page: str) -> str:
+    """H-036 V-8 to V-10. 'before', 'at', 'after' or 'ended_before' for a step page ('g1'...).
+
+    An ended review never shows forms: a step it reached is read-only ('after'); a step it never
+    reached is 'ended_before' (ux.md "Closed review").
+    """
+    stage = PAGE_STAGE[page][run["phase"]]
+    if run["status"] == "ACTIVE":
+        return stage
+    if run["status"] == "COMPLETED":
+        return "after"
+    return "ended_before" if stage == "before" else "after"
 
 
 # ux.md §1.4: the stepper, one row per server phase (H-036 V-3).
@@ -177,7 +203,7 @@ def _describe(conn: sqlite3.Connection, run: dict) -> dict:
     run["review_number"] = _review_number(conn, run)                                # V-1
     run["status_tone"] = (TONE_ACTIVE.get(phase, "neutral") if status == "ACTIVE"
                           else TONE_ENDED.get(status, "neutral"))                   # V-2
-    run["started_by_label"] = _started_by_label(run["started_by"])                   # V-7
+    run["started_by_label"] = actor_label(run["started_by"])                   # V-7
     run["steps"] = _steps(run)                                                       # V-3
     run["counts"] = _counts(run)                                                     # V-5
     run["ended"] = _ended(conn, run)                                                 # V-6
