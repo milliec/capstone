@@ -19,7 +19,7 @@
 {%- if v.verdict == "unsure" %}
   {#- AI can't tell: no Confirm (ux.md page 5, U5, H-017). -#}
   <fieldset>
-    <legend>{% if v.missing_fact is defined and v.missing_fact %}Nobody has confirmed {{ v.missing_fact }}. {% endif %}Should this rule go on the calendar?</legend>
+    <legend>{% if v.missing_fact is defined and v.missing_fact %}Nobody has confirmed {{ v.missing_fact }}. {% endif %}Should this rule go on the calendar?<span class="sr"> {{ v.obligation_name }}</span></legend>
     <div class="opts">
       <label class="opt"><input type="radio" name="decision" value="decide" data-answer="add"> Yes, add it until someone confirms</label>
       <label class="opt"><input type="radio" name="decision" value="decide" data-answer="leave"> No, leave it off</label>
@@ -45,7 +45,8 @@
   {%- set ai = v.verdict -%}
   {%- set other = v.overrule_value if v.overrule_value is defined else L.OPPOSITE[ai] -%}
   <fieldset>
-    <legend>What's your answer on this rule?</legend>
+    {#- K-2: the rule's name for screen readers only. -#}
+    <legend>What's your answer on this rule?<span class="sr"> {{ v.obligation_name }}</span></legend>
     <div class="opts">
       <label class="opt"><input type="radio" name="decision" value="confirm" data-answer="confirm"> Confirm: {{ L.VALUE_WORDS[ai] }}</label>
       <label class="opt"><input type="radio" name="decision" value="override" data-answer="overrule"> Overrule: {{ L.VALUE_WORDS[other] }}</label>

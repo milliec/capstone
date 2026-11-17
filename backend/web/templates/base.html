@@ -21,6 +21,12 @@
   <link rel="stylesheet" href="/static/site.css">
 </head>
 <body>
+  {#- K-1 (ux-review): while the review status page reloads itself every 3 seconds, focus goes back
+      to the top on each reload, so "Stop automatic refresh" is also the FIRST Tab stop here, shown
+      when focused like the skip link. Same words and address as the link in the status line. -#}
+  {%- if refreshing is defined and refreshing %}
+  <a class="skip" href="/specialist/runs/{{ run.run_id }}?refresh=off">Stop automatic refresh</a>
+  {%- endif %}
   <a class="skip" href="#main">Skip to the main content</a>
   {%- if identity %}
   <div class="shell">

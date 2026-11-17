@@ -18,7 +18,8 @@
 <form class="decision" method="post" action="/specialist/rows/{{ r.row_id }}/decision">
   <input type="hidden" name="version" value="{{ r.version }}">
   <fieldset>
-    <legend>What's your decision on this rule?</legend>
+    {#- K-2: the rule's name for screen readers only, so each form says which rule it is. -#}
+    <legend>What's your decision on this rule?<span class="sr"> Rule {{ i }}: {{ r.obligation_name }}</span></legend>
     <div class="opts">
       <label class="opt"><input type="radio" name="decision" value="approve" data-answer="approve"> Approve</label>
       <label class="opt"><input type="radio" name="decision" value="reject" data-answer="reject"> Reject</label>

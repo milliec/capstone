@@ -129,6 +129,25 @@ def test_refresh_only_while_working(specialist_client, db, at_g1):
     assert "Automatic refresh is off." in stopped
 
 
+def test_stop_refresh_is_the_first_tab_stop_while_refreshing(specialist_client, db, at_g1):
+    """K-1 (ux-review): each reload sends focus to the top, so the stop link must come first."""
+    status_page = f"/specialist/runs/{at_g1}"
+    db.execute("UPDATE runs SET phase = 'A_RUNNING' WHERE run_id = ?", (at_g1,))
+    db.commit()
+    first_link = re.search(r"<body[^>]*>\s*<a [^>]*>([^<]+)</a>", specialist_client.get(status_page).text)
+    assert first_link.group(1) == "Stop automatic refresh"
+    stopped = specialist_client.get(status_page + "?refresh=off").text
+    assert re.search(r"<body[^>]*>\s*<a [^>]*>([^<]+)</a>", stopped).group(1) == "Skip to the main content"
+
+
+def test_each_decision_question_names_its_rule_for_screen_readers(specialist_client, at_g1):
+    """K-2 (ux-review): the legend carries the rule's name, hidden visually, on every card."""
+    html = specialist_client.get(f"/specialist/runs/{at_g1}/g1").text
+    legends = re.findall(r"<legend>What's your decision on this rule\?<span class=\"sr\"> ([^<]+)</span>", html)
+    assert legends and all(name.startswith("Rule ") for name in legends)
+    assert len(set(legends)) == len(legends)  # each one different
+
+
 def test_empty_calendar_shows_only_the_message(gp_client):
     """UX-008, D11: before the first publication, the fixed message and nothing else."""
     html = gp_client.get("/calendar").text
