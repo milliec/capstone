@@ -68,7 +68,7 @@ pages with ux.md's wording only.
 | M-003 | Contrast spot check | — | **not tested** | — | Only style-note token pairs are used (measured in `style-note.md`); no tool run on the pages |
 | M-004 | Target size | screenshots | passed (visual) | `08-check-rules`, `10-…` | Answer options and buttons 40 px tall; checkboxes 18 px inside a full-width label |
 | M-005 | Automated a11y scan | — | **not tested** | — | No scanner installed |
-| M-006 | Visual regression | Playwright Test 1.64.1, Chromium | passed | `tests/visual/visual.spec.js`, `tests/visual/visual.spec.js-snapshots/` | Baseline v1 committed 17 Nov 2026 (24 snapshots), after the operator accepted H-006 for it. Stable on a second run; a deliberate 2px change fails it |
+| M-006 | Visual regression | Playwright Test 1.64.1, Chromium | passed | `tests/visual/visual.spec.js`, `tests/visual/visual.spec.js-snapshots/` | Baseline v1 committed 17 Nov 2026 (24 snapshots); calendar v3 and the view snapshots added 17 Nov 2026 (26 in all), after the operator accepted H-006 for it. Stable on a second run; a deliberate 2px change fails it |
 | M-007 | Status not by colour alone | greyscale screenshot | passed | `grey-1280` | Every pill and step state reads as a word |
 | M-008 | Works unstyled | stylesheet removed | passed after fix | `08u-unstyled-1280` | Reading order intact; see H-003 |
 | M-009 | Nothing preselected; no `required`/`disabled`/`pattern` | page tests | passed | `test_nothing_is_preselected_on_any_page`, `test_no_browser_checks_on_forms` | UX-004, UX-011, ux.md §1.2 |
@@ -96,6 +96,11 @@ pages with ux.md's wording only.
   `07-calendar-gp-published-360` (week grid and month grouping) and `07-calendar-gp-empty-360`
   (v1 had captured the sidebar empty-gap bug at phone width; fixed in `58760c1`). The other 20
   snapshots stay v1. The H-006 refresh of the step 4 and calendar snapshots is still to come.
+- **Calendar baseline v3** · 2026-11-17 · `@frontend.eng` · operator approved all 5: page 7 like the
+  mock-up (summary row, one calendar with the Month / Year / List switch, Month by default).
+  Refreshed `07-calendar-gp-published-1280`, `07-calendar-specialist-published-1280`,
+  `07-calendar-gp-published-360`; new `07-calendar-gp-list-view-1280` and
+  `07-calendar-gp-year-view-1280`. 26 snapshots in all; fonts pinned for the tests (M-012).
 - **Review status (published) v2** · 2026-11-17 · `@frontend.eng` · operator approved
   `03-review-status-published-1280`: the unit cards in one row with their tops aligned (`93745d3`).
   An earlier refresh of the same snapshot was rejected (cards still not aligned; frontend.md Open
@@ -198,3 +203,5 @@ this table is the agent's reading, not the acceptance decision.
 - 2026-11-17 · persona `frontend-eng` · H-012 and H-013 fixed and measured in a real browser.
 - 2026-11-17 · persona `frontend-eng` · M-012 fixed (pinned font stylesheet in the visual tests);
   8 consecutive clean runs.
+- 2026-11-17 · persona `frontend-eng` · calendar baseline v3 (5 snapshots, operator approved); suite
+  passes on all 26.

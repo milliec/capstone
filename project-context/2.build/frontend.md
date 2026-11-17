@@ -589,7 +589,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
 | S-25 | Week grid and month grouping (display-only) | ✅ | Built and tested (`c263fca`, `58760c1`, `8207349`); keyboard pass: no new Tab stops. Calendar baseline v2 approved (4 snapshots) |
-| S-26 | B12 and page 7 like the mock-up (pulled forward, H-040) | 🟡 | Rebuilt as the mock-up (`a3e71dc`, `d2e3e3b`): summary row, one calendar, Month / Year / List switch in place. Keyboard and click checked. Snapshot proposal (3 changed, 2 new) waiting for approval |
+| S-26 | B12 and page 7 like the mock-up (pulled forward, H-040) | ✅ | Summary row, one calendar with a Month / Year / List switch in place, Month by default. Keyboard and click checked; calendar baseline v3 approved (26 snapshots) |
 | S-27 | Click-through feedback: land on the next card after a decision (W-7); no jump when switching calendar views | ✅ | `0eed7b4`, `e827a3e`. Measured in a real browser: next card 24px from the top, first Tab inside it; tabs stay at 80px through every switch |
 | S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
