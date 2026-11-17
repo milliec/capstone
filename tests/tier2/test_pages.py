@@ -216,3 +216,31 @@ def test_failed_sentence_uses_the_servers_failure_when_sent():
                    rendered_at="2026-11-17T09:00:00+00:00")
     assert ("This review failed at step 3 (You confirm what applies), at unit Server unit label. "
             "Server reason sentence. Nothing moved forward.") in " ".join(html.split())
+
+
+# --- Page 7 week grid and month grouping (operator, 2026-11-17: display-only) ---
+
+def _publish(client, run_id):
+    client.post(f"/specialist/runs/{run_id}/g1/complete", data={"run_version": 1})
+    client.post(f"/specialist/runs/{run_id}/g2/complete", data={"run_version": 2})
+    client.post(f"/specialist/calendars/CAL-{run_id}/publish",
+                data={"run_version": 3, "decision": "publish", "acknowledged": "true"})
+
+
+def test_week_grid_is_a_visual_view_with_no_tab_stops(specialist_client, gp_client, at_g1):
+    """The list is the accessible view; the grid repeats it visually, hidden from screen readers."""
+    _publish(specialist_client, at_g1)
+    html = gp_client.get("/calendar").text
+    grid = html.split('<section class="section grid-view" aria-hidden="true">', 1)[1].split("</section>", 1)[0]
+    assert "The next two months" in grid and "Due next" in grid
+    assert not re.search(r"<(a|button|input|select|textarea)\b|tabindex", grid)  # nothing to Tab to
+    assert "Moved off a weekend" not in grid and "OQ-7" not in grid  # CR-012, UX-009
+    assert grid.index("The next two months") < html.index('id="entries-h"') - html.index('<section class="section grid-view"')
+
+
+def test_list_is_grouped_by_month_with_row_group_headers(specialist_client, gp_client, at_g1):
+    _publish(specialist_client, at_g1)
+    html = gp_client.get("/calendar").text
+    list_part = html.split('id="entries-h"', 1)[1]
+    assert re.search(r'<th colspan="4" scope="rowgroup">April 2027</th>', list_part)
+    assert "All entries for 2027" in html
