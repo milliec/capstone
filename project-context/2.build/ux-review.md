@@ -68,7 +68,7 @@ pages with ux.md's wording only.
 | M-003 | Contrast spot check | — | **not tested** | — | Only style-note token pairs are used (measured in `style-note.md`); no tool run on the pages |
 | M-004 | Target size | screenshots | passed (visual) | `08-check-rules`, `10-…` | Answer options and buttons 40 px tall; checkboxes 18 px inside a full-width label |
 | M-005 | Automated a11y scan | — | **not tested** | — | No scanner installed |
-| M-006 | Visual regression | Playwright Test 1.64.1, Chromium | **not tested (baseline pending)** | `tests/visual/visual.spec.js`, `tests/visual/visual.spec.js-snapshots/` | 24 snapshots generated and stable on a second run; a deliberate 2 px change failed as it should. Not committed: the first baseline waits for the operator to accept the open high-severity H-006 |
+| M-006 | Visual regression | Playwright Test 1.64.1, Chromium | passed | `tests/visual/visual.spec.js`, `tests/visual/visual.spec.js-snapshots/` | Baseline v1 committed 17 Nov 2026 (24 snapshots), after the operator accepted H-006 for it. Stable on a second run; a deliberate 2px change fails it |
 | M-007 | Status not by colour alone | greyscale screenshot | passed | `grey-1280` | Every pill and step state reads as a word |
 | M-008 | Works unstyled | stylesheet removed | passed after fix | `08u-unstyled-1280` | Reading order intact; see H-003 |
 | M-009 | Nothing preselected; no `required`/`disabled`/`pattern` | page tests | passed | `test_nothing_is_preselected_on_any_page`, `test_no_browser_checks_on_forms` | UX-004, UX-011, ux.md §1.2 |
@@ -86,9 +86,11 @@ pages with ux.md's wording only.
   placeholders before each picture; animations disabled; `maxDiffPixels` 150, `threshold` 0.2.
 - **Check of the check:** a second run matched all 24; making every H1 2 px larger failed with
   12,343 pixels different; the stylesheet was restored from the commit.
-- **Baseline status:** generated, **not committed**. The skill allows the first baseline only when no
-  high-severity finding is open or the operator accepts it; H-006 is open.
-- **Last baseline Audit:** none yet.
+- **Baseline status:** **v1 committed**, 17 Nov 2026. The operator accepted the open high-severity
+  H-006 for this baseline (see H-006). When H-036 and B2 fill the empty columns and lists, the
+  step 4 and calendar snapshots change: propose that refresh with `*update-visual-baselines` and
+  wait for approval.
+- **Last baseline Audit:** v1 · 2026-11-17 · `@frontend.eng` · operator accepted H-006 for it.
 
 ## 4. Human judgment gate
 
@@ -102,7 +104,7 @@ this table is the agent's reading, not the acceptance decision.
 | H-003 | Unstyled, the two nav icons filled the page as black shapes | every page | unstyled | 1280 | Sidebar unusable if B6 is dropped | **high** | fixed (`2a46163`): size and outline on the SVG itself | `08u-unstyled-1280` |
 | H-004 | Mark pills stretched across the Marks column | `/g3` | at G3 | 1024 | Labels read as bars | low | fixed (`2a46163`) | `11-publish-1024` |
 | H-005 | "Review RUN-20261117-1" instead of "Review 4" | pages 2 to 6 | any | — | Machine ID on screen | medium | open, waits for H-036 V-1 | all |
-| H-006 | Empty "Who files", "Sent to", "Why" columns; empty "what's not in this calendar" lists even after a rejection | `/g3`, `/calendar` | at G3, published | 1024, 360 | The specialist cannot check what the General Partner will read | **high for the demo** | open, waits for H-036 V-10, V-11 and B2 | `11-publish-1024`, `frame360-600` |
+| H-006 | Empty "Who files", "Sent to", "Why" columns; empty "what's not in this calendar" lists even after a rejection | `/g3`, `/calendar` | at G3, published | 1024, 360 | The specialist cannot check what the General Partner will read | **high for the demo** | **accepted for baseline v1, 17 Nov 2026: empty columns and lists wait for H-036 and B2; step 4 and calendar snapshots need one approved refresh then** (operator) | `11-publish-1024`, `frame360-600` |
 | H-007 | At 1024 px the sidebar stacks above the content (the mock-up breakpoint is 1100 px) | all | — | 1024 | Longer scroll; nothing breaks | low | fixed (`40be357`): breakpoint 960 px (operator, 2026-11-17) | `11-publish-1024` |
 | H-008 | **Found by the operator.** Component sizes did not match the mock-ups: stepper boxes in place of the thin line, a 19 px status sentence in place of the 26 px panel heading, 13 px unit-group captions in place of 22 px headings, no avatar, one-column cards | review status, step pages | all | 1280, 1024 | The pages looked unlike the approved design | medium | fixed (`40be357`) with the mock-ups' own component styles (`.steps`, `.cta`, `.evidence`, `.avatar`) | `mock-run-status` beside `04b-running-still` |
 | K-1 | **Keyboard.** While AI works the page reloads every 3 s and focus returns to the top; "Stop automatic refresh" is the 8th Tab stop, so it must be reached within 3 s | review status | AI working | 1280 | The control that makes the refresh acceptable (WCAG 2.2.1) is hard to reach by keyboard | **high** | fixed: "Stop automatic refresh" is the first Tab stop while refreshing; confirmed with real key presses and a page test | focus-order log |
@@ -166,3 +168,5 @@ this table is the agent's reading, not the acceptance decision.
 - 2026-11-17 · persona `frontend-eng` · visual regression scaffolded (Playwright Test 1.64.1 in
   `tests/visual/`); 24 snapshots generated and stable; first baseline waiting for the operator to
   accept H-006.
+- 2026-11-17 · persona `frontend-eng` · first visual baseline (v1, 24 snapshots) committed after the
+  operator accepted H-006 for it; scanned with `/usr/bin/grep` first.

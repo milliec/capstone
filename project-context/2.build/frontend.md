@@ -557,7 +557,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-13 | Placeholder parts deleted; no Retry form anywhere | ✅ | `36f02cc`; UX-022 is tested |
 | S-15 | `tests/tier2/test_pages.py` | ✅ | `aa9202b`. 12 tests; 54 in the suite pass |
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ✅ | Written 2026-11-17. Four findings fixed; keyboard, focus, scan and visual regression recorded as not tested |
-| S-17 | Visual baselines | 🟡 | Playwright Test 1.64.1 in `tests/visual/` (24 snapshots: page × state × width). Stable on a second run; catches a 2 px change. **Baselines not committed** until the operator accepts H-006 (skill rule) |
+| S-17 | Visual baselines | ✅ | Baseline v1 (24 snapshots) committed 17 Nov 2026 after the operator accepted H-006 for it. Step 4 and calendar snapshots need one approved refresh when H-036 and B2 land |
 | S-18 | README notes via `*sync-docs` | ✅ | Operator approved items 1 to 3 on 2026-11-17; written |
 | S-23 | Match the mock-ups' component styles; breakpoint 960 px | ✅ | `40be357` |
 | S-24 | Screenshots as evidence | ✅ | 13 images in `project-context/2.build/evidence/` with a README (operator, 2026-11-17). Local copies stay in the git-ignored `docs/screenshots/` |
