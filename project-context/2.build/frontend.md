@@ -1,8 +1,9 @@
 # Frontend: build spec for the stubbed UI (B5 pages, with the light visual pass)
 
 Owner: `@frontend.eng`. Branch `frontend-spec` (made from `main` at `12c674b`, because work never
-starts on `main`). **Stage 1 of 2: spec only.** This file changes no template, stylesheet or code.
-Stage 2 starts only after the operator replies "approve".
+starts on `main`). **Stage 1 (this spec): approved by the operator on 2026-11-17**, with the answers
+recorded under Open Questions. **Stage 2 (templates and CSS): in progress**; see the Spec Sync
+checklist (§9).
 
 For: the operator (approval), `@frontend.eng` (stage 2), `@backend.eng` (the view fields in §10,
 proposed handoff H-036), `@qa.eng` (the checks in §6 and §7).
@@ -78,7 +79,17 @@ stepper replace it.
 ## 2. Each page: states, data read, forms posted
 
 "Reads" names the field the template needs. ✅ = the stub view sends it today. ⏳ = it does not
-yet; it is in §10 for `@backend.eng`. The template never works a ⏳ field out by itself.
+yet; it is in §10 for `@backend.eng` (H-036). The template never works a ⏳ field out by itself.
+
+**Interim lookups until H-036 lands** (operator approval of this spec, 2026-11-17). Some ⏳ fields
+are only ux.md's fixed tables keyed by a server value: the status tone (§1.5), the stepper states
+(§1.4), the page H1 and lead per state (page 3), the step a review stopped at (DL-46), and whether a
+step page is before, at or after its step. Until H-036 sends them, `parts/lookups.html` holds these
+tables, keyed by `run.status` and `run.phase`, in **one** file, each marked "interim: replaced by
+H-036 V-n". The page uses the server's field when it is present and the lookup only when it is
+not. A lookup only chooses words and which section to show; the server still enforces every rule,
+because every form posts to a service that decides. Counts, dates, reasons and evidence (quote
+checks, flags, facts) are never looked up: until H-036 sends them, the page leaves them out.
 
 ### Page 1 · Sign-in
 
@@ -282,11 +293,11 @@ the same form**: the Approve button is visible and active once "Approve" is chos
 
 The SAD fixes the G2 reason names as `confirm_reason`, `override_reason` and `decide_reason`
 (H-035). Both "can't tell" answers are `decide`, so they share **one** field, `decide_reason`.
-Proposal (Open Question 7): **one textarea** below the two answers, with two `<label>`s and two
-hints ("Why are you adding it?" plus the "creates an entry" hint; "How do you know it doesn't
-apply?" plus the audit-only hint). `:has()` shows the label and hint for the chosen answer; the
-fallback shows both. That keeps one field per answer type, as the SAD has it. `confirm_reason` is
-never rendered: ux.md says Confirm needs no reason.
+**Decided (operator, 2026-11-17, Open Question 7):** **one textarea** below the two answers, with
+two `<label>`s and two hints ("Why are you adding it?" plus the "creates an entry" hint; "How do
+you know it doesn't apply?" plus the audit-only hint). `:has()` shows the label and hint for the
+chosen answer; the fallback shows both. `confirm_reason` is never rendered: ux.md says Confirm
+needs no reason.
 
 **G3, Publish** (`parts/decision_publish.html`)
 
@@ -302,8 +313,9 @@ with its own (CR-028).
 
 ## 4. Making the review status obvious
 
-What the operator asked for, mapped to `ux.md`. Items marked **new** are not in `ux.md` yet (Open
-Questions 1, 4 and 5).
+What the operator asked for, mapped to `ux.md`. Items marked **new** were approved by the operator
+on 2026-11-17 and are not in `ux.md` yet; the operator asks `@ux.designer` to add them (Open
+Question 4).
 
 ### 4.1 The status banner (review status page)
 
@@ -314,9 +326,9 @@ the "status line"). Top to bottom:
    **"AI is drafting the rules"**, **"Your turn: check the rules"**, **"Failed"**. Never "Crew:
    running", "Stage A" or "G1" (UX-019).
 2. **The sentence** for the state (§2, page 3 table), in large text.
-3. **"Last updated {time}"** (**new**, Open Question 4), only while auto-refresh runs, next to the
-   pill. Proposed words: "Last updated at 14:02:09." Seconds are shown so the specialist can see
-   each 3-second refresh. The time is the server's render time (⏳ `rendered_at`).
+3. **"Last updated at 14:02:09."** (**new**, approved), only while auto-refresh runs, next to the
+   pill. Seconds are shown so the specialist can see each 3-second refresh. The time is the
+   server's render time (`rendered_at`, W-1).
 4. **The refresh controls** (only while AI or code works): "This page refreshes every 3 seconds
    while AI is working." · "Refresh now" · "Stop automatic refresh". With refresh off: "Automatic
    refresh is off." · "Refresh now" · "Turn automatic refresh back on".
@@ -325,29 +337,25 @@ The banner is `role="status"` **only when it is not refreshing**. A live region 
 every 3 seconds would make a screen reader read it again and again. While running, the `<title>`
 carries the status words instead, so a screen-reader user can check it.
 
-**Position.** The operator asked for "a status banner at the top". `ux.md` puts the status line
-under the H1 and the stepper. Proposal: keep ux.md's order (breadcrumb → H1 with labels → stepper →
-banner) and make the banner the most visible block on the page. The H1 on a running review is
-"Nothing for you to do yet", which already tells the specialist the main thing (Open Question 5).
+**Position. Decided (operator, 2026-11-17, Open Question 5):** ux.md's order: breadcrumb → H1
+with labels → stepper → banner. The banner is the most visible block on the page.
 
 ### 4.2 Pills: word first, colour second
 
 Every status is a pill **with its word inside**: `<span class="chip {tone}">{words}</span>`.
 Colour never carries the meaning alone (UX-007). The tone comes from the server (⏳ `status_tone`,
-from ux.md §1.5); the template maps tone to a class.
+from ux.md §1.5; interim lookup until then); the template maps tone to a class.
 
-The operator asked for grey idle, blue running, green done and red failed. The approved palette in
-`style-note.md` has **no blue and no green**, and says a new colour goes into that note first. The
-persona rules forbid a parallel palette. Proposal: keep the operator's four meanings and use the
-families the style note already has (Open Question 1):
+**Decided (operator, 2026-11-17, Open Question 1):** the existing style-note families, no new
+colour. "Always show the word with the colour."
 
-| Meaning | ux.md tone | Asked for | Proposed (existing class) | Where |
-|---|---|---|---|---|
-| idle, waiting, not started, ended without publishing | neutral | grey | grey: `.chip` (plain) | "Abandoned", "Closed without publishing", stepper "Not started", unit "Waiting" |
-| running (AI or code working) | info | blue | **brass**: `.chip.agent` ("drafted by an agent") | "AI is drafting the rules", "Working out the dates", stepper "In progress", unit "Running" |
-| needs the specialist | action | — (not in the brief) | **orange**: `.chip.you` ("needs a person") | "Your turn: …", the sidebar "Your turn" tag |
-| done | success | green | **slate**: `.chip.done` | "Published", stepper "Done", unit "Done", "Approved" |
-| failed or refused | problem | red | **bordeaux**: `.chip.no` | "Failed", unit "Failed", "Rejected", "Approval blocked" |
+| Meaning | ux.md tone | Class | Where |
+|---|---|---|---|
+| idle, waiting, not started, ended without publishing | neutral | grey: `.chip` (plain) | "Abandoned", "Closed without publishing", stepper "Not started", unit "Waiting" |
+| running (AI or code working) | info | **brass**: `.chip.agent` | "AI is drafting the rules", "Working out the dates", stepper "In progress", unit "Running" |
+| needs the specialist | action | **orange**: `.chip.you` | "Your turn: …", the sidebar "Your turn" tag |
+| done | success | **slate**: `.chip.done` | "Published", stepper "Done", unit "Done", "Approved" |
+| failed or refused | problem | **bordeaux**: `.chip.no` | "Failed", unit "Failed", "Rejected", "Approval blocked" |
 
 All five meet AA contrast already (style-note "Status families").
 
@@ -373,7 +381,7 @@ All five meet AA contrast already (style-note "Status families").
 | Filing rules active-review notice | "**Review {n}:** {§1.5 words}." |
 | sidebar tag | "Your turn" (orange, the same pill) |
 | stepper | "Done", "In progress", "Your turn", "Not started", "Failed", "Ended" |
-| page `<title>` while running | "Review {n}: {§1.5 words} · ACME Compliance calendar (demo)" (**new**, Open Question 4) |
+| page `<title>` on review status | "Review {n}: {§1.5 words} · ACME Compliance calendar (demo)", for example "Review 4: AI is drafting the rules" (**new**, approved) |
 | buttons and next-step links | ux.md verb + object ("Check the rules", "Confirm what applies", "Check the calendar and publish") |
 | refusal sentences | ux.md §5, using the same §1.5 words in `RUN_NOT_ACTIVE` ("This review has ended ({status words}) …") |
 
@@ -392,7 +400,7 @@ them.
 | **Icons** | Iconoir, inline SVG, for the two nav items only ("Calendar", "Filing rules"), copied from `docs/prototype/icons/`. Add the Iconoir MIT notice to `NOTICES`. Every icon sits next to a word and is `aria-hidden="true"` |
 | **Time box** | **Half a day at most** (U7 and U8, H-019, H-020). Anything that does not fit is dropped and recorded in the Spec Sync checklist |
 | **Unstyled test** | Every page must read and work in order with the stylesheet removed: real headings, lists, tables and forms, the main column in reading order, no meaning carried by CSS alone. Checked by loading each page with `site.css` blocked (§6) |
-| **Third-party comments** | The new file carries no comment naming a third-party site or brand. The "ventriloc.ca" comment the brief mentions is **not in the repository** outside `reference/` and `.venv` (searched 2026-11-16), so there is nothing to remove from `app.css` (Open Question 9). `docs/` is git-ignored, so `app.css` itself is not committed |
+| **Third-party comments** | The new file carries no comment naming a third-party site or brand (operator, 2026-11-17, Open Question 9) |
 
 **Sections taken from `app.css`**
 
@@ -468,7 +476,7 @@ The **Depends on** column says what must be built for the step to show what `ux.
 | 3 | Tick "Add the demo rule (rule 7)", then "Start a new review" | Review status, step 1 "In progress", pill "AI is drafting the rules", "Last updated at …", labels "Stand-in agents" and "Demo rule on" | Stub (`review_number`, `rendered_at`: H-036) |
 | 4 | Wait about 12 seconds | The page refreshes every 3 s; units go "Waiting" → "Running" → "Done" one by one; then "The rules are ready for you to check", pill "Your turn: check the rules", sidebar "Your turn" | Stub (the "Checking the drafts" group: H-036) |
 | 5 | "Check the rules" | Summary cards, rule index, one card per rule, every card with its quote-check line; the demo rule tagged "Demo" | Stub shows the rules; quote check, paragraph, flags and counts need B2/B3 (H-036) |
-| 6 | On the demo rule: choose "Approve", pick a weekend option, "Approve rule" | **Refused on the page**: lands on the demo rule; "Not done" box with the `DEMO_ROW_NOT_APPROVABLE` sentence; tag "Approval blocked"; top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; nothing preselected | ⚠️ **Needs B2 + B7** (the refusal is a service check; the stub records any approval). Without it, this step shows the decision recorded instead (Open Question 6) |
+| 6 | On the demo rule: choose "Approve", pick a weekend option, "Approve rule" | **Refused on the page**: lands on the demo rule; "Not done" box with the `DEMO_ROW_NOT_APPROVABLE` sentence; tag "Approval blocked"; top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; nothing preselected | ⚠️ **Needs B2 + B7.** The refusal is a service check; the stub records any approval. **If B2 and B7 are not built by Friday, skip this step** (operator, 2026-11-17) |
 | 7 | Choose "Reject", type "Quote doesn't support the rule", "Reject rule" | "Rejected by Compliance specialist (mock) at 14:05. Reason: …"; "Next rule to decide" | Stub (the decided line's who and when: H-036) |
 | 8 | Decide the other rules (one Approve over a flag, one Reject), "Finish checking" | Review status, step 3 "In progress", "AI is checking what applies", units fill in, then "Ready for you to confirm what applies" | Stub |
 | 9 | "Confirm what applies": confirm one answer, overrule one with a reason, and for the "can't tell" one choose "Yes, add it until someone confirms" with a reason | Each card shows its decided line; progress counts down; "Finish and calculate dates" | Stub (cited facts, progress, decided lines: H-036) |
@@ -519,9 +527,10 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 
 | # | Item | Status | Note |
 |---|---|---|---|
-| S-01 | `frontend.md` (this spec) | ✅ | Stage 1. Waiting for "approve" |
+| S-01 | `frontend.md` (this spec) | ✅ | Approved 2026-11-17 |
 | S-02 | `base.html` + `parts/sidebar.html` + skip link | ⬜ | |
-| S-03 | `parts/macros.html` (status tag, refusal, mark label, hint) | ⬜ | |
+| S-03 | `parts/macros.html` (status tag, refusal, mark label, hint) + `parts/lookups.html` (interim) | ⬜ | Lookups go as H-036 lands |
+| S-21 | W-1 to W-4 (refresh flag and render time, date filters, static mount, 500 page) | ⬜ | Display only, approved 2026-11-17 |
 | S-04 | `parts/breadcrumb.html`, `parts/run_labels.html`, `parts/stepper.html` | ⬜ | Stepper needs `steps[]` (H-036) |
 | S-05 | `pages/sign_in.html` | ⬜ | |
 | S-06 | `pages/filing_rules.html` | ⬜ | |
@@ -537,7 +546,8 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-16 | `ux-review.md` (rendered review, three widths, keyboard, greyscale, unstyled) | ⬜ | |
 | S-17 | Visual baselines, or "not tested" recorded | ⬜ | After the operator's review |
 | S-18 | README notes via `*sync-docs` | ⬜ | Operator approval first |
-| S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Not started; this spec proposes it |
+| S-19 | H-036 view fields from `@backend.eng` | ⏸️ | Raised 2026-11-17; waiting for `@backend.eng` |
+| S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | ⬜ | Template side: the refusal slot in the G1 card and the top line. The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge**: every template, part, field and class name in code matches this file; no `TODO`, `FIXME` or "placeholder" left for a finished item; `grep -rn "TODO\|FIXME\|PLACEHOLDER" backend/web/templates backend/web/static` prints nothing | ⬜ | Run before asking to merge |
 
 ---
@@ -545,8 +555,9 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 ## 10. What the templates need that the stub services do not send yet
 
 These are the ⏳ fields of §2. The templates must not work them out (ux.md §1.2, backend.md "Known
-gaps": "B5 moves any such choice into the service view"). Proposed as handoff **H-036** to
-`@backend.eng`; not written to `handoffs.md` until the operator approves this spec.
+gaps": "B5 moves any such choice into the service view"). Raised as handoff **H-036** to
+`@backend.eng` on 2026-11-17. V-2, V-3 and the "stage" part of V-8 to V-10 are covered by the
+interim lookups (§2) until they land.
 
 ### 10.1 View fields (services, `@backend.eng`)
 
@@ -567,7 +578,8 @@ gaps": "B5 moves any such choice into the service view"). Proposed as handoff **
 
 ### 10.2 Web-layer items (`backend/web/`, `backend/main.py`)
 
-These are display plumbing, not checks. Who writes them is Open Question 2.
+These are display plumbing, not checks. `@frontend.eng` writes them, with no logic (operator,
+2026-11-17, Open Question 2).
 
 | # | Item | File |
 |---|---|---|
@@ -620,34 +632,24 @@ Not read or used: Future Work, Appendix A, tag `sad-full-design`, `reference/`.
 
 ## Open Questions
 
-For the operator.
+All nine closed by the operator on 2026-11-17, when approving this spec.
 
-1. **Pill colours.** You asked for grey, blue, green and red. The approved palette has no blue or
-   green, and the style note says new colours go there first. Use the existing families (grey,
-   brass for running, orange for "Your turn", slate for done, bordeaux for failed; §4.2), or ask
-   `@ux.designer` to add blue and green to `style-note.md` first? *Recommended: existing families.*
-2. **Web-layer edits.** W-1 to W-4 are in `backend/web/` and `backend/main.py`: display plumbing
-   with no checks. Your rule says "don't change backend code". May `@frontend.eng` make these four
-   small edits, or do they go to `@backend.eng` with H-036? *Recommended: frontend makes W-1 to W-4
-   (the SAD puts templates, handlers and the stylesheet together in `backend/web/`); services stay
-   with `@backend.eng`.*
-3. **H-036 and the order of work.** Most of the page detail (§10.1) needs view fields from
-   `@backend.eng`. Stage 2 can build every template against the field names in §10 and show only
-   what the stubs send until then. Raise H-036 now so the backend work runs in parallel?
-   *Recommended: yes.*
-4. **New wording.** "Last updated at {time}." and the running `<title>` ("Review {n}: {status
-   words} · …") are not in `ux.md`. Approve the words; `@ux.designer` then records them in
-   `ux.md`.
-5. **Banner position.** Keep ux.md's order (banner under the H1 and stepper), or move it above the
-   H1? *Recommended: ux.md's order.*
-6. **The demo-rule refusal on Friday.** Step 6 of the demo script needs B2's checks and B7's demo
-   row, both `@backend.eng` work. Is that planned before Friday, or should the script skip step 6?
-7. **The "can't tell" reason field.** Both "can't tell" answers send `decision=decide`, and the SAD
-   gives them one field, `decide_reason`. Accept one shared textarea with a label and hint per
-   answer (§3.3), or ask `@system.arch` for two field names?
-8. **Commits.** Stage 2 commits in small steps on `frontend-spec`, no push. Confirm.
-9. **"ventriloc.ca".** The comment is not in `docs/prototype/app.css` or anywhere else in the repo
-   (outside `reference/` and `.venv`). Is it in a file I have not looked at?
+1. **Closed: pill colours.** The brief asked for grey, blue, green and red; the approved palette has
+   no blue or green. Decision: the existing families (grey idle, brass running, orange "Your turn",
+   slate done, bordeaux failed), always with the word in the pill (§4.2).
+2. **Closed: web-layer edits.** `@frontend.eng` makes W-1 to W-4, display only, no logic. Business
+   logic stays with `@backend.eng` (§10.2).
+3. **Closed: H-036.** Raised now, so the backend work runs alongside stage 2 (§10.1).
+4. **Closed: new wording.** "Last updated at 14:02:09." and the tab title "Review 4: AI is drafting
+   the rules" are approved. The operator asks `@ux.designer` to add both to `ux.md`.
+5. **Closed: banner position.** ux.md's order: the status line under the H1 and the stepper.
+6. **Closed: the demo-rule refusal on Friday.** Step 6 stays in the script, marked "needs B2 + B7".
+   If they are not built by Friday, the step is skipped in the demo (§7).
+7. **Closed: the "can't tell" reason field.** One textarea, `decide_reason`, with the label and hint
+   changing per answer (§3.3).
+8. **Closed: commits.** Stage 2 commits go on `frontend-spec`. No push, no merge.
+9. **Closed: "ventriloc.ca".** Not in the repository; ignore it. No third-party comments in the new
+   stylesheet.
 
 ## Audit
 
@@ -657,3 +659,7 @@ For the operator.
   diagram needed (§1 and §2 tables carry the structure). No model call; `AGENTS_MODE=stand_in`
   untouched. `ux.md` and `sad.md` not edited. `*sync-docs` not run (no application source, runtime
   config or deploy change in this change set).
+- 2026-11-17 · persona `frontend-eng` · stage 1 approved by the operator; Open Questions 1 to 9
+  closed with the answers above. Added the interim lookups (§2) so the demo can be clicked through
+  before H-036 lands. Raised H-036 to `@backend.eng` in `handoffs.md`; noted H-027 (owned by
+  `@frontend.eng`) in the Spec Sync checklist. Stage 2 starts on `frontend-spec`.
