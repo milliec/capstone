@@ -62,13 +62,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: H-036 V-1 and V-6 needed a rule; the code uses these, and the SAD should own them (`backend.md` Assumptions point here).
 - Outcome: (the owner fills this in)
 
-### H-045: FYI: H-036 landed; frontend.md status marks updated; the interim lookups are yours to delete
-- From: @backend.eng (operator approval, 2026-11-17)   To: @frontend.eng   Date: 2026-11-17
-- Touches: 2.build/frontend.md §2 (intro, "Reads" lines for pages 2 to 7), §10, §11, S-06; `backend/web/templates/parts/lookups.html`, `parts/macros.html`; 2.build/backend.md "View fields for the pages"
-- Ask: For information, plus one action that is yours. (1) The services now send H-036 V-1 to V-11 (PRs #68 to #73), so `frontend.md` was updated with the operator's approval (sync-docs D1 to D5): sent fields marked ✅, §10 and §11 say "done except V-12", and the S-06 note was removed. Still ⏳: the refusal object (V-12, with B2), "Approval blocked" (B7), and `rendered_at` / `refresh_on` (web layer, yours). Dropped fields are marked "not built". (2) The interim lookups in `parts/lookups.html`, and the fallbacks that use them in `macros.html` and the page templates, are now only a fallback. **Deleting them is yours**, as the file says; please check each page still renders when you do.
-- Why: The lookups were marked "interim: replaced by H-036 V-n" so they would go when the fields landed. Two stand-in details to know: the stand-in makes no "Checking the drafts" units until B3, and calendar entry 2 now moves from Sun 18 to Mon 19 Apr 2027. The visual check now fails on 18 snapshots (listed in H-036's Outcome); none were re-recorded, and you propose the refresh for operator approval.
-- Outcome: (the owner fills this in)
-
 ### H-044: FYI: the real-name scan now skips binary files
 - From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
 - Touches: `scripts/git-hooks/run-checks.sh` (check 2), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `1676c8e`
@@ -141,6 +134,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-045: FYI: H-036 landed; frontend.md status marks updated; the interim lookups are yours to delete
+- From: @backend.eng (operator approval, 2026-11-17)   To: @frontend.eng   Date: 2026-11-17
+- Touches: 2.build/frontend.md §2 (intro, "Reads" lines for pages 2 to 7), §10, §11, S-06; `backend/web/templates/parts/lookups.html`, `parts/macros.html`; 2.build/backend.md "View fields for the pages"
+- Ask: For information, plus one action that is yours. (1) The services now send H-036 V-1 to V-11 (PRs #68 to #73), so `frontend.md` was updated with the operator's approval (sync-docs D1 to D5): sent fields marked ✅, §10 and §11 say "done except V-12", and the S-06 note was removed. Still ⏳: the refusal object (V-12, with B2), "Approval blocked" (B7), and `rendered_at` / `refresh_on` (web layer, yours). Dropped fields are marked "not built". (2) The interim lookups in `parts/lookups.html`, and the fallbacks that use them in `macros.html` and the page templates, are now only a fallback. **Deleting them is yours**, as the file says; please check each page still renders when you do.
+- Why: The lookups were marked "interim: replaced by H-036 V-n" so they would go when the fields landed. Two stand-in details to know: the stand-in makes no "Checking the drafts" units until B3, and calendar entry 2 now moves from Sun 18 to Mon 19 Apr 2027. The visual check now fails on 18 snapshots (listed in H-036's Outcome); none were re-recorded, and you propose the refresh for operator approval.
+- Outcome (`@frontend.eng`, 2026-11-17): **Done.** The interim tables are deleted from `parts/lookups.html` (it keeps only ux.md's fixed wording) and the fallbacks are gone from `macros.html` and the pages (`001d348`, merged in #78; finished in `e44f4c7`, which also fixed the stepper test that #78 left failing on main). Every page renders in every review state; 138 tests pass. The visual candidates differ on exactly the 18 snapshots in H-036's Outcome, each traced to a server field; the refresh is proposed to the operator (`ux-review.md` §3b). H-005 and H-006 closed; two low wrapping findings (H-014, H-015) raised.
 
 ### H-049: Refusal wording and placement: three sentences ux.md lacks, and which refusals are "page-level"
 - From: @backend.eng (B2)   To: @ux.designer   Date: 2026-11-17
