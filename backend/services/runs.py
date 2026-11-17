@@ -14,6 +14,7 @@ from backend.services import gates
 from backend.services.audit import now_utc, write_audit
 from backend.services.auth import IDENTITIES
 from backend.settings import Settings
+from backend.stand_in import shell_data
 
 # ux.md §1.5: a status is always words first. Keyed by (status, phase); terminal statuses ignore
 # the phase.
@@ -61,6 +62,110 @@ def _started_by_label(started_by: str) -> str:
     return f"{identity.label} (mock)" if identity else started_by
 
 
+# ux.md §1.4: the stepper, one row per server phase (H-036 V-3).
+STEPS_ACTIVE = {
+    "A_RUNNING": ["In progress", "Not started", "Not started", "Not started"],
+    "AT_G1": ["Done", "Your turn", "Not started", "Not started"],
+    "B_RUNNING": ["Done", "Done", "In progress", "Not started"],
+    "AT_G2": ["Done", "Done", "Your turn", "Not started"],
+    "C_RUNNING": ["Done", "Done", "Done", "In progress"],
+    "AT_G3": ["Done", "Done", "Done", "Your turn"],
+}
+# The step a review stopped at, from runs.phase, which keeps its last value on an ended review
+# (DL-46; ux.md §1.4).
+STOPPED_STEP = {"A_RUNNING": 1, "AT_G1": 2, "B_RUNNING": 3, "AT_G2": 3, "C_RUNNING": 4, "AT_G3": 4}
+STEP_NAMES = {1: "AI drafts the rules", 2: "You check the rules", 3: "You confirm what applies",
+              4: "You publish the calendar"}
+STEP_PATHS = {1: "", 2: "/g1", 3: "/g2", 4: "/g3"}
+# ux.md page 3, "Failure reason sentences", keyed by the stored reason. No final full stop.
+FAILURE_SENTENCES = {
+    "model service": "The model service did not answer in time, or returned an error, twice",
+    "stage time limit": "This step took longer than its time limit",
+    "invalid output": "The AI returned output in the wrong format, so it was not used",
+    "cost cap": "The review reached its cost limit of US$2.50",
+    "service restarted": "The application restarted while AI was working",
+    "calendar generation": "The dates could not be worked out into one complete calendar",
+    "demo failure": ("This step failed on purpose, for the demo only, because \"Make step 1 fail "
+                     "(demo)\" was ticked when the review started. Nothing else went wrong"),
+}
+
+
+def _steps(run: dict) -> list[dict]:
+    """H-036 V-3. The four stepper items: {state, href, current}."""
+    status, phase = run["status"], run["phase"]
+    if status == "ACTIVE":
+        states = STEPS_ACTIVE[phase]
+    elif status == "COMPLETED":
+        states = ["Done"] * 4
+    else:   # stopped: earlier steps Done, the stopping step Ended/Failed, later ones Not started
+        stop = STOPPED_STEP[phase]
+        word = "Failed" if status == "FAILED" else "Ended"
+        states = ["Done" if i < stop else word if i == stop else "Not started"
+                  for i in range(1, 5)]
+    return [{"state": st,
+             "href": (f"/specialist/runs/{run['run_id']}{STEP_PATHS[i]}"
+                      if st in ("Done", "Your turn") else None),
+             "current": st in ("In progress", "Your turn", "Failed", "Ended")}
+            for i, st in enumerate(states, start=1)]
+
+
+def _counts(run: dict) -> dict:
+    """H-036 V-5. The numbers in the status sentences. STUB: counted from the stand-in data."""
+    rules = len(shell_data.ROWS) + (1 if run["demo_planted_row"] else 0)
+    return {"rules": rules,
+            "unsure": sum(1 for v in shell_data.VERDICTS if v["verdict"] == "unsure"),
+            "dates": len(shell_data.ENTRIES)}
+
+
+def _ended(conn: sqlite3.Connection, run: dict) -> dict | None:
+    """H-036 V-6. When and why an abandoned or declined review ended: {at, reason}.
+
+    There is no 'ended at' column; the abandon or decline writes a gate_event audit entry with
+    the reason, so the review's last gate_event is it.
+    """
+    if run["status"] not in ("ABANDONED", "DECLINED"):
+        return None
+    row = conn.execute(
+        "SELECT at, reason FROM audit_log WHERE run_id = ? AND event_type = 'gate_event' "
+        "ORDER BY audit_id DESC LIMIT 1", (run["run_id"],)).fetchone()
+    return {"at": row["at"], "reason": row["reason"]} if row else None
+
+
+def _published_at(conn: sqlite3.Connection, run: dict) -> str | None:
+    """H-036 V-6. When a COMPLETED review's calendar was published."""
+    if run["status"] != "COMPLETED":
+        return None
+    row = conn.execute(
+        "SELECT p.published_at FROM publications p JOIN calendar_versions c "
+        "ON c.calendar_id = p.calendar_id WHERE c.run_id = ? ORDER BY p.publication_id DESC "
+        "LIMIT 1", (run["run_id"],)).fetchone()
+    return row["published_at"] if row else None
+
+
+def _failure(conn: sqlite3.Connection, run: dict) -> dict | None:
+    """H-036 V-6. For a FAILED review: {step, step_name, unit_label, reason_sentence}."""
+    if run["status"] != "FAILED":
+        return None
+    step = STOPPED_STEP[run["phase"]]
+    unit = conn.execute(
+        "SELECT label, failure_reason FROM units WHERE run_id = ? AND status = 'failed' "
+        "ORDER BY rowid LIMIT 1", (run["run_id"],)).fetchone()
+    reason = unit["failure_reason"] if unit else None
+    return {"step": step, "step_name": STEP_NAMES[step],
+            "unit_label": unit["label"] if unit else None,
+            "reason_sentence": FAILURE_SENTENCES.get(reason, reason)}
+
+
+def _ended_because(run: dict) -> str | None:
+    """H-036 V-6. The short 'why' on a Filing rules row: the failure sentence, or the first line
+    of the abandon / decline reason."""
+    if run["failure"]:
+        return run["failure"]["reason_sentence"]
+    if run["ended"] and run["ended"]["reason"]:
+        return run["ended"]["reason"].splitlines()[0]
+    return None
+
+
 def _describe(conn: sqlite3.Connection, run: dict) -> dict:
     """Add the words and flags a page needs, so no template works anything out (ux.md §1.2)."""
     status, phase = run["status"], run["phase"]
@@ -73,6 +178,12 @@ def _describe(conn: sqlite3.Connection, run: dict) -> dict:
     run["status_tone"] = (TONE_ACTIVE.get(phase, "neutral") if status == "ACTIVE"
                           else TONE_ENDED.get(status, "neutral"))                   # V-2
     run["started_by_label"] = _started_by_label(run["started_by"])                   # V-7
+    run["steps"] = _steps(run)                                                       # V-3
+    run["counts"] = _counts(run)                                                     # V-5
+    run["ended"] = _ended(conn, run)                                                 # V-6
+    run["published_at"] = _published_at(conn, run)                                   # V-6
+    run["failure"] = _failure(conn, run)                                             # V-6
+    run["ended_because"] = _ended_because(run)                                       # V-6
     return run
 
 
