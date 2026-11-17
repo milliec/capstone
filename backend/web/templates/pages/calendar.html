@@ -3,8 +3,9 @@
     specialist sees it read-only. Must work at phone width (360 px).
     Reads: published (calendar.get_published_calendar: None = nothing published yet), identity.
     NEVER shows a moved mark, an open-question mark, a flag, a "can't tell" or a review status
-    (CR-012, UX-009). Summary cards, the two-month grid and month grouping show once H-036 V-11
-    sends them; the page does not count or group by itself. -#}
+    (CR-012, UX-009). Summary cards show once H-036 V-11 sends them. The dot chart, the views
+    (List with the two-month grid, Month, Year; B12, DL-49) and the month grouping are arranged
+    display-only by backend/web/calendar_view.py from the entries already sent. -#}
 {% import "parts/macros.html" as ui with context %}
 {%- set gp = identity.role == "gp" -%}
 {% block title %}Calendar{% endblock %}
@@ -40,35 +41,130 @@
 
 {%- set layout = published.entries|calendar_layout %}
 {%- set year = published.summary.year if published.summary is defined else layout.year %}
+{%- set dots = published.entries|calendar_dots %}
 
-{#- Week grid (ux.md page 7 item 6; operator 2026-11-17: display-only, from the entries above).
-    A VISUAL view of the same entries as the list below, which stays the main accessible view, so
-    the grid is hidden from screen readers and has no links or buttons (no Tab stops). Hidden below
-    960px, where the list alone shows. Never a moved or open-question mark (CR-012). -#}
-{%- if layout.grid %}
-<section class="section grid-view" aria-hidden="true">
-  <div class="sec-h"><h2>The next two months</h2></div>
-  {%- for m in layout.grid %}
-  <div class="card month-card">
-    <div class="monthbar"><h3>{{ m.label }}</h3></div>
-    <div class="month">
-      {%- for dow in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}<div class="dow">{{ dow }}</div>{% endfor %}
-      {%- for week in m.weeks %}{% for c in week %}
-      <div class="cell{{ ' out' if not c.in_month }}{{ ' has' if c.entries }}">
-        <span class="d{{ ' next' if c.is_due_next }}">{{ c.day }}</span>
-        {%- if c.is_due_next %}<span class="due-next">Due next</span>{% endif %}
-        {%- for e in c.entries %}
-        <span class="e">{{ e.obligation_name }}
-          {%- if e.who_files_label is defined and e.who_files_label %}<small>{{ e.who_files_label }}</small>{% endif %}
-          {%- if e.precautionary %}<small class="mnbr">May not be required</small>{% endif %}</span>
-        {%- endfor %}
-      </div>
-      {%- endfor %}{% endfor %}
-    </div>
+{#- Dot chart (B12, DL-49): one dot per entry in each month, hollow for "May not be required".
+    It counts only what this viewer may already see: the entries and that one flag (CR-012). The
+    counts are written out as text; the drawing itself is decorative. -#}
+{%- if dots.total %}
+{%- set H = 44 + 22 * dots.tallest %}
+<section class="section" aria-labelledby="dots-h">
+  <div class="card pad dot-card">
+    <h2 class="k" id="dots-h">Entries in {{ dots.year }}: {{ dots.total }}</h2>
+    <svg class="dots" viewBox="0 0 372 {{ H }}" aria-hidden="true" focusable="false">
+      <line x1="6" y1="{{ H - 26 }}" x2="366" y2="{{ H - 26 }}" stroke="#e4e4e4"/>
+      {%- for m in dots.months %}{% set x = 21 + 30 * loop.index0 %}
+      {%- for hollow in m.dots %}
+      <circle class="dot" cx="{{ x }}" cy="{{ H - 40 - 22 * loop.index0 }}" r="7" {% if hollow %}fill="#fff" stroke="var(--brass)" stroke-width="1.6"{% else %}fill="var(--brass)"{% endif %}/>
+      {%- endfor %}
+      <text x="{{ x }}" y="{{ H - 7 }}" text-anchor="middle" font-size="10.5" fill="#4d4d4d">{{ m.label }}</text>
+      {%- endfor %}
+    </svg>
+    <p class="dots-key"><span><i class="k1"></i>Due date</span><span><i class="k3"></i>May not be required: {{ dots.may_not_be_required }}</span></p>
   </div>
-  {%- endfor %}
 </section>
 {%- endif %}
+
+{#- The views (B12, DL-49): chosen by a link, no script. Hidden below 960px, where the list alone
+    shows. List (default): the two-month grid, a visual view only (aria-hidden, operator decision).
+    Month and Year: real tables, so a screen reader can use the view it chose. -#}
+{%- set VIEW_TITLE = {"list": "The next two months", "month": "Month", "year": "Year " ~ (dots.year or "")} %}
+<section class="section views" aria-labelledby="views-h">
+  <div class="sec-h">
+    <h2 id="views-h">{{ VIEW_TITLE[cal_view] if cal_view is defined and cal_view else VIEW_TITLE["list"] }}</h2>
+    <nav class="tabs" aria-label="Show the calendar as">
+      {%- for key, label in [("list", "List"), ("month", "Month"), ("year", "Year")] %}
+      <a href="/calendar{{ '' if key == 'list' else '?view=' ~ key }}"{% if (cal_view or 'list') == key %} aria-current="page"{% endif %}>{{ label }}</a>
+      {%- endfor %}
+    </nav>
+  </div>
+
+  {%- if cal_view == "month" %}
+  {%- set mv = published.entries|calendar_month(cal_month) %}
+  <div class="card month-card">
+    <div class="monthbar">
+      <a class="page-link" href="/calendar?view=month&amp;month={{ mv.prev.ym }}">‹ {{ mv.prev.label }}</a>
+      <h3 id="month-cap">{{ mv.label }}</h3>
+      <a class="page-link" href="/calendar?view=month&amp;month={{ mv.next.ym }}">{{ mv.next.label }} ›</a>
+    </div>
+    <table class="month-table" aria-labelledby="month-cap">
+      <thead><tr>{% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {%- for week in mv.weeks %}
+        <tr>
+          {%- for c in week %}
+          <td class="cell{{ ' out' if not c.in_month }}">
+            {%- if c.in_month %}
+            <span class="d{{ ' next' if c.is_due_next }}">{{ c.day }}</span>
+            {%- if c.is_due_next %}<span class="due-next">Due next</span>{% endif %}
+            {%- for e in c.entries %}
+            <span class="e">{{ e.obligation_name }}
+              {%- if e.who_files_label is defined and e.who_files_label %}<small>{{ e.who_files_label }}</small>{% endif %}
+              {%- if e.precautionary %}<small class="mnbr">May not be required</small>{% endif %}</span>
+            {%- endfor %}
+            {%- else %}<span class="d" aria-hidden="true">{{ c.day }}</span>{% endif %}
+          </td>
+          {%- endfor %}
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if not mv.count %}<p class="card-b muted">No filings this month.</p>{% endif %}
+  </div>
+
+  {%- elif cal_view == "year" %}
+  {%- set yv = published.entries|calendar_year %}
+  <div class="card scroll">
+    <table class="year-table">
+      <caption class="sr">Filings in {{ yv.year }}, by month</caption>
+      <thead><tr><th scope="col">What · who files</th>
+        {%- for m in yv.months %}<th scope="col" class="mh{{ ' now' if loop.index == yv.now_month }}">{{ m }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {%- for r in yv.rows %}
+        <tr>
+          <th scope="row">{{ r.name }}{% if r.who_files %}<span class="m">{{ r.who_files }}</span>{% endif %}</th>
+          {%- for cell in r.cells %}
+          <td>
+            {%- for d in cell %}
+            <span class="day{{ ' prec' if d.precautionary }}{{ ' next' if d.is_due_next }}"><small>{{ d.weekday }}</small><b class="num">{{ d.day }}</b>
+              {%- if d.precautionary %}<span class="sr"> (may not be required)</span>{% endif %}
+              {%- if d.is_due_next %}<span class="sr"> (due next)</span>{% endif %}</span>
+            {%- endfor %}
+          </td>
+          {%- endfor %}
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    <p class="legend" aria-hidden="true"><span><i class="prec"></i>May not be required (dashed)</span><span><i class="next"></i>Due next (underlined)</span></p>
+  </div>
+
+  {%- elif layout.grid %}
+  {#- List view (default): the two-month grid, a visual view of the list below (operator, 2026-11-17).
+      aria-hidden and no links or buttons, so no Tab stops. -#}
+  <div class="grid-view" aria-hidden="true">
+    {%- for m in layout.grid %}
+    <div class="card month-card">
+      <div class="monthbar"><h3>{{ m.label }}</h3></div>
+      <div class="month">
+        {%- for dow in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}<div class="dow">{{ dow }}</div>{% endfor %}
+        {%- for week in m.weeks %}{% for c in week %}
+        <div class="cell{{ ' out' if not c.in_month }}{{ ' has' if c.entries }}">
+          <span class="d{{ ' next' if c.is_due_next }}">{{ c.day }}</span>
+          {%- if c.is_due_next %}<span class="due-next">Due next</span>{% endif %}
+          {%- for e in c.entries %}
+          <span class="e">{{ e.obligation_name }}
+            {%- if e.who_files_label is defined and e.who_files_label %}<small>{{ e.who_files_label }}</small>{% endif %}
+            {%- if e.precautionary %}<small class="mnbr">May not be required</small>{% endif %}</span>
+          {%- endfor %}
+        </div>
+        {%- endfor %}{% endfor %}
+      </div>
+    </div>
+    {%- endfor %}
+  </div>
+  {%- endif %}
+</section>
 
 {#- The list: the main, accessible view. Grouped by month (ux.md page 7 item 7); each month is a
     row group with its own header cell, so a screen reader announces the month with each row. -#}

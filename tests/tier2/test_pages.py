@@ -228,14 +228,17 @@ def _publish(client, run_id):
 
 
 def test_week_grid_is_a_visual_view_with_no_tab_stops(specialist_client, gp_client, at_g1):
-    """The list is the accessible view; the grid repeats it visually, hidden from screen readers."""
+    """The list is the accessible view; the List view's grid repeats it visually, hidden from screen
+    readers, with no Tab stops. The view switch above it is ordinary links (B12)."""
     _publish(specialist_client, at_g1)
     html = gp_client.get("/calendar").text
-    grid = html.split('<section class="section grid-view" aria-hidden="true">', 1)[1].split("</section>", 1)[0]
-    assert "The next two months" in grid and "Due next" in grid
+    views = html.split('<section class="section views"', 1)[1].split("</section>", 1)[0]
+    assert '<h2 id="views-h">The next two months</h2>' in views
+    grid = views.split('<div class="grid-view" aria-hidden="true">', 1)[1]
+    assert "Due next" in grid
     assert not re.search(r"<(a|button|input|select|textarea)\b|tabindex", grid)  # nothing to Tab to
     assert "Moved off a weekend" not in grid and "OQ-7" not in grid  # CR-012, UX-009
-    assert grid.index("The next two months") < html.index('id="entries-h"') - html.index('<section class="section grid-view"')
+    assert html.index('<section class="section views"') < html.index('id="entries-h"')
 
 
 def test_list_is_grouped_by_month_with_row_group_headers(specialist_client, gp_client, at_g1):

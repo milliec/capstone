@@ -310,6 +310,53 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
 .month .cell .e { font: 500 12px/1.25 var(--font-body); color: var(--ink); background: #f7f7f7; border: 1px solid var(--rule); border-radius: var(--r-ctl); padding: 5px 7px; min-width: 0; overflow-wrap: anywhere; }
 .month .cell .e small { display: block; font-weight: 400; color: var(--muted); margin-top: 1px; }
 .month .cell .e small.mnbr { color: var(--orange-text); font-weight: 500; }
+/* B12 (DL-49, operator 2026-11-17): the view switch, the dot chart, the Month and Year views */
+.tabs { display: flex; gap: 2px; background: var(--panel); border-radius: var(--r-btn); padding: 4px; }
+.tabs a { font: 400 14px/1 var(--font-head); letter-spacing: -0.01em; padding: 9px 16px; border-radius: var(--r-ctl); text-decoration: none; color: var(--ink); white-space: nowrap; }
+.tabs a:hover { background: var(--page); color: var(--ink); }
+.tabs a[aria-current] { background: var(--card); font-weight: 500; }
+.dot-card .k { font: 400 16px/1.25 var(--font-head); color: var(--ink); }
+.dot-card .dots { display: block; width: 100%; max-width: 560px; height: auto; margin-top: 8px; }
+.dots-key { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--body); margin-top: 6px; }
+.dots-key span { display: inline-flex; gap: 6px; align-items: center; }
+.dots-key i { width: 9px; height: 9px; border-radius: 50%; background: var(--brass); }
+.dots-key .k3 { background: #fff; box-shadow: inset 0 0 0 1.5px var(--brass); }
+.monthbar { display: flex; align-items: center; gap: 16px; }
+.monthbar .page-link { font-size: 13.5px; }
+.monthbar .page-link:last-child { margin-left: auto; }
+.monthbar .page-link:first-child { order: 0; } .monthbar h3 { order: 1; } .monthbar .page-link:last-child { order: 2; }
+.month-table { table-layout: fixed; }
+.month-table th { padding: 12px 10px; font-size: 12.5px; }
+.month-table th:first-child, .month-table td:first-child { padding-left: 10px; }
+.month-table td.cell { height: 92px; padding: 8px 8px 10px; border-left: 1px solid var(--rule); vertical-align: top; font: 400 14px/1 var(--font-head); color: var(--ink); }
+.month-table td.cell:first-child { border-left: 0; }
+.month-table td.cell > * + * { margin-top: 6px; }
+.month-table td.cell .d, .month-table td.cell .due-next, .month-table td.cell .e { display: block; }
+.month-table td.cell .d.next { box-shadow: inset 0 -2px 0 var(--orange); padding-bottom: 3px; display: inline-block; }
+.month-table td.cell .due-next { font: 500 11.5px/1.2 var(--font-body); color: var(--orange-text); }
+.month-table td.cell .e { font: 500 12px/1.25 var(--font-body); color: var(--ink); background: #f7f7f7; border: 1px solid var(--rule); border-radius: var(--r-ctl); padding: 5px 7px; overflow-wrap: anywhere; }
+.month-table td.cell .e small { display: block; font-weight: 400; color: var(--muted); margin-top: 1px; }
+.month-table td.cell .e small.mnbr { color: var(--orange-text); font-weight: 500; }
+.month-table td.cell.out { color: #6a6a6a; background: #fcfcfc; }
+.card.scroll { overflow-x: auto; }
+.year-table { min-width: 900px; font-size: 13px; }
+.year-table th, .year-table td { padding: 10px 6px; text-align: center; border-left: 1px solid var(--rule); }
+.year-table th:first-child, .year-table td:first-child { border-left: 0; }
+.year-table thead th { font: 400 13px/1 var(--font-head); color: var(--ink); }
+.year-table thead th.now { box-shadow: inset 0 -3px 0 var(--orange); }
+.year-table thead th:first-child { text-align: left; padding-left: 24px; }
+.year-table tbody th { text-align: left; min-width: 200px; padding-left: 24px; font: 500 13.5px/1.3 var(--font-body); }
+.year-table tbody th .m { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.day { display: inline-block; width: 100%; max-width: 52px; border-radius: var(--r-ctl); border: 1px solid var(--rule); background: #f7f7f7; text-align: center; padding: 5px 0 6px; color: var(--ink); }
+.day small { display: block; font-size: 10.5px; color: var(--muted); line-height: 1.2; }
+.day b { font: 400 17px/1.1 var(--font-head); letter-spacing: -0.02em; }
+.day.prec { background: var(--orange-wash); border: 1px dashed var(--orange-text); } .day.prec small { color: var(--orange-text); }
+.day.next b { box-shadow: inset 0 -2px 0 var(--orange); }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 14px 24px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--body); }
+.legend span { display: inline-flex; gap: 8px; align-items: center; }
+.legend i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--rule); background: #f7f7f7; }
+.legend i.prec { background: var(--orange-wash); border: 1px dashed var(--orange-text); }
+.legend i.next { background: transparent; border: 0; box-shadow: inset 0 -2px 0 var(--orange); border-radius: 0; }
 
 /* 10. Sign-in (app.css section 8 and the sign-in cluster of section 10).
    Signed out, with the panel: the ivory "stage" on the left, the white sign-in box on the right
@@ -397,7 +444,7 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
   .fund { margin-left: 20px; margin-right: 20px; }
 }
 @media (max-width: 959px) {
-  .grid-view { display: none; } /* the list alone below 960px (operator, 2026-11-17) */
+  .grid-view, .views { display: none; } /* the list alone below 960px (operator, 2026-11-17) */
   .shell { align-content: start; } /* short pages: do not stretch the stacked sidebar */
   .shell { grid-template-columns: minmax(0, 1fr); } .side { position: static; height: auto; }
   .kpis, .kpis.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
