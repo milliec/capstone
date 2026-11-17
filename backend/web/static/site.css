@@ -60,6 +60,10 @@ a:hover { color: var(--brass); }
 :focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; border-radius: 4px; }
 .num { font-variant-numeric: tabular-nums; }
 .id { font: 400 12.5px/1.3 var(--font-id); color: var(--brass); letter-spacing: 0; }
+/* An ID that heads a table row (the cited facts' "Fact ID") stays whole: its column grows to fit
+   instead of breaking it at a hyphen ("FACT-" / "STUB-1"), ux-review H-015. IDs inside sentences
+   may still wrap, so a narrow column never pushes the page wider. */
+tbody th .id { white-space: nowrap; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; line-height: 1.45; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -158,6 +162,12 @@ tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
 /* Row headers (<th scope="row">) read like ordinary cells, only a little stronger */
 tbody th { font: 500 14px/1.45 var(--font-body); color: var(--ink); white-space: normal; vertical-align: top; }
 caption .m { display: block; font-weight: 400; margin-top: 4px; }
+/* Filing rules: "Review 2" and the start time stay on one line, so a long "Ended because"
+   sentence wraps instead of squeezing them (ux-review H-014). Wide screens only: on a phone the
+   table may wrap as before. */
+@media (min-width: 760px) {
+  table.reviews tbody th, table.reviews td.num { white-space: nowrap; }
+}
 td b, td .t { font-weight: 500; color: var(--ink); }
 td .m { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
 
