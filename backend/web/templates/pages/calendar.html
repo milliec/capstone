@@ -1,19 +1,66 @@
 {% extends "base.html" %}
+{#- Page 7 · Calendar (ux.md page 7; route GET /calendar). The General Partner's only page; the
+    specialist sees it read-only. Must work at phone width (360 px).
+    Reads: published (calendar.get_published_calendar: None = nothing published yet), identity.
+    NEVER shows a moved mark, an open-question mark, a flag, a "can't tell" or a review status
+    (CR-012, UX-009). Summary cards, the two-month grid and month grouping show once H-036 V-11
+    sends them; the page does not count or group by itself. -#}
+{% import "parts/macros.html" as ui with context %}
+{%- set gp = identity.role == "gp" -%}
 {% block title %}Calendar{% endblock %}
-{% block ux_ref %}ux.md page 7 (List view).{% endblock %}
 {% block main %}
-<h1>Calendar</h1>
-{% if not published %}
-<p>The calendar is being prepared.</p>
-{% else %}
-<p>Published {{ published.published_at }}{% if published.agents_mode == "stand_in" %} · made with stand-in agents (fixed test outputs){% endif %}</p>
-<table>
-  <thead><tr><th>Due date</th><th>Filing</th><th>Precautionary</th></tr></thead>
-  <tbody>
-  {% for e in published.entries %}
-    <tr><td>{{ e.due_date }}</td><td>{{ e.obligation_name }}</td><td>{{ "yes" if e.precautionary else "no" }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% endif %}
+<header class="head">
+  <h1>Compliance calendar</h1>
+  {%- if published %}
+  <p class="lead">Published on {{ published.published_at|date }}.{% if published.agents_mode == "stand_in" %} Made with stand-in agents (fixed test outputs, no AI model).{% endif %}</p>
+  {%- endif %}
+</header>
+
+{%- if not published %}
+{#- Before the first publication: this fixed message and nothing else (DL-27, D11, UX-008). -#}
+<div class="card pad section">
+  <p>Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published.</p>
+</div>
+{%- else %}
+
+{#- The calendar note differs by role (U11, H-023, UX-018). -#}
+{%- if gp %}
+<p class="small muted section">These dates are the specialist's approved reading of the rules. Not legal advice. Date counting hasn't yet been checked against the legal texts.</p>
+{%- else %}
+<p class="note section">This calendar is not legal advice. Before anyone relies on these dates: the way deadlines are counted (for example, the day 'six months after year end' falls on) has not yet been checked against the legal texts.</p>
+{%- endif %}
+
+{%- if published.summary is defined %}
+<div class="kpis three" role="list" aria-label="Summary">
+  <div class="kpi" role="listitem"><p class="k">Entries in {{ published.summary.year }}</p><p class="v num">{{ published.summary.entries }}</p></div>
+  <div class="kpi" role="listitem"><p class="k">Due next</p><p class="v text">{{ published.summary.due_next|date }}</p></div>
+  <div class="kpi" role="listitem"><p class="k">May not be required</p><p class="v num">{{ published.summary.may_not_be_required }}</p></div>
+</div>
+{%- endif %}
+
+<section class="section" aria-labelledby="entries-h">
+  <div class="sec-h"><h2 id="entries-h">All entries{% if published.summary is defined %} for {{ published.summary.year }}{% endif %}</h2></div>
+  <div class="card">
+    <table class="stack-sm">
+      <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Who files</th><th scope="col">Why</th></tr></thead>
+      <tbody>
+        {%- for e in published.entries %}
+        <tr>
+          <td data-label="When" class="when">{{ e.due_date|date }}</td>
+          <td data-label="What">{{ e.obligation_name }}
+            {%- if e.precautionary %}<span class="m">{{ ui.tag("May not be required", "action") }}</span>{% endif %}</td>
+          <td data-label="Who files">{{ e.who_files_label if e.who_files_label is defined else "" }}</td>
+          <td data-label="Why">
+            {%- if e.why is defined %}{{ e.why }}{% endif %}
+            {%- if e.precautionary %}<span class="m">May not be required: it is not yet confirmed that this applies to the fund. It is listed so that it is not missed. It does not mean that any registration or marketing is permitted.</span>{% endif %}
+            {%- if e.source_document is defined %}<span class="m">Source: {{ e.source_document }}, paragraph <span class="id">{{ e.source_paragraph_id }}</span></span>{% endif %}
+            {%- if e.quote is defined %}<blockquote class="small">{{ e.quote }}</blockquote>{% endif %}
+          </td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
 {% endblock %}
