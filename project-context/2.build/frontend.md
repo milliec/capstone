@@ -755,6 +755,10 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
     H-036 (`steps`, `failure`, §10.1) and the templates read them when sent (`688a983`). Option A for
     counts, ordering on step 3, and the calendar week grid and month grouping: dropped from H-036; the
     grid stays not built. `unit_groups` (V-4) was decided separately the same day: a `group` per unit (§10.1).
+11. **Rejected snapshot refresh, 2026-11-17.** `03-review-status-published-1280` after `5a1ad3e`
+    (cards' top margin removed): rejected by the operator, "cards are still not top aligned". At
+    1280 px the third card wrapped onto a second row. Decided: **always one row**: every unit card
+    shares one row, tops aligned, stacked below 760 px. A new refresh is proposed for that layout.
 
 ## Audit
 
