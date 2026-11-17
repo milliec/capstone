@@ -143,6 +143,59 @@ the same nothing.
 reported; `@frontend.eng` proposes the new snapshots and the operator approves them (`CLAUDE.md`,
 check 3; `frontend.md` §11.1).
 
+## Persona sessions: one worktree each
+
+**Rule: two Claude Code sessions never share one working folder.** (On 2026-11-17 a `git stash` in
+the shared folder briefly removed another session's uncommitted work, and a second session edited
+`ux.md` in that window.) Each persona session works in its own git worktree, on its own new branch.
+The main folder (`capstone/`) is the operator's: no persona session runs in it.
+
+**Start a session**, from the main folder:
+
+```bash
+scripts/new-session.sh <persona> <new-branch>        # e.g. frontend.eng frontend/calendar-fix
+cd ../capstone-worktrees/<persona> && make install    # once per worktree
+```
+
+The script creates `../capstone-worktrees/<persona>` (outside the repo, so the real-name scan never
+reads a second copy) on a **new** branch cut from `main`. It refuses `main` as the branch and an
+existing folder. Git itself refuses a branch that is already checked out in another worktree.
+Then open the Claude Code session **in that folder**. One worktree per persona at a time; the
+branch can carry more than one block.
+
+**What the script links or copies** (these are git-ignored, so a new worktree would not have them):
+
+| Item | How | Why |
+|---|---|---|
+| `reference/` | symlink to the main folder's | the commit hook needs `reference/real-identifiers.txt`. The symlink is hidden by the shared `.git/info/exclude` (`/reference`), because `.gitignore`'s `reference/` does not match a symlink |
+| `.env` | **copy** | each session may set its own values; still git-ignored |
+| private `docs/` entries (`prototype/`, `assets/`, …) | symlink, one per entry | the two public docs stay real, tracked files; the `docs/*` rule ignores the links |
+
+**What each worktree has of its own, so install it there:**
+
+- `.venv`: **never share one.** `make install` records the folder it ran in, so a shared `.venv`
+  would run another worktree's code (checked: after `make install`, `backend` imports from the
+  worktree itself).
+- `data/app.db` (untracked, so each worktree has its own database).
+- `tests/visual/node_modules`: `cd tests/visual && npm install --ignore-scripts && npx playwright install chromium`.
+
+**Still shared, so do not overlap:**
+
+- **Ports.** `make run` uses 8000 and the visual check uses 8777. Two sessions cannot run the same
+  one at once. Start a second app with `--port <other>`; run the visual check one session at a time.
+- The git history and config (hooks, `core.hooksPath`) are shared on purpose. Hooks run in every
+  worktree.
+- Never run `git stash` to compare things. Stash is shared across worktrees; make a worktree or a
+  commit instead.
+
+**Finish:** push the branch and open the pull request as usual, then from the main folder:
+`git worktree remove ../capstone-worktrees/<persona>` (refuses if there are uncommitted changes,
+which is the point) and `git branch -d <branch>` after the merge. `git worktree list` shows what
+exists.
+
+Note: Claude Code keys its project memory to the folder, so a session in a worktree starts with the
+repo's `CLAUDE.md` but not your auto-memory for the main folder.
+
 ## What is not done in this block
 
 - No backend, frontend, agent or CI code, and no dependency installs (B2 onward).
