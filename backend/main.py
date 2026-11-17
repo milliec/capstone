@@ -54,4 +54,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return render(request, None, "pages/not_found.html", identity,
                       status_code=exc.status_code)
 
+    @app.exception_handler(Exception)
+    def server_error(request: Request, exc: Exception):
+        # Display only (frontend.md W-4): an unexpected error shows the plain ux.md §1.7 page,
+        # with the sentence for the signed-in role, and never the error's details. Nothing is
+        # decided here. (The test client still raises the error, so tests see real failures.)
+        identity = identity_from_session(request.session)
+        return render(request, None, "pages/server_error.html", identity, status_code=500)
+
     return app
