@@ -226,7 +226,7 @@ DL-49, H-040).** Top to bottom:
 2. **One calendar**, "All entries for {year}", with a **Month · Year · List** switch: a radio group
    styled as tabs. CSS (`:has()`) shows **only the chosen view, in place, no reload, no script**;
    Tab reaches the switch, arrow keys change the view. The server ticks the radio for `?view=`
-   (**List by default**, SAD), so the Month view's "‹ March 2027" / "May 2027 ›" links (which reload,
+   (**Month by default**, operator 2026-11-17, as in the mock-up; the SAD said List), so the Month view's "‹ March 2027" / "May 2027 ›" links (which reload,
    to `#entries`) keep it. Without `:has()` every view shows, one under another.
    - **Month:** one month as a real table (weekday column headers), "Due next" and "May not be
      required" in words. It replaces the two-month week grid of ux.md item 6.
@@ -237,8 +237,7 @@ DL-49, H-040).** Top to bottom:
 
 No moved or open-question mark anywhere (CR-012). Arranged by `backend/web/calendar_view.py` (W-5);
 the view choice is W-6. **Drop order:** after B6 and Tier 2, before B13b; without it, the List view
-alone. **Departures from approved documents, recorded for their owners:** the switch is a radio
-group, not "chosen by a link" (SAD §3 page 7; H-040); the Month view replaces the two-month grid and
+alone. **Departures from approved documents, recorded for their owners:** the switch is a radio group, not "chosen by a link", and Month, not List, is the default (SAD §3 page 7; H-040); the Month view replaces the two-month grid and
 the list is one view, not always shown (ux.md page 7 items 6 and 7; H-042); the summary cards are
 counted on the page (ux.md item 5, V-11; H-036, H-042). New wording for the copy review: "No filings
 this month.", "Entries in {year}: {n}", "None" (no date due next), the legend lines.
@@ -834,3 +833,5 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   and 3 land on the next card to decide (W-7); switching calendar views no longer moves the page
   (section at least one screen tall on wide screens). 78 tests. Departure from ux.md page 4 "After
   each action" raised as H-043.
+- 2026-11-17 · persona `frontend-eng` · calendar default view is Month (operator); recorded in H-040 and
+  H-042. Visual-check flake fixed (M-012).
