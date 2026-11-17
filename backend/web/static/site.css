@@ -70,7 +70,10 @@ a:hover { color: var(--brass); }
 /* 3. Shell: white sidebar panel on the grey page */
 .shell { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 8px; padding: 16px; min-height: 100vh; }
 .side { background: var(--card); border-radius: var(--r-panel); padding: 28px 0 20px; position: sticky; top: 16px; height: calc(100vh - 32px); display: flex; flex-direction: column; }
-.brand { display: flex; align-items: baseline; gap: 8px; padding: 0 28px; }
+.brand { display: flex; align-items: baseline; gap: 8px; padding: 0 28px; text-decoration: none; }
+/* The wordmark is a link home: no underline until hover (operator, 2026-11-17); keyboard focus keeps
+   the orange outline. The underline sits under "acme" only, like other links. */
+a.brand:hover b { text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .brand b { font: 400 30px/1 var(--font-head); letter-spacing: -0.04em; color: var(--ink); }
 .brand i { width: 9px; height: 9px; background: var(--orange); display: inline-block; }
 .product { padding: 6px 28px 0; font: 400 13px/1.3 var(--font-head); color: var(--muted); }

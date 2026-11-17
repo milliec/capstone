@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-044: FYI: the real-name scan now skips binary files
+- From: @frontend.eng (operator approval, 2026-11-17)   To: @project.mgr   Date: 2026-11-17
+- Touches: `scripts/git-hooks/run-checks.sh` (check 2), root `CLAUDE.md` ("Checks to run after changing committed files", item 1); commit `1676c8e`
+- Ask: For information; no action needed. The scan gained `-I` (skip binary files) in the hook and in CLAUDE.md. Keep both in step if you change either, and use the same flags in CI if H-003 ever brings the scan there.
+- Why: Compressed image bytes sometimes spell a listed word by chance: a visual-snapshot refresh was blocked on two PNGs whose only change was a 1-pixel underline. A text search cannot see a name drawn as pixels. Trade-off: a binary file with readable text (PDF, Word) is no longer scanned; such files are not committed here.
+- Outcome: (the owner fills this in)
+
 ### H-043: After a decision, land on the next card to decide
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @ux.designer   Date: 2026-11-17
 - Touches: 2.build/ux.md page 4 "After each action" (Approve rule / Reject rule) and page 5 "After each action" (Confirm / Overrule / Decide); 2.build/frontend.md W-7
