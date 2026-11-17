@@ -34,8 +34,9 @@ it, DL-44).
   unknown-field refusal are B2 items in the SAD, not started and not estimated; count them.
   **Operator, 2026-11-17: B1 + B2 did not pass 1.3 days**, so nothing is dropped at this
   checkpoint. **Re-check after B7**, with the then-known time and the unestimated B2 items.
-- Order: B1 → B2 → B3 (stand-in only) → B4 → B5 → B7 → **first green path** → pin DL-40 → B3 spike
-  → B8 → B9 → B6 → B10.
+- Order (as in the `sad.md` Build card, after H-040 and DL-54): B1 → B2 → B3 (stand-in only) →
+  B13a → B4 → B5 → **B12** → B7 → **first green path** → pin DL-40 → B3 spike → B8 → B9 → B13b →
+  B6 → B10. **Drop order:** B6 and Tier 2, then B12 as a whole, then B13b; never T-MAP-1.
 
 ## Runtime target
 
@@ -269,3 +270,6 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 - 2026-11-16 · persona `backend-eng` · `sync-docs` (operator-approved) · `AAMAD_TARGET_RUNTIME=crewai`
   · recorded the app shell's pinned dependencies under "CrewAI settings" and corrected where
   `STAND_IN_UNIT_PAUSE_S` was added to `.env.example`. Nothing else changed.
+- 2026-11-17 · persona `project-mgr` · action `document-setup` (handoff H-041 follow-up, operator
+  instruction) · "Timing guardrails" Order line brought in step with `sad.md`: B13a after B3, B12
+  after B5, B13b after B9, plus the drop order. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
