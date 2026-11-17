@@ -79,9 +79,21 @@
     audit text that starts with the posted answer ("approve …", "reject …", "confirm …"); these are
     the ux.md words for each. -#}
 {% set STUB_ROW_STATUS = [("approve", "Approved", "success"), ("reject", "Rejected", "problem")] %}
-{% set STUB_ANSWER_WORDS = [("confirm", "Confirmed"), ("override", "Overruled"),
+{#- ux.md page 5 item 8, one line per outcome. -#}
+{% set STUB_ANSWER_WORDS = [("confirm applies", "Confirmed: applies"),
+                            ("confirm does_not_apply", "Confirmed: doesn't apply"),
+                            ("override applies", "Overruled: applies"),
+                            ("override does_not_apply", "Overruled: doesn't apply"),
                             ("decide applies", "Added, marked 'May not be required'"),
                             ("decide does_not_apply", "Left off")] %}
+
+{#- Fixed wording (not interim): AI's answer in words (ux.md page 5 item 5.2). -#}
+{% set AI_ANSWER_WORDS = {"applies": "AI: applies", "does_not_apply": "AI: doesn't apply",
+                          "unsure": "AI: can't tell"} %}
+{#- Interim, replaced by H-036 V-9 `overrule_value`: the opposite of AI's answer (ux.md
+    Assumptions: "Override at G2 flips the verdict to its opposite; there is no third value"). -#}
+{% set OPPOSITE = {"applies": "does_not_apply", "does_not_apply": "applies"} %}
+{% set VALUE_WORDS = {"applies": "applies", "does_not_apply": "doesn't apply"} %}
 
 {#- Interim, replaced by H-036 V-4 `unit_groups`. Unit status words (ux.md page 3 item 7). -#}
 {% set UNIT_WORDS = {"waiting": "Waiting", "running": "Running", "done": "Done", "failed": "Failed"} %}

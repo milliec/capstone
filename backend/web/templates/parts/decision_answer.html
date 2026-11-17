@@ -1,0 +1,68 @@
+{#- G2 answer-first decision form for one answer (ux.md page 5 item 5.7, §4, DL-48).
+    Included inside an answer card; needs `v` (the verdict), `i` and `refusal`.
+
+    Posts POST /specialist/verdicts/{verdict_id}/decision with `version`, `decision` (the radio)
+    and `value` (carried by the button pressed). Reason fields: override_reason for an overrule;
+    decide_reason for "can't tell" (one box shared by its two answers, operator 2026-11-17).
+    Confirm needs no reason, so confirm_reason is never rendered.
+
+    Nothing is preselected and neither answer is styled as the default. -#}
+{% import "parts/macros.html" as ui with context %}
+{% import "parts/lookups.html" as L %}
+{%- set p = "v" ~ i -%}
+{%- set typed = refusal.typed if (refusal and refusal.typed is defined and refusal.anchor == "verdict-" ~ i) else {} -%}
+{%- set HINT_ENTRY = "The General Partner will read this reason as the explanation for the entry. Write it for a non-lawyer: state the condition and the fact. No advice." -%}
+{%- set HINT_AUDIT = "This obligation will not be on the calendar, so the General Partner will not see this reason. It is kept in the audit log for specialists." -%}
+<form class="decision" method="post" action="/specialist/verdicts/{{ v.verdict_id }}/decision">
+  <input type="hidden" name="version" value="{{ v.version }}">
+
+{%- if v.verdict == "unsure" %}
+  {#- AI can't tell: no Confirm (ux.md page 5, U5, H-017). -#}
+  <fieldset>
+    <legend>{% if v.missing_fact is defined and v.missing_fact %}Nobody has confirmed {{ v.missing_fact }}. {% endif %}Should this rule go on the calendar?</legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="decision" value="decide" data-answer="add"> Yes, add it until someone confirms</label>
+      <label class="opt"><input type="radio" name="decision" value="decide" data-answer="leave"> No, leave it off</label>
+    </div>
+  </fieldset>
+  {{ ui.refusal_here(refusal, "verdict-" ~ i) }}
+  <div class="if" data-answer="add"><p>Choose this if you can't confirm it. The filings are added to the calendar, each marked 'May not be required'.</p></div>
+  <div class="if" data-answer="leave"><p>Choose this only if you know it doesn't apply. No filings are added for this rule.</p></div>
+  <div class="if shared">
+    <div class="field">
+      <label class="if-label" data-answer="add" for="{{ p }}-decide-reason">Why are you adding it?</label>
+      <label class="if-label" data-answer="leave" for="{{ p }}-decide-reason">How do you know it doesn't apply?</label>
+      <textarea id="{{ p }}-decide-reason" name="decide_reason" aria-describedby="{{ p }}-hint-add {{ p }}-hint-leave">{{ typed.decide_reason or "" }}</textarea>
+      <p class="hint if-label" data-answer="add" id="{{ p }}-hint-add">{{ HINT_ENTRY }}</p>
+      <p class="hint if-label" data-answer="leave" id="{{ p }}-hint-leave">{{ HINT_AUDIT }}</p>
+    </div>
+  </div>
+  <div class="if" data-answer="add"><button class="btn" type="submit" name="value" value="applies">Add to the calendar</button></div>
+  <div class="if" data-answer="leave"><button class="btn" type="submit" name="value" value="does_not_apply">Leave it off</button></div>
+
+{%- else %}
+  {#- AI said applies or doesn't apply: Confirm, or Overrule with a reason (H-026 gap e). -#}
+  {%- set ai = v.verdict -%}
+  {%- set other = v.overrule_value if v.overrule_value is defined else L.OPPOSITE[ai] -%}
+  <fieldset>
+    <legend>What's your answer on this rule?</legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="decision" value="confirm" data-answer="confirm"> Confirm: {{ L.VALUE_WORDS[ai] }}</label>
+      <label class="opt"><input type="radio" name="decision" value="override" data-answer="overrule"> Overrule: {{ L.VALUE_WORDS[other] }}</label>
+    </div>
+  </fieldset>
+  {{ ui.refusal_here(refusal, "verdict-" ~ i) }}
+  <div class="if" data-answer="confirm">
+    <p>{{ "If you confirm, the General Partner will read AI's reasoning above as the explanation." if ai == "applies" else "If you confirm, this obligation is left off the calendar." }}</p>
+    <button class="btn" type="submit" name="value" value="{{ ai }}">Confirm: {{ L.VALUE_WORDS[ai] }}</button>
+  </div>
+  <div class="if" data-answer="overrule">
+    <div class="field">
+      <label for="{{ p }}-override-reason">Reason for overruling</label>
+      <textarea id="{{ p }}-override-reason" name="override_reason" aria-describedby="{{ p }}-override-hint">{{ typed.override_reason or "" }}</textarea>
+      <p class="hint" id="{{ p }}-override-hint">{{ HINT_ENTRY if other == "applies" else HINT_AUDIT }}</p>
+    </div>
+    <button class="btn" type="submit" name="value" value="{{ other }}">Overrule: {{ L.VALUE_WORDS[other] }}</button>
+  </div>
+{%- endif %}
+</form>
