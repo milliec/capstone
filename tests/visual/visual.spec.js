@@ -8,6 +8,18 @@
 // A matching snapshot means "nothing changed since the approved baseline". It does not mean the
 // design is good: that is the Human judgment in ux-review.md.
 import { test, expect } from "@playwright/test";
+import { fileURLToPath } from "node:url";
+
+// Every browser session in this test gets the same font stylesheet (fonts.css, a pinned copy of
+// Google's usual answer), because Google sometimes serves on-the-fly font builds that render text
+// slightly differently and made the screenshots flaky (ux-review M-012). The app is unchanged.
+const PINNED_FONTS_CSS = fileURLToPath(new URL("./fonts.css", import.meta.url));
+async function newSession(browser) {
+  const context = await browser.newContext();
+  await context.route(/fonts\.googleapis\.com\/css2/, (route) =>
+    route.fulfill({ path: PINNED_FONTS_CSS, contentType: "text/css" }));
+  return context;
+}
 
 const SPECIALIST = [1280, 1024];
 const WIDE_AND_PHONE = [1280, 360];
@@ -30,7 +42,14 @@ async function normalise(page) {
         .replace(/\b\d{2}:\d{2}\b/g, "12:00");
     }
   });
-  await page.evaluate(() => document.fonts.ready);
+  // Fonts (ux-review M-012): a fresh browser session sometimes took the picture before a font face
+  // had finished loading, so body text rendered slightly differently. Ask for every face the page
+  // declares, wait until all are loaded, then wait two frames so the text is painted with them.
+  await page.evaluate(async () => {
+    await Promise.all([...document.fonts].map((face) => face.load().catch(() => null)));
+    await document.fonts.ready;
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  });
 }
 
 async function snap(page, name, widths) {
@@ -53,9 +72,10 @@ async function open(page, path, ready) {
 const form = (page, path, data) => page.request.post(path, { form: data });
 
 test("the stubbed UI, page by page", async ({ browser }) => {
-  const specialistContext = await browser.newContext();
-  const gpContext = await browser.newContext();
-  const anon = await browser.newPage();
+  const specialistContext = await newSession(browser);
+  const gpContext = await newSession(browser);
+  const anonContext = await newSession(browser);
+  const anon = await anonContext.newPage();
   const sp = await specialistContext.newPage();
   const gp = await gpContext.newPage();
 
@@ -136,4 +156,5 @@ test("the stubbed UI, page by page", async ({ browser }) => {
 
   await specialistContext.close();
   await gpContext.close();
+  await anonContext.close();
 });
