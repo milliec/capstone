@@ -597,6 +597,7 @@ matter; values may be placeholders in stand-in mode.
 | V-1 | every run (`runs._describe`) | `review_number` (int) | all review pages, Filing rules |
 | V-2 | every run; every G1 row | run `status_tone`; row `status_tone`: one of `info`, `action`, `problem`, `neutral`, `success` (ux.md §1.5) | pills |
 | V-3 | every run (review pages) | `steps` = four items of `{state, href, current}`: `state` one of "Done", "In progress", "Your turn", "Not started", "Failed", "Ended"; `href` the step's page or none; `current` true on the step the review is at (operator, 17 Nov 2026) | stepper, pages 3 to 6 |
+| V-4 | each unit (`runs.list_units`) | `group`: one of `drafting` (step 1, one per source document), `checking_drafts` (step 1, one per drafted rule), `applies` (step 3), `dates` (step 4). **The backend assigns it; the page never works it out.** The page maps each code to ux.md page 3's heading and intro, in that order; a unit with any other code shows under "Other units" (operator, 17 Nov 2026) | page 3 |
 | V-5 | `run` (review status) | `counts.rules`, `counts.unsure`, `counts.dates` (ints) | page 3 sentences |
 | V-6 | `run` | `ended.at` (ISO time), `ended.reason` (text, first line shown); `published_at` (ISO time); on Filing rules rows `ended_because` (text: the failure sentence or the first line of the reason) | pages 2, 3 |
 | V-6 | `run` (failed review) | `failure` = `{step (int), step_name, unit_label, reason_sentence}`; the reason sentence is ux.md page 3's wording for the failure reason, without the final full stop (operator, 17 Nov 2026) | page 3 |
@@ -621,8 +622,9 @@ out from the lists the server sends, or they are not built:
 - `weeks`, `months` (V-11): not needed. The week grid and month grouping are built **display-only**
   in the web layer from the entries already sent (operator, 2026-11-17; §2 page 7, W-5).
 
-**Still open:** `unit_groups` (V-4). Step 1's second group, "Checking the drafts", needs each unit to
-say its group (a `group` field), and the template a small change to read it. Not decided.
+**Decided 2026-11-17 (operator): unit groups.** V-4 is a `group` on each unit (contract table above),
+not a separate `unit_groups` list. Until units carry it, page 3 shows today's view, grouped by stage
+(`6a2fb2b`).
 
 ### 10.2 Web-layer items (`backend/web/`, `backend/main.py`)
 
@@ -752,7 +754,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 10. **Closed 2026-11-17 (operator): split.** Option B for step states and failure details: added to
     H-036 (`steps`, `failure`, §10.1) and the templates read them when sent (`688a983`). Option A for
     counts, ordering on step 3, and the calendar week grid and month grouping: dropped from H-036; the
-    grid stays not built. `unit_groups` (V-4) was not part of the answer and stays open.
+    grid stays not built. `unit_groups` (V-4) was decided separately the same day: a `group` per unit (§10.1).
 
 ## Audit
 
@@ -791,3 +793,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   web-layer helper (W-5), template, styles, 7 layout tests and 2 page tests; rendered at 1280 and
   360 px; keyboard pass unchanged on the calendar (5 Tab stops). Marked droppable after B6 and
   Tier 2, before B13b. Snapshot refresh proposed, not written.
+- 2026-11-17 · persona `frontend-eng` · unit groups (operator): `group` per unit added to the §10.1
+  contract and to H-036; page 3 shows units under their group headings when sent, today's stage
+  view until then (`6a2fb2b`). Tests 69; visual 24 of 24, so no snapshot refresh now; the step 1
+  status snapshots will change when the backend sends `group` (with the H-006 refresh).
