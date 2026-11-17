@@ -1,40 +1,224 @@
 {% extends "base.html" %}
-{% block head %}{% if run.is_working %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
-{% block title %}Review status{% endblock %}
-{% block ux_ref %}ux.md page 3 (idle, running, done, failed).{% endblock %}
+{#- Page 3 · Review status (ux.md page 3; route GET /specialist/runs/{run_id}).
+    The only place the specialist waits. Shows where the review is, each unit, the cost and what
+    to do next. Reads: run (runs.get_run), units (runs.list_units), refresh_on and rendered_at
+    (W-1). Posts: POST …/abandon, only while the review waits at a step.
+    No Retry: B5 builds the "Without Retry" failed page (UX-022). -#}
+{% import "parts/macros.html" as ui with context %}
+{% import "parts/lookups.html" as L %}
+
+{%- set rid = run.run_id -%}
+{%- set refreshing = run.is_working and refresh_on -%}
+{%- set k = L.STOPPED_STEP.get(run.phase, 1) -%}
+{%- set ended = run.ended if run.ended is defined else none -%}
+
+{#- Failed review: the server's `run.failure` (H-036 V-6, operator 2026-11-17) =
+    {step, step_name, unit_label, reason_sentence}. Until it is sent, the same four values come from
+    the run's phase and the failed unit through ux.md's fixed tables (parts/lookups.html). -#}
+{%- if run.failure is defined and run.failure -%}
+  {%- set fail = run.failure -%}
+{%- else -%}
+  {%- set failed_unit = units|selectattr("status", "equalto", "failed")|first -%}
+  {%- set fail = {
+        "step": k, "step_name": L.STEP_NAMES[k],
+        "unit_label": failed_unit.label if failed_unit else none,
+        "reason_sentence": L.FAILURE_SENTENCES.get(failed_unit.failure_reason, failed_unit.failure_reason) if failed_unit else none} -%}
+{%- endif -%}
+
+{#- Fixed ux.md wording per state (page 3 "States and their words"). Clauses that need a count,
+    date or reason only show when the server sends it (H-036 V-5, V-6); until then the sentence is
+    shown without them, never with a made-up value. -#}
+{%- if run.status == "ACTIVE" -%}
+  {%- set H1 = {"A_RUNNING": "Nothing for you to do yet", "AT_G1": "The rules are ready for you to check",
+                "B_RUNNING": "Nothing for you to do yet", "AT_G2": "Ready for you to confirm what applies",
+                "C_RUNNING": "Nothing for you to do yet", "AT_G3": "The calendar is ready to check"}[run.phase] -%}
+{%- else -%}
+  {%- set H1 = {"COMPLETED": "Published", "DECLINED": "Closed without publishing",
+                "ABANDONED": "Abandoned", "FAILED": "This review failed"}[run.status] -%}
+{%- endif -%}
+
+{% block title %}{{ ui.review_name(run) }}: {{ run.status_words }}{% endblock %}
+
+{% block head %}
+{%- if refreshing %}
+  {#- Reload every 3 seconds, only while AI or code works and refresh is not switched off
+      (ux.md page 3, §3 Freshness, WCAG 2.2.1). No script. -#}
+  <meta http-equiv="refresh" content="3">
+{%- endif %}
+{% endblock %}
+
 {% block main %}
-{% include "parts/review_nav.html" %}
-<h1>Review {{ run.run_id }}</h1>
-{% include "parts/run_labels.html" %}
-{% if notice %}<p role="status">{{ notice }}</p>{% endif %}
-{% if run.is_working %}<p>This page refreshes every 3 seconds while AI or code works.</p>{% endif %}
+{{ ui.review_head(run, H1, refusal) }}
 
-<p>Started {{ run.started_at }} by {{ run.started_by }} · model cost so far US${{ "%.2f"|format(run.cost_so_far) }}</p>
+{#- The status line: the page's one call to action (the mock-up's ivory panel, .cta).
+    Active review: a small pill with the workflow word ("AI is working" / "Your turn", ux.md
+    §10.1), then the status words as the heading, then the sentence. Ended review: the pill
+    carries the status words (the H1 already names the state). The bar colour follows the tone.
+    role="status" only when the page is not reloading itself, so a screen reader is not made to
+    read it again every 3 seconds; the <title> carries the status words as well. -#}
+{%- set tone = ui.run_tone(run)|trim %}
+{%- set CTA_CLASS = {"info": "wait", "action": "", "success": "done", "problem": "no", "neutral": "plain"} %}
+<section class="cta {{ CTA_CLASS.get(tone, '') }}" aria-labelledby="status-h"{% if not refreshing %} role="status"{% endif %}>
+  <div class="body">
+  <div class="top">
+    {%- if run.status == "ACTIVE" %}
+    {{ ui.tag("AI is working" if run.is_working else "Your turn", tone) }}
+    {%- else %}
+    {{ ui.run_tag(run) }}
+    {%- endif %}
+    {%- if refreshing %}
+    <span class="small">Last updated at {{ rendered_at|time_seconds }}.</span>
+    {%- endif %}
+  </div>
+  {%- if run.status == "ACTIVE" %}
+  <h2 id="status-h">{{ run.status_words }}</h2>
+  {%- else %}
+  <h2 class="sr" id="status-h">Status</h2>
+  {%- endif %}
 
-<h2>Units</h2>
-<table>
-  <thead><tr><th>Stage</th><th>Attempt</th><th>Unit</th><th>Status</th><th>Failure reason</th></tr></thead>
-  <tbody>
-  {% for u in units %}
-    <tr><td>{{ u.stage }}</td><td>{{ u.stage_attempt }}</td><td>{{ u.label }}</td><td>{{ u.status }}</td><td>{{ u.failure_reason or "" }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+  <p class="sentence">
+  {%- if run.status == "ACTIVE" and run.phase == "A_RUNNING" -%}
+    AI is drafting the rules and checking each one against the sources. You check the rules when it finishes. Units finish one by one below.
+  {%- elif run.status == "ACTIVE" and run.phase == "AT_G1" -%}
+    {%- if run.counts is defined and run.counts %}AI drafted <b>{{ run.counts.rules }} rules</b> and checked each one against the sources.{% else %}AI drafted the rules and checked each one against the sources.{% endif %} Nothing reaches the calendar until you approve it.
+  {%- elif run.status == "ACTIVE" and run.phase == "B_RUNNING" -%}
+    You've finished checking the rules. AI is now checking whether each approved rule applies to the fund.
+  {%- elif run.status == "ACTIVE" and run.phase == "AT_G2" -%}
+    {%- if run.counts is defined and run.counts %}AI checked <b>{{ run.counts.rules }} rules</b> against the fund's facts. <b>{{ run.counts.unsure }} of them</b> need your decision because AI can't tell.{% else %}AI checked the approved rules against the fund's facts.{% endif %}
+  {%- elif run.status == "ACTIVE" and run.phase == "C_RUNNING" -%}
+    You've confirmed what applies. The dates are being worked out by code. This takes a few seconds.
+  {%- elif run.status == "ACTIVE" and run.phase == "AT_G3" -%}
+    The calendar is ready{% if run.counts is defined and run.counts %}: <b>{{ run.counts.dates }} dates</b>{% endif %}.
+  {%- elif run.status == "COMPLETED" -%}
+    Published{% if run.published_at is defined and run.published_at %} on {{ run.published_at|date }} at {{ run.published_at|time }}{% endif %}. The General Partner now sees this calendar.
+  {%- elif run.status == "DECLINED" -%}
+    Closed without publishing{% if ended %} on {{ ended.at|date }} at {{ ended.at|time }}{% endif %}. Nothing was published. The General Partner still sees what they saw before.
+  {%- elif run.status == "ABANDONED" -%}
+    Abandoned at step {{ k }} ({{ L.STEP_NAMES[k] }}){% if ended %} on {{ ended.at|date }} at {{ ended.at|time }}{% endif %}. Nothing was published, and the decisions made so far stay in the audit log.
+  {%- elif run.status == "FAILED" -%}
+    {#- "Without Retry" version (ux.md page 3 "Failed review"). -#}
+    This review failed at step {{ fail.step }} ({{ fail.step_name }}){% if fail.unit_label %}, at unit {{ fail.unit_label }}{% endif %}.{% if fail.reason_sentence %} {{ fail.reason_sentence }}.{% endif %} Nothing moved forward. Decisions you already made stay in the audit log.
+  {%- endif -%}
+  </p>
 
-{% if run.is_at_gate %}
-<h2>Abandon this review</h2>
-<form method="post" action="/specialist/runs/{{ run.run_id }}/abandon">
-  <input type="hidden" name="run_version" value="{{ run.run_version }}">
-  <p><label>Reason <input type="text" name="reason"></label></p>
-  <button type="submit">Abandon review</button>
-</form>
-{% endif %}
+  {%- if ended and ended.reason %}
+  <p>{{ "What needs to change: " if run.status == "DECLINED" else "Your reason: " }}{{ ended.reason }}</p>
+  {%- endif %}
 
-{% if run.status == "FAILED" %}
-<form method="post" action="/specialist/runs/{{ run.run_id }}/retry">
-  <input type="hidden" name="run_version" value="{{ run.run_version }}">
-  <button type="submit">Retry step (stub, B13b)</button>
-</form>
-<p><a href="/specialist/runs">Start a new review from Filing rules</a></p>
-{% endif %}
+  {#- Refresh controls: only while AI or code works (ux.md page 3). -#}
+  {%- if run.is_working %}
+  <p class="refresh">
+    {%- if refresh_on %}
+    <span>This page refreshes every 3 seconds while {{ "the dates are worked out" if run.phase == "C_RUNNING" else "AI is working" }}.</span>
+    <a href="/specialist/runs/{{ rid }}">Refresh now</a>
+    <a href="/specialist/runs/{{ rid }}?refresh=off">Stop automatic refresh</a>
+    {%- else %}
+    <span>Automatic refresh is off.</span>
+    <a href="/specialist/runs/{{ rid }}?refresh=off">Refresh now</a>
+    <a href="/specialist/runs/{{ rid }}">Turn automatic refresh back on</a>
+    {%- endif %}
+  </p>
+  {%- endif %}
+
+  {#- Next step: one primary link (ux.md page 3, "Next step link" column). -#}
+  {%- set NEXT = {
+    "AT_G1": ("Check the rules", "/specialist/runs/" ~ rid ~ "/g1"),
+    "AT_G2": ("Confirm what applies", "/specialist/runs/" ~ rid ~ "/g2"),
+    "AT_G3": ("Check the calendar and publish", "/specialist/runs/" ~ rid ~ "/g3"),
+    "COMPLETED": ("See the calendar as the General Partner sees it", "/calendar"),
+    "DECLINED": ("Go to Filing rules", "/specialist/runs"),
+    "ABANDONED": ("Go to Filing rules", "/specialist/runs"),
+    "FAILED": ("Start a new review from Filing rules", "/specialist/runs#start"),
+  } -%}
+  {%- set next = NEXT.get(run.phase) if run.status == "ACTIVE" else NEXT.get(run.status) %}
+  </div>
+  {%- if next %}
+  <a class="btn" href="{{ next[1] }}">{{ next[0] }}</a>
+  {%- endif %}
+</section>
+
+{#- Units, one real table per group (ux.md page 3 item 7).
+    The server's `group` on each unit (H-036 V-4, operator 2026-11-17): one of the four codes below;
+    the backend assigns it, the page never works it out. The page only maps each code to ux.md's
+    fixed heading and intro, in this order. Until units carry `group`, each card shows the units of
+    the matching stage (today's view; "Checking the drafts" then has none). A unit whose group is
+    not one of the four is shown under "Other units", so nothing the server sends is dropped. -#}
+{%- set GROUP_ORDER = ["drafting", "checking_drafts", "applies", "dates"] %}
+{%- set GROUP_TEXT = {
+  "drafting": ("Drafting the rules", "The first AI reads each source and writes a rule, quoting the exact words it relied on.", "agent"),
+  "checking_drafts": ("Checking the drafts", "A second, separate AI compares every draft with all the sources and tells you where they disagree. It never changes a rule.", "agent"),
+  "applies": ("Checking what applies", "One unit per approved rule.", "agent"),
+  "dates": ("Working out the dates", "Code, no AI model.", ""),
+} %}
+{%- set GROUP_STAGE = {"drafting": "A", "applies": "B", "dates": "C"} %}
+{%- set grouped = units|selectattr("group", "defined")|list %}
+{%- set ns = namespace(cards=[]) %}
+{%- for code in GROUP_ORDER %}
+  {%- if grouped %}
+    {%- set members = units|selectattr("group", "equalto", code)|list %}
+  {%- else %}
+    {%- set members = units|selectattr("stage", "equalto", GROUP_STAGE.get(code, "-"))|list %}
+  {%- endif %}
+  {%- if members %}{% set ns.cards = ns.cards + [(code, GROUP_TEXT[code], members)] %}{% endif %}
+{%- endfor %}
+{%- if grouped %}
+  {%- set others = units|rejectattr("group", "in", GROUP_ORDER)|list %}
+  {%- if others %}{% set ns.cards = ns.cards + [("other", ("Other units", "", ""), others)] %}{% endif %}
+{%- endif %}
+<section class="section" aria-labelledby="units-h">
+  <div class="sec-h"><h2 id="units-h">Units</h2></div>
+  {%- if units %}
+  <div class="units-grid">
+    {%- for code, text, members in ns.cards %}
+    <div class="card">
+      <div class="card-h">
+        <h3 class="sq {{ text[2] }}" id="units-{{ code }}">{{ text[0] }}</h3>
+        {%- if text[1] %}<p>{{ text[1] }}</p>{% endif %}
+      </div>
+      <table aria-labelledby="units-{{ code }}">
+        <thead class="sr"><tr><th scope="col">Unit</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+          {%- for u in members %}
+          <tr>
+            <th scope="row">{{ u.label }}</th>
+            <td>{{ ui.tag(L.UNIT_WORDS.get(u.status, u.status), L.UNIT_TONE.get(u.status, "neutral")) }}</td>
+          </tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    {%- endfor %}
+  </div>
+  {%- else %}
+  <div class="card pad"><p>No units have started yet.</p></div>
+  {%- endif %}
+</section>
+
+<section class="section facts" aria-label="Cost and details">
+  <p>Model cost so far: <b class="num">US${{ "%.2f"|format(run.cost_so_far) }}</b>.
+    {%- if run.agents_mode == "stand_in" %} (stand-in agents make no model calls){% else %} The review stops at US$2.50.{% endif %}</p>
+  <p class="small muted">Started {{ run.started_at|datetime }}, by {{ run.started_by_label if run.started_by_label is defined and run.started_by_label else "Compliance specialist (mock)" }}. Fund <span class="id">{{ run.fund_id }}</span>.</p>
+</section>
+
+{#- Abandon: only while the review waits at a step (ux.md page 3 item 10, SAD rule 8). -#}
+{%- if run.is_at_gate %}
+<section class="section" id="abandon" aria-labelledby="abandon-h">
+  <div class="sec-h"><h2 id="abandon-h">Abandon this review</h2></div>
+  <form class="card card-b" method="post" action="/specialist/runs/{{ rid }}/abandon">
+    <input type="hidden" name="run_version" value="{{ run.run_version }}">
+    <p>Abandoning ends this review. Nothing is published and nothing is undone: decisions made so far stay in the audit log. You can then start a new review. Use this, for example, after rejecting a rule by mistake.</p>
+    <div class="field">
+      <label for="abandon-reason">Reason for abandoning</label>
+      <textarea id="abandon-reason" name="reason" aria-describedby="abandon-hint">{{ refusal.typed if refusal and refusal.typed is defined else "" }}</textarea>
+      <p class="hint" id="abandon-hint">Recorded in the audit log. Specialists only.</p>
+    </div>
+    {{ ui.refusal_here(refusal, "abandon") }}
+    <button class="ghost" type="submit">Abandon review</button>
+  </form>
+</section>
+{%- elif run.is_working %}
+<section class="section" id="abandon">
+  <p class="small muted">You can abandon this review once it is waiting for you. While AI is working, it always finishes by itself.</p>
+</section>
+{%- endif %}
 {% endblock %}

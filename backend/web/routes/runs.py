@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 
 from backend.services import FUND_ID
 from backend.services import runs as runs_service
+from backend.services.audit import now_utc
 from backend.services.auth import Identity
 from backend.web.deps import get_conn, render, specialist
 
@@ -44,8 +45,14 @@ def start_review(request: Request, background: BackgroundTasks, conn=Depends(get
 def review_status(request: Request, run_id: str, conn=Depends(get_conn),
                   identity: Identity = Depends(specialist)):
     run = load_run(conn, run_id)
+    # Display only (frontend.md W-1). `refresh_on`: the specialist's "Stop automatic refresh"
+    # choice, carried in the address as ?refresh=off and stored nowhere (ux.md page 3).
+    # `rendered_at`: the time shown in "Last updated at …". Whether the page refreshes at all
+    # still depends on the server's run state (run.is_working), not on this flag alone.
     return render(request, conn, "pages/review_status.html", identity, run=run,
-                  units=runs_service.list_units(conn, run_id))
+                  units=runs_service.list_units(conn, run_id),
+                  refresh_on=request.query_params.get("refresh") != "off",
+                  rendered_at=now_utc())
 
 
 @router.post("/runs/{run_id}/abandon")

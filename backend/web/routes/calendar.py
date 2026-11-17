@@ -45,5 +45,12 @@ def decline(calendar_id: str, conn=Depends(get_conn), identity: Identity = Depen
 def calendar_page(request: Request, conn=Depends(get_conn),
                   identity: Identity = Depends(signed_in)):
     """Both roles may view the calendar (SAD §4)."""
+    # Display only (B12, DL-49: views "chosen by a link, no script"; frontend.md W-6): which view
+    # to show, ?view=list|month|year (anything else is the Month view, the default: operator,
+    # 2026-11-17, as in the mock-up), and for the Month view which month, ?month=YYYY-MM. Stored
+    # nowhere; decides nothing about the entries.
+    view = request.query_params.get("view", "month")
     return render(request, conn, "pages/calendar.html", identity,
-                  published=calendar_service.get_published_calendar(conn, FUND_ID))
+                  published=calendar_service.get_published_calendar(conn, FUND_ID),
+                  cal_view=view if view in ("list", "month", "year") else "month",
+                  cal_month=request.query_params.get("month"))

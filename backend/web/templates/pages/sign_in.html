@@ -1,14 +1,52 @@
 {% extends "base.html" %}
+{#- Page 1 · Sign-in (ux.md page 1; route GET /sign-in). No sidebar.
+
+    Left: the ivory panel from docs/prototype/sign-in.html (operator decision 2026-11-17, option C,
+    handoff H-037 to @ux.designer). Its words are in PORTFOLIO VOICE on purpose: the sign-in page is
+    the only place they appear; every other page keeps the product voice of ux.md §1.6. The three
+    cards are decorative (aria-hidden) and hidden below 1100px. The dot chart has no per-date
+    labels, so the evaluation answer key is not shipped inside the app.
+
+    Right: ux.md page 1, word for word. Two mock identities, equal weight, nothing preselected;
+    each button is its own form. The intro line carries the demo label (UX-001). -#}
+{% import "parts/macros.html" as ui with context %}
+{% set ROLE_TEXT = {
+  "specialist": ("Sign in as the compliance specialist",
+                 "Checks the rules AI drafts, then publishes the calendar."),
+  "gp": ("Sign in as the General Partner / Fund Manager",
+         "Sees the published calendar only. Cannot change anything."),
+} %}
 {% block title %}Sign in{% endblock %}
-{% block ux_ref %}ux.md page 1.{% endblock %}
+{% block signin_class %} with-stage{% endblock %}
+
+{% block stage %}
+<section class="stage" aria-label="About this demo">
+  <p class="brand"><b>acme</b><i></i></p>
+  <div class="cluster" aria-hidden="true">
+      <div class="dcard c-cal"><div class="dh"><div class="dt">2027 filing calendar</div><span>Fictional fund · 22 deadlines</span></div><svg class="dots" viewBox="0 0 372 124"><line x1="6" y1="98" x2="366" y2="98" stroke="#e4e4e4"/><circle class="dot" cx="21" cy="84" r="7" fill="var(--brass)" style="animation-delay:0ms"></circle><circle class="dot" cx="21" cy="62" r="7" fill="var(--brass)" style="animation-delay:40ms"></circle><text x="21" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">J</text><circle class="dot" cx="51" cy="84" r="7" fill="var(--brass)" style="animation-delay:80ms"></circle><circle class="dot" cx="51" cy="62" r="7" fill="#fff" stroke="var(--brass)" stroke-width="1.6" style="animation-delay:120ms"></circle><circle class="dot" cx="51" cy="40" r="7" fill="var(--brass)" style="animation-delay:160ms"></circle><text x="51" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">F</text><circle class="dot" cx="81" cy="84" r="7" fill="var(--brass)" style="animation-delay:200ms"></circle><text x="81" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">M</text><circle class="dot" cx="111" cy="84" r="7" fill="var(--brass)" style="animation-delay:240ms"></circle><circle class="dot" cx="111" cy="62" r="7" fill="var(--brass)" style="animation-delay:280ms"></circle><text x="111" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">A</text><circle class="dot" cx="141" cy="84" r="7" fill="var(--brass)" style="animation-delay:320ms"></circle><circle class="dot" cx="141" cy="62" r="7" fill="#fff" stroke="var(--brass)" stroke-width="1.6" style="animation-delay:360ms"></circle><text x="141" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">M</text><circle class="dot" cx="171" cy="84" r="7" fill="var(--brass)" style="animation-delay:400ms"></circle><circle class="dot" cx="171" cy="62" r="7" fill="var(--brass)" style="animation-delay:440ms"></circle><text x="171" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">J</text><circle class="dot" cx="201" cy="84" r="7" fill="var(--brass)" style="animation-delay:480ms"></circle><circle class="dot" cx="201" cy="62" r="7" fill="var(--brass)" style="animation-delay:520ms"></circle><text x="201" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">J</text><circle class="dot" cx="231" cy="84" r="7" fill="var(--brass)" style="animation-delay:560ms"></circle><circle class="dot" cx="231" cy="62" r="7" fill="#fff" stroke="var(--brass)" stroke-width="1.6" style="animation-delay:600ms"></circle><text x="231" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">A</text><circle class="dot" cx="261" cy="84" r="7" fill="var(--brass)" style="animation-delay:640ms"></circle><text x="261" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">S</text><circle class="dot" cx="291" cy="84" r="7" fill="var(--brass)" style="animation-delay:680ms"></circle><circle class="dot" cx="291" cy="62" r="7" fill="var(--brass)" style="animation-delay:720ms"></circle><text x="291" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">O</text><circle class="dot" cx="321" cy="84" r="7" fill="var(--brass)" style="animation-delay:760ms"></circle><circle class="dot" cx="321" cy="62" r="7" fill="#fff" stroke="var(--brass)" stroke-width="1.6" style="animation-delay:800ms"></circle><text x="321" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">N</text><circle class="dot" cx="351" cy="84" r="7" fill="var(--brass)" style="animation-delay:840ms"></circle><text x="351" y="117" text-anchor="middle" font-size="10.5" fill="#4d4d4d">D</text></svg><div class="dots-key"><span><i class="k1"></i>Due date</span><span><i class="k3"></i>May not be required</span></div></div>
+      <div class="dcard c-flag"><div class="tags"><span class="chip you">Sources disagree</span></div><div class="bars"><div class="bar law"><span class="lbl">The law</span><span class="track"><i style="--w:100%"></i></span><b>6 mo</b></div><div class="bar guide"><span class="lbl">A practitioner guide</span><span class="track"><i style="--w:66.6%"></i></span><b>4 mo</b></div></div></div>
+      <div class="dcard c-ring"><div class="ring-row"><svg class="ring" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle cx="28" cy="28" r="22" fill="none" stroke="var(--panel)" stroke-width="6"/><circle class="ring-arc" cx="28" cy="28" r="22" fill="none" stroke="var(--brass)" stroke-width="6" stroke-linecap="round" transform="rotate(-90 28 28)" stroke-dasharray="138.2" style="--c:138.2;stroke-dashoffset:19.7"/></svg><div><b>6 of 7</b>rules approved by a person. One was rejected.</div></div></div>
+    </div>
+  <p class="tagline">AI drafts. People approve.</p>
+  <p>I designed this tool to read fund regulations and draft a compliance calendar: who must file what, and by when. A wrong date has real consequences, so I started from one question: where can I trust AI, and where can't I?</p>
+  <p>My approach is: decide what must never go wrong, make code and people responsible for that, and let AI speed up everything else. Then scope ruthlessly to what can actually ship.</p>
+</section>
+{% endblock %}
+
 {% block main %}
-<h1>Sign in</h1>
-{% if refusal %}<p role="alert">{{ refusal }}</p>{% endif %}
-<p>Demo with mock data. No password.</p>
-{% for who in identities %}
-<form method="post" action="/sign-in">
-  <input type="hidden" name="identity_id" value="{{ who.identity_id }}">
-  <button type="submit">Sign in as {{ who.label }}</button>
-</form>
-{% endfor %}
+<div class="inner">
+  <h1>Sign in to the demo</h1>
+  <p class="intro">Choose a role to explore the demo with mock data. You don't need a password.</p>
+  {{ ui.refusal_top(refusal) }}
+  {%- for who in identities %}
+  <form class="role-form" method="post" action="/sign-in">
+    <input type="hidden" name="identity_id" value="{{ who.identity_id }}">
+    <button class="role" type="submit">
+      <span class="t">{{ ROLE_TEXT[who.role][0] }}</span>
+      <span class="d">{{ ROLE_TEXT[who.role][1] }}</span>
+    </button>
+  </form>
+  {%- endfor %}
+  <p class="hint">The fund and the firm are fictional.</p>
+</div>
 {% endblock %}

@@ -1,0 +1,206 @@
+{#- Shared template parts as Jinja macros (frontend.md §1.2). A macro is a small reusable piece
+    of page, like a component. Pages import this file with:
+        {% import "parts/macros.html" as ui with context %}
+
+    Rule for everything here (ux.md §1.2): show what the server sent. Where H-036 has not landed
+    yet, fall back to the interim lookups in parts/lookups.html, never to a calculation. -#}
+{% import "parts/lookups.html" as L %}
+
+{#- ux.md §1.5 tone → the style-note chip family (operator decision 2026-11-17, frontend.md §4.2):
+    neutral grey · info brass · action orange · success slate · problem bordeaux. -#}
+{% set TONE_CLASS = {"neutral": "", "info": "agent", "action": "you",
+                     "success": "done", "problem": "no"} %}
+
+
+{#- A status pill. The word is always inside it; colour only supports it (UX-007). -#}
+{% macro tag(words, tone="neutral", lg=false) -%}
+<span class="chip {{ TONE_CLASS.get(tone, '') }}{{ ' lg' if lg }}">{{ words }}</span>
+{%- endmacro %}
+
+
+{#- The tone of a review's status: the server's value (H-036 V-2), else the interim lookup. -#}
+{% macro run_tone(run) -%}
+{%- if run.status_tone is defined and run.status_tone -%}{{ run.status_tone }}
+{%- elif run.status == "ACTIVE" -%}{{ L.TONE_ACTIVE.get(run.phase, "neutral") }}
+{%- else -%}{{ L.TONE_ENDED.get(run.status, "neutral") }}
+{%- endif -%}
+{%- endmacro %}
+
+
+{#- A review's status pill, with the server's status words (runs.STATUS_WORDS). -#}
+{% macro run_tag(run, lg=false) -%}
+{{ tag(run.status_words, run_tone(run)|trim, lg) }}
+{%- endmacro %}
+
+
+{#- The review's number ("4"). Interim: the run ID until H-036 V-1 sends `review_number`. -#}
+{% macro review_no(run) -%}
+{{ run.review_number if run.review_number is defined and run.review_number else run.run_id }}
+{%- endmacro %}
+
+{#- "Review 4" (ux.md §1.8: "Review", never "Run", on screen). -#}
+{% macro review_name(run) -%}
+Review {{ review_no(run) }}
+{%- endmacro %}
+
+
+{#- Where a step page stands: "before", "at", "after", or "ended_before" (ux.md "Closed review").
+    The server's value (H-036 V-8 to V-10) if sent, else the interim PAGE_STAGE lookup. An ended
+    review never shows forms: a reached step becomes "after" (read-only). -#}
+{% macro stage_of(run, page, server_stage=none) -%}
+{%- if server_stage -%}{{ server_stage }}
+{%- else -%}
+  {%- set s = L.PAGE_STAGE[page].get(run.phase, "before") -%}
+  {%- if run.status == "ACTIVE" -%}{{ s }}
+  {%- elif run.status == "COMPLETED" -%}after
+  {%- elif s == "before" -%}ended_before
+  {%- else -%}after
+  {%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+
+{#- Breadcrumb (ux.md §1.3 item 1), pages 3 to 6. -#}
+{% macro breadcrumb(run) -%}
+<nav class="crumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/specialist/runs">Filing rules</a></li>
+    <li>{{ fund.regime }}</li>
+    <li aria-current="page">{{ review_name(run) }}</li>
+  </ol>
+</nav>
+{%- endmacro %}
+
+
+{#- Run labels (ux.md §1.3 item 3): text tags, never colour alone. -#}
+{% macro run_labels(run) -%}
+{%- if run.agents_mode == "stand_in" or run.demo_planted_row or run.demo_fail_step1 %}
+<ul class="tags" aria-label="About this review">
+  {%- if run.agents_mode == "stand_in" %}<li>{{ tag("Stand-in agents") }}</li>{% endif %}
+  {%- if run.demo_planted_row %}<li>{{ tag("Demo rule on") }}</li>{% endif %}
+  {%- if run.demo_fail_step1 %}<li>{{ tag("Failure demo on") }}</li>{% endif %}
+</ul>
+{%- endif %}
+{%- endmacro %}
+
+
+{#- The four-step stepper (ux.md §1.4).
+    The server's `run.steps` (H-036 V-3, operator 2026-11-17): four items of
+    {state, href, current}, where state is one of "Done", "In progress", "Your turn",
+    "Not started", "Failed", "Ended"; href is the step's page or none; current is true on the step
+    the review is at. Until the server sends it, the same list is built from ux.md's fixed table
+    (parts/lookups.html), so the page looks the same either way. -#}
+{% macro stepper(run) -%}
+{%- if run.steps is defined and run.steps -%}
+  {%- set rows = run.steps -%}
+{%- else -%}
+  {%- if run.status == "ACTIVE" -%}
+    {%- set states = L.STEPS_ACTIVE.get(run.phase, L.STEPS_ACTIVE["A_RUNNING"]) -%}
+  {%- elif run.status == "COMPLETED" -%}
+    {%- set states = L.STEPS_COMPLETED -%}
+  {%- else -%}
+    {%- set word = "Failed" if run.status == "FAILED" else "Ended" -%}
+    {%- set states = L.STEPS_STOPPED[L.STOPPED_STEP.get(run.phase, 1)]|map("replace", "{x}", word)|list -%}
+  {%- endif -%}
+  {%- set ns = namespace(rows=[]) -%}
+  {%- for state in states -%}
+    {%- set ns.rows = ns.rows + [{
+          "state": state,
+          "href": ("/specialist/runs/" ~ run.run_id ~ L.STEP_PATHS[loop.index]) if state in ("Done", "Your turn") else none,
+          "current": state in ("In progress", "Your turn", "Failed", "Ended")}] -%}
+  {%- endfor -%}
+  {%- set rows = ns.rows -%}
+{%- endif -%}
+{%- set css = {"Done": "done", "In progress": "working", "Your turn": "you",
+               "Failed": "failed", "Ended": "ended", "Not started": ""} -%}
+<ol class="steps" aria-label="Where this review is">
+  {%- for step in rows %}
+  {%- set i = loop.index %}
+  <li class="{{ css.get(step.state, '') }}"{% if step.current %} aria-current="step"{% endif %}>
+    {%- if step.href %}
+    <a class="p" href="{{ step.href }}">
+    {%- else %}
+    <span class="p">
+    {%- endif %}
+      <span class="n">Step {{ i }}</span>
+      <span class="t">{{ L.STEP_NAMES[i] }}</span>
+      <span class="s">{{ step.state }}</span>
+    {%- if step.href %}</a>{% else %}</span>{% endif %}
+  </li>
+  {%- endfor %}
+</ol>
+{%- endmacro %}
+
+
+{#- The refusal at the top of the page (ux.md §5).
+    About the page: the full sentence in a box headed "Not done".
+    About one card or the start button: a short line and a "Go to …" link to it.
+    `refusal` may be a plain sentence (sign-in) or the shared refusal object (H-036 V-12). -#}
+{% macro refusal_top(refusal) -%}
+{%- if refusal -%}
+  {%- set sentence = refusal.sentence if refusal.sentence is defined else refusal -%}
+  {%- if refusal.anchor is defined and refusal.anchor -%}
+<p class="refline"><span>{{ refusal.short if refusal.short is defined and refusal.short else "Not done. The reason is shown beside " ~ refusal.target_label ~ "." }}</span>
+  <a href="#{{ refusal.anchor }}">{{ refusal.link_text if refusal.link_text is defined and refusal.link_text else "Go to " ~ refusal.target_label }}</a></p>
+  {%- else -%}
+<div class="refusal"><b>Not done</b>{{ sentence }}</div>
+  {%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+
+{#- The full refusal sentence beside a control or inside a card, when the refusal is about it.
+    `here` is that control's or card's anchor; the server says which one (refusal.anchor). For a
+    page-level refusal, pass here="page" to repeat the sentence next to the control it concerns. -#}
+{% macro refusal_here(refusal, here) -%}
+{%- if refusal and refusal.sentence is defined and ((refusal.anchor is defined and refusal.anchor == here) or (here == "page" and not refusal.anchor)) -%}
+<div class="refusal"><b>Not done</b>{{ refusal.sentence }}</div>
+{%- endif -%}
+{%- endmacro %}
+
+
+{#- The head of a page about one review (pages 3 to 6), in the ux.md §1.3 order:
+    breadcrumb → H1 with run labels → lead (the caller's content) → refusal → stepper. -#}
+{% macro review_head(run, h1, refusal=none) -%}
+{{ breadcrumb(run) }}
+<header class="head">
+  <div class="title"><h1>{{ h1 }}</h1>{{ run_labels(run) }}</div>
+  {%- if caller %}{{ caller() }}{% endif %}
+</header>
+{{ refusal_top(refusal) }}
+{{ stepper(run) }}
+{%- endmacro %}
+
+
+{#- One line and one link, for a step page that is not reached yet or that the review never
+    reached (ux.md pages 4 to 6 "Not yet", "Closed review"). -#}
+{% macro not_reached(run, stage, before_text) -%}
+<div class="card pad section">
+  {%- if stage == "ended_before" %}
+  <p>This review ended before this step.</p>
+  <p class="small"><a href="/specialist/runs/{{ run.run_id }}">Go to the review status page</a></p>
+  {%- else %}
+  <p>{{ before_text }}</p>
+  <p class="small"><a href="/specialist/runs/{{ run.run_id }}">Watch progress on the review status page</a></p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+
+{#- A calendar mark: its label as a word, then one line of explanation (ux.md page 6 "Mark
+    labels"). `kind` is moved / precautionary / open_question. For "moved", the dates and the
+    direction come from the server (H-036 V-10, `mark`); until then only the label and audience. -#}
+{% macro mark_label(kind, mark=none, gp=false) -%}
+<div class="mark">
+  {%- if kind == "precautionary" %}
+  {{ tag("May not be required", "action") }}
+  {%- if not gp %}<span class="small">Added because nobody has confirmed it applies. The General Partner sees this label.</span>{% endif %}
+  {%- elif kind == "moved" %}
+  {{ tag("Moved off a weekend") }}
+  <span class="small">{% if mark and mark.from_date %}Moved from {{ mark.from_date|date }} to {{ mark.to_date|date }} ({{ mark.direction }}). {% endif %}Only you see this.</span>
+  {%- elif kind == "open_question" %}
+  {{ tag("Depends on open question OQ-7") }}
+  <span class="small">What happens on a weekend or holiday depends on an unanswered question. The date is the same whether or not it moves. Only you see this.</span>
+  {%- endif %}
+</div>
+{%- endmacro %}

@@ -7,6 +7,7 @@ specialist address whether or not that review exists).
 """
 
 import sqlite3
+from datetime import date, datetime
 from pathlib import Path
 
 from fastapi import Depends, Request
@@ -19,6 +20,64 @@ from backend.services.fund import load_fund
 from backend.services.runs import get_active_run
 
 templates = Jinja2Templates(directory=Path(__file__).with_name("templates"))
+
+
+# --- Date and time formats for the pages (frontend.md §10.2, W-2) -----------------------------
+# Display only: these turn a stored value into the words ux.md §1.6 asks for ("Mon 2 Feb 2027",
+# "14:02"). They decide nothing. Stored times are UTC (audit.now_utc); the page shows them in the
+# server's local time (frontend.md Assumptions). An empty value shows as an empty string.
+
+def _to_local(value) -> datetime | None:
+    """A stored ISO timestamp (or a datetime) as a local datetime, or None if empty."""
+    if not value:
+        return None
+    moment = value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+    return moment.astimezone()  # no argument = the server's local time zone
+
+
+def format_date(value) -> str:
+    """'2027-01-11' or a timestamp → 'Mon 11 Jan 2027'."""
+    if not value:
+        return ""
+    if isinstance(value, date) and not isinstance(value, datetime):
+        day = value
+    elif isinstance(value, str) and len(value) == 10:  # a plain date such as a due date
+        day = date.fromisoformat(value)
+    else:
+        day = _to_local(value).date()
+    return f"{day:%a} {day.day} {day:%b %Y}"  # day.day avoids a leading zero ("2", not "02")
+
+
+def format_time(value) -> str:
+    """A timestamp → '14:02'."""
+    moment = _to_local(value)
+    return f"{moment:%H:%M}" if moment else ""
+
+
+def format_time_seconds(value) -> str:
+    """A timestamp → '14:02:09' (used by "Last updated at …", approved 2026-11-17)."""
+    moment = _to_local(value)
+    return f"{moment:%H:%M:%S}" if moment else ""
+
+
+def format_datetime(value) -> str:
+    """A timestamp → 'Fri 13 Nov 2026, 14:00' (Filing rules "Started", ux.md page 2)."""
+    return f"{format_date(value)}, {format_time(value)}" if value else ""
+
+
+templates.env.filters["date"] = format_date
+templates.env.filters["time"] = format_time
+templates.env.filters["time_seconds"] = format_time_seconds
+templates.env.filters["datetime"] = format_datetime
+
+# Page 7's month grouping and two-month week grid, display-only (calendar_view.py).
+from backend.web.calendar_view import (  # noqa: E402
+    calendar_dots, calendar_layout, calendar_month, calendar_year)
+
+templates.env.filters["calendar_layout"] = calendar_layout
+templates.env.filters["calendar_month"] = calendar_month  # B12 Month view
+templates.env.filters["calendar_year"] = calendar_year    # B12 Year view
+templates.env.filters["calendar_dots"] = calendar_dots    # B12 dot chart
 
 
 class NotSignedIn(Exception):

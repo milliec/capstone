@@ -321,6 +321,16 @@ nothing. The fix was `sleep=None`, looking up `time.sleep` at the moment of paus
 default is a snapshot, not a live link. And a "real mode never pauses" test only means something if
 the matching "stand-in does pause" test exists and can go red.
 
+**A flaky test can be a flaky outside service.** The screenshot tests now and then reported every
+page of one browser session as changed, with only tiny differences in body text. Waiting longer for
+the fonts did not fix it. Asking Google Fonts the same question five times did: one answer in five
+pointed to a different, built-on-the-fly copy of the Inter font, which renders slightly differently.
+The fix was to give the tests a pinned copy of the usual answer, so every run uses the same font
+files; the app itself is unchanged. Lesson: when a test fails "randomly", look for something outside
+your code that can answer differently (a font server, a clock, a network), and pin it in the test.
+It's like comparing two exports of a Figma frame where a shared library font quietly updated between
+them: the design did not change, the font did.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -408,6 +418,17 @@ ready to commit. Nothing leaked: the agent removed the shortcuts and the commit 
 intended files. Lesson: a protection is defined by its exact pattern, not by what it is meant to
 protect. It's like a Figma share setting on a page: a link to that page from another file is a
 separate thing with its own settings. Before relying on a rule, test the edge case.
+
+**A check you run by hand is only as good as the tool it runs on.** All through the stubbed-UI
+build, the agent ran the real-name scan by hand before each commit and it came back clean. Then the
+commit hook blocked a commit: two lines in downloaded test-tool code (Playwright, git-ignored) matched
+a word on the identifier list. The agent's scans had missed them because, in its environment, `grep`
+was quietly swapped for a look-alike tool that decides where a "word" starts and ends differently.
+The hook calls the system's own `grep`, so it was right, and every earlier commit had passed it.
+Lesson: two copies of "the same" check can disagree; trust the one that guards the door (the hook),
+and when a hand check matters, call the exact tool by its full path (`/usr/bin/grep`). It's like
+checking colour contrast with a different plug-in from the one the design review uses: same
+question, different answer.
 
 ## 5. Domain: fund compliance calendars
 
@@ -510,3 +531,7 @@ DL-48).
   covered by that folder's ignore rule)
 - 2026-11-16 · added one note from the app-shell build (a default value is a snapshot; a test that
   fails first can catch the code)
+- 2026-11-17 · added one note from the visual-regression setup (a hand-run check is only as good as
+  the tool it runs on; the hook used the system grep and caught what the hand scan missed)
+- 2026-11-17 · added one note from the visual-check flake (a flaky test can be a flaky outside service;
+  pin it in the test)

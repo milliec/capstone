@@ -1,35 +1,48 @@
 <!doctype html>
-{# PLACEHOLDER shared frame (app shell). @frontend.eng replaces it in B5 from ux.md §1.3.
-   Unstyled on purpose: the look comes from ux.md, style-note.md and the mock-ups, not from here. #}
+{#- The shared frame (ux.md §1.3, frontend.md §1.2). Every page extends this.
+
+    Signed in: white sidebar + main column on the grey page.
+    Not signed in (sign-in page): one white panel, no sidebar.
+
+    Pages fill these blocks:
+      title  the page name; "Not done: " is added in front after a refusal (ux.md §5)
+      head   extra <head> lines (the review status page adds its 3-second refresh here)
+      main   the page content, in the ux.md §1.3 order -#}
 <html lang="en-GB">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if refusal and not title_prefix_off %}Not done: {% endif %}{% block title %}{% endblock %} · ACME Compliance calendar (demo)</title>
   {% block head %}{% endblock %}
-  <title>{% block title %}{% endblock %} · ACME Compliance calendar (demo)</title>
+  {#- Fonts from a public source (style-note); the pages still work if they do not load. -#}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500&family=Inter:wght@400;500&family=DM+Mono&display=swap">
+  <link rel="stylesheet" href="/static/site.css">
 </head>
 <body>
-  {% if identity %}
-  <aside>
-    <p><strong>acme</strong> · Compliance calendar</p>
-    <p>Fund<br><strong>{{ fund.name }}</strong><br>{{ fund.regime }} · year end {{ fund.year_end }}</p>
-    <nav>
-      <ul>
-        <li><a href="/calendar" {% if current_path == "/calendar" %}aria-current="page"{% endif %}>Calendar</a></li>
-        {% if identity.role == "specialist" %}
-        <li><a href="/specialist/runs" {% if current_path == "/specialist/runs" %}aria-current="page"{% endif %}>Filing rules</a>
-          {% if your_turn %}<span>Your turn</span>{% endif %}</li>
-        {% endif %}
-      </ul>
-    </nav>
-    <p>{{ identity.label }}<br><small>{{ identity.line }}</small></p>
-    <form method="post" action="/sign-out"><button type="submit">Sign out</button></form>
-  </aside>
-  <hr>
-  {% endif %}
-  <main>
-    <p><em>Placeholder page (app shell): shows the data it receives. {% block ux_ref %}{% endblock %}</em></p>
-    {% block main %}{% endblock %}
-  </main>
+  {#- K-1 (ux-review): while the review status page reloads itself every 3 seconds, focus goes back
+      to the top on each reload, so "Stop automatic refresh" is also the FIRST Tab stop here, shown
+      when focused like the skip link. Same words and address as the link in the status line. -#}
+  {%- if refreshing is defined and refreshing %}
+  <a class="skip" href="/specialist/runs/{{ run.run_id }}?refresh=off">Stop automatic refresh</a>
+  {%- endif %}
+  <a class="skip" href="#main">Skip to the main content</a>
+  {%- if identity %}
+  <div class="shell">
+    {% include "parts/sidebar.html" %}
+    <main class="main" id="main">
+      {% block main %}{% endblock %}
+    </main>
+  </div>
+  {%- else %}
+  <div class="signin{% block signin_class %}{% endblock %}">
+    {#- Sign-in only: the ivory panel beside the sign-in box (operator, 2026-11-17, H-037). -#}
+    {% block stage %}{% endblock %}
+    <main class="enter" id="main">
+      {{ self.main() }}
+    </main>
+  </div>
+  {%- endif %}
 </body>
 </html>

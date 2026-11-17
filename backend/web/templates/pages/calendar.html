@@ -1,19 +1,172 @@
 {% extends "base.html" %}
+{#- Page 7 · Calendar (ux.md page 7; route GET /calendar). The General Partner's only page; the
+    specialist sees it read-only. Must work at phone width (360 px).
+    Reads: published (calendar.get_published_calendar: None = nothing published yet), identity.
+    NEVER shows a moved mark, an open-question mark, a flag, a "can't tell" or a review status
+    (CR-012, UX-009). Laid out like docs/prototype/gp-calendar.html (operator, 2026-11-17): the
+    summary cards with the dot chart, then one calendar with a Month / Year / List switch. All of it
+    is arranged display-only by backend/web/calendar_view.py from the entries already sent. -#}
+{% import "parts/macros.html" as ui with context %}
+{%- set gp = identity.role == "gp" -%}
 {% block title %}Calendar{% endblock %}
-{% block ux_ref %}ux.md page 7 (List view).{% endblock %}
 {% block main %}
-<h1>Calendar</h1>
-{% if not published %}
-<p>The calendar is being prepared.</p>
-{% else %}
-<p>Published {{ published.published_at }}{% if published.agents_mode == "stand_in" %} · made with stand-in agents (fixed test outputs){% endif %}</p>
-<table>
-  <thead><tr><th>Due date</th><th>Filing</th><th>Precautionary</th></tr></thead>
-  <tbody>
-  {% for e in published.entries %}
-    <tr><td>{{ e.due_date }}</td><td>{{ e.obligation_name }}</td><td>{{ "yes" if e.precautionary else "no" }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% endif %}
+<header class="head">
+  <h1>Compliance calendar</h1>
+  {%- if published %}
+  <p class="lead">Published on {{ published.published_at|date }}.{% if published.agents_mode == "stand_in" %} Made with stand-in agents (fixed test outputs, no AI model).{% endif %}</p>
+  {%- endif %}
+</header>
+
+{%- if not published %}
+{#- Before the first publication: this fixed message and nothing else (DL-27, D11, UX-008). -#}
+<div class="card pad section">
+  <p>Your compliance calendar is being prepared and checked by a specialist. Nothing has been published yet. The deadlines will appear here once it is published.</p>
+</div>
+{%- else %}
+
+{#- The calendar note differs by role (U11, H-023, UX-018). -#}
+{%- if gp %}
+<p class="small muted section">These dates are the specialist's approved reading of the rules. Not legal advice. Date counting hasn't yet been checked against the legal texts.</p>
+{%- else %}
+<p class="note section">This calendar is not legal advice. Before anyone relies on these dates: the way deadlines are counted (for example, the day 'six months after year end' falls on) has not yet been checked against the legal texts.</p>
+{%- endif %}
+
+{%- set layout = published.entries|calendar_layout %}
+{%- set dots = published.entries|calendar_dots %}
+{%- set year = layout.year %}
+{%- set due_entry = published.entries|selectattr("due_date", "equalto", layout.due_next)|first if layout.due_next else none %}
+
+{#- Summary cards (ux.md page 7 item 5), laid out as in the mock-up: Due next · Entries with the dot
+    chart · May not be required. Counted display-only from the entries already sent (operator,
+    2026-11-17), so they count only what this viewer may see (DL-49, CR-012). The chart is
+    decorative; its numbers are written as text. -#}
+{%- set H = 44 + 22 * dots.tallest %}
+<div class="kpis three" role="list" aria-label="Summary">
+  <div class="kpi dark" role="listitem">
+    <p class="k">Due next</p>
+    <p class="v text">{{ (layout.due_next|date) if layout.due_next else "None" }}</p>
+    {%- if due_entry %}<p class="m">{{ due_entry.obligation_name }}{% if due_entry.who_files_label is defined and due_entry.who_files_label %}, filed by {{ due_entry.who_files_label }}{% endif %}</p>{% endif %}
+  </div>
+  <div class="kpi" role="listitem">
+    <p class="k">Entries in {{ dots.year }}: {{ dots.total }}</p>
+    <svg class="dots" viewBox="0 0 372 {{ H }}" aria-hidden="true" focusable="false">
+      <line x1="6" y1="{{ H - 26 }}" x2="366" y2="{{ H - 26 }}" stroke="#e4e4e4"/>
+      {%- for m in dots.months %}{% set x = 21 + 30 * loop.index0 %}
+      {%- for hollow in m.dots %}
+      <circle class="dot" cx="{{ x }}" cy="{{ H - 40 - 22 * loop.index0 }}" r="7" {% if hollow %}fill="#fff" stroke="var(--brass)" stroke-width="1.6"{% else %}fill="var(--brass)"{% endif %}/>
+      {%- endfor %}
+      <text x="{{ x }}" y="{{ H - 7 }}" text-anchor="middle" font-size="10.5" fill="#4d4d4d">{{ m.label }}</text>
+      {%- endfor %}
+    </svg>
+    <p class="dots-key" aria-hidden="true"><span><i class="k1"></i>Due date</span><span><i class="k3"></i>May not be required</span></p>
+  </div>
+  <div class="kpi you" role="listitem">
+    <p class="k">May not be required</p>
+    <p class="v num">{{ dots.may_not_be_required }}</p>
+  </div>
+</div>
+
+{#- One calendar, three views (B12, DL-49; operator 2026-11-17: behave like the mock-up). A tab-styled
+    radio group switches the view in place with CSS (:has()), no script: only the chosen view shows.
+    The server ticks the radio for ?view= (Month by default: operator 2026-11-17, as in the mock-up),
+    so month paging keeps the Month view.
+    Without :has() every view shows, one under another. Below 960px only the List view shows. -#}
+<section class="section switch" id="entries" aria-labelledby="cal-h">
+  <div class="sec-h">
+    <h2 id="cal-h">All entries{% if year %} for {{ year }}{% endif %}</h2>
+    <div class="tabs" role="radiogroup" aria-label="Show the calendar as">
+      {%- for key, label in [("month", "Month"), ("year", "Year"), ("list", "List")] %}
+      <label><input class="sr" type="radio" name="view" id="v-{{ key }}" value="{{ key }}"{% if (cal_view or "month") == key %} checked{% endif %}>{{ label }}</label>
+      {%- endfor %}
+    </div>
+  </div>
+
+  {#- Month view: one month as a real table, with links to the months either side. -#}
+  {%- set mv = published.entries|calendar_month(cal_month) %}
+  <div class="view month card month-card">
+    <div class="monthbar">
+      <a class="page-link" href="/calendar?view=month&amp;month={{ mv.prev.ym }}#entries">‹ {{ mv.prev.label }}</a>
+      <h3 id="month-cap">{{ mv.label }}</h3>
+      <a class="page-link" href="/calendar?view=month&amp;month={{ mv.next.ym }}#entries">{{ mv.next.label }} ›</a>
+    </div>
+    <table class="month-table" aria-labelledby="month-cap">
+      <thead><tr>{% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {%- for week in mv.weeks %}
+        <tr>
+          {%- for c in week %}
+          <td class="cell{{ ' out' if not c.in_month }}">
+            {%- if c.in_month %}
+            <span class="d{{ ' next' if c.is_due_next }}">{{ c.day }}</span>
+            {%- if c.is_due_next %}<span class="due-next">Due next</span>{% endif %}
+            {%- for e in c.entries %}
+            <span class="e">{{ e.obligation_name }}
+              {%- if e.who_files_label is defined and e.who_files_label %}<small>{{ e.who_files_label }}</small>{% endif %}
+              {%- if e.precautionary %}<small class="mnbr">May not be required</small>{% endif %}</span>
+            {%- endfor %}
+            {%- else %}<span class="d" aria-hidden="true">{{ c.day }}</span>{% endif %}
+          </td>
+          {%- endfor %}
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if not mv.count %}<p class="card-b muted">No filings this month.</p>{% endif %}
+  </div>
+
+  {#- Year view: one row per obligation, a column per month, as a real table. -#}
+  {%- set yv = published.entries|calendar_year %}
+  <div class="view year card scroll">
+    <table class="year-table">
+      <caption class="sr">Filings in {{ yv.year }}, by month</caption>
+      <thead><tr><th scope="col">What · who files</th>
+        {%- for m in yv.months %}<th scope="col" class="mh{{ ' now' if loop.index == yv.now_month }}">{{ m }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {%- for r in yv.rows %}
+        <tr>
+          <th scope="row">{{ r.name }}{% if r.who_files %}<span class="m">{{ r.who_files }}</span>{% endif %}</th>
+          {%- for cell in r.cells %}
+          <td>
+            {%- for d in cell %}
+            <span class="day{{ ' prec' if d.precautionary }}{{ ' next' if d.is_due_next }}"><small>{{ d.weekday }}</small><b class="num">{{ d.day }}</b>
+              {%- if d.precautionary %}<span class="sr"> (may not be required)</span>{% endif %}
+              {%- if d.is_due_next %}<span class="sr"> (due next)</span>{% endif %}</span>
+            {%- endfor %}
+          </td>
+          {%- endfor %}
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    <p class="legend" aria-hidden="true"><span><i class="prec"></i>May not be required (dashed)</span><span><i class="next"></i>Due next (underlined)</span></p>
+  </div>
+
+  {#- List view: the entries grouped by month (ux.md page 7 item 7); each month a row group with its
+      own header cell, so a screen reader announces the month with each row. -#}
+  <div class="view list card">
+    <table class="stack-sm">
+      <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Who files</th><th scope="col">Why</th></tr></thead>
+      {%- for m in layout.months %}
+      <tbody>
+        <tr class="month-row"><th colspan="4" scope="rowgroup">{{ m.label }}</th></tr>
+        {%- for e in m.entries %}
+        <tr>
+          <td data-label="When" class="when">{{ e.due_date|date }}</td>
+          <td data-label="What">{{ e.obligation_name }}
+            {%- if e.precautionary %}<span class="m">{{ ui.tag("May not be required", "action") }}</span>{% endif %}</td>
+          <td data-label="Who files">{{ e.who_files_label if e.who_files_label is defined else "" }}</td>
+          <td data-label="Why">
+            {%- if e.why is defined %}{{ e.why }}{% endif %}
+            {%- if e.precautionary %}<span class="m">May not be required: it is not yet confirmed that this applies to the fund. It is listed so that it is not missed. It does not mean that any registration or marketing is permitted.</span>{% endif %}
+            {%- if e.source_document is defined %}<span class="m">Source: {{ e.source_document }}, paragraph <span class="id">{{ e.source_paragraph_id }}</span></span>{% endif %}
+            {%- if e.quote is defined %}<blockquote class="small">{{ e.quote }}</blockquote>{% endif %}
+          </td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+      {%- endfor %}
+    </table>
+  </div>
+</section>
+{%- endif %}
 {% endblock %}

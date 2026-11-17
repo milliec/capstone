@@ -1,0 +1,482 @@
+/* ACME Compliance calendar (demo): the one shared stylesheet (SAD §3).
+ *
+ * Built from the approved mock-up stylesheet (docs/prototype/app.css), which style-note.md
+ * describes. Tokens are copied unchanged; only the rules the seven pages use are kept
+ * (frontend.md §5). No new colour, radius or font: add one to style-note.md first.
+ *
+ * Every page must still work and read in order with this file removed (B6 can be dropped).
+ *
+ * Sections: 1 tokens · 2 base · 3 shell · 4 page parts · 5 components · 6 review status
+ *           7 rule and answer cards · 8 decision forms · 9 calendar · 10 sign-in
+ *           11 motion · 12 narrow screens
+ */
+
+/* 1. Tokens (unchanged from app.css section 1) */
+:root {
+  color-scheme: light;
+  --page: #f5f5f5;        /* the page behind everything */
+  --panel: #efefef;       /* quiet bands and the active nav row */
+  --card: #ffffff;        /* cards, sidebar, tables */
+  --ivory: #ebe6dd;       /* the "stage": things that need a person */
+  --ink: #202020;         /* headings, buttons */
+  --body: #4d4d4d;        /* paragraphs */
+  --muted: #636363;       /* helper text (AA on white and on --page) */
+  --rule: #e4e4e4;        /* hairlines */
+  --line: rgba(32, 32, 32, .21);
+
+  --orange: #ff682c;      /* decoration only: never text, never a fill under text */
+  --orange-text: #b33d12; /* the only orange allowed for letters */
+  --orange-wash: #fff0ea; --orange-line: #ffc2a6;
+  --brass: #816729;       /* small labels, link underlines (never on --ivory) */
+  --brass-wash: #f4f0e3;  --brass-line: #d3c7a3;
+  --bordeaux: #6b1e1c;    /* refused, rejected, failed */
+  --bordeaux-wash: #f6e9e7; --bordeaux-line: #dcb6b1;
+  --slate: #1f3138;       /* done, approved, published */
+  --slate-wash: #e7eef0;  --slate-line: #b9cad0;
+
+  --font-head: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-id: "DM Mono", ui-monospace, Menlo, monospace;
+
+  --r-panel: 6px;
+  --r-card: 6px;
+  --r-ctl: 4px;
+  --r-btn: 6px;
+  --r-pill: 200px;
+  --ease: cubic-bezier(.645, .045, .355, 1);
+}
+
+/* 2. Base */
+* { box-sizing: border-box; }
+html { scroll-padding-top: 24px; }
+body { margin: 0; background: var(--page); color: var(--body); font: 400 15px/1.5 var(--font-body); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 400; color: var(--ink); letter-spacing: -0.02em; margin: 0; }
+h1 { font-size: 34px; line-height: 1.1; }
+h2 { font-size: 22px; line-height: 1.15; }
+h3 { font-size: 16px; line-height: 1.25; letter-spacing: -0.01em; }
+p { margin: 0; }
+a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; text-decoration-thickness: 1px; transition: color 200ms linear; }
+a:hover { color: var(--brass); }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; border-radius: 4px; }
+.num { font-variant-numeric: tabular-nums; }
+.id { font: 400 12.5px/1.3 var(--font-id); color: var(--brass); letter-spacing: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; line-height: 1.45; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Skip link: hidden until it has keyboard focus */
+.skip { position: absolute; left: 16px; top: -48px; background: var(--card); padding: 8px 14px; border-radius: var(--r-btn); z-index: 10; }
+.skip:focus { top: 16px; }
+
+/* 3. Shell: white sidebar panel on the grey page */
+.shell { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 8px; padding: 16px; min-height: 100vh; }
+.side { background: var(--card); border-radius: var(--r-panel); padding: 28px 0 20px; position: sticky; top: 16px; height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.brand { display: flex; align-items: baseline; gap: 8px; padding: 0 28px; }
+.brand b { font: 400 30px/1 var(--font-head); letter-spacing: -0.04em; color: var(--ink); }
+.brand i { width: 9px; height: 9px; background: var(--orange); display: inline-block; }
+.product { padding: 6px 28px 0; font: 400 13px/1.3 var(--font-head); color: var(--muted); }
+.fund { margin: 24px 28px 0; padding-top: 20px; border-top: 1px solid var(--rule); }
+.fund .k { font: 500 12px/1.3 var(--font-body); color: var(--brass); }
+.fund .v { font: 400 15px/1.3 var(--font-head); color: var(--ink); letter-spacing: -0.01em; margin-top: 4px; }
+.fund .m { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.nav { margin-top: 24px; }
+.nav ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.nav a { display: flex; align-items: center; gap: 12px; padding: 11px 28px; font: 400 15px/1.2 var(--font-head); letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+.nav a svg { width: 18px; height: 18px; flex: none; stroke: var(--brass); fill: none; stroke-width: 1.5; }
+.nav a .chip { margin-left: auto; }
+.nav a:hover { background: var(--page); color: var(--ink); }
+.nav a[aria-current="page"] { background: var(--panel); font-weight: 500; }
+.nav a[aria-current="page"] svg { stroke: var(--orange); }
+.side-foot { margin-top: auto; padding: 16px 28px 0; border-top: 1px solid var(--rule); display: grid; gap: 10px; }
+.who { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--panel); color: var(--ink); display: grid; place-items: center; font: 500 12px/1 var(--font-body); flex: none; }
+.who .n { font: 500 13px/1.3 var(--font-body); color: var(--ink); }
+.who .r { font-size: 12px; color: var(--muted); }
+.main { padding: 28px 32px 64px; min-width: 0; max-width: 1240px; }
+
+/* 4. Page parts */
+.crumb ol { list-style: none; margin: 0 0 14px; padding: 0; font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); }
+.crumb li + li::before { content: "›"; margin-right: 8px; color: var(--muted); }
+.head { padding-bottom: 24px; border-bottom: 1px solid var(--rule); }
+.head .title { display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap; }
+.head .lead { font-size: 16px; margin-top: 10px; max-width: 68ch; }
+.head .kicker { font: 500 12px/1.3 var(--font-body); color: var(--brass); margin-bottom: 6px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; list-style: none; margin: 0; padding: 0; }
+.section { margin-top: 36px; }
+.sec-h { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.sec-h p { font-size: 14px; max-width: 72ch; margin-top: 6px; }
+/* Section titles carry a small square: orange = needs a person, brass = drafted by an agent, ink = settled */
+.sq { display: flex; align-items: baseline; gap: 12px; }
+.sq::before { content: ""; width: 8px; height: 8px; background: var(--ink); flex: none; transform: translateY(-2px); }
+.sq.you::before { background: var(--orange); }
+.sq.agent::before { background: var(--brass); }
+
+/* 5. Components */
+.btn, .ghost { font: 400 15px/1 var(--font-head); letter-spacing: -0.01em; min-height: 40px; padding: 0 20px; border-radius: var(--r-btn); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; transition: background-color 200ms linear, color 200ms linear; justify-self: start; }
+.btn { background: var(--ink); color: #f5f5f5; border: 1px solid var(--ink); }
+.btn:hover { background: #3a3a3a; color: #fff; }
+.ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.ghost:hover { background: var(--ink); color: #f5f5f5; }
+.btn.sm, .ghost.sm { min-height: 32px; padding: 0 14px; font-size: 13.5px; }
+/* "Go here next" link: the brass underline draws in on hover */
+.more { font: 500 15px/1.3 var(--font-body); color: var(--ink); text-decoration: none; display: inline-flex; gap: 6px; align-items: center; background-image: linear-gradient(var(--brass), var(--brass)); background-size: 0 1px; background-position: 0 100%; background-repeat: no-repeat; transition: background-size 400ms var(--ease); padding-bottom: 2px; }
+.more:hover { background-size: 100% 1px; color: var(--ink); }
+.more::after { content: "›"; color: var(--brass); font-size: 17px; line-height: 1; }
+
+/* Status pills: the word is always inside; colour only supports it (ux.md §1.5, frontend.md §4.2) */
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--font-body); padding: 5px 9px; border-radius: var(--r-pill); border: 1px solid var(--rule); background: #f7f7f7; color: var(--body); white-space: nowrap; }
+.chip.you { background: var(--orange-wash); border-color: var(--orange-line); color: var(--orange-text); }
+.chip.agent { background: var(--brass-wash); border-color: var(--brass-line); color: #6b5420; }
+.chip.done { background: var(--slate-wash); border-color: var(--slate-line); color: var(--slate); }
+.chip.no { background: var(--bordeaux-wash); border-color: var(--bordeaux-line); color: var(--bordeaux); }
+.chip.lg { font-size: 14px; padding: 7px 12px; }
+
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+.kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi { background: var(--card); border-radius: var(--r-panel); padding: 22px 24px 20px; }
+.kpi .k { font: 400 14px/1.3 var(--font-body); color: var(--body); }
+.kpi .v { font: 400 34px/1.1 var(--font-head); color: var(--ink); letter-spacing: -0.03em; margin-top: 10px; }
+.kpi .v.text { font-size: 21px; line-height: 1.2; letter-spacing: -0.02em; }
+
+.card { background: var(--card); border-radius: var(--r-panel); }
+.card.pad { padding: 24px; }
+.card + .card { margin-top: 12px; }
+.card.pad > p + p { margin-top: 8px; }
+.card-h { padding: 20px 24px 16px; border-bottom: 1px solid var(--rule); }
+.card-h p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.card-b { padding: 20px 24px 24px; display: grid; gap: 14px; }
+.plain-list { list-style: none; margin: 0; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+caption { text-align: left; padding: 16px 24px 4px; font: 500 13px/1.3 var(--font-body); color: var(--brass); }
+th { text-align: left; font: 400 13px/1.3 var(--font-body); color: var(--body); padding: 14px 16px; border-bottom: 1px solid var(--rule); }
+td { padding: 14px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--body); }
+th:first-child, td:first-child { padding-left: 24px; } th:last-child, td:last-child { padding-right: 24px; }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+/* Row headers (<th scope="row">) read like ordinary cells, only a little stronger */
+tbody th { font: 500 14px/1.45 var(--font-body); color: var(--ink); white-space: normal; vertical-align: top; }
+caption .m { display: block; font-weight: 400; margin-top: 4px; }
+td b, td .t { font-weight: 500; color: var(--ink); }
+td .m { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+.note { background: var(--ivory); border-radius: var(--r-card); padding: 14px 18px; color: var(--ink); font-size: 14px; }
+.notice { background: var(--card); border-left: 3px solid var(--orange); border-radius: 0 var(--r-card) var(--r-card) 0; padding: 16px 20px; display: grid; gap: 8px; margin-top: 24px; }
+.notice .k { font: 500 12px/1.3 var(--font-body); color: var(--orange-text); }
+.notice.agent { border-left-color: var(--brass); }
+.notice.agent .k { color: #6b5420; }
+/* Refusals: firm, not alarming. On the page, never a pop-up (ux.md §5) */
+.refusal { background: var(--bordeaux-wash); border-left: 3px solid var(--bordeaux); border-radius: 0 var(--r-ctl) var(--r-ctl) 0; padding: 12px 16px; color: var(--ink); font-size: 14px; margin-top: 16px; }
+.refusal b { display: block; font: 500 13px/1.3 var(--font-body); color: var(--bordeaux); margin-bottom: 2px; }
+.refline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--card); border-left: 3px solid var(--orange); border-radius: 0 var(--r-ctl) var(--r-ctl) 0; padding: 10px 16px; font-size: 14px; color: var(--ink); margin-top: 16px; }
+
+/* The stepper (ux.md §1.4): a progress line to read, not buttons to press (app.css .steps).
+   Each step has a 3px top rule; the state word is always printed. Colours follow the operator's
+   status families (2026-11-17): slate done · brass AI working · orange your turn · bordeaux failed ·
+   ink ended. (The mock-up drew "In progress" in orange; brass keeps it in step with the pills.) */
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 24px 0 0; padding: 0; list-style: none; }
+.steps li { border-top: 3px solid var(--rule); padding: 10px 16px 0 0; }
+.steps .p { display: block; text-decoration: none; color: inherit; }
+.steps a.p:hover .t { text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; }
+.steps .n, .steps .t, .steps .s { display: block; }
+.steps .n { font: 500 12px/1.3 var(--font-body); color: var(--muted); }
+.steps .t { font: 400 15px/1.3 var(--font-head); letter-spacing: -0.01em; color: var(--muted); margin-top: 3px; }
+.steps .s { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.steps .done { border-top-color: var(--slate); } .steps .done .t { color: var(--ink); } .steps .done .s { color: var(--slate); }
+.steps [aria-current] .t { color: var(--ink); font-weight: 500; } .steps [aria-current] .s { font-weight: 500; }
+.steps .working { border-top-color: var(--brass); } .steps .working .s { color: #6b5420; }
+.steps .you { border-top-color: var(--orange); } .steps .you .s { color: var(--orange-text); }
+.steps .failed { border-top-color: var(--bordeaux); } .steps .failed .s { color: var(--bordeaux); }
+.steps .ended { border-top-color: var(--ink); } .steps .ended .s { color: var(--ink); }
+
+/* 6. Review status: the status line and units */
+/* The status line is the page's one call to action (app.css .cta): the ivory stage with a 3px
+   left bar. The bar follows the status family: brass while AI works (.wait), orange at your turn,
+   slate published, bordeaux failed, ink ended. Content on the left, the primary button on the right. */
+.cta { margin-top: 24px; background: var(--ivory); border-left: 3px solid var(--orange); border-radius: 0 var(--r-card) var(--r-card) 0; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+.cta.wait { border-left-color: var(--brass); }
+.cta.done { border-left-color: var(--slate); }
+.cta.no { border-left-color: var(--bordeaux); }
+.cta.plain { border-left-color: var(--ink); }
+.cta .body { display: grid; gap: 8px; min-width: 0; flex: 1 1 420px; }
+.cta .top { display: flex; gap: 10px 16px; align-items: center; flex-wrap: wrap; }
+.cta .top .small { color: var(--ink); }
+.cta h2 { font-size: 26px; }
+.cta p { color: var(--ink); max-width: 60ch; }
+.cta p.refresh { max-width: none; }
+.cta .refresh { display: flex; gap: 6px 16px; flex-wrap: wrap; align-items: baseline; font-size: 13.5px; color: var(--ink); }
+.cta .btn { min-height: 48px; padding: 0 26px; font-size: 16px; }
+/* Units: one card per group, as in the mock-up (22px heading with its square, 15px row titles).
+   They stay real tables (ux.md §7); the column header row is for screen readers only. */
+/* Always one row (operator, 2026-11-17): every card gets an equal share of the width, however many
+   there are, so their tops line up; long unit names wrap. Stacked below 760px. */
+.units-grid { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+/* Side-by-side cards: the stacked-card spacing (.card + .card) would push every card after the
+   first down by 12px, so their tops would not line up. The grid gap does the spacing here. */
+.units-grid > .card + .card { margin-top: 0; }
+.units-grid .card-h h3 { font-size: 22px; line-height: 1.15; letter-spacing: -0.02em; }
+.units-grid th[scope="row"] { font: 500 15px/1.35 var(--font-body); color: var(--ink); }
+.units-grid td, .units-grid th { padding-top: 13px; padding-bottom: 13px; }
+.units-grid td:last-child { text-align: right; }
+.facts { display: grid; gap: 6px; font-size: 14px; }
+
+/* 7. Rule and answer cards (page 4, page 5) */
+.stack { display: grid; gap: 12px; margin-top: 16px; }
+/* The landing point after a decision (#next): takes no space, so it never adds a gap in the grid */
+.jump { display: block; height: 0; overflow: hidden; } /* first thing in the card: lands on its top edge */
+.rule-card { background: var(--card); border-radius: var(--r-panel); overflow: hidden; }
+.rule-card.open { box-shadow: inset 3px 0 0 var(--orange); } /* still needs a person: orange gate bar */
+/* Card head (app.css): rule number above a 22px title with its square; tags on the right */
+.rule-card > header { padding: 20px 24px 16px; display: flex; justify-content: space-between; gap: 12px 16px; align-items: flex-start; flex-wrap: wrap; }
+.rule-card > header .n { font: 500 12px/1.3 var(--font-body); color: var(--muted); margin-bottom: 4px; }
+/* Evidence (app.css): what the source says on the left, the AI's reading on the right.
+   In the page source the left column comes first, so the reading order stays ux.md's:
+   quote → check → paragraph → flags → fields → decision. */
+.evidence { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); border-top: 1px solid var(--rule); }
+.evidence > div { padding: 18px 24px 20px; display: grid; gap: 10px; align-content: start; }
+.evidence > div + div { border-left: 1px solid var(--rule); }
+.evidence h3 { font: 500 12px/1.3 var(--font-body); color: var(--brass); letter-spacing: 0; }
+.rule-card .part { padding: 16px 24px; border-top: 1px solid var(--rule); display: grid; gap: 8px; }
+.rule-card .part > h3 { font: 500 12px/1.3 var(--font-body); color: var(--brass); letter-spacing: 0; }
+blockquote { margin: 0; font: 400 15.5px/1.6 var(--font-body); color: var(--ink); border-left: 2px solid var(--brass-line); padding-left: 14px; }
+figure { margin: 0; display: grid; gap: 6px; }
+figcaption { font-size: 12.5px; color: var(--muted); }
+.para { font: 400 15px/1.6 var(--font-body); color: var(--ink); }
+.check { font-size: 14px; color: var(--ink); }
+dl.draft { margin: 0; display: grid; grid-template-columns: minmax(140px, 220px) minmax(0, 1fr); gap: 9px 16px; font-size: 14px; }
+dl.draft dt { color: var(--muted); } dl.draft dd { margin: 0; color: var(--ink); font-weight: 500; }
+.flag { background: var(--ivory); border-left: 3px solid var(--orange); border-radius: 0 var(--r-card) var(--r-card) 0; padding: 16px 20px 18px; display: grid; gap: 8px; color: var(--ink); font-size: 14px; }
+.flag h4 { margin: 0; font: 500 14px/1.3 var(--font-body); color: var(--ink); }
+.versus { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.versus div { background: var(--card); border-radius: var(--r-ctl); padding: 12px 14px; }
+.decided { padding: 14px 24px 18px; border-top: 1px solid var(--rule); font-size: 14px; display: grid; gap: 8px; }
+.answer { font: 400 22px/1.2 var(--font-head); letter-spacing: -0.02em; color: var(--ink); }
+.answer.unsure { color: var(--orange-text); }
+details.quiet > summary { cursor: pointer; font: 500 14px/1.3 var(--font-body); color: var(--ink); text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; }
+
+/* 8. Decision forms: answer first, then only that answer's fields (ux.md §4, DL-48) */
+.decision { padding: 20px 24px 24px; display: grid; gap: 16px; border-top: 1px solid var(--rule); }
+.decision > fieldset > legend { font: 400 17px/1.2 var(--font-head); letter-spacing: -0.02em; color: var(--ink); margin-bottom: 10px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; min-width: 0; }
+legend { font: 400 14px/1.3 var(--font-body); color: var(--ink); padding: 0; margin-bottom: 6px; }
+.opts { display: flex; gap: 6px; flex-wrap: wrap; }
+.opt { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; font-size: 14px; color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-btn); padding: 8px 14px 8px 10px; cursor: pointer; }
+.opt input { accent-color: var(--ink); margin: 0; width: 16px; height: 16px; }
+.opt:has(input:checked) { background: var(--panel); border-color: var(--ink); }
+.field { display: grid; gap: 6px; max-width: 640px; }
+.field > label { font: 400 14px/1.3 var(--font-body); color: var(--ink); }
+select, input[type=text], textarea { font: 400 14px/1.4 var(--font-body); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 8px 10px; }
+textarea { width: 100%; min-height: 76px; resize: vertical; }
+.hint { font-size: 12.5px; color: var(--muted); }
+.ack { display: flex; gap: 12px; align-items: flex-start; font-size: 14.5px; color: var(--ink); }
+.ack input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ink); flex: none; }
+/* Fallback: every answer's block shows. Browsers with :has() show only the chosen answer's block.
+   [name="decision"] stops the inner radio groups (weekend option, who files) from revealing anything. */
+.if { display: grid; gap: 16px; padding-top: 16px; border-top: 1px solid var(--rule); max-width: 680px; }
+@supports selector(:has(*)) {
+  .decision .if, .decision .if-label { display: none; }
+  .decision:has(input[name="decision"][data-answer="approve"]:checked) .if[data-answer="approve"],
+  .decision:has(input[name="decision"][data-answer="reject"]:checked) .if[data-answer="reject"],
+  .decision:has(input[name="decision"][data-answer="confirm"]:checked) .if[data-answer="confirm"],
+  .decision:has(input[name="decision"][data-answer="overrule"]:checked) .if[data-answer="overrule"],
+  .decision:has(input[name="decision"][data-answer="add"]:checked) .if[data-answer="add"],
+  .decision:has(input[name="decision"][data-answer="leave"]:checked) .if[data-answer="leave"],
+  .decision:has(input[name="decision"][data-answer="publish"]:checked) .if[data-answer="publish"],
+  .decision:has(input[name="decision"][data-answer="decline"]:checked) .if[data-answer="decline"],
+  /* The shared "can't tell" reason box (frontend.md §3.3) shows once either answer is chosen */
+  .decision:has(input[name="decision"][data-answer="add"]:checked) .if.shared,
+  .decision:has(input[name="decision"][data-answer="leave"]:checked) .if.shared { display: grid; }
+  /* ...and inside it, only the chosen answer's label and hint */
+  .decision:has(input[name="decision"][data-answer="add"]:checked) .if-label[data-answer="add"],
+  .decision:has(input[name="decision"][data-answer="leave"]:checked) .if-label[data-answer="leave"] { display: block; }
+}
+
+/* 9. Calendar (page 6 table, page 7) */
+.when { font-weight: 500; color: var(--ink); white-space: nowrap; }
+.mark { display: grid; gap: 4px; justify-items: start; }
+.mark + .mark { margin-top: 8px; }
+blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
+/* List grouped by month (ux.md page 7 item 7): one header row per month */
+.month-row th { font: 400 17px/1.2 var(--font-head); letter-spacing: -0.01em; color: var(--ink); background: #fbfaf7; padding-top: 16px; padding-bottom: 10px; }
+.month-card { overflow: hidden; }
+.month-card + .month-card { margin-top: 12px; }
+.monthbar { padding: 16px 24px; border-bottom: 1px solid var(--rule); }
+.monthbar h3 { font-size: 17px; }
+/* B12 (DL-49, operator 2026-11-17): the view switch, the dot chart, the Month and Year views */
+.tabs { display: flex; gap: 2px; background: var(--panel); border-radius: var(--r-btn); padding: 4px; }
+/* The view switch is a radio group styled as tabs (app.css "Month / Year / List swap in place"):
+   CSS shows only the chosen view, no script. Without :has() every view shows, one under another. */
+.tabs label { font: 400 14px/1 var(--font-head); letter-spacing: -0.01em; padding: 9px 16px; border-radius: var(--r-ctl); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.tabs label:hover { background: var(--page); }
+@supports selector(:has(*)) {
+  .tabs label:has(input:checked) { background: var(--card); font-weight: 500; }
+  .tabs label:has(input:focus-visible) { outline: 2px solid var(--orange); outline-offset: 2px; }
+  .switch .view { display: none; }
+  .switch:has(#v-month:checked) .view.month, .switch:has(#v-year:checked) .view.year,
+  .switch:has(#v-list:checked) .view.list { display: block; }
+}
+.switch .view + .view { margin-top: 12px; } /* the fallback, when every view shows */
+/* No jump when switching views (operator, 2026-11-17): the views differ in height, and a shorter one
+   made the page shrink under the scroll position, so the browser pulled the page back and the tabs
+   moved by half a screen. At least one screen tall, the section keeps the tabs where they were
+   clicked. Wide screens only: below 960px only the List view shows. */
+@media (min-width: 960px) { .switch { min-height: 100vh; } }
+@supports selector(:has(*)) { .switch .view + .view { margin-top: 0; } }
+/* Summary cards (as in the mock-up): Due next on ink, Entries with its dot chart, May not be required */
+.kpi .m { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.kpi.dark { background: var(--ink); }
+.kpi.dark .k, .kpi.dark .m { color: #cfcfcf; } .kpi.dark .v { color: #fff; }
+.kpi .dots { display: block; width: 100%; height: auto; margin-top: 10px; }
+.kpi .dots-key { font-size: 11.5px; }
+.dots-key { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--body); margin-top: 6px; }
+.dots-key span { display: inline-flex; gap: 6px; align-items: center; }
+.dots-key i { width: 9px; height: 9px; border-radius: 50%; background: var(--brass); }
+.dots-key .k3 { background: #fff; box-shadow: inset 0 0 0 1.5px var(--brass); }
+.monthbar { display: flex; align-items: center; gap: 16px; }
+.monthbar .page-link { font-size: 13.5px; }
+.monthbar .page-link:last-child { margin-left: auto; }
+.monthbar .page-link:first-child { order: 0; } .monthbar h3 { order: 1; } .monthbar .page-link:last-child { order: 2; }
+.month-table { table-layout: fixed; }
+.month-table th { padding: 12px 10px; font-size: 12.5px; }
+.month-table th:first-child, .month-table td:first-child { padding-left: 10px; }
+.month-table td.cell { height: 92px; padding: 8px 8px 10px; border-left: 1px solid var(--rule); vertical-align: top; font: 400 14px/1 var(--font-head); color: var(--ink); }
+.month-table td.cell:first-child { border-left: 0; }
+.month-table td.cell > * + * { margin-top: 6px; }
+.month-table td.cell .d, .month-table td.cell .due-next, .month-table td.cell .e { display: block; }
+.month-table td.cell .d.next { box-shadow: inset 0 -2px 0 var(--orange); padding-bottom: 3px; display: inline-block; }
+.month-table td.cell .due-next { font: 500 11.5px/1.2 var(--font-body); color: var(--orange-text); }
+.month-table td.cell .e { font: 500 12px/1.25 var(--font-body); color: var(--ink); background: #f7f7f7; border: 1px solid var(--rule); border-radius: var(--r-ctl); padding: 5px 7px; overflow-wrap: anywhere; }
+.month-table td.cell .e small { display: block; font-weight: 400; color: var(--muted); margin-top: 1px; }
+.month-table td.cell .e small.mnbr { color: var(--orange-text); font-weight: 500; }
+.month-table td.cell.out { color: #6a6a6a; background: #fcfcfc; }
+.card.scroll { overflow-x: auto; }
+.year-table { min-width: 900px; font-size: 13px; }
+.year-table th, .year-table td { padding: 10px 6px; text-align: center; border-left: 1px solid var(--rule); }
+.year-table th:first-child, .year-table td:first-child { border-left: 0; }
+.year-table thead th { font: 400 13px/1 var(--font-head); color: var(--ink); }
+.year-table thead th.now { box-shadow: inset 0 -3px 0 var(--orange); }
+.year-table thead th:first-child { text-align: left; padding-left: 24px; }
+.year-table tbody th { text-align: left; min-width: 200px; padding-left: 24px; font: 500 13.5px/1.3 var(--font-body); }
+.year-table tbody th .m { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.day { display: inline-block; width: 100%; max-width: 52px; border-radius: var(--r-ctl); border: 1px solid var(--rule); background: #f7f7f7; text-align: center; padding: 5px 0 6px; color: var(--ink); }
+.day small { display: block; font-size: 10.5px; color: var(--muted); line-height: 1.2; }
+.day b { font: 400 17px/1.1 var(--font-head); letter-spacing: -0.02em; }
+.day.prec { background: var(--orange-wash); border: 1px dashed var(--orange-text); } .day.prec small { color: var(--orange-text); }
+.day.next b { box-shadow: inset 0 -2px 0 var(--orange); }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 14px 24px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--body); }
+.legend span { display: inline-flex; gap: 8px; align-items: center; }
+.legend i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--rule); background: #f7f7f7; }
+.legend i.prec { background: var(--orange-wash); border: 1px dashed var(--orange-text); }
+.legend i.next { background: transparent; border: 0; box-shadow: inset 0 -2px 0 var(--orange); border-radius: 0; }
+
+/* 10. Sign-in (app.css section 8 and the sign-in cluster of section 10).
+   Signed out, with the panel: the ivory "stage" on the left, the white sign-in box on the right
+   (operator, 2026-11-17, option C). Without the panel (the server error page when nobody is
+   signed in): one white box in the middle. */
+.signin { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.signin.with-stage { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 8px; place-items: stretch; }
+.stage { background: var(--ivory); border-radius: var(--r-panel); padding: 40px 48px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.stage .brand { padding: 0; }
+.stage .tagline { font: 400 clamp(34px, 3.6vw, 52px)/1 var(--font-head); letter-spacing: -0.03em; color: var(--ink); max-width: 17ch; margin-top: auto; }
+.stage > p:not(.brand):not(.tagline) { font-size: 17px; line-height: 1.45; color: var(--ink); max-width: 52ch; margin-top: 18px; }
+.stage > p:not(.brand):not(.tagline) + p { margin-top: 12px; }
+.enter { background: var(--card); border-radius: var(--r-panel); padding: 40px 48px; display: flex; flex-direction: column; justify-content: center; width: 100%; }
+.signin:not(.with-stage) .enter { max-width: 560px; }
+.enter .inner { max-width: 420px; width: 100%; margin: 0 auto; display: grid; gap: 12px; }
+.enter h1 { font-size: 30px; }
+.enter .intro { margin-bottom: 4px; }
+.enter .brand { padding: 0; } /* the sidebar's 28px inset does not apply on sign-in */
+.enter .hint { margin-top: 8px; }
+.role-form { margin: 0; }
+.role { display: block; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 18px 20px; cursor: pointer; font: inherit; color: inherit; transition: background-color 200ms linear, border-color 200ms linear; }
+.role:hover { background: var(--page); border-color: var(--ink); }
+.role .t { font: 400 18px/1.2 var(--font-head); letter-spacing: -0.02em; color: var(--ink); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.role .t::after { content: "›"; color: var(--brass); font-size: 22px; }
+.role .d { font-size: 14px; color: var(--body); margin-top: 6px; display: block; }
+/* The three decorative cards on the stage (aria-hidden): a dot calendar, two bars, a ring */
+.cluster { display: grid; grid-template-columns: 1fr 1fr; max-width: 470px; margin: 28px 28px 36px auto; }
+.dcard { background: var(--card); border-radius: var(--r-card); padding: 20px; }
+.dcard .dh { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.dcard .dh .dt { font: 400 16px/1.25 var(--font-head); letter-spacing: -0.01em; color: var(--ink); }
+.dcard .dh span { font-size: 11.5px; color: var(--muted); }
+.c-cal { grid-column: 1 / -1; padding-bottom: 84px; animation: settle 700ms var(--ease) both; }
+.c-flag, .c-ring { margin-top: -64px; position: relative; box-shadow: 0 0 0 1px #dcd5c8; animation: settle 700ms var(--ease) both; }
+.c-flag { margin-left: -24px; margin-right: 8px; z-index: 3; animation-delay: 250ms; }
+.c-ring { margin-left: 8px; margin-right: -24px; z-index: 2; animation-delay: 400ms; display: flex; align-items: center; }
+.dots { display: block; width: 100%; height: auto; margin-top: 8px; }
+.dot { transform-box: fill-box; transform-origin: center; opacity: 0; transform: scale(.3); animation: dotIn 420ms var(--ease) forwards; }
+.dots-key { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--body); margin-top: 6px; }
+.dots-key span { display: inline-flex; gap: 6px; align-items: center; }
+.dots-key i { width: 9px; height: 9px; border-radius: 50%; background: var(--brass); }
+.dots-key .k3 { background: #fff; box-shadow: inset 0 0 0 1.5px var(--brass); }
+.bars { display: grid; gap: 10px; margin-top: 14px; }
+.bar { display: grid; grid-template-columns: 1fr 40px; gap: 4px 8px; align-items: center; font-size: 12px; color: var(--body); }
+.bar .lbl { grid-column: 1 / -1; }
+.bar .track { height: 6px; background: rgba(32, 32, 32, .08); border-radius: 3px; overflow: hidden; display: block; }
+.bar .track i { display: block; height: 100%; border-radius: 3px; width: var(--w); animation: grow 900ms var(--ease) 600ms backwards; }
+.bar.law .track i { background: var(--brass); } .bar.guide .track i { background: var(--slate); }
+.bar b { font-weight: 500; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.ring-row { display: flex; gap: 14px; align-items: center; font-size: 12.5px; line-height: 1.4; color: var(--body); }
+.ring-row b { display: block; font: 400 22px/1.1 var(--font-head); letter-spacing: -0.02em; color: var(--ink); margin-bottom: 3px; }
+.ring { flex: none; }
+.ring-arc { animation: arc 1100ms var(--ease) 400ms backwards; }
+
+/* 11. Motion (style-note "Motion"). All of it is switched off for reduced motion, below */
+@keyframes settle { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes dotIn { to { opacity: 1; transform: scale(1); } }
+@keyframes arc { from { stroke-dashoffset: var(--c); } }
+@keyframes grow { from { width: 0; } }
+@keyframes slidein { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0%, 100% { outline: 2px solid transparent; outline-offset: 0; } 40% { outline: 2px solid var(--orange); outline-offset: 3px; } }
+.rule-card .refusal { animation: slidein 500ms var(--ease) both; }
+.rule-card.refused { animation: pulse 1400ms var(--ease) 300ms 1 both; }
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  .dot { opacity: 1; transform: none; } /* start hidden for the animation: give them their end state */
+}
+
+/* 12. Narrow screens
+   Breakpoint 960px (operator, 2026-11-17): 1024px keeps the sidebar beside the content; below
+   960px the sidebar stacks above it. No collapsible nav this sprint (frontend.md §11). */
+@media (max-width: 1180px) {
+  .evidence { grid-template-columns: minmax(0, 1fr); }
+  .evidence > div + div { border-left: 0; border-top: 1px solid var(--rule); }
+}
+@media (max-width: 1100px) {
+  .cluster { display: none; }
+  /* Stacked: each half only as tall as its content, so the sign-in buttons are not pushed down */
+  .signin.with-stage { grid-template-columns: minmax(0, 1fr); align-content: start; min-height: 0; }
+  .stage, .enter { padding: 32px 24px; }
+  .stage .tagline { margin-top: 32px; }
+  .enter { justify-content: flex-start; }
+  .shell { grid-template-columns: 232px minmax(0, 1fr); }
+  .main { padding: 24px 20px 56px; }
+  .brand, .product, .nav a, .side-foot { padding-left: 20px; padding-right: 20px; }
+  .fund { margin-left: 20px; margin-right: 20px; }
+}
+@media (max-width: 959px) {
+  .switch .tabs, .switch .view.month, .switch .view.year { display: none !important; } /* the list alone below 960px */
+  .switch .view.list { display: block !important; }
+  .shell { align-content: start; } /* short pages: do not stretch the stacked sidebar */
+  .shell { grid-template-columns: minmax(0, 1fr); } .side { position: static; height: auto; }
+  .kpis, .kpis.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main { padding: 24px 12px 48px; }
+}
+@media (max-width: 760px) {
+  .units-grid { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .versus { grid-template-columns: minmax(0, 1fr); }
+  dl.draft { grid-template-columns: minmax(0, 1fr); } dl.draft dd { margin-bottom: 6px; }
+  .enter { padding: 28px 20px; }
+}
+/* Phone width (ux.md page 7): each table row stacks as a block with its column name shown */
+@media (max-width: 480px) {
+  h1 { font-size: 28px; }
+  .kpis, .kpis.three { grid-template-columns: minmax(0, 1fr); }
+  table.stack-sm thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.stack-sm, table.stack-sm tbody, table.stack-sm tr, table.stack-sm td { display: block; width: 100%; }
+  table.stack-sm tr { padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+  table.stack-sm td { padding: 4px 0; border: 0; }
+  table.stack-sm td::before { content: attr(data-label); display: block; font: 500 12px/1.3 var(--font-body); color: var(--brass); }
+  table.stack-sm td:first-child { font-weight: 500; color: var(--ink); }
+  table.stack-sm tr.month-row { padding: 0; }
+  table.stack-sm th[scope="rowgroup"] { display: block; padding: 14px 16px 10px; }
+}

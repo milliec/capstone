@@ -42,11 +42,16 @@ This repository is **public**. Anything committed should be treated as published
 1. **Real-name scan** (must print nothing):
 
    ```bash
-   grep -rniwF --exclude-dir=reference --exclude-dir=.venv --exclude-dir=.git \
+   grep -rniwF --exclude-dir=reference --exclude-dir=.venv --exclude-dir=node_modules --exclude-dir=.git \
      -f <(grep -vE '^(#|$)' reference/real-identifiers.txt) .
    ```
 
 2. **Framework validator**: `.venv/bin/aamad validate`
+
+3. **Visual check** (after changing a template, `site.css`, or what a page is given to show):
+   `cd tests/visual && npm run test:visual`. A failed snapshot is never re-recorded by the persona
+   that changed the page: report it; `@frontend.eng` proposes the new snapshots and the operator
+   approves them.
 
 - Never commit or push with `--no-verify`. If a hook blocks you, stop and report it to the operator
   instead of bypassing it. An agent that used `--no-verify` must say so at once.

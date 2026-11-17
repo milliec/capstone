@@ -1,39 +1,224 @@
 {% extends "base.html" %}
+{#- Page 4 · Check the rules (G1) (ux.md page 4; route GET /specialist/runs/{run_id}/g1).
+    Reads: run, view (decisions.get_g1_view), refusal. Posts: one decision form per undecided rule
+    (POST /specialist/rows/{row_id}/decision) and "Finish checking" (POST …/g1/complete).
+    Every card is in reading order: quote → check → paragraph → flags → fields → decision.
+    Evidence the stub does not send yet (quote check, paragraph, flags, OQ-7 mark, unused
+    paragraphs) is left out until H-036 V-8 sends it: the page never claims what it was not told. -#}
+{% import "parts/macros.html" as ui with context %}
+{% import "parts/lookups.html" as L %}
+
+{%- set rid = run.run_id -%}
+{%- set stage = ui.stage_of(run, "g1", view.stage if view.stage is defined else none)|trim -%}
+{%- set rows = view.rows -%}
+{%- set n = rows|length -%}
+
+{#- Each rule's status words and tone: the server's (H-036 V-8), else the interim reading of the
+    stub's recorded decision. "Approval blocked" when this request's refusal is the demo-rule one
+    for this card (ux.md page 4, UX-003). -#}
+{%- set ns = namespace(cards=[], undecided=[]) -%}
+{%- for r in rows -%}
+  {%- set i = loop.index -%}
+  {%- set st = namespace(words="To decide", tone="action", decided=false) -%}
+  {%- if r.status is defined and r.status -%}
+    {%- set st.words = r.status -%}{%- set st.tone = r.status_tone -%}{%- set st.decided = r.status in ("Approved", "Rejected") -%}
+  {%- elif r.decision -%}
+    {%- for key, words, tone in L.STUB_ROW_STATUS -%}
+      {%- if r.decision.startswith(key) -%}{%- set st.words = words -%}{%- set st.tone = tone -%}{%- set st.decided = true -%}{%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+  {%- if refusal and refusal.code is defined and refusal.code == "DEMO_ROW_NOT_APPROVABLE" and refusal.anchor == "row-" ~ i -%}
+    {%- set st.words = "Approval blocked" -%}{%- set st.tone = "problem" -%}
+  {%- endif -%}
+  {%- set ns.cards = ns.cards + [{"i": i, "r": r, "words": st.words, "tone": st.tone, "decided": st.decided}] -%}
+  {%- if not st.decided -%}{%- set ns.undecided = ns.undecided + [i] -%}{%- endif -%}
+{%- endfor -%}
+{%- set left = ns.undecided|length -%}
+
+{#- Where the page lands after a decision (operator, 2026-11-17): the first card still to decide after
+    the one just decided (?after=, W-7), else the first card still to decide, else the finish section.
+    An invisible #next marker sits just before it; the redirect after a decision ends in #next. -#}
+{%- set nx = namespace(j=0) -%}
+{%- for c in ns.cards -%}{%- if after and c.r.row_id == after -%}{%- set nx.j = c.i -%}{%- endif -%}{%- endfor -%}
+{%- set later_undecided = ns.undecided|select(">", nx.j)|list -%}
+{%- set next_i = (later_undecided|first) if later_undecided else ((ns.undecided|first) if ns.undecided else none) -%}
+
 {% block title %}Check the rules{% endblock %}
-{% block ux_ref %}ux.md page 4 (G1).{% endblock %}
 {% block main %}
-{% include "parts/review_nav.html" %}
-<h1>Step 2: Check the rules</h1>
-{% include "parts/run_labels.html" %}
+{% call ui.review_head(run, "Check the rules", refusal) %}
+  {%- if stage == "at" %}
+  <p class="lead">AI drafted {{ n }} rules from the sources. Check each one against the words it came from, then approve or reject it. Nothing reaches the calendar until you approve it.</p>
+  <p class="small muted">Each decision is recorded with your name and the time, and cannot be changed in this review.</p>
+  {%- elif stage == "after" %}
+  <p class="lead">You've finished checking the rules. This is the record of the decisions.</p>
+  {%- endif %}
+{% endcall %}
 
-{% for r in view.rows %}
-<section>
-  <h2>{{ r.row_id }} · {{ r.obligation_name }}{% if r.origin == "demo" %} [Demo]{% endif %}</h2>
-  <ul>
-    <li>Frequency: {{ r.frequency }} · anchor: {{ r.anchor }} · offset: {{ r.offset }}</li>
-    <li>Recipient: {{ r.recipient_code }} · who files: {{ r.responsible_role }} · business-day rule: {{ r.business_day_rule }}</li>
-    <li>Source {{ r.source_paragraph_id }}: “{{ r.quote }}”</li>
-    <li>Decision so far: {{ r.decision or "none" }}</li>
-  </ul>
-  {% if run.phase == "AT_G1" and run.status == "ACTIVE" %}
-  <form method="post" action="/specialist/rows/{{ r.row_id }}/decision">
-    <input type="hidden" name="version" value="{{ r.version }}">
-    <p><label><input type="radio" name="decision" value="approve"> Approve</label>
-       <label><input type="radio" name="decision" value="reject"> Reject</label></p>
-    <p><label>Business-day rule
-      <select name="business_day_rule"><option value="">Choose</option><option>roll_forward</option><option>roll_backward</option><option>no_roll</option></select></label>
-       <label>Approve reason <input type="text" name="approve_reason"></label>
-       <label>Reject reason <input type="text" name="reject_reason"></label></p>
-    <button type="submit">Save decision</button>
-  </form>
-  {% endif %}
+{%- if stage in ("before", "ended_before") %}
+{{ ui.not_reached(run, stage, "AI is still drafting the rules. They will be here when it finishes.") }}
+{%- else %}
+
+{#- Summary cards (ux.md page 4 item 3). "Checker flags" needs H-036 V-8. -#}
+{%- if stage == "at" %}
+<div class="kpis{{ '' if view.summary is defined else ' three' }}" role="list" aria-label="Summary">
+  <div class="kpi" role="listitem"><p class="k">Rules</p><p class="v num">{{ n }}</p></div>
+  <div class="kpi" role="listitem"><p class="k">Decided</p><p class="v num">{{ ns.cards|selectattr("decided")|list|length }}</p></div>
+  <div class="kpi" role="listitem"><p class="k">To decide</p><p class="v num">{{ left }}</p></div>
+  {%- if view.summary is defined %}
+  <div class="kpi" role="listitem"><p class="k">Checker flags</p><p class="v num">{{ view.summary.flags }}</p></div>
+  {%- endif %}
+</div>
+{%- endif %}
+
+{#- Rule index: one line per rule, each a jump link to its card (ux.md page 4 item 4). -#}
+<section class="section" aria-labelledby="index-h">
+  <div class="sec-h"><h2 id="index-h">Rules</h2></div>
+  <div class="card">
+    <table>
+      <thead><tr><th scope="col">Rule</th><th scope="col">Obligation</th><th scope="col">Needs attention</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        {%- for c in ns.cards %}
+        <tr>
+          <th scope="row"><a href="#row-{{ c.i }}">Rule {{ c.i }}</a> · <span class="id">{{ c.r.row_id }}</span></th>
+          <td>{{ c.r.obligation_name }}</td>
+          <td>{{ (c.r.needs_attention|join(", ")) if c.r.needs_attention is defined else ("Demo" if c.r.origin == "demo" else "") }}</td>
+          <td>{{ ui.tag(c.words, c.tone) }}</td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
-{% endfor %}
 
-{% if run.phase == "AT_G1" and run.status == "ACTIVE" %}
-<form method="post" action="/specialist/runs/{{ run.run_id }}/g1/complete">
-  <input type="hidden" name="run_version" value="{{ run.run_version }}">
-  <button type="submit">Finish checking</button>
-</form>
-{% endif %}
+{#- One card per rule (ux.md page 4 item 5). -#}
+<div class="stack">
+  {%- for c in ns.cards %}
+  {%- set r = c.r %}{%- set i = c.i %}
+  <article class="rule-card{{ ' open' if stage == 'at' and not c.decided }}{{ ' refused' if refusal and refusal.anchor is defined and refusal.anchor == 'row-' ~ i }}" id="row-{{ i }}" aria-labelledby="row-{{ i }}-h">
+    {%- if stage == "at" and i == next_i %}<span class="jump" id="next"></span>{% endif %}
+    <header>
+      <div>
+        <p class="n">Rule {{ i }} of {{ n }} · <span class="id">{{ r.row_id }}</span></p>
+        <h2 class="sq{{ ' you' if stage == 'at' and not c.decided }}" id="row-{{ i }}-h">{{ r.obligation_name }}</h2>
+      </div>
+      <ul class="tags">
+        {%- if r.origin == "demo" %}<li>{{ ui.tag("Demo") }}</li>{% endif %}
+        {%- for t in (r.tags if r.tags is defined else []) %}<li>{{ ui.tag(t) }}</li>{% endfor %}
+        <li>{{ ui.tag(c.words, c.tone) }}</li>
+      </ul>
+    </header>
+
+    {#- Two columns on wide screens (the mock-up's evidence layout). The left column comes first in
+        the source, so the reading order stays ux.md's: quote → check → paragraph → flags → fields. -#}
+    <div class="evidence">
+      <div>
+        <h3>The source says</h3>
+        <figure>
+          <blockquote>{{ r.quote }}</blockquote>
+          <figcaption>Quote from paragraph <span class="id">{{ r.source_paragraph_id }}</span></figcaption>
+        </figure>
+        {%- if r.quote_check is defined %}
+        <p class="check">
+          {%- if r.quote_check.passed %}Quote check: passed. The quote appears word for word in paragraph {{ r.source_paragraph_id }}.
+          {%- else %}Quote check: failed. The quote does not appear word for word in paragraph {{ r.source_paragraph_id }}. This rule can only be rejected.{% endif %}
+        </p>
+        {%- endif %}
+
+        {%- if r.paragraph is defined %}
+        <h3>Paragraph {{ r.source_paragraph_id }}, {{ r.paragraph.document }}</h3>
+        <p class="para">{{ r.paragraph.text }}</p>
+        {%- endif %}
+
+        {%- if r.flags is defined %}
+        <h3>Checker flags</h3>
+        {%- for f in r.flags %}
+        <div class="flag">
+          <h4>Flagged by the AI checker: {{ "two sources disagree" if f.flag_type == "cross_source" else "inside the same document" }}</h4>
+          <p>The checker points out disagreements but never settles them. Approve it with a reason despite the flag, or reject it with a reason.</p>
+          <div class="versus">
+            <div><b>The rule says:</b> {{ f.row_value }}</div>
+            <div><b>The source says:</b> {{ f.quote_says }}, paragraph {{ f.other_paragraph_id }}</div>
+          </div>
+        </div>
+        {%- else %}
+        <p>No checker flags.</p>
+        {%- endfor %}
+        {%- endif %}
+      </div>
+
+      <div>
+        <h3>The AI's reading</h3>
+        <dl class="draft">
+          <dt>What must be done</dt><dd>{{ r.obligation_name }}</dd>
+          <dt>Frequency</dt><dd>{{ r.frequency }}</dd>
+          <dt>Due relative to</dt><dd>{{ r.anchor }}</dd>
+          <dt>Offset</dt><dd>{{ r.offset }}</dd>
+          <dt>Recipient</dt><dd>{{ r.recipient_name if r.recipient_name is defined else r.recipient_code }}</dd>
+          <dt>Who files, as the source says</dt><dd>{{ "Not stated in source" if r.responsible_role in L.WHO_FILES_SILENT else r.responsible_role }}</dd>
+          <dt>Weekend or holiday, as the source says</dt><dd>{{ L.BDR_SOURCE_WORDS.get(r.business_day_rule, r.business_day_rule) }}</dd>
+        </dl>
+        {%- if r.open_question is defined and r.open_question %}
+        <p class="note">What happens on a weekend or holiday for this rule depends on open question OQ-7, which is not yet answered. Nothing is chosen for you. Whatever you choose, the dates will carry the OQ-7 mark when you publish.</p>
+        {%- endif %}
+      </div>
+    </div>
+
+    {%- if stage == "at" and not c.decided %}
+    {% include "parts/decision_rule.html" %}
+    {%- elif c.decided %}
+    <div class="decided">
+      {%- if r.decided is defined %}
+      <p><b>{{ c.words }}</b> by {{ r.decided.by_label }} at {{ r.decided.at|time }}.
+        {%- if r.decided.business_day_rule %} Weekend or holiday: {{ L.BDR_CHOICE_WORDS.get(r.decided.business_day_rule, "") }}.{% endif %}
+        {%- if r.decided.who_files %} Who files: {{ r.decided.who_files }}.{% endif %}
+        {%- if r.decided.reason %} Reason: {{ r.decided.reason }}{% endif %}</p>
+      {%- else %}
+      <p><b>{{ c.words }}</b>.</p>
+      {%- endif %}
+      {%- if stage == "at" %}
+      {%- set later = ns.undecided|select(">", i)|list %}
+      {%- if later %}<p><a class="more" href="#row-{{ later|first }}">Next rule to decide</a></p>
+      {%- elif ns.undecided %}<p><a class="more" href="#row-{{ ns.undecided|first }}">Next rule to decide</a></p>
+      {%- else %}<p><a class="more" href="#finish">All rules are decided. Finish checking</a></p>{% endif %}
+      {%- endif %}
+    </div>
+    {%- endif %}
+  </article>
+  {%- endfor %}
+</div>
+
+{#- Paragraphs no rule uses (ux.md page 4 item 6, W-03b): needs H-036 V-8. -#}
+{%- if view.unused_paragraphs is defined %}
+<section class="section" aria-labelledby="unused-h">
+  <div class="sec-h"><div><h2 id="unused-h">Check nothing was missed: paragraphs that no rule uses</h2>
+    <p>These {{ view.unused_paragraphs|length }} paragraphs were loaded but no approved or undecided rule uses them. This list does not say whether they contain obligations. If one does, the review missed it: reject or finish as usual, then start a new review. You will see this list again when you publish.</p></div></div>
+  <div class="card">
+    <table>
+      <thead><tr><th scope="col">Paragraph ID</th><th scope="col">Source document</th><th scope="col">Text</th></tr></thead>
+      <tbody>
+        {%- for p in view.unused_paragraphs %}
+        <tr><th scope="row"><span class="id">{{ p.paragraph_id }}</span></th><td>{{ p.document }}</td><td>{{ p.text }}</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+{#- Finish checking (ux.md page 4 item 7). Always shown at G1; the server refuses it while a rule
+    is undecided (GATE_INCOMPLETE). -#}
+{%- if stage == "at" %}
+{%- if not next_i %}<span class="jump" id="next"></span>{% endif %}
+<section class="section" id="finish" aria-labelledby="finish-h">
+  <div class="sec-h"><h2 id="finish-h" class="sq you">{{ "All rules decided" if left == 0 else left ~ (" rule left to decide" if left == 1 else " rules left to decide") }}</h2></div>
+  <form class="card card-b" method="post" action="/specialist/runs/{{ rid }}/g1/complete">
+    <input type="hidden" name="run_version" value="{{ run.run_version }}">
+    <p>Decide every rule to move on. AI then works out which rules apply to the fund. You cannot change rule decisions after this.</p>
+    {{ ui.refusal_here(refusal, "page") }}
+    <button class="btn" type="submit">Finish checking</button>
+  </form>
+  <p class="section small"><a href="/specialist/runs/{{ rid }}#abandon">Abandon this review</a></p>
+</section>
+{%- endif %}
+{%- endif %}
 {% endblock %}

@@ -4,8 +4,8 @@ AI agents read regulatory text and draft source-linked filing rules. A complianc
 approves them, and ordinary code turns them into a fund's compliance calendar.
 
 > **Status: Define phase.** Requirements, user stories and mock data are written. The architecture
-> (SAD) is next. **The application is an early shell** (placeholder pages, stub services,
-> stand-in agents, no model call): see [Getting started](#getting-started).
+> (SAD) is next. **The application is an early shell** (the seven pages on stand-in data, stub
+> services, stand-in agents, no model call): see [Getting started](#getting-started).
 >
 > This is a six-week capstone project. All data is mock and the fund is fictional. Nothing here is
 > legal advice.
@@ -180,8 +180,13 @@ the work and hand over through written documents in `project-context/`. Persona 
 
 ### Run the app shell (stand-in agents only)
 
-The app is an early shell: mock sign-in and the seven pages as unstyled placeholders, driven by
+The app is an early shell: mock sign-in and the seven pages from ux.md, lightly styled, driven by
 stub services and stand-in agents. **No AI model is called.** Full run instructions come in B10.
+
+The pages never call an AI themselves: they show what the service functions return. The CrewAI
+crews connect in block B3, behind `backend/runtime/agents.py`, which today returns stand-in
+outputs with a short pause per unit. Switching from stand-in agents to the real model changes no
+page.
 
 ```bash
 make install              # Python 3.12 .venv, app and test dependencies, git hooks

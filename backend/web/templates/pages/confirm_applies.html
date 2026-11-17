@@ -1,44 +1,165 @@
 {% extends "base.html" %}
+{#- Page 5 · Confirm what applies (G2) (ux.md page 5; route GET /specialist/runs/{run_id}/g2).
+    Reads: run, view (decisions.get_g2_view), refusal. Posts: one decision form per undecided
+    answer (POST /specialist/verdicts/{verdict_id}/decision) and "Finish and calculate dates"
+    (POST …/g2/complete). Cited facts and the approved rule show in full once H-036 V-9 sends them. -#}
+{% import "parts/macros.html" as ui with context %}
+{% import "parts/lookups.html" as L %}
+
+{%- set rid = run.run_id -%}
+{%- set stage = ui.stage_of(run, "g2", view.stage if view.stage is defined else none)|trim -%}
+{%- set verdicts = view.verdicts -%}
+{%- set n = verdicts|length -%}
+
+{#- Each answer's decided line: the server's (H-036 V-9), else the interim reading of the stub's
+    recorded decision. -#}
+{%- set ns = namespace(cards=[], undecided=[]) -%}
+{%- for v in verdicts -%}
+  {%- set i = loop.index -%}
+  {%- set st = namespace(words=none) -%}
+  {%- if v.decided is defined and v.decided -%}
+    {%- set st.words = v.decided.outcome -%}
+  {%- elif v.decision -%}
+    {%- for key, words in L.STUB_ANSWER_WORDS -%}
+      {%- if v.decision.startswith(key) -%}{%- set st.words = words -%}{%- endif -%}
+    {%- endfor -%}
+    {%- if not st.words %}{% set st.words = "Decided" %}{% endif -%}
+  {%- endif -%}
+  {%- set ns.cards = ns.cards + [{"i": i, "v": v, "decided": st.words}] -%}
+  {%- if not st.words -%}{%- set ns.undecided = ns.undecided + [i] -%}{%- endif -%}
+{%- endfor -%}
+{%- set left = ns.undecided|length -%}
+
+{#- Where the page lands after a decision (operator, 2026-11-17): the first card still to decide after
+    the one just decided (?after=, W-7), else the first card still to decide, else the finish section.
+    An invisible #next marker sits just before it; the redirect after a decision ends in #next. -#}
+{%- set nx = namespace(j=0) -%}
+{%- for c in ns.cards -%}{%- if after and c.v.verdict_id == after -%}{%- set nx.j = c.i -%}{%- endif -%}{%- endfor -%}
+{%- set later_undecided = ns.undecided|select(">", nx.j)|list -%}
+{%- set next_i = (later_undecided|first) if later_undecided else ((ns.undecided|first) if ns.undecided else none) -%}
+{%- set unsure_left = ns.cards|rejectattr("decided")|selectattr("v.verdict", "equalto", "unsure")|list|length -%}
+
 {% block title %}Confirm what applies{% endblock %}
-{% block ux_ref %}ux.md page 5 (G2).{% endblock %}
 {% block main %}
-{% include "parts/review_nav.html" %}
-<h1>Step 3: Confirm what applies</h1>
-{% include "parts/run_labels.html" %}
+{% call ui.review_head(run, "Confirm what applies", refusal) %}
+  {%- if stage == "at" %}
+  <p class="lead">AI checked the {{ n }} rules you approved against the fund's facts. Confirm each answer or overrule it. Where AI can't tell, you decide.</p>
+  {%- elif stage == "after" %}
+  <p class="lead">You've confirmed what applies. This is the record of the decisions.</p>
+  {%- endif %}
+{% endcall %}
 
-{% if run.phase in ("AT_G1", "B_RUNNING", "A_RUNNING") and run.status == "ACTIVE" %}
-<p>Not reached yet.</p>
-{% else %}
-{% for v in view.verdicts %}
-<section>
-  <h2>{{ v.verdict_id }} · {{ v.obligation_name }}</h2>
-  <ul>
-    <li>AI answer: {{ v.verdict }} · cites {{ v.cited_fact_ids }}</li>
-    <li>Reasoning: {{ v.reasoning }}</li>
-    {% if v.missing_information %}<li>Missing: {{ v.missing_information }}</li>{% endif %}
-    <li>Decision so far: {{ v.decision or "none" }}</li>
+{%- if stage in ("before", "ended_before") %}
+{{ ui.not_reached(run, stage, "AI has not finished checking what applies. The answers will be here when it does.") }}
+{%- else %}
+
+{%- if stage == "at" %}
+<p class="section">
+  {%- if left == 0 %}<b>All {{ n }} answers decided.</b>
+  {%- else %}<b>{{ ns.cards|selectattr("decided")|list|length }} of {{ n }} answers decided.</b> {{ unsure_left }} where AI can't tell still to decide.{% endif %}
+</p>
+{%- endif %}
+
+{#- Index: "can't tell" answers first, so the hardest decisions are visible early (ux.md page 5
+    item 4). The cards below keep the rule order. -#}
+<nav class="section card" aria-labelledby="index-h">
+  <div class="card-h"><h2 id="index-h">Answers</h2></div>
+  <ul class="card-b plain-list">
+    {%- for group in [ns.cards|selectattr("v.verdict", "equalto", "unsure"), ns.cards|rejectattr("v.verdict", "equalto", "unsure")] %}
+    {%- for c in group %}
+    <li><a href="#verdict-{{ c.i }}"><span class="id">{{ c.v.row_id }}</span> · {{ c.v.obligation_name }}</a> ·
+      <b>{{ L.AI_ANSWER_WORDS[c.v.verdict] }}{{ ", to decide" if not c.decided and c.v.verdict == "unsure" else "" }}</b>
+      {%- if c.decided %} · {{ ui.tag(c.decided, "success") }}{% endif %}</li>
+    {%- endfor %}
+    {%- endfor %}
   </ul>
-  {% if run.phase == "AT_G2" and run.status == "ACTIVE" %}
-  <form method="post" action="/specialist/verdicts/{{ v.verdict_id }}/decision">
-    <input type="hidden" name="version" value="{{ v.version }}">
-    <p><label><input type="radio" name="decision" value="confirm"> Confirm</label>
-       <label><input type="radio" name="decision" value="override"> Overrule</label>
-       <label><input type="radio" name="decision" value="decide"> Decide</label></p>
-    <p><label>Value <select name="value"><option value="">Choose</option><option>applies</option><option>does_not_apply</option></select></label></p>
-    <p><label>Confirm reason <input type="text" name="confirm_reason"></label>
-       <label>Overrule reason <input type="text" name="override_reason"></label>
-       <label>Decide reason <input type="text" name="decide_reason"></label></p>
-    <button type="submit">Save decision</button>
-  </form>
-  {% endif %}
-</section>
-{% endfor %}
-{% endif %}
+</nav>
 
-{% if run.phase == "AT_G2" and run.status == "ACTIVE" %}
-<form method="post" action="/specialist/runs/{{ run.run_id }}/g2/complete">
-  <input type="hidden" name="run_version" value="{{ run.run_version }}">
-  <button type="submit">Finish and calculate dates</button>
-</form>
-{% endif %}
+<div class="stack">
+  {%- for c in ns.cards %}
+  {%- set v = c.v %}{%- set i = c.i %}
+  <article class="rule-card{{ ' open' if stage == 'at' and not c.decided }}{{ ' refused' if refusal and refusal.anchor is defined and refusal.anchor == 'verdict-' ~ i }}" id="verdict-{{ i }}" aria-labelledby="verdict-{{ i }}-h">
+    {%- if stage == "at" and i == next_i %}<span class="jump" id="next"></span>{% endif %}
+    <header>
+      <div>
+        <p class="n"><span class="id">{{ v.row_id }}</span></p>
+        <h2 class="sq{{ ' you' if stage == 'at' and not c.decided }}" id="verdict-{{ i }}-h">{{ v.obligation_name }}</h2>
+      </div>
+    </header>
+
+    {#- Two columns on wide screens; the reading order stays ux.md's (answer → reasoning → missing →
+        cited facts). -#}
+    <div class="evidence">
+    <div>
+      <p class="answer{{ ' unsure' if v.verdict == 'unsure' }}">{{ L.AI_ANSWER_WORDS[v.verdict] }}</p>
+      <h3>{{ "Why AI couldn't decide" if v.verdict == "unsure" else "Why AI says this" }}</h3>
+      <p>{{ v.reasoning }}</p>
+      {%- if v.verdict == "unsure" and v.missing_information %}
+      <p><b>What is missing:</b> {{ v.missing_information }}</p>
+      {%- endif %}
+    </div>
+
+    <div>
+      <h3>Cited facts</h3>
+      {%- if v.cited_facts is defined %}
+      <table>
+        <thead><tr><th scope="col">Fact ID</th><th scope="col">Fact</th><th scope="col">Value</th></tr></thead>
+        <tbody>
+          {%- for f in v.cited_facts %}
+          <tr><th scope="row"><span class="id">{{ f.fact_id }}</span></th><td>{{ f.label }}</td><td>{{ f.value }}</td></tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+      {%- else %}
+      <p><span class="id">{{ v.cited_fact_ids }}</span></p>
+      {%- endif %}
+    </div>
+    </div>
+
+    {%- if v.approved_rule is defined %}
+    <div class="part">
+      <details class="quiet">
+        <summary>Show the approved rule and quote</summary>
+        <p>{{ v.approved_rule.text }}</p>
+        <blockquote>{{ v.approved_rule.quote }}</blockquote>
+        <p class="small muted">Paragraph <span class="id">{{ v.approved_rule.paragraph_id }}</span></p>
+      </details>
+    </div>
+    {%- endif %}
+
+    {%- if stage == "at" and not c.decided %}
+    {% include "parts/decision_answer.html" %}
+    {%- elif c.decided %}
+    <div class="decided">
+      {%- if v.decided is defined and v.decided %}
+      <p><b>{{ c.decided }}</b> by {{ v.decided.by_label }} at {{ v.decided.at|time }}.{% if v.decided.reason %} Reason: {{ v.decided.reason }}{% endif %}</p>
+      {%- else %}
+      <p><b>{{ c.decided }}</b>.</p>
+      {%- endif %}
+      {%- if stage == "at" %}
+      {%- set later = ns.undecided|select(">", i)|list %}
+      {%- if later %}<p><a class="more" href="#verdict-{{ later|first }}">Next answer to decide</a></p>
+      {%- elif ns.undecided %}<p><a class="more" href="#verdict-{{ ns.undecided|first }}">Next answer to decide</a></p>
+      {%- else %}<p><a class="more" href="#finish">All answers decided. Finish and calculate dates</a></p>{% endif %}
+      {%- endif %}
+    </div>
+    {%- endif %}
+  </article>
+  {%- endfor %}
+</div>
+
+{%- if stage == "at" %}
+{%- if not next_i %}<span class="jump" id="next"></span>{% endif %}
+<section class="section" id="finish" aria-labelledby="finish-h">
+  <div class="sec-h"><h2 id="finish-h" class="sq you">{{ "All answers decided" if left == 0 else left ~ (" answer left to confirm" if left == 1 else " answers left to confirm") }}</h2></div>
+  <form class="card card-b" method="post" action="/specialist/runs/{{ rid }}/g2/complete">
+    <input type="hidden" name="run_version" value="{{ run.run_version }}">
+    <p>Once you've confirmed them all, the dates are calculated by code. No AI works out a date. This takes a few seconds. You cannot change these decisions after this.</p>
+    {{ ui.refusal_here(refusal, "page") }}
+    <button class="btn" type="submit">Finish and calculate dates</button>
+  </form>
+  <p class="section small"><a href="/specialist/runs/{{ rid }}#abandon">Abandon this review</a></p>
+</section>
+{%- endif %}
+{%- endif %}
 {% endblock %}

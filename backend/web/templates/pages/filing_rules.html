@@ -1,41 +1,89 @@
 {% extends "base.html" %}
+{#- Page 2 · Filing rules: the review list (ux.md page 2; route GET /specialist/runs).
+    Reads: runs (runs.list_runs), active_run (runs.get_active_run), fund, agents_mode, refusal.
+    Posts: POST /specialist/runs (start a new review). The form is ALWAYS shown, even while a
+    review is in progress (H-009): the server refuses a second one with RUN_ACTIVE. -#}
+{% import "parts/macros.html" as ui with context %}
+{% import "parts/lookups.html" as L %}
 {% block title %}Filing rules{% endblock %}
-{% block ux_ref %}ux.md page 2.{% endblock %}
 {% block main %}
-<h1>Filing rules</h1>
+<header class="head">
+  <p class="kicker">Regulatory framework</p>
+  <h1>{{ fund.regime }}</h1>
+</header>
+{{ ui.refusal_top(refusal) }}
 
-{% if active_run %}
-<p>Active review: <a href="/specialist/runs/{{ active_run.run_id }}">{{ active_run.run_id }}</a> · {{ active_run.status_words }}</p>
-{% else %}
-<p>No active review (state: idle).</p>
-{% endif %}
+{#- Active-review notice: only while a review is ACTIVE (ux.md page 2 item 3). -#}
+{%- if active_run %}
+<section class="notice{{ '' if active_run.is_at_gate else ' agent' }}" aria-labelledby="active-h">
+  <p class="k" id="active-h">{{ "Waiting for you" if active_run.is_at_gate else "AI is working" }}</p>
+  <p><b>{{ ui.review_name(active_run) }}:</b> {{ active_run.status_words }}.</p>
+  {%- if active_run.is_at_gate %}
+  <p><a class="more" href="/specialist/runs/{{ active_run.run_id }}{{ L.STEP_PATHS[L.STOPPED_STEP[active_run.phase]] }}">Continue checking</a></p>
+  {%- else %}
+  <p><a class="more" href="/specialist/runs/{{ active_run.run_id }}">Open review {{ ui.review_no(active_run) }}</a></p>
+  {%- endif %}
+</section>
+{%- endif %}
 
-<h2>Start a new review</h2>
-<form method="post" action="/specialist/runs">
-  <p>Fund: {{ fund.fund_id }}</p>
-  <p>Agents: {% if agents_mode == "stand_in" %}stand-in agents (fixed test outputs, no AI model is called){% else %}{{ agents_mode }}{% endif %}</p>
-  <p><label><input type="checkbox" name="demo_planted_row" value="true"> Add the demo rule (rule 7)</label></p>
-  {% if agents_mode == "stand_in" %}
-  <p><label><input type="checkbox" name="demo_fail_step1" value="true"> Make step 1 fail (demo)</label></p>
-  {% endif %}
-  <button type="submit">Start a new review</button>
-</form>
+<section class="section" aria-labelledby="reviews-h">
+  <div class="sec-h"><h2 id="reviews-h">Reviews</h2></div>
+  {%- if runs %}
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Review</th>
+          <th scope="col">Started</th>
+          <th scope="col">Demo rule</th>
+          <th scope="col">Status</th>
+          <th scope="col">Ended because</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for r in runs %}
+        <tr>
+          <th scope="row"><a href="/specialist/runs/{{ r.run_id }}">{{ ui.review_name(r) }}</a></th>
+          <td class="num">{{ r.started_at|datetime }}</td>
+          <td>{{ "On" if r.demo_planted_row else "Off" }}</td>
+          <td>{{ ui.run_tag(r) }}</td>
+          <td>{{ r.ended_because if r.ended_because is defined and r.ended_because else "" }}</td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  {%- else %}
+  <div class="card pad"><p>No reviews yet. Start the first review below.</p></div>
+  {%- endif %}
+</section>
 
-<h2>Reviews</h2>
-{% if runs %}
-<table>
-  <thead><tr><th>Review</th><th>Started</th><th>By</th><th>Status</th><th>Demo rule</th><th>Failure demo</th></tr></thead>
-  <tbody>
-  {% for r in runs %}
-    <tr>
-      <td><a href="/specialist/runs/{{ r.run_id }}">{{ r.run_id }}</a></td>
-      <td>{{ r.started_at }}</td><td>{{ r.started_by }}</td><td>{{ r.status_words }}</td>
-      <td>{{ "on" if r.demo_planted_row else "off" }}</td><td>{{ "on" if r.demo_fail_step1 else "off" }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<p>No reviews yet.</p>
-{% endif %}
+<section class="section" id="start" aria-labelledby="start-h">
+  <div class="sec-h"><h2 id="start-h">Start a new review</h2></div>
+  <form class="card card-b" method="post" action="/specialist/runs">
+    <p>Fund: <b>{{ fund.name }}</b> (fictional, <span class="id">{{ fund.fund_id }}</span>)</p>
+    {%- if agents_mode == "stand_in" %}
+    <p>Agents: <b>stand-in agents</b> (fixed test outputs, no AI model is called)</p>
+    {%- else %}
+    <p>Agents: <b>real model</b></p>
+    {%- endif %}
+
+    <div class="field">
+      <label class="ack"><input type="checkbox" name="demo_planted_row" value="true" aria-describedby="demo-rule-hint"> Add the demo rule (rule 7)</label>
+      <p class="hint" id="demo-rule-hint">Adds one rule that looks plausible but must not be approved. Use it only to show the review in a demo. The choice is recorded in the audit log.</p>
+    </div>
+
+    {#- Only with stand-in agents: with the real model this option does not exist (ux.md page 2).
+        The server still refuses it in real mode (VALIDATION). -#}
+    {%- if agents_mode == "stand_in" %}
+    <div class="field">
+      <label class="ack"><input type="checkbox" name="demo_fail_step1" value="true" aria-describedby="fail-demo-hint"> Make step 1 fail (demo)</label>
+      <p class="hint" id="fail-demo-hint">Shows what a failed review looks like. Only with stand-in agents.</p>
+    </div>
+    {%- endif %}
+
+    {{ ui.refusal_here(refusal, "start") }}
+    <button class="btn" type="submit">Start a new review</button>
+  </form>
+</section>
 {% endblock %}

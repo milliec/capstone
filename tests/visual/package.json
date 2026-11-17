@@ -1,0 +1,14 @@
+{
+  "name": "capstone-visual-regression",
+  "private": true,
+  "description": "Playwright Test visual snapshots of the stubbed UI (visual-regression skill). Not part of the Python app.",
+  "type": "module",
+  "scripts": {
+    "test:visual": "playwright test",
+    "test:visual:report": "playwright show-report",
+    "test:visual:candidates": "VR_CANDIDATES=1 playwright test --update-snapshots=all"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}
