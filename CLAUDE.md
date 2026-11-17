@@ -42,7 +42,7 @@ This repository is **public**. Anything committed should be treated as published
 1. **Real-name scan** (must print nothing):
 
    ```bash
-   grep -rniwF --exclude-dir=reference --exclude-dir=.venv --exclude-dir=.git \
+   grep -rniwF --exclude-dir=reference --exclude-dir=.venv --exclude-dir=node_modules --exclude-dir=.git \
      -f <(grep -vE '^(#|$)' reference/real-identifiers.txt) .
    ```
 
