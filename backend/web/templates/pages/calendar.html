@@ -38,13 +38,49 @@
 </div>
 {%- endif %}
 
+{%- set layout = published.entries|calendar_layout %}
+{%- set year = published.summary.year if published.summary is defined else layout.year %}
+
+{#- Week grid (ux.md page 7 item 6; operator 2026-11-17: display-only, from the entries above).
+    A VISUAL view of the same entries as the list below, which stays the main accessible view, so
+    the grid is hidden from screen readers and has no links or buttons (no Tab stops). Hidden below
+    960px, where the list alone shows. Never a moved or open-question mark (CR-012). -#}
+{%- if layout.grid %}
+<section class="section grid-view" aria-hidden="true">
+  <div class="sec-h"><h2>The next two months</h2></div>
+  {%- for m in layout.grid %}
+  <div class="card month-card">
+    <div class="monthbar"><h3>{{ m.label }}</h3></div>
+    <div class="month">
+      {%- for dow in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}<div class="dow">{{ dow }}</div>{% endfor %}
+      {%- for week in m.weeks %}{% for c in week %}
+      <div class="cell{{ ' out' if not c.in_month }}{{ ' has' if c.entries }}">
+        <span class="d{{ ' next' if c.is_due_next }}">{{ c.day }}</span>
+        {%- if c.is_due_next %}<span class="due-next">Due next</span>{% endif %}
+        {%- for e in c.entries %}
+        <span class="e">{{ e.obligation_name }}
+          {%- if e.who_files_label is defined and e.who_files_label %}<small>{{ e.who_files_label }}</small>{% endif %}
+          {%- if e.precautionary %}<small class="mnbr">May not be required</small>{% endif %}</span>
+        {%- endfor %}
+      </div>
+      {%- endfor %}{% endfor %}
+    </div>
+  </div>
+  {%- endfor %}
+</section>
+{%- endif %}
+
+{#- The list: the main, accessible view. Grouped by month (ux.md page 7 item 7); each month is a
+    row group with its own header cell, so a screen reader announces the month with each row. -#}
 <section class="section" aria-labelledby="entries-h">
-  <div class="sec-h"><h2 id="entries-h">All entries{% if published.summary is defined %} for {{ published.summary.year }}{% endif %}</h2></div>
+  <div class="sec-h"><h2 id="entries-h">All entries{% if year %} for {{ year }}{% endif %}</h2></div>
   <div class="card">
     <table class="stack-sm">
       <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Who files</th><th scope="col">Why</th></tr></thead>
+      {%- for m in layout.months %}
       <tbody>
-        {%- for e in published.entries %}
+        <tr class="month-row"><th colspan="4" scope="rowgroup">{{ m.label }}</th></tr>
+        {%- for e in m.entries %}
         <tr>
           <td data-label="When" class="when">{{ e.due_date|date }}</td>
           <td data-label="What">{{ e.obligation_name }}
@@ -59,6 +95,7 @@
         </tr>
         {%- endfor %}
       </tbody>
+      {%- endfor %}
     </table>
   </div>
 </section>
