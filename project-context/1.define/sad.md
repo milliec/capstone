@@ -254,7 +254,10 @@ Rules:
    The starting values are in §2 and are replaced by measured ones after the spike (block B3).
 7. **Start-up rule.** When the backend starts, an `ACTIVE` run in phase `A_RUNNING`, `B_RUNNING` or
    `C_RUNNING` becomes `FAILED` with the reason "service restarted", logged as a system event. A
-   run in an `AT_G*` phase is unaffected.
+   run in an `AT_G*` phase is unaffected. *Built in B2 (H-047, 2026-11-18), as the Estimate's B2
+   row lists:* without it, a restart mid-stage leaves a run `ACTIVE` in a `*_RUNNING` phase, which
+   `RUN_ACTIVE` and abandon-at-a-gate-only would never release. The stage's running unit (or, if
+   none, its first waiting unit) is marked failed with the reason, so run status can name it.
 8. **Abandon only at a gate.** Abandon is accepted only in phase `AT_G1`, `AT_G2` or `AT_G3`. In a
    `*_RUNNING` phase it is refused (`RUN_STAGE_RUNNING`); the stage ends by itself under rule 6, so
    no model call is left running for output nobody uses.
@@ -268,7 +271,12 @@ Rules:
    failed, the run has ended, or a retry has started since), the outputs are **discarded**: they
    are in the trace only, never stored as a row, flag or verdict. Their cost still counts towards
    the run's cost (CR-017). So a failed stage stores nothing in the business tables, and a retry
-   starts clean.
+   starts clean. *Built in B2, not B3 (H-047, operator, 2026-11-17):* decide-once (CR-009) cannot
+   be stored before the rows and verdicts it points at, so the store, the stage-attempt check, the
+   discard of late output (one audit entry says what was discarded) and the all-or-nothing write
+   came first. The function is `stage_store.store_stage_outputs` (see "Service functions"). B3
+   adds the trace line with `late` = 1 and the cost count for discarded output, and replaces the
+   stand-in data.
 10. **Retry a failed stage, once (DL-51, CR-032).** The specialist may retry a `FAILED` run
     (`POST /specialist/runs/{run_id}/retry`). The retry restarts **only the stage that failed**
     (the phase the run failed in, DL-46), **from its start**: stage A drafts and checks every row
@@ -329,6 +337,25 @@ This table is the content of the run-state diagram (see "Diagrams"):
 `DECLINED` and `COMPLETED` are the four terminal statuses. The only edge out of a terminal status
 is Retry, from `FAILED` back into the failed stage's `*_RUNNING` phase (rule 10). A gate decision on a row or verdict
 does not change the phase.
+
+**Order of checks (H-047, as built in B2).** Where a row of the table lists several refusal codes,
+the checks run in this order and the **first that applies wins**, because it is the most useful
+thing to tell the specialist. Nothing is written before every check has passed:
+
+1. The run has ended (`RUN_NOT_ACTIVE`).
+2. The run is in the wrong phase for this request (`RUN_STAGE_RUNNING`).
+3. The page is stale (`VERSION_MISMATCH`), only on the actions that post a `run_version`.
+4. The action's own checks. For a row or verdict decision: already decided (`ALREADY_DECIDED`)
+   comes before no answer or an answer the form cannot make (`VALIDATION`), and these come before
+   the chosen answer's checks (for an approve: `QUOTE_CHECK_FAILED`, then
+   `BUSINESS_DAY_RULE_REQUIRED`, then `WHO_FILES_REQUIRED`, then `REASON_REQUIRED` for a flagged
+   row). For a gate: `GATE_INCOMPLETE`. For publish: `ACK_REQUIRED`.
+
+**A row's or verdict's `version` is not compared.** The decision routes post a `version`, but rows
+and verdicts are written once and stay at version 1 ("Identifiers and versions"), so a stale row is
+not possible; two decisions racing on one row are settled by decide-once (`ALREADY_DECIDED`, the
+unique constraint). The decision stores the row's or verdict's own stored version, not the posted
+value. `VERSION_MISMATCH` applies to the run version only, as the table lists.
 
 **Steps with no model, by requirement:** W-02, W-03b, W-04, W-09, W-10, W-13, W-16, W-18, W-19,
 W-19a, W-21. The tests for W-09, W-13 and W-18 run without a model (SD NFR-011).
@@ -1345,6 +1372,7 @@ shell (Build card, "Build approach"); the last column is what B2 or a later bloc
 | `runs.list_runs(conn, fund_id)` · `get_run` · `get_active_run` · `list_units` | pages 2 and 3 | Real reads | — |
 | `runs.start_run(conn, settings, schedule, *, fund_id, started_by, demo_planted_row, demo_fail_step1)` | `POST /specialist/runs` | New run `ACTIVE · A_RUNNING`; audits the start and each switch; starts stage A | `RUN_ACTIVE`; `VALIDATION` for the failure demo in real mode (B2, B13a) |
 | `runs.abandon_run(conn, *, run_id, run_version, reason, actor)` | `POST …/abandon` | `ABANDONED`, phase kept, audited | Only at `AT_G*`; `VERSION_MISMATCH`, `REASON_REQUIRED`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE` (B2) |
+| `runs.fail_interrupted_runs(conn)` | — (called once when the application starts) | — (added in B2) | Start-up rule 7, built in B2 (H-047); returns how many runs it failed |
 | `runs.retry_run(conn, settings, schedule, *, run_id, run_version, actor)` | `POST …/retry` | Changes nothing; says "not built yet" | Rule 10 and the three retry codes (B13b) |
 | `gates.start_stage(settings, schedule, run_id, stage)` | — | Schedules the stage function | — |
 | `gates.complete_g1(conn, settings, schedule, *, run_id, run_version, actor)` · `complete_g2(…same…)` | `POST …/g1/complete` · `…/g2/complete` | `AT_G1 → B_RUNNING` · `AT_G2 → C_RUNNING`; run version +1; starts the next stage | Phase guard, version check, `GATE_INCOMPLETE` (B2) |
@@ -1354,7 +1382,7 @@ shell (Build card, "Build approach"); the last column is what B2 or a later bloc
 | `calendar.get_g3_view(conn, run)` · `get_published_calendar(conn, fund_id)` | `GET …/g3` · `GET /calendar` | Calendar ID and placeholder entries; the newest publication is live | Real entries, rejected and uncited lists (B2, B4) |
 | `publishing.publish_calendar(conn, *, calendar_id, run_version, acknowledged, rejected_row_ids, uncited_paragraph_ids, actor)` | `POST …/publish` | Inserts a publication, run `COMPLETED`, audited | `ACK_REQUIRED`, version and phase checks (B2) |
 | `publishing.decline_calendar(conn, *, calendar_id, run_version, decline_reason, actor)` | `POST …/decline` | Run `DECLINED`, audited | `REASON_REQUIRED` (B2). The "form `decision` matches the route" check (`VALIDATION`) stays in the page handler's form validation, because this signature has no `decision` |
-| `stage_store.add_units` · `mark_unit` · `finish_stage` · `fail_stage` | — | Unit lines and phase moves; stage C creates the calendar | Rule 9 store and the stage-attempt check (B3) |
+| `stage_store.add_units` · `mark_unit` · `store_stage_outputs` · `fail_stage` | — | Unit lines and phase moves; stage C creates the calendar | Rule 9 store and the stage-attempt check, **built in B2** (H-047). `finish_stage` was renamed `store_stage_outputs` in B2; the new name stands |
 | `runtime.stages.run_stage(settings, run_id, stage)` | — | Runs units one by one; the failure demo on stage A, unit 1, attempt 1, stand-in only | Stage timer, trace, cost cap (B3) |
 | `runtime.agents.run_unit(settings, stage, unit_id)` | — | Stand-in pause, no output; real mode raises | Fixed outputs, then the CrewAI wiring (B3) |
 
@@ -1383,6 +1411,13 @@ fund, and foreign keys include it, so a row cannot point at another fund's run. 
 
 The append-only tables have database triggers that raise an error on `UPDATE` or `DELETE`, so the
 rule holds even if application code tries.
+
+**When and why a review ended (H-046).** `runs` has no "ended at" column, and none is added. For an
+`ABANDONED` or `DECLINED` run, the time and reason the pages show are read from the run's **last
+`gate_event` audit entry**: the abandon or decline writes that entry with its reason, and once the
+run has ended every later request is refused and logged as a `refusal`, never as a `gate_event`, so
+nothing can come after it. A `COMPLETED` run's time is `publications.published_at`; a `FAILED`
+run's reason is its failed unit's line in `units`.
 
 **The `trace` columns (H-035, before B3).** One line per model call attempt (CR-018), insert-only.
 They come from CR-018, DL-40, DL-43 and the evaluation copy cases (DL-45). B3 may refine types, not
@@ -1632,6 +1667,7 @@ Column names inside tables the SAD describes only in words (`quote_checks`, `aud
 | Identifier | Scheme | Why |
 |---|---|---|
 | Run | `RUN-<yyyymmdd>-<n>` | Readable in reports and logs |
+| Review number (H-046) | The "4" in "Review 4" on the pages (`ux.md`). A run's **place among the fund's runs, oldest = 1**, counted when the page is shown, not stored. No service deletes a run (the audit log points at it), so a number never changes once given | The pages need a short number; the run ID is for reports and logs |
 | Row | `ROW-<run>-<n>`, where `<n>` is a sequence for the run, given by the backend when the row's output is validated (it is stored when the stage ends, rule 9), never by a model. **Origin is a separate field** (`model`, or `demo` for the planted row) | Unique by construction. **T-ID-1**: two rows extracted from one paragraph → two different row IDs; a unique constraint refuses a duplicate insert |
 | Verdict (H-035) | `VER-<run>-<n>`, where `<run>` is the full run ID (for example `VER-RUN-20261116-1-3`) and `<n>` is a sequence for the run, given by the backend when the output is validated (stored when the stage ends, rule 9), never by a model. Same construction as the row ID | Unique by construction; one verdict per approved row |
 | Calendar (H-035) | `CAL-<run>` (for example `CAL-RUN-20261116-1`). One calendar per run: a failed stage stores nothing (rule 9), so a retried stage C still ends with one | Readable in the audit log and on the publish route |
@@ -2188,7 +2224,7 @@ writing (SA-16). Figures are the architect's judgement in quarter days, not meas
 | Block | Work | Replaces (full design) | Was | Likely |
 |---|---|---|---|---|
 | B1 | Setup and data: repository, FastAPI, SQLite, tables with `fund_id`, append-only audit and trace, configuration loading, lint and tests in CI, git hooks | WP-03, WP-04 | 4 | 0.5 |
-| B2 | Gates and run states: gate transitions, role checks, decide-once and version check, one active run, the five run states, abandon at a gate, stage time limit, start-up rule, error envelope | WP-05, WP-12a, WP-12b | 4.75 | 0.5 |
+| B2 | Gates and run states: gate transitions, role checks, decide-once and version check, one active run, the five run states, abandon at a gate, stage time limit, start-up rule, error envelope. **Also the stage-end store (rule 9), moved here from B3 by the operator (H-047, 2026-11-17)**; not re-estimated (`@backend.eng` puts B2 at about 0.8 to 1.0 day with it, `scaffold-plan.md`); B3 shrinks by a similar amount | WP-05, WP-12a, WP-12b | 4.75 | 0.5 |
 | B3 | Stages A and B: loader, quote check, the three model steps as one-agent crews behind their interfaces, schema validation, trace and cost count, cost cap, **stand-in mode with its label and the role harness (CR-030)**. **The first real calls are the measurement spike**: timings set the time limits, and the verifier bake-off (DL-26) is run here. **B3 is stand-in only until B5 and B7 are done and the first green path passes; the spike and bake-off then run, after DL-40 is pinned** | WP-00, WP-06, WP-07 | 6.5 | 1.0 |
 | B4 | Stage C: date engine against the 22-entry key, entry IDs, marks including OQ-7 | WP-08 | 3 | 0.5 |
 | B5 | Gate actions and pages: G1 with the coverage view, G2, G3 with the acknowledgement, run list and status, mock sign-in, GP calendar. Server-rendered, thin handlers. `ux.md` is a short page-by-page note, not a full design document | WP-01, WP-09, WP-11, WP-12, WP-12c, WP-13 to WP-17 | 17 | 1.0 |
@@ -2199,7 +2235,7 @@ writing (SA-16). Figures are the architect's judgement in quarter days, not meas
 | B10 | Acceptance pass, security assessment by checklist, accessibility and copy check, run instructions, demo rehearsal | WP-20 to WP-22 | 4.5 | 0.5 |
 | B11 | **Hours noted earlier but not added (DL-42):** stand-in mode and the role harness (1 to 2 hours, B3, DL-36); the G1 "who files" choice (about 1 hour, B5, DL-39); the loader tests T-LEAK-1, T-PROMPT-1 and T-EXAMPLE-1 (about 1 hour, B3, DL-39) | New | — | 0.5 |
 | B13a | **Failure demo and stand-in pause** (DL-52, DL-54; split from B13 on 2026-11-16): the failure-demo switch on the start form, the stand-in extractor hook, the `demo failure` reason and the label; `STAND_IN_UNIT_PAUSE_S` and the per-unit wait in the stand-in agent functions; T-DEMOFAIL-1, T-PAUSE-1. Built straight after B3's stand-in part; its page parts (the start-form checkbox, the "Failure demo on" label, the failed page "Without Retry") are written in B5. **Kept, not dropped** | New (DL-52, DL-54) | — | 0.25 |
-| B13b | **Retry a failed stage** (DL-51; split from B13 on 2026-11-16): the retry route, its guard and refusals, new unit lines per stage attempt, the Retry form on page 3; T-RETRY-1 to T-RETRY-3. **The stage-end store with the stage attempt (rule 9) is built in B3 either way**, because changing it later costs more | New (DL-51) | — | 0.25 |
+| B13b | **Retry a failed stage** (DL-51; split from B13 on 2026-11-16): the retry route, its guard and refusals, new unit lines per stage attempt, the Retry form on page 3; T-RETRY-1 to T-RETRY-3. **The stage-end store with the stage attempt (rule 9) is built either way**, because changing it later costs more (in B2, H-047) | New (DL-51) | — | 0.25 |
 | | **MVP** | | **45.75** | **≈ 6.75 (5.75–9.25)** |
 | B12 | **Calendar Month and Year views and charts** (A10, DL-49): templates and stylesheet, plus one display-only helper in the web layer (`backend/web/calendar_view.py`; see the DL-49 update of 2026-11-17 for what it may and may not do), from the published entries the List view already gets. Built **early, before B6 and B10** (moved forward by the operator on 2026-11-17, H-040; it was last). **A fixed one-day timebox**: what is not done at the end of the day is parked (F-19). It never runs past the day-8 hard stop | New (DL-49) | — | 1.0 (timebox) |
 | | **MVP with B12** | | | **≈ 7.75 (6.75–10.25)** |
@@ -2385,9 +2421,9 @@ field per form, and nothing else.
 | Order | Block | Who | Notes |
 |---|---|---|---|
 | 1 | B1 Setup and data | `@project.mgr` (`setup.md`), `@backend.eng` | Install the git hooks first (§5). Record `AAMAD_TARGET_RUNTIME` and the CrewAI settings in `setup.md`. Create `.env.example` |
-| 2 | B2 Gates and run states | `@backend.eng` | The service layer and its checks before any page or agent. **Checkpoint:** if B1 and B2 together pass 1.3 days, tell the operator at once |
+| 2 | B2 Gates and run states | `@backend.eng` | The service layer and its checks before any page or agent. **Includes the stage-end store with the stage attempt (rule 9) and the start-up rule (rule 7)** (H-047): decisions cannot be stored before rows are. **Checkpoint:** if B1 and B2 together pass 1.3 days, tell the operator at once |
 | — | The page-by-page note | `@ux.designer` (`ux.md`) | Short: the seven pages of §3, with the 30-minute review target as a constraint (§7), the voice rule (DL-05) and no bulk or preselected decision (SD AC-026). Needed before B5 |
-| 3 | B3 Stages A and B, **stand-in part** | `@backend.eng` | **Stand-in mode only** (CR-030): the loader, quote check, schema validation, trace and cost count, the stage-end store with the stage attempt (rule 9, DL-51), cost cap, the role harness, and the three agent functions returning their fixed outputs. The three CrewAI agents are wired behind the same functions, but **no paid call is made yet** |
+| 3 | B3 Stages A and B, **stand-in part** | `@backend.eng` | **Stand-in mode only** (CR-030): the loader, quote check, schema validation, trace and cost count (including the `late` trace line for output the B2 store discards), cost cap, the role harness, and the three agent functions returning their fixed outputs. The three CrewAI agents are wired behind the same functions, but **no paid call is made yet** |
 | 3a | B13a Failure demo and stand-in pause | `@backend.eng` (page parts: `@frontend.eng` in B5) | Stand-in only; no model call. Straight after B3's stand-in part and before B4, so the failed and running states exist before the pages are written. Includes `STAND_IN_UNIT_PAUSE_S`, T-DEMOFAIL-1 and T-PAUSE-1 (both Tier 1). **Kept**: not dropped if time runs out (operator, 2026-11-16, DL-54). The start-form checkbox, the "Failure demo on" label and the failed page "Without Retry" are written in B5 |
 | 4 | B4 Stage C | `@backend.eng`, `@qa.eng` | The date engine against the 22-entry answer key |
 | 5 | B5 Gate actions and pages | `@backend.eng`, `@frontend.eng` | `@frontend.eng` writes the templates in `backend/web/`; there is no separate application and nothing to wire. Thin handlers only (§4) |
@@ -2613,7 +2649,7 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
 
 | ID | Outcome |
 |---|---|
-| SOQ-35 | **Resolved 2026-11-16 (operator, DL-51 update):** B13 (Retry and the failure demo, about half a day) is accepted. It is built after B9 (tuning) and is the **next block dropped after B6**; the failed page then uses the "Without Retry" fallback in `ux.md`. MVP ≈ 6.75 days, ≈ 7.75 with B12. The stage-end store (rule 9) is built in B3 either way. **Update 2026-11-16 (operator, DL-54):** B13 is split into B13a (failure demo and stand-in pause, 0.25 day, built after B3 and kept) and B13b (Retry, 0.25 day, built after B9 and dropped next after B6); the drop-next answer now applies to B13b only. Totals unchanged |
+| SOQ-35 | **Resolved 2026-11-16 (operator, DL-51 update):** B13 (Retry and the failure demo, about half a day) is accepted. It is built after B9 (tuning) and is the **next block dropped after B6**; the failed page then uses the "Without Retry" fallback in `ux.md`. MVP ≈ 6.75 days, ≈ 7.75 with B12. The stage-end store (rule 9) is built in B3 either way (built in B2 instead, H-047). **Update 2026-11-16 (operator, DL-54):** B13 is split into B13a (failure demo and stand-in pause, 0.25 day, built after B3 and kept) and B13b (Retry, 0.25 day, built after B9 and dropped next after B6); the drop-next answer now applies to B13b only. Totals unchanged |
 | SOQ-32 | **Resolved 2026-11-16 (operator, DL-51 update):** both architect-added retry refusals are confirmed (an evaluation run; a run with a newer run after it), and a **`calendar generation` failure also refuses a retry** (`RETRY_NOT_ALLOWED`): it is code on the same decisions and would fail the same way |
 | SOQ-33 | **Resolved 2026-11-16 (operator, DL-53 update):** CR-027's configuration names the open convention's rows by **source paragraph and recipient code** (`OQ-7` → `SRC-UCILAW-P2`, `AED`), never by an answer-key ID; the mark is derived when the pages are drawn and when the date code runs, with no stored field |
 | SOQ-30 | **Resolved 2026-11-13 (operator, DL-42 item 9):** the spike runs after B7, so the tripwire no longer asks for real Stage A rows by the end of day 3. It is now: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2, never T-MAP-1. The green path does not test real-model behaviour; the spike and bake-off still do |
@@ -3148,3 +3184,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · **Build card:** new row "Build approach" records three operator choices: a page-first thin slice (first commit is the read-only Filing rules page, which may come before B2's full service layer; the "Order" row otherwise stands), stub services that already carry B2's names so B2 fills them in, and a stub UI demo on stand-in data. Answers `scaffold-plan.md` Open Question 1. No other row changed. `scaffold-plan.md`, `ux.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · **H-035:** recorded the stand-in shell's choices. Build card "Build approach": stubs move status and phase and write units, audit, calendar and publication records but run no check, allowed only in stand-in mode, and the first green path cannot pass before B2's checks. §4 new "Service functions" table (names and signatures from `2.build/backend.md`) and a note that a stage function gets the run ID and the stage name. "Identifiers and versions": verdict `VER-<run>-<n>` and calendar `CAL-<run>`. §4 new `trace` column list (from CR-018, DL-40, DL-43, DL-45, CR-030). The word "Sprint 3" was not used. H-032 was checked and needed no SAD change (already landed as DL-51 to DL-53, CR-032, CR-033, CR-029, DL-27, EC-014). `backend.md`, `ux.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
 - 2026-11-17 · persona `system-arch` (at the operator's instruction; handoff H-040, DL-49 update) · action `update` · **B12 pulled forward and its departures recorded.** Build card "Order" row and Order of work (new row 5a, old row 12 removed): B12 now sits after B5, before B7, B6 and B10 (it was last), built on the stub UI while the frontend waited on B2. Estimate: B12 row (helper allowed, built early), "Build order" paragraph, and the drop order (B12 as a whole after B6 and Tier 2, before B13b; the calendar then shows the List view alone). §3 page 7: **Month view is the default** (was List); the switch is a **radio group styled as tabs** with `:has()`, in place, no script (was "chosen by a link"); below 960 px only the List view shows. **Helper confirmed** (`backend/web/calendar_view.py`) on one condition: it stays display-only (no new field, no dropped or marked entry, no calculated date, no service or model call, nothing the viewer may not see). DL-49 summary row. Checked against the code before editing (`calendar.html`, `site.css`, `routes/calendar.py`, commits `f311130`, `a3e71dc`, `3c47ad3`). Totals unchanged (≈ 7.75). `ux.md`, `frontend.md`, `scaffold-plan.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
+- 2026-11-18 · persona `system-arch` (at the operator's instruction; handoffs H-046 and H-047) · action `update` · **Recorded B2's choices.** Checked against the code first (`backend/services/runs.py`, `guards.py`, `decisions.py`, `gates.py`, `publishing.py`, `stage_store.py`, `backend/main.py`). **H-046, both confirmed, no `ended_at` column:** "Identifiers and versions" new row, the review number (place among the fund's runs, oldest = 1, counted, not stored); §4 new paragraph after the Data table, "when and why a review ended" read from the run's last `gate_event` audit entry (safe because refusals are logged as `refusal`). **H-047:** (1) rule 9 built in B2: rule 9 text, Service functions row (`finish_stage` was renamed `store_stage_outputs` in B2; the new name stands), Estimate B2 and B13b rows, Order of work rows 2 and 3, SOQ-35; B3 keeps the `late` trace line and cost count for discarded output; not re-estimated. (2) New "Order of checks" paragraph after the Transitions table; a row's or verdict's posted `version` is **not compared and not stored** (the handoff said stored: the code stores the row's own version). (3) Start-up rule: rule 7 text and a new Service functions row `runs.fail_interrupted_runs`; it was already a B2 item in the Estimate. `backend.md`, `ux.md`, `scaffold-plan.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
