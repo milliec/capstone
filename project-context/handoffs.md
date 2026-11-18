@@ -41,20 +41,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: B2 turns the stub forms into real checks; the page tests (`tests/tier2/test_pages.py`) also needed every item decided before finishing, via `tests/flow.py`.
 - Outcome: (the owner fills this in)
 
-### H-047: Record what B2 built: Rule 9 in B2, the order checks run in, and the start-up rule
-- From: @backend.eng (B2, operator instruction)   To: @system.arch   Date: 2026-11-17
-- Touches: sad.md Order of work row 3 and Build card (the stage-end store, rule 9, is listed under B3); §4 "Transitions and guards" and "Refusals"; run-state rules 7 and 9; 2.build/backend.md "B2"
-- Ask: Record three things the build settled. (1) **Rule 9 is built in B2**, at the operator's request, because decisions cannot be stored (decide-once) before rows are: the store with the stage-attempt check, the discard of late output, and stage outputs written all or nothing. B3 now only replaces the stand-in data. (2) **The order checks run in** where the table lists several codes: the review has ended (`RUN_NOT_ACTIVE`), then wrong phase (`RUN_STAGE_RUNNING`), then a stale page (`VERSION_MISMATCH`), then the action's own checks; for a row or answer, already decided comes before no answer or a bad answer. Also: a row's or verdict's posted `version` is stored but **not compared** (the table lists `VERSION_MISMATCH` for the run only). (3) **The start-up rule (rule 7) is built now**, not later, because without it a restart mid-stage leaves a review `ACTIVE` in a `*_RUNNING` phase, which B2's `RUN_ACTIVE` and abandon checks would never let go of.
-- Why: The SAD should match the build so the next persona does not repeat or undo it.
-- Outcome: (the owner fills this in)
-
-### H-046: Write two backend rules into the SAD: the review number, and where "ended at" comes from
-- From: @backend.eng (operator approval, 2026-11-17)   To: @system.arch   Date: 2026-11-17
-- Touches: sad.md §4 ("Identifiers and versions" for the number; the "Service functions (H-035)" table or the `runs` / audit text for the time); 2.build/backend.md "View fields for the pages"; ux.md "Review {n}" wording (read-only here)
-- Ask: Record two rules the build had to choose because the SAD is silent. (1) **Review number:** a review's number is its place among the fund's runs, oldest = 1 ("place among the fund's runs, oldest = 1"); runs are never deleted, so a number never changes. ux.md and the pages say "Review 4" but nothing defines it. (2) **"Ended at" comes from the audit log:** the time and reason shown for an abandoned or declined review are read from the review's last `gate_event` audit entry, because `runs` has no "ended at" column. Confirm both, or say what to change (for example, a real `ended_at` column).
-- Why: H-036 V-1 and V-6 needed a rule; the code uses these, and the SAD should own them (`backend.md` Assumptions point here).
-- Outcome: (the owner fills this in)
-
 ### H-040: Build order: B12 (calendar views) pulled forward, before B10
 - From: @frontend.eng (operator decision, 2026-11-17)   To: @system.arch   Date: 2026-11-17
 - Touches: sad.md Build card "Order" row, "Order of work" row 12, Estimate (B12 row, "Build order" paragraph, drop order), §3 page 7; DL-49 (decision-log.md)
@@ -113,6 +99,22 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-047: Record what B2 built: Rule 9 in B2, the order checks run in, and the start-up rule
+- From: @backend.eng (B2, operator instruction)   To: @system.arch   Date: 2026-11-17
+- Touches: sad.md Order of work row 3 and Build card (the stage-end store, rule 9, is listed under B3); §4 "Transitions and guards" and "Refusals"; run-state rules 7 and 9; 2.build/backend.md "B2"
+- Ask: Record three things the build settled. (1) **Rule 9 is built in B2**, at the operator's request, because decisions cannot be stored (decide-once) before rows are: the store with the stage-attempt check, the discard of late output, and stage outputs written all or nothing. B3 now only replaces the stand-in data. (2) **The order checks run in** where the table lists several codes: the review has ended (`RUN_NOT_ACTIVE`), then wrong phase (`RUN_STAGE_RUNNING`), then a stale page (`VERSION_MISMATCH`), then the action's own checks; for a row or answer, already decided comes before no answer or a bad answer. Also: a row's or verdict's posted `version` is stored but **not compared** (the table lists `VERSION_MISMATCH` for the run only). (3) **The start-up rule (rule 7) is built now**, not later, because without it a restart mid-stage leaves a review `ACTIVE` in a `*_RUNNING` phase, which B2's `RUN_ACTIVE` and abandon checks would never let go of.
+- Why: The SAD should match the build so the next persona does not repeat or undo it.
+- Outcome (`@system.arch`, 2026-11-18): **Done**, checked against the code first. (1) Rule 9 in B2: rule 9 text, Service functions row, Estimate B2 and B13b rows, Order of work rows 2 and 3, SOQ-35; B3 keeps the `late` trace line and the cost count for discarded output; not re-estimated. **Also recorded:** B2 renamed `stage_store.finish_stage` to `store_stage_outputs`, a name H-035 had fixed; the new name stands. (2) New "Order of checks" paragraph after the Transitions table, as built. **One correction:** the posted row or verdict `version` is not compared **and not stored**; the decision stores the row's or verdict's own version (always 1). (3) Start-up rule: rule 7 text and a new Service functions row `runs.fail_interrupted_runs`; it was already a B2 item in the Estimate. Audit entry in `sad.md`.
+
+
+### H-046: Write two backend rules into the SAD: the review number, and where "ended at" comes from
+- From: @backend.eng (operator approval, 2026-11-17)   To: @system.arch   Date: 2026-11-17
+- Touches: sad.md §4 ("Identifiers and versions" for the number; the "Service functions (H-035)" table or the `runs` / audit text for the time); 2.build/backend.md "View fields for the pages"; ux.md "Review {n}" wording (read-only here)
+- Ask: Record two rules the build had to choose because the SAD is silent. (1) **Review number:** a review's number is its place among the fund's runs, oldest = 1 ("place among the fund's runs, oldest = 1"); runs are never deleted, so a number never changes. ux.md and the pages say "Review 4" but nothing defines it. (2) **"Ended at" comes from the audit log:** the time and reason shown for an abandoned or declined review are read from the review's last `gate_event` audit entry, because `runs` has no "ended at" column. Confirm both, or say what to change (for example, a real `ended_at` column).
+- Why: H-036 V-1 and V-6 needed a rule; the code uses these, and the SAD should own them (`backend.md` Assumptions point here).
+- Outcome (`@system.arch`, 2026-11-18): **Both confirmed, no `ended_at` column.** Review number: new row in "Identifiers and versions" (counted when shown, not stored; no service deletes a run). "Ended at": new paragraph after the §4 Data table. The last-`gate_event` rule is safe because every request on an ended run is refused and logged as `refusal`, never `gate_event`. `backend.md` Assumptions can point at those two places.
+
 
 ### H-051: Stand-in rules 2 and 3 say "central administration"; "Who files" should show one of the six options
 - From: @ux.designer (operator decision, 2026-11-17)   To: @backend.eng   Date: 2026-11-17
