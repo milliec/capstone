@@ -91,7 +91,7 @@ CrewAI still comes in with B3 (stand-in part) and is recorded here then.
 | `SPEND_ACTIVITY` | empty | Which of the five paid activities (spike, tuning, evaluation, rehearsal, demo) |
 | `CALL_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 90 / 60 / 60 | Per-call timeouts (Build card) |
 | `HTTP_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 85 / 55 / 55 | HTTP client, a few seconds below the call timeout |
-| `STAGE_LIMIT_A_S` / `_B_S` / `_C_S` | 375 / 150 / 30 | Stage limits, on the backend's timer, not `max_execution_time` |
+| `STAGE_TIME_LIMIT_A` / `_B` / `_C` | 375 / 150 / 30 | Stage limits, on the backend's timer, not `max_execution_time` |
 | `STAND_IN_UNIT_PAUSE_S` | `1` | Seconds each stand-in agent function waits per unit, so units finish one by one. Read **only** when `AGENTS_MODE=stand_in`; never in real mode; `0` in tests (sad.md §4, DL-54, T-PAUSE-1). Added to `.env.example` by `@backend.eng` in the app shell (2026-11-16), with the code that reads it |
 
 **Open points to confirm against `sad.md` §4** (this block was told to read only the Implementation
@@ -248,6 +248,8 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   `HTTP_TIMEOUT_*` variables (it only says the HTTP timeout sits a few seconds below the call
   timeout). §4 also lists variables not yet in `.env.example`: `LLM_MODEL_*`, `LLM_MAX_TOKENS_*`,
   `SESSION_SECRET` and `DATABASE_PATH`. Waiting on the operator's decision before renaming.
+  *Update 2026-11-18:* the stage limits were renamed to `STAGE_TIME_LIMIT_A`, `_B`, `_C` in B3
+  step 6 (operator kept the rename); the rest still waits.
 - **Resolved (H-002).** Does the validator's hard requirement for `qa.md` once `2.build/` has
   content stay, or should the hook treat it differently? Decision: the hook ignores only the one
   finding `project-context/2.build/qa.md: Build artifact missing`. Every other validator error still
@@ -273,3 +275,6 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 - 2026-11-17 · persona `project-mgr` · action `document-setup` (handoff H-041 follow-up, operator
   instruction) · "Timing guardrails" Order line brought in step with `sad.md`: B13a after B3, B12
   after B5, B13b after B9, plus the drop order. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
+- 2026-11-18 · persona `backend-eng` · `sync-docs` (operator-approved) · after B3 step 6: the stage
+  limit variables are `STAGE_TIME_LIMIT_A`, `_B`, `_C` (env table and the Open Point on names). The
+  operator kept the rename. No other change.

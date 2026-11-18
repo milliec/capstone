@@ -16,10 +16,20 @@ The units run one after another: in stand-in mode the per-unit pause makes them 
 (DL-54). A unit whose output fails its guardrail fails the stage with "invalid output" (D5).
 Failure demo (DL-52, rule 11): stage A's first unit, first stage attempt, stand-in mode only.
 
-Not here yet (B3 step 6): the stage timer (DL-43), the trace and the cost count (CR-017, CR-018).
+B3 step 6:
+  Trace and cost  every agent call writes one trace line, adds its cost to the run and writes an
+                  audit entry pointing at it (services/trace.py, CR-017, CR-018).
+  Cost cap        before each call: at RUN_COST_CAP_USD or above, the unit fails with "cost cap"
+                  and no further call starts. A call already running finishes (CR-017).
+  Stage timer     the backend's own timer around the whole stage (rule 6, DL-43): when the stage
+                  passes STAGE_TIME_LIMIT_<stage>, the running unit fails with "stage time limit".
+                  There is no cancel: a call still running finishes, its output is LATE, goes to
+                  the trace only (its cost counts), and nothing from the stage is stored (rule 9).
 """
 
 import json
+import sqlite3
+import threading
 
 import yaml
 
@@ -30,7 +40,7 @@ from backend.domain.quote_check import check_quote
 from backend.domain.schemas import Row
 from backend.runtime import agents
 from backend.services import runs as runs_service
-from backend.services import stage_store
+from backend.services import stage_store, trace
 from backend.settings import Settings
 from backend.stand_in import shell_data
 
@@ -69,14 +79,53 @@ def stage_units(conn, run: dict, stage: str) -> list[tuple[str, str]]:
     return [("CALENDAR", "Calendar")]
 
 
-def _run_unit(conn, run: dict, stage: str, unit_id: str, work):
-    """Mark a unit running, do its work, mark it done. A failed unit fails the stage."""
+def _still_current(conn, run: dict, stage: str) -> bool:
+    """Is the run still ACTIVE in this stage, on this stage attempt? (The timer may have failed it,
+    or the specialist abandoned it, while the previous unit ran.)"""
+    now = runs_service.get_run(conn, run["run_id"])
+    return (now["status"] == "ACTIVE" and now["phase"] == f"{stage}_RUNNING"
+            and now["stage_attempt"] == run["stage_attempt"])
+
+
+def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, call):
+    """Run one unit: check it may start, call the agent, trace the call, mark the unit.
+
+    `call(record)` runs the agent function with the trace recorder. In order:
+      1. the stage stopped meanwhile (timer, abandon)  → stop, start no call;
+      2. the run reached its cost cap (CR-017)         → fail with "cost cap", start no call;
+      3. call the agent; its trace line, cost and audit entry are written as it returns (CR-018);
+         a call whose trace line cannot be written counts as failed ("invalid output");
+      4. the output came LATE (rule 9, DL-43)          → stop: it is in the trace only;
+      5. the output failed its guardrail                → fail with "invalid output" (D5);
+      6. otherwise mark the unit done and return the output.
+    """
+    if not _still_current(conn, run, stage):
+        raise _StageStopped
+    if trace.cost_so_far(conn, run["run_id"]) >= settings.run_cost_cap_usd:
+        stage_store.fail_stage(conn, run, stage, unit_id, "cost cap")
+        raise _StageStopped
     stage_store.mark_unit(conn, run, stage, unit_id, "running")
+
+    late = []
+
+    def record(call_record):
+        spend = settings.spend_activity if settings.agents_mode == "real" else None
+        late.append(trace.record_call(conn, run=run, stage=stage, unit_id=unit_id,
+                                      call=call_record, spend_activity=spend))
+
     try:
-        result = work()
+        result = call(record)
     except _UNIT_FAILURES:
+        if late and late[0]:
+            raise _StageStopped          # late AND invalid: the trace has it; nothing else to do
         stage_store.fail_stage(conn, run, stage, unit_id, "invalid output")
         raise _StageStopped
+    except sqlite3.Error:
+        # CR-018: the trace line could not be written, so the call counts as failed.
+        stage_store.fail_stage(conn, run, stage, unit_id, "invalid output")
+        raise _StageStopped
+    if late and late[0]:
+        raise _StageStopped              # rule 9: arrived after the stage failed or the run ended
     stage_store.mark_unit(conn, run, stage, unit_id, "done")
     return result
 
@@ -106,8 +155,9 @@ def _stage_a(conn, settings: Settings, run: dict) -> dict:
             stage_store.fail_stage(conn, run, "A", document_id, "demo failure")
             raise _StageStopped
         own = {pid: text for pid, text in paragraphs.items() if pid.startswith(document_id + "-P")}
-        rows = _run_unit(conn, run, "A", document_id, lambda: agents.extract_rows(
-            settings, document_id=document_id, paragraphs=own, recipient_codes=codes))
+        rows = _run_unit(conn, settings, run, "A", document_id, lambda record: agents.extract_rows(
+            settings, document_id=document_id, paragraphs=own, recipient_codes=codes,
+            record=record))
         drafted += [{**r.model_dump(), "origin": "model"} for r in rows]
 
     if run["demo_planted_row"]:   # added by code, after the model rows (CR-029)
@@ -124,8 +174,9 @@ def _stage_a(conn, settings: Settings, run: dict) -> dict:
 
     stage_store.add_units(conn, run, "A", [(r["row_id"], r["obligation_name"]) for r in drafted])
     for row in drafted:
-        flags = _run_unit(conn, run, "A", row["row_id"], lambda: agents.check_conflicts(
-            settings, row=row, quote_check=checks[row["row_id"]], sources=paragraphs))
+        flags = _run_unit(conn, settings, run, "A", row["row_id"], lambda record: agents.check_conflicts(
+            settings, row=row, quote_check=checks[row["row_id"]], sources=paragraphs,
+            record=record))
         row["flags"] = [f.model_dump() for f in flags]
         row["offset"] = json.dumps(row["offset"])   # stored as JSON text (stage_store)
 
@@ -147,8 +198,8 @@ def _stage_b(conn, settings: Settings, run: dict) -> dict:
     for row_id, _label in units:
         # The judge sees the row's fields and quote only (sad.md "Model and Context Strategy").
         row = {k: by_id[row_id][k] for k in _JUDGE_FIELDS}
-        verdict = _run_unit(conn, run, "B", row_id, lambda: agents.judge_applicability(
-            settings, row=row, fund_facts=facts))
+        verdict = _run_unit(conn, settings, run, "B", row_id, lambda record: agents.judge_applicability(
+            settings, row=row, fund_facts=facts, record=record))
         verdicts.append({
             "verdict_id": f"VER-{run['run_id']}-{_row_n(row_id)}", "row_id": row_id,
             "verdict": verdict.verdict, "reasoning": verdict.reasoning,
@@ -190,17 +241,47 @@ def _stage_c(conn, settings: Settings, run: dict) -> dict:
 _STAGES = {"A": _stage_a, "B": _stage_b, "C": _stage_c}
 
 
-def run_stage(settings: Settings, run_id: str, stage: str) -> None:
-    """Run stage A, B or C for one run. Called as a background task, with only the run ID."""
+def _on_stage_time_limit(settings: Settings, run: dict, stage: str) -> None:
+    """The stage timer went off (rule 6). Runs on the timer's own thread, with its own connection.
+
+    Fails the unit that is running (else the next waiting one, else the last one) with
+    "stage time limit". fail_stage checks, under the write lock, that the stage is still running;
+    if it already finished or failed, nothing changes.
+    """
     conn = connect(settings.database_path)
     try:
+        unit = conn.execute(
+            """SELECT unit_id FROM units WHERE run_id = ? AND stage = ? AND stage_attempt = ?
+               ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting' THEN 1 ELSE 2 END,
+                        CASE status WHEN 'waiting' THEN rowid ELSE -rowid END
+               LIMIT 1""", (run["run_id"], stage, run["stage_attempt"])).fetchone()
+        stage_store.fail_stage(conn, run, stage, unit["unit_id"] if unit else stage,
+                               "stage time limit")
+    finally:
+        conn.close()
+
+
+def run_stage(settings: Settings, run_id: str, stage: str) -> None:
+    """Run stage A, B or C for one run. Called as a background task, with only the run ID.
+
+    The stage runs inside the backend's own timer (rule 6, DL-43); see the module note.
+    """
+    conn = connect(settings.database_path)
+    timer = None
+    try:
         run = runs_service.get_run(conn, run_id)
+        timer = threading.Timer(settings.stage_time_limits[stage], _on_stage_time_limit,
+                                args=(settings, run, stage))
+        timer.daemon = True     # never keeps the app from shutting down
+        timer.start()
         try:
             outputs = _STAGES[stage](conn, settings, run)
         except _StageStopped:
-            return   # fail_stage has recorded the failure; nothing is stored (rule 9)
+            return   # the failure is recorded (or the run moved on); nothing is stored (rule 9)
         stage_store.store_stage_outputs(
             conn, run_id=run_id, fund_id=run["fund_id"], stage=stage,
             stage_attempt=run["stage_attempt"], outputs=outputs)
     finally:
+        if timer is not None:
+            timer.cancel()
         conn.close()

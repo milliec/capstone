@@ -164,17 +164,34 @@ _STORERS = {"A": _store_a, "B": _store_b, "C": _store_c}
 
 
 def fail_stage(conn: sqlite3.Connection, run: dict, stage: str, unit_id: str,
-               failure_reason: str) -> None:
+               failure_reason: str) -> bool:
     """A unit failed: the run becomes FAILED and keeps its phase (DL-46). Stores nothing (rule 9).
+    Returns True if it failed the run, False if the run had already moved on.
 
     Like the store, it first checks that the run is still ACTIVE in this stage and attempt; a
-    failure that arrives after a retry started must not fail the new attempt.
+    failure that arrives after a retry started must not fail the new attempt. Since B3 step 6 the
+    check and the change are ONE locked transaction (BEGIN IMMEDIATE), because the stage timer
+    calls this from its own thread: without the lock, the timer could see "still running", the
+    stage could then store and open its gate, and the timer would fail a run that had finished.
+    If the run has moved on, nothing changes (not even the unit line) and one audit entry says so.
     """
-    mark_unit(conn, run, stage, unit_id, "failed", failure_reason)
-    if _is_current(conn, run["run_id"], stage, run["stage_attempt"]) is None:
-        _discard(conn, run["run_id"], run["fund_id"], stage, run["stage_attempt"], "A failure")
-        return
-    conn.execute("UPDATE runs SET status = 'FAILED' WHERE run_id = ?", (run["run_id"],))
-    write_audit(conn, fund_id=run["fund_id"], actor=f"stage {stage}", event_type="system",
-                run_id=run["run_id"], subject_id=unit_id, reason=failure_reason)
     conn.commit()
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        if _is_current(conn, run["run_id"], stage, run["stage_attempt"]) is None:
+            conn.rollback()
+            _discard(conn, run["run_id"], run["fund_id"], stage, run["stage_attempt"],
+                     f"A failure ({failure_reason})")
+            return False
+        conn.execute(
+            """UPDATE units SET status = 'failed', failure_reason = ?, attempts = attempts + 1
+               WHERE run_id = ? AND stage = ? AND stage_attempt = ? AND unit_id = ?""",
+            (failure_reason, run["run_id"], stage, run["stage_attempt"], unit_id))
+        conn.execute("UPDATE runs SET status = 'FAILED' WHERE run_id = ?", (run["run_id"],))
+        write_audit(conn, fund_id=run["fund_id"], actor=f"stage {stage}", event_type="system",
+                    run_id=run["run_id"], subject_id=unit_id, reason=failure_reason)
+        conn.commit()
+        return True
+    except BaseException:
+        conn.rollback()
+        raise
