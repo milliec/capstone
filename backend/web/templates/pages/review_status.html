@@ -204,7 +204,10 @@
     <p>Abandoning ends this review. Nothing is published and nothing is undone: decisions made so far stay in the audit log. You can then start a new review. Use this, for example, after rejecting a rule by mistake.</p>
     <div class="field">
       <label for="abandon-reason">Reason for abandoning</label>
-      <textarea id="abandon-reason" name="reason" aria-describedby="abandon-hint">{{ refusal.typed if refusal and refusal.typed is defined else "" }}</textarea>
+      {#- H-048: `typed` is a dict {field name: text typed} (frontend.md V-12), as on every
+          other form. Show it only when the refusal is for this form (anchor "abandon"). -#}
+      {%- set typed = refusal.typed if (refusal and refusal.typed is defined and refusal.anchor == "abandon") else {} %}
+      <textarea id="abandon-reason" name="reason" aria-describedby="abandon-hint">{{ typed.reason or "" }}</textarea>
       <p class="hint" id="abandon-hint">Recorded in the audit log. Specialists only.</p>
     </div>
     {{ ui.refusal_here(refusal, "abandon") }}
