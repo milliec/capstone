@@ -14,6 +14,8 @@ Not here yet: DEMO_ROW_NOT_APPROVABLE and "Approval blocked" (B7, which uses the
 
 import sqlite3
 
+from backend.domain import sources, wording
+from backend.domain.fund_facts import load_fund_facts
 from backend.services import FUND_ID, guards, runs
 from backend.services.audit import now_utc, write_audit
 from backend.services.refusals import NotFound, refuse
@@ -47,10 +49,12 @@ def _n(item_id: str) -> int:
 
 
 def _titles(conn: sqlite3.Connection, run_id: str) -> dict[str, str]:
-    """Source document titles by document ID: stage A has one unit per document, labelled with it."""
-    rows = conn.execute("SELECT unit_id, label FROM units WHERE run_id = ? AND stage = 'A'",
-                        (run_id,))
-    return {r["unit_id"]: r["label"] for r in rows}
+    """Source document titles by document ID, from the regulation config (DL-53).
+
+    Not from stage A's unit lines (as in the shell): the secondary guide is never extracted, so it
+    has no unit, and its paragraphs showed the bare ID. `conn` and `run_id` stay for the callers.
+    """
+    return {d["id"]: d["title"] for d in sources.list_documents()}
 
 
 # --- Paragraphs, rejected rules -----------------------------------------------------------
@@ -102,10 +106,12 @@ def _decided_line(d: sqlite3.Row) -> dict:
 def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
     """The rows to check at G1, read from what stage A stored, with the H-036 V-8 view fields.
 
-    In stand-in mode every quote check passes and there are no checker flags (B3 adds the real
-    ones). Before stage A has stored its rows, the list is empty.
+    Since B3 step 5 the rows, quote checks and flags are stage A's real (stand-in) outputs. The
+    row's codes are sent as words (backend/domain/wording.py) and the recipient's display name
+    comes from the regulation config (DL-53). Before stage A has stored its rows, the list is empty.
     """
     titles = _titles(conn, run["run_id"])
+    recipients = sources.list_recipients()
     records = conn.execute(
         """SELECT r.*, q.result AS quote_result, p.paragraph_text, p.document_id,
                   d.decision AS g1_decision, d.business_day_rule AS d_rule, d.who_files AS d_who,
@@ -123,8 +129,12 @@ def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
              "decided_by": r["decided_by"], "decided_at": r["decided_at"]}
         rows.append({
             "n": _n(r["row_id"]), "row_id": r["row_id"], "version": r["version"],
-            "obligation_name": r["obligation_name"], "frequency": r["frequency"],
-            "anchor": r["anchor"], "offset": r["offset"], "recipient_code": r["recipient_code"],
+            "obligation_name": r["obligation_name"],
+            "frequency": wording.FREQUENCY_WORDS.get(r["frequency"], r["frequency"]),
+            "anchor": wording.ANCHOR_WORDS.get(r["anchor"], r["anchor"]),
+            "offset": wording.offset_words(r["offset"]),
+            "due": wording.due_words(r["offset"], r["anchor"]),   # for the calendar's "why" line
+            "recipient_code": r["recipient_code"],
             "responsible_role": r["responsible_role"], "business_day_rule": r["business_day_rule"],
             "source_paragraph_id": r["source_paragraph_id"], "quote": r["quote"],
             "origin": r["origin"], "decision": decision,
@@ -136,8 +146,7 @@ def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
             "needs_who_files": r["responsible_role"] == SOURCE_SILENT,
             "filing_parties": FILING_PARTIES, "open_question": False,
             "needs_attention": ["Demo"] if r["origin"] == "demo" else [], "tags": [],
-            "recipient_name": ("Stand-in regulator" if r["recipient_code"] == "STUB-REG"
-                               else r["recipient_code"]),
+            "recipient_name": recipients.get(r["recipient_code"], r["recipient_code"]),
             "decided": _decided_line(d) if decision else None,
         })
     return {
@@ -222,8 +231,12 @@ def decide_row(conn: sqlite3.Connection, *, row_id: str, version: int, decision:
 def get_g2_view(conn: sqlite3.Connection, run: dict) -> dict:
     """The verdicts to confirm at G2, read from what stage B stored (H-036 V-9 view fields).
 
-    The facts and the missing-fact phrase are placeholders until B3 supplies the stand-in fixtures.
+    Since B3 step 5 the verdicts are stage B's real (stand-in) outputs, and each cited fact or
+    event is shown with its text and value from the fund profile (the same loader the judge reads).
     """
+    known = {f["fact_id"]: (f["fact"], f["value"]) for f in load_fund_facts(run["fund_id"])["facts"]}
+    known |= {e["event_id"]: (e["event"], "Recorded in the event log")
+              for e in load_fund_facts(run["fund_id"])["events"]}
     records = conn.execute(
         """SELECT v.*, r.obligation_name, r.quote, r.source_paragraph_id,
                   d.decision AS g2_decision, d.final_value, d.reason AS d_reason, d.decided_by,
@@ -242,12 +255,12 @@ def get_g2_view(conn: sqlite3.Connection, run: dict) -> dict:
             "verdict": v["verdict"], "reasoning": v["reasoning"],
             "cited_fact_ids": v["cited_fact_ids"], "missing_information": v["missing_information"],
             "decision": v["g2_decision"],
-            "cited_facts": [{"fact_id": fid.strip(), "label": f"Stand-in fact {fid.strip()[-1]}",
-                             "value": "Placeholder value"}
-                            for fid in v["cited_fact_ids"].split(",")],
+            "cited_facts": [{"fact_id": fid, "label": known.get(fid, (fid, ""))[0],
+                             "value": known.get(fid, (fid, ""))[1]}
+                            for fid in (i.strip() for i in v["cited_fact_ids"].split(","))],
             "approved_rule": {"text": v["obligation_name"], "quote": v["quote"],
                               "paragraph_id": v["source_paragraph_id"]},
-            "missing_fact": "a placeholder fact about the fund" if unsure else None,
+            "missing_fact": v["missing_information"] if unsure else None,
             "overrule_value": None if unsure else OPPOSITE[v["verdict"]],
             "decided": ({"outcome": outcome, "by_label": runs.actor_label(v["decided_by"]),
                          "at": v["decided_at"], "reason": v["d_reason"]}

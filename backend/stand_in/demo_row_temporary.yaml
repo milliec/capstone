@@ -1,0 +1,23 @@
+# TEMPORARY placeholder for the planted demo row (CR-029). B7 REPLACES this file with
+# config/demo/planted-row.yaml and deletes it (operator, 2026-11-18, B3 step 5).
+#
+# Why it exists: the "Add the demo rule" switch already works (the app shell), and since B3 step 5
+# a row must cite a paragraph that was really loaded (the database refuses any other). The shell's
+# old placeholder cited SRC-STUB-P4, which no longer exists. So until B7 this placeholder cites a
+# real paragraph with a word-for-word quote, so it passes the quote check like the real one will.
+# It is added by code, never by a model, and stored with origin "demo".
+#
+# Its wording is NOT the B7 design: B7 writes the real planted row (a real quote that does not
+# support the row's rule) and the DEMO_ROW_NOT_APPROVABLE refusal.
+
+obligation_name: Placeholder demo rule (temporary, replaced in B7)
+frequency: annually
+anchor: financial_year_end
+offset: {unit: months, amount: 1}
+recipient_code: CSSF
+recipient_name: CSSF
+responsible_role: not stated in source
+applicability_rule: Placeholder until B7.
+business_day_rule: not_confirmed
+source_paragraph_id: SRC-UCILAW-P1
+quote: the last day of the financial year stated in the constitutive documents

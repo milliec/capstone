@@ -7,7 +7,6 @@ No test here sleeps for real: a fake `sleep` records what it was asked to do.
 import pytest
 
 from backend.runtime import agents
-from backend.runtime.stages import stage_units
 from backend.services import FUND_ID
 from backend.services import runs as runs_service
 from backend.settings import SettingsError, load_settings
@@ -68,5 +67,8 @@ def test_stand_in_pauses_once_per_unit_during_a_stage(specialist_client, setting
     specialist_client.post("/specialist/runs", data={})
 
     run = runs_service.list_runs(db, FUND_ID)[0]
-    assert sleep.calls == [1.0] * len(stage_units(db, run, "A"))
+    # Stage A's units since B3 step 5: one per primary document, then one check per drafted rule.
+    unit_lines = [u for u in runs_service.list_units(db, run["run_id"]) if u["stage"] == "A"]
+    assert len(unit_lines) == 5 + 6
+    assert sleep.calls == [1.0] * len(unit_lines)
     assert run["phase"] == "AT_G1"

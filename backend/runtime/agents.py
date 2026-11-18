@@ -1,9 +1,9 @@
 """The three agent functions (extractor, verifier, judge).
 
 B3 step 4: extract_rows, check_conflicts and judge_applicability return the fixed stand-in answers
-from backend/stand_in/, checked by the real guardrails. The stage functions still call the old
-`run_unit` stub until B3 step 5 switches them over. The CrewAI wiring is B3 step 7. Real mode is
-refused: no model call before the first green path.
+from backend/stand_in/, checked by the real guardrails. Since B3 step 5 the stage functions call
+them (backend/runtime/stages.py). The CrewAI wiring is B3 step 7. Real mode is refused: no model
+call before the first green path.
 
 The stand-in pause (DL-54, B13a): each stand-in unit waits STAND_IN_UNIT_PAUSE_S seconds before
 returning, so the units table fills in one row at a time. Real mode NEVER pauses (T-PAUSE-1).
@@ -56,10 +56,9 @@ def unit_pause(settings: Settings, sleep=None) -> None:
 
 
 def run_unit(settings: Settings, stage: str, unit_id: str) -> None:
-    """STUB — replace in B3. Run one unit of a stage with the configured agents.
-
-    Stand-in: pause, then return (B3 returns the fixed output from backend/stand_in/).
-    Real: refused in the shell.
+    """UNUSED since B3 step 5: the stage functions call extract_rows, check_conflicts and
+    judge_applicability (sad.md §2) instead. Kept only because sad.md §4 "Service functions" still
+    names it; H-052 asks @system.arch to update that row, and then this function is deleted.
     """
     if settings.agents_mode != "stand_in":
         raise RealAgentsNotBuilt("AGENTS_MODE=real is not built yet (B3 spike, after green path)")

@@ -55,10 +55,10 @@ def row(conn, run_id, n, **fields):
 # --- G1 ------------------------------------------------------------------------------------------
 
 def test_an_approve_and_a_reject_are_stored_once(conn, g1):
-    flow.approve_rule(conn, g1, 1)
-    flow.reject_rule(conn, g1, 2, "  Wrong quote ")
+    flow.approve_rule(conn, g1, 2)                           # rule 2's source is silent on the filer
+    flow.reject_rule(conn, g1, 1, "  Wrong quote ")
     stored = {r["row_id"]: dict(r) for r in conn.execute("SELECT * FROM row_decisions")}
-    approved, rejected = stored[f"ROW-{g1}-1"], stored[f"ROW-{g1}-2"]
+    approved, rejected = stored[f"ROW-{g1}-2"], stored[f"ROW-{g1}-1"]
     assert (approved["decision"], approved["business_day_rule"], approved["who_files"]) == \
         ("approve", "roll_forward", "AIFM")
     assert (rejected["decision"], rejected["reason"], rejected["business_day_rule"]) == \
@@ -89,7 +89,7 @@ def test_approve_needs_a_failed_quote_check_to_pass(conn, g1):
     conn.execute("UPDATE quote_checks SET result = 'fail' WHERE row_id = ?", (f"ROW-{g1}-2",))
     conn.commit()
     r = refused(conn, row(conn, g1, 2), "QUOTE_CHECK_FAILED", anchor="row-2")
-    assert "paragraph SRC-STUB-P2" in r.sentence
+    assert "paragraph SRC-UCILAW-P2" in r.sentence
     flow.reject_rule(conn, g1, 2, "Failed the check")      # rejecting is still allowed
 
 
@@ -100,13 +100,13 @@ def test_approve_needs_a_real_business_day_rule(conn, g1, rule):
 
 
 def test_approve_needs_a_filing_party_when_the_source_is_silent(conn, g1):
-    refused(conn, row(conn, g1, 1, who_files=None), "WHO_FILES_REQUIRED", anchor="row-1")
-    refused(conn, row(conn, g1, 1, who_files="  "), "WHO_FILES_REQUIRED")
-    refused(conn, row(conn, g1, 1, who_files="Somebody else"), "VALIDATION",
-            anchor="row-1")                                  # a value the page never offered
-    flow.approve_rule(conn, g1, 2, who=None)                 # rule 2 names its filer: not asked
+    refused(conn, row(conn, g1, 2, who_files=None), "WHO_FILES_REQUIRED", anchor="row-2")
+    refused(conn, row(conn, g1, 2, who_files="  "), "WHO_FILES_REQUIRED")
+    refused(conn, row(conn, g1, 2, who_files="Somebody else"), "VALIDATION",
+            anchor="row-2")                                  # a value the page never offered
+    flow.approve_rule(conn, g1, 1, who=None)                 # rule 1 names its filer: not asked
     assert conn.execute("SELECT who_files FROM row_decisions WHERE row_id = ?",
-                        (f"ROW-{g1}-2",)).fetchone()[0] is None
+                        (f"ROW-{g1}-1",)).fetchone()[0] is None
 
 
 def test_approve_over_a_flag_needs_a_reason(conn, g1):
@@ -156,7 +156,7 @@ def test_an_unknown_rule_is_not_found(conn, g1):
 
 @pytest.fixture
 def g2(conn, settings, g1):
-    for n in (1, 2, 3):
+    for n in flow.RULES:
         flow.approve_rule(conn, g1, n)
     flow.finish_g1(conn, settings, g1)
     return g1
@@ -171,12 +171,13 @@ def verdict(conn, run_id, n, **fields):
 
 def test_each_kind_of_answer_is_stored(conn, g2):
     flow.answer(conn, g2, 1, "confirm", "applies")
-    flow.answer(conn, g2, 2, "decide", "does_not_apply", "Leave it off")
-    flow.answer(conn, g2, 3, "override", "applies", "It applies")
+    flow.answer(conn, g2, flow.UNSURE_N, "decide", "does_not_apply", "Leave it off")
+    flow.answer(conn, g2, flow.DOES_NOT_APPLY_N, "override", "applies", "It applies")
     stored = {r["verdict_id"]: dict(r) for r in conn.execute("SELECT * FROM verdict_decisions")}
     assert [(d["decision"], d["final_value"]) for d in stored.values()] == \
         [("confirm", "applies"), ("decide", "does_not_apply"), ("override", "applies")]
-    assert stored[f"VER-{g2}-1"]["reason"] is None and stored[f"VER-{g2}-3"]["reason"] == "It applies"
+    assert stored[f"VER-{g2}-1"]["reason"] is None
+    assert stored[f"VER-{g2}-{flow.DOES_NOT_APPLY_N}"]["reason"] == "It applies"
 
 
 def test_an_answer_can_only_be_given_once(conn, g2):
@@ -192,8 +193,10 @@ def test_no_answer_or_an_answer_that_does_not_fit_is_validation(conn, g2):
             "VALIDATION")                                    # overrule must give the opposite
     refused(conn, verdict(conn, g2, 1, value="does_not_apply"), "VALIDATION")   # confirm must repeat
     refused(conn, verdict(conn, g2, 1, decision="decide", decide_reason="x"), "VALIDATION")  # AI did tell
-    refused(conn, verdict(conn, g2, 2, decision="confirm", value="applies"), "VALIDATION")    # AI can't tell
-    refused(conn, verdict(conn, g2, 2, decision="decide", value="maybe", decide_reason="x"), "VALIDATION")
+    refused(conn, verdict(conn, g2, flow.UNSURE_N, decision="confirm", value="applies"),
+            "VALIDATION")                                    # AI can't tell
+    refused(conn, verdict(conn, g2, flow.UNSURE_N, decision="decide", value="maybe",
+                          decide_reason="x"), "VALIDATION")
 
 
 def test_overrule_and_decide_need_a_reason_worded_for_the_answer(conn, g2):
@@ -201,7 +204,8 @@ def test_overrule_and_decide_need_a_reason_worded_for_the_answer(conn, g2):
                               override_reason=" "), "REASON_REQUIRED", anchor="verdict-1")
     assert "General Partner will not see it" in r.sentence
     assert r.typed["override_reason"] == " "
-    r = refused(conn, verdict(conn, g2, 2, decision="decide", value="applies"), "REASON_REQUIRED")
+    r = refused(conn, verdict(conn, g2, flow.UNSURE_N, decision="decide", value="applies"),
+                "REASON_REQUIRED")
     assert "will read it as the explanation" in r.sentence
     flow.answer(conn, g2, 1, "confirm", "applies")           # confirm needs no reason
 

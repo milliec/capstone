@@ -51,15 +51,15 @@ def finish_g2(conn, settings, run_id, version=None):
 # --- Finishing G1 and G2 -------------------------------------------------------------------------
 
 def test_g1_cannot_finish_with_an_undecided_rule(conn, settings):
-    run_id = flow.start_to_g1(conn, settings, demo=True)       # four rules
+    run_id = flow.start_to_g1(conn, settings, demo=True)       # six rules and the demo rule
     flow.approve_rule(conn, run_id, 1)
     r = refused(conn, finish_g1(conn, settings, run_id), "GATE_INCOMPLETE")
-    assert r.sentence == "3 rules are still undecided. Decide every rule before you finish checking."
-    for n in (2, 3):
+    assert r.sentence == "6 rules are still undecided. Decide every rule before you finish checking."
+    for n in (2, 3, 4, 5, 6):
         flow.approve_rule(conn, run_id, n)
     r = refused(conn, finish_g1(conn, settings, run_id), "GATE_INCOMPLETE")
     assert r.sentence.startswith("1 rule is still undecided.")
-    flow.reject_rule(conn, run_id, 4)
+    flow.reject_rule(conn, run_id, flow.DEMO_N)
     finish_g1(conn, settings, run_id)()                          # now it works
     run = runs.get_run(conn, run_id)
     assert (run["phase"], run["run_version"]) == ("AT_G2", 2)   # stage B ran at once in this test
@@ -67,17 +67,19 @@ def test_g1_cannot_finish_with_an_undecided_rule(conn, settings):
 
 def test_g2_cannot_finish_with_an_undecided_answer_and_counts_the_cant_tells(conn, settings):
     run_id = flow.start_to_g1(conn, settings)
-    for n in (1, 2, 3):
+    for n in flow.RULES:
         flow.approve_rule(conn, run_id, n)
     flow.finish_g1(conn, settings, run_id)
     flow.answer(conn, run_id, 1, "confirm", "applies")
     r = refused(conn, finish_g2(conn, settings, run_id), "GATE_INCOMPLETE")
-    assert r.sentence == ("2 answers are still undecided, 1 of them where AI can't tell. "
+    assert r.sentence == ("5 answers are still undecided, 1 of them where AI can't tell. "
                           "Decide every answer before you finish.")
-    flow.answer(conn, run_id, 3, "confirm", "does_not_apply")
+    for n in (2, 3, 5):
+        flow.answer(conn, run_id, n, "confirm", "applies")
+    flow.answer(conn, run_id, flow.DOES_NOT_APPLY_N, "confirm", "does_not_apply")
     r = refused(conn, finish_g2(conn, settings, run_id), "GATE_INCOMPLETE")     # "can't tell" is left
     assert r.sentence.startswith("1 answer is still undecided, 1 of them")
-    flow.answer(conn, run_id, 2, "decide", "applies", "Added")
+    flow.answer(conn, run_id, flow.UNSURE_N, "decide", "applies", "Added")
     finish_g2(conn, settings, run_id)()
     assert runs.get_run(conn, run_id)["phase"] == "AT_G3"
 
@@ -99,7 +101,7 @@ def test_each_stage_gets_a_fresh_attempt_counter(conn, settings):
     run_id = flow.start_to_g1(conn, settings)
     conn.execute("UPDATE runs SET stage_attempt = 2")
     conn.commit()
-    for n in (1, 2, 3):
+    for n in flow.RULES:
         flow.approve_rule(conn, run_id, n)
     flow.finish_g1(conn, settings, run_id)
     assert runs.get_run(conn, run_id)["stage_attempt"] == 1
@@ -109,7 +111,7 @@ def test_each_stage_gets_a_fresh_attempt_counter(conn, settings):
 
 @pytest.fixture
 def g3(conn, settings):
-    return flow.to_g3(conn, settings, demo=True)               # rule 4 rejected, so the lists are not empty
+    return flow.to_g3(conn, settings, demo=True)               # demo rule 7 rejected, so the lists are not empty
 
 
 def publish(conn, run_id, **fields):
@@ -127,7 +129,7 @@ def test_publish_needs_the_box_ticked_and_the_servers_own_lists(conn, g3):
     assert (r.anchor, r.sentence.startswith("Tick the box")) == ("ack", True)
     r = refused(conn, publish(conn, g3, rejected_row_ids=[]), "ACK_REQUIRED")      # list changed
     assert r.sentence.startswith("The lists of rejected rules or unused paragraphs are not")
-    refused(conn, publish(conn, g3, uncited_paragraph_ids=["SRC-STUB-P5"]), "ACK_REQUIRED")
+    refused(conn, publish(conn, g3, uncited_paragraph_ids=["SRC-PRACT-P1"]), "ACK_REQUIRED")
     refused(conn, publish(conn, g3, rejected_row_ids=["ROW-OTHER-1"]), "ACK_REQUIRED")
 
 
@@ -144,8 +146,8 @@ def test_publish_is_refused_for_a_stale_page_and_a_review_not_at_g3(conn, g3):
 def test_a_matching_publish_works_once_and_records_what_was_acknowledged(conn, g3):
     publish(conn, g3)()
     stored = conn.execute("SELECT * FROM publications").fetchone()
-    assert stored["acknowledged_rejected_row_ids"] == f'["ROW-{g3}-4"]'
-    assert "SRC-STUB-P4" in stored["acknowledged_uncited_paragraph_ids"]
+    assert stored["acknowledged_rejected_row_ids"] == f'["ROW-{g3}-{flow.DEMO_N}"]'
+    assert "SRC-PRACT-P1" in stored["acknowledged_uncited_paragraph_ids"]
     refused(conn, publish(conn, g3), "RUN_NOT_ACTIVE")         # a second publish is refused
 
 
@@ -198,7 +200,7 @@ def test_finishing_g1_early_shows_the_page_level_sentence(specialist_client):
     run_id = re.search(r"RUN-\d{8}-\d+", html).group(0)
     page = specialist_client.post(f"/specialist/runs/{run_id}/g1/complete", data={"run_version": 1})
     assert page.status_code == 409
-    assert "3 rules are still undecided. Decide every rule before you finish checking." in page.text
+    assert "6 rules are still undecided. Decide every rule before you finish checking." in page.text
 
 
 def test_the_g3_form_must_say_which_answer_and_match_its_button(specialist_client, settings):

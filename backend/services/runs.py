@@ -14,7 +14,6 @@ from backend.services.audit import now_utc, write_audit
 from backend.services.auth import IDENTITIES
 from backend.services.refusals import NotFound, refuse
 from backend.settings import Settings
-from backend.stand_in import shell_data
 
 # ux.md §1.5: a status is always words first. Keyed by (status, phase); terminal statuses ignore
 # the phase.
@@ -135,12 +134,17 @@ def _steps(run: dict) -> list[dict]:
             for i, st in enumerate(states, start=1)]
 
 
-def _counts(run: dict) -> dict:
-    """H-036 V-5. The numbers in the status sentences. STUB: counted from the stand-in data."""
-    rules = len(shell_data.ROWS) + (1 if run["demo_planted_row"] else 0)
-    return {"rules": rules,
-            "unsure": sum(1 for v in shell_data.VERDICTS if v["verdict"] == "unsure"),
-            "dates": len(shell_data.ENTRIES)}
+def _counts(conn: sqlite3.Connection, run: dict) -> dict:
+    """H-036 V-5. The numbers in the status sentences, counted from what the stages stored
+    (B3 step 5). A stage that has not finished yet counts 0."""
+    count = lambda sql: conn.execute(sql, (run["run_id"],)).fetchone()[0]
+    return {
+        "rules": count("SELECT COUNT(*) FROM rows WHERE run_id = ?"),
+        "unsure": count("SELECT COUNT(*) FROM verdicts v JOIN rows r ON r.row_id = v.row_id "
+                        "WHERE r.run_id = ? AND v.verdict = 'unsure'"),
+        "dates": count("SELECT COUNT(*) FROM calendar_entries e JOIN calendar_versions c "
+                       "ON c.calendar_id = e.calendar_id WHERE c.run_id = ?"),
+    }
 
 
 def _ended(conn: sqlite3.Connection, run: dict) -> dict | None:
@@ -205,7 +209,7 @@ def _describe(conn: sqlite3.Connection, run: dict) -> dict:
                           else TONE_ENDED.get(status, "neutral"))                   # V-2
     run["started_by_label"] = actor_label(run["started_by"])                   # V-7
     run["steps"] = _steps(run)                                                       # V-3
-    run["counts"] = _counts(run)                                                     # V-5
+    run["counts"] = _counts(conn, run)                                               # V-5
     run["ended"] = _ended(conn, run)                                                 # V-6
     run["published_at"] = _published_at(conn, run)                                   # V-6
     run["failure"] = _failure(conn, run)                                             # V-6

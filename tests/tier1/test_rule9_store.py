@@ -5,9 +5,15 @@ stage's phase and on the same stage attempt. Anything else is discarded and stor
 import pytest
 
 from backend.db.connection import connect, init_db
-from backend.runtime.stages import run_stage, stand_in_outputs
+from backend.runtime import stages
 from backend.services import FUND_ID, runs, stage_store
 from tests import flow
+
+def stand_in_outputs(conn, settings, run):
+    """Stage A's outputs, built the way the stage builds them but not stored (B3 step 5).
+    It also adds stage A's unit lines, all done, as a finished stage would have them."""
+    return stages._stage_a(conn, settings, run)
+
 
 TABLES = ("paragraphs", "rows", "quote_checks", "verdicts", "calendar_versions", "calendar_entries")
 
@@ -38,17 +44,17 @@ def test_a_stage_stores_everything_together_and_moves_to_the_gate(conn, settings
     assert _counts(conn)["rows"] == 0                     # nothing is stored while the stage runs
     stored = stage_store.store_stage_outputs(
         conn, run_id=run["run_id"], fund_id=FUND_ID, stage="A", stage_attempt=1,
-        outputs=stand_in_outputs(conn, run, "A"))
+        outputs=stand_in_outputs(conn, settings, run))
     assert stored is True
     counts = _counts(conn)
-    assert counts["rows"] == 3 and counts["quote_checks"] == 3 and counts["paragraphs"] == 5
+    assert counts["rows"] == 6 and counts["quote_checks"] == 6 and counts["paragraphs"] == 13
     assert runs.get_run(conn, run["run_id"])["phase"] == "AT_G1"
 
 
 def test_if_anything_fails_midway_nothing_is_stored(conn, settings):
     """All or nothing: a bad second row rolls back the paragraphs and the first row too."""
     run = _running_stage_a(conn, settings)
-    outputs = stand_in_outputs(conn, run, "A")
+    outputs = stand_in_outputs(conn, settings, run)
     outputs["rows"][1]["row_id"] = outputs["rows"][0]["row_id"]        # duplicate row ID
     with pytest.raises(Exception):
         stage_store.store_stage_outputs(conn, run_id=run["run_id"], fund_id=FUND_ID, stage="A",
@@ -65,7 +71,7 @@ def test_a_stage_with_an_unfinished_unit_stores_nothing(conn, settings):
     conn.commit()
     with pytest.raises(ValueError):
         stage_store.store_stage_outputs(conn, run_id=run["run_id"], fund_id=FUND_ID, stage="A",
-                                        stage_attempt=1, outputs=stand_in_outputs(conn, run, "A"))
+                                        stage_attempt=1, outputs=stand_in_outputs(conn, settings, run))
     assert all(count == 0 for count in _counts(conn).values())
 
 
@@ -77,7 +83,7 @@ def test_a_stage_with_an_unfinished_unit_stores_nothing(conn, settings):
 ])
 def test_late_output_is_discarded_and_stores_nothing(conn, settings, change):
     run = _running_stage_a(conn, settings)
-    outputs = stand_in_outputs(conn, run, "A")
+    outputs = stand_in_outputs(conn, settings, run)
     conn.execute(change)
     conn.commit()
     before = runs.get_run(conn, run["run_id"])
@@ -113,13 +119,18 @@ def test_stage_b_makes_verdicts_only_for_approved_rules_and_c_entries_only_for_a
     run_id = flow.start_to_g1(conn, settings)
     flow.approve_rule(conn, run_id, 1)
     flow.reject_rule(conn, run_id, 2)
-    flow.approve_rule(conn, run_id, 3)
+    for n in (3, 4, 5, 6):
+        flow.approve_rule(conn, run_id, n)
     flow.finish_g1(conn, settings, run_id)
     verdicts = [r[0] for r in conn.execute("SELECT verdict_id FROM verdicts ORDER BY rowid")]
-    assert verdicts == [f"VER-{run_id}-1", f"VER-{run_id}-3"]          # rule 2 was rejected
+    assert verdicts == [f"VER-{run_id}-{n}" for n in (1, 3, 4, 5, 6)]   # rule 2 was rejected
     flow.answer(conn, run_id, 1, "confirm", "applies")
-    flow.answer(conn, run_id, 3, "override", "applies", "Applies after all")
+    flow.answer(conn, run_id, 3, "confirm", "applies")
+    flow.answer(conn, run_id, 4, "decide", "applies", "Registered after all")
+    flow.answer(conn, run_id, 5, "confirm", "applies")
+    flow.answer(conn, run_id, 6, "override", "applies", "Applies after all")
     flow.finish_g2(conn, settings, run_id)
+    # Stage C's placeholder dates (until B4) cover rules 1, 2 and 4; rule 2 was rejected at G1.
     entries = [r[0] for r in conn.execute("SELECT row_id FROM calendar_entries ORDER BY due_date")]
-    assert entries == [f"ROW-{run_id}-3", f"ROW-{run_id}-1"]           # both answers were "applies"
+    assert entries == [f"ROW-{run_id}-4", f"ROW-{run_id}-1"]
     assert conn.execute("SELECT COUNT(*) FROM calendar_versions").fetchone()[0] == 1
