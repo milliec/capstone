@@ -1,0 +1,33 @@
+# Regulation configuration for the demo fund's regime (sad.md §4 "configuration in versioned files").
+# Mock data only.
+#
+# B3 (step 1) adds the list of source documents the loader reads.
+# B4 adds the date conventions D-1 to D-7, the mock holiday list and the open conventions (CR-027).
+
+# The file the paragraphs come from. The loader keeps only paragraph text: no test notes,
+# planted-conflict notes, header warnings or amendments (CR-016, DL-39).
+sources_file: project-context/1.define/mock-data/mock-regulatory-sources.md
+
+# The six source documents, in the order the extractor units run (W-02).
+# `type`: primary documents are extracted (one stage A unit each); the secondary one is only read
+# by the verifier, as part of <sources> (sad.md §2, stage A).
+# `title` is the readable label for a unit line and the extractor's {document_title} (DL-53).
+documents:
+  - id: SRC-CSSF15627
+    title: CSSF Circular 15/627
+    type: primary
+  - id: SRC-UCILAW
+    title: Law of 17 December 2010 on undertakings for collective investment
+    type: primary
+  - id: SRC-CNMV
+    title: CNMV statistical reporting requirements for foreign UCIs marketed in Spain
+    type: primary
+  - id: SRC-RBELAW
+    title: Law of 13 January 2019 establishing a Register of Beneficial Owners
+    type: primary
+  - id: SRC-VATLAW
+    title: Luxembourg law of 12 February 1979 on value added tax
+    type: primary
+  - id: SRC-PRACT
+    title: Practitioner guide to Luxembourg fund filings
+    type: secondary
