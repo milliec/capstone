@@ -1,7 +1,11 @@
 # Fund profile for the one fictional demo fund (DL-53). Mock data only.
-# Display fields only for now; the facts the judge cites and the filing parties come with B3
-# (scaffold-plan.md Open Question 3: written by hand, without the answer key's columns or notes).
+# Display fields, plus where the judge's facts come from (B3 step 4).
 fund_id: FND-DEMO-01
 name: Bramblegate Credit Opportunities SICAV
 regime: Luxembourg UCI Part II
 year_end: 31 Dec
+
+# The fund facts and event log the judge reads (W-10). The loader (backend/domain/fund_facts.py)
+# keeps only each fact's ID, fact and value, and each event's ID and description: never the
+# "Decides" column, test notes or event dates (CR-016, DL-39, sad.md "Model and Context Strategy").
+profile_file: project-context/1.define/mock-data/mock-fund-profile.md

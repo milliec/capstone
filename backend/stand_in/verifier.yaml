@@ -1,0 +1,14 @@
+# Stand-in verifier output (CR-030): what check_conflicts returns in AGENTS_MODE=stand_in, keyed by
+# the row's source_paragraph_id (row IDs change every run). Never placed in a prompt.
+#
+# Written by hand from the mock source paragraphs (operator, 2026-11-18): one flag, so G1 has
+# something to show, and no answer-key IDs or notes (CR-016). A row not listed here gets no flags,
+# like a verifier that found nothing. The verifier's guardrail checks every flag before use.
+
+SRC-UCILAW-P3:
+  - flag_type: cross_source
+    other_paragraph_id: SRC-PRACT-P1
+    other_quote: within four months of financial year-end
+    explanation: >-
+      SRC-PRACT-P1 gives four months after financial year-end; the row's source, SRC-UCILAW-P3,
+      gives six months.

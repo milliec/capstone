@@ -34,11 +34,11 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-052: "No date-shaped value": the guardrails allow a date copied word for word from the agent's input
-- From: @backend.eng (B3 step 3, operator decision 2026-11-18)   To: @system.arch   Date: 2026-11-18
-- Touches: sad.md §2 agent cards ("Rules for all three cards": "The guardrail refuses any date-shaped value"; card 1 and card 3 guardrails "no date-shaped value"); Build card Never row; CR-003
-- Ask: Reword the rule so it matches what B3 built and the operator approved: a guardrail refuses a date-shaped value **the agent wrote itself**, and allows one that is **copied word for word from the text the agent was given** (QN-1 steps 1 and 2 applied to both). Month names count only when capitalised ("rule 3 may apply" is not "3 May"). Code: `backend/domain/guardrails.py`, `find_date_shaped`; tests `tests/tier1/test_guardrails.py`.
-- Why: Read literally, the rule fails correct output: the `SRC-VATLAW-P1` quote must contain "31 October", and an applicability rule may name the "Law of 17 December 2010" (the answer key's own `OBL-01` rule does). The intent, "a model never computes a date" (Never row), is kept.
+### H-052: Record two B3 choices: the date guardrail allows a date copied from the agent's input; recipient code `LBR`
+- From: @backend.eng (B3 steps 3 and 4, operator decisions 2026-11-18)   To: @system.arch   Date: 2026-11-18
+- Touches: sad.md §2 agent cards ("Rules for all three cards": "The guardrail refuses any date-shaped value"; card 1 and card 3 guardrails "no date-shaped value"); Build card Never row; CR-003; §2 "Shared output vocabulary" (`recipient_code`); §4 configuration files (`config/regulation/lu-part2.yaml`)
+- Ask: (1) Reword the date rule so it matches what B3 built and the operator approved: a guardrail refuses a date-shaped value **the agent wrote itself**, and allows one that is **copied word for word from the text the agent was given** (QN-1 steps 1 and 2 applied to both). Month names count only when capitalised ("rule 3 may apply" is not "3 May"). Code: `backend/domain/guardrails.py`, `find_date_shaped`; tests `tests/tier1/test_guardrails.py`. (2) Record the recipient codes now in `config/regulation/lu-part2.yaml` (B3 step 4): `CSSF`, `AED`, `CNMV`, and **`LBR`** for the Luxembourg Business Registers, which the SAD names no code for. Display names are written as the sources write them (DL-53).
+- Why: (1) Read literally, the rule fails correct output: the `SRC-VATLAW-P1` quote must contain "31 October", and an applicability rule may name the "Law of 17 December 2010" (the answer key's own `OBL-01` rule does). The intent, "a model never computes a date" (Never row), is kept. (2) The SAD uses `AED` (CR-027, SOQ-33) but lists no full code set, and the extractor's guardrail needs one.
 - Outcome: (the owner fills this in)
 
 ### H-048: FYI and one fix: refusals are live; the abandon box reads `typed` the wrong way; the visual script changed

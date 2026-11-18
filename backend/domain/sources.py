@@ -45,6 +45,11 @@ def list_documents() -> list[dict]:
     return [dict(d) for d in load_regulation_config()["documents"]]
 
 
+def list_recipients() -> dict[str, str]:
+    """The allowed recipient codes and their display names: {code: name} (DL-53)."""
+    return {r["code"]: r["name"] for r in load_regulation_config()["recipients"]}
+
+
 def _document_id(paragraph_id: str) -> str:
     """SRC-UCILAW-P2 → SRC-UCILAW."""
     return paragraph_id.rsplit("-P", 1)[0]

@@ -1,0 +1,86 @@
+# Stand-in extractor output (CR-030): what extract_rows returns in AGENTS_MODE=stand_in, per primary
+# source document. Never placed in a prompt.
+#
+# Written by hand from the mock source paragraphs (operator, 2026-11-18): each quote is copied from
+# its paragraph, and nothing is read from or refers to the answer key (CR-016: no answer-key IDs,
+# no test notes). The same guardrail as a real model's output checks these rows before use.
+#
+# "responsible_role": the party as the document writes it, only when the document says who files;
+# otherwise "not stated in source" (card 1, step 3). Business-day rule: not_confirmed, because no
+# source paragraph says what happens on a weekend or holiday.
+
+SRC-CSSF15627:
+  - obligation_name: Monthly financial information report U1.1
+    frequency: monthly
+    anchor: month_end
+    offset: {unit: calendar_days, amount: 10}
+    recipient_code: CSSF
+    recipient_name: CSSF
+    responsible_role: fund administrator
+    applicability_rule: The undertaking is subject to Part II of the Law of 17 December 2010.
+    business_day_rule: not_confirmed
+    source_paragraph_id: SRC-CSSF15627-P2
+    quote: no later than 10 calendar days after the end of each month
+
+SRC-UCILAW:
+  - obligation_name: Subscription tax return and payment
+    frequency: quarterly
+    anchor: quarter_end
+    offset: {unit: calendar_days, amount: 20}
+    recipient_code: AED
+    recipient_name: Administration de l'enregistrement, des domaines et de la TVA
+    responsible_role: not stated in source
+    applicability_rule: The undertaking is established in Luxembourg.
+    business_day_rule: not_confirmed
+    source_paragraph_id: SRC-UCILAW-P2
+    quote: within 20 calendar days following the end of each calendar quarter
+  - obligation_name: Audited annual report
+    frequency: annually
+    anchor: financial_year_end
+    offset: {unit: months, amount: 6}
+    recipient_code: CSSF
+    recipient_name: CSSF
+    responsible_role: not stated in source
+    applicability_rule: The undertaking is subject to Part II of this law.
+    business_day_rule: not_confirmed
+    source_paragraph_id: SRC-UCILAW-P3
+    quote: within six months of the end of the period to which it relates
+
+SRC-CNMV:
+  - obligation_name: Statistical report A01
+    frequency: quarterly
+    anchor: quarter_end
+    offset: {unit: months, amount: 2}
+    recipient_code: CNMV
+    recipient_name: CNMV
+    responsible_role: local reporting agent
+    applicability_rule: The undertaking is registered with the CNMV for marketing in Spain.
+    business_day_rule: not_confirmed
+    source_paragraph_id: SRC-CNMV-P1
+    quote: within two months after the last calendar day of the quarter
+
+SRC-RBELAW:
+  - obligation_name: Beneficial owner information update
+    frequency: on_occurrence
+    anchor: event_awareness
+    offset: {unit: months, amount: 1}
+    recipient_code: LBR
+    recipient_name: Luxembourg Business Registers
+    responsible_role: not stated in source
+    applicability_rule: The entity is a registered entity.
+    business_day_rule: not_confirmed
+    source_paragraph_id: SRC-RBELAW-P1
+    quote: within one month of becoming aware of the event that made the change necessary
+
+SRC-VATLAW:
+  - obligation_name: Annual VAT return
+    frequency: annually
+    anchor: financial_year_end
+    offset: {unit: fixed_day_month, day: 31, month: 10, year_shift: 1}
+    recipient_code: AED
+    recipient_name: Administration de l'enregistrement, des domaines et de la TVA
+    responsible_role: not stated in source
+    applicability_rule: The taxable person is registered for value added tax in Luxembourg.
+    business_day_rule: not_confirmed
+    source_paragraph_id: SRC-VATLAW-P1
+    quote: by 31 October of the year following the financial year concerned

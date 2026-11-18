@@ -1,0 +1,49 @@
+# Stand-in judge output (CR-030): what judge_applicability returns in AGENTS_MODE=stand_in, keyed
+# by the row's source_paragraph_id. Never placed in a prompt.
+#
+# Written by hand from the mock fund facts (operator, 2026-11-18): one "unsure", so G2 has a
+# verdict to decide, and no answer-key IDs or notes (CR-016). Fact and event IDs are the fund
+# profile's own, which the judge is given. The judge's guardrail checks every verdict before use.
+
+SRC-CSSF15627-P2:
+  verdict: applies
+  cited_fact_ids: [FACT-01]
+  reasoning: >-
+    The report is required from undertakings subject to Part II. The fund is subject to Part II,
+    so the requirement applies.
+
+SRC-UCILAW-P2:
+  verdict: applies
+  cited_fact_ids: [FACT-02]
+  reasoning: >-
+    The tax applies to undertakings established in Luxembourg. The fund is established in
+    Luxembourg, so the requirement applies.
+
+SRC-UCILAW-P3:
+  verdict: applies
+  cited_fact_ids: [FACT-01]
+  reasoning: >-
+    The annual report is required from undertakings subject to Part II. The fund is subject to
+    Part II, so the requirement applies.
+
+SRC-CNMV-P1:
+  verdict: unsure
+  cited_fact_ids: [FACT-03, FACT-04]
+  reasoning: >-
+    The report is required only from undertakings registered with the CNMV for marketing in
+    Spain. The fund is marketed in Spain, but its registration with the CNMV is not confirmed.
+  missing_information: Whether the fund is registered with the CNMV for marketing in Spain.
+
+SRC-RBELAW-P1:
+  verdict: applies
+  cited_fact_ids: [FACT-06, EVT-01]
+  reasoning: >-
+    The update is required from registered entities when beneficial ownership changes. The fund
+    is a registered entity and a change is recorded in the event log, so the requirement applies.
+
+SRC-VATLAW-P1:
+  verdict: does_not_apply
+  cited_fact_ids: [FACT-05]
+  reasoning: >-
+    The return is required from taxable persons registered for value added tax in Luxembourg.
+    The fund is not registered for VAT, so the requirement does not apply.
