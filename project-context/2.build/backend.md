@@ -80,7 +80,7 @@ what matter. Built in six small steps on separate branches (PRs #68 to #73), wit
 | V-2 `status_tone` | every run | ux.md §1.5 table, now in `runs.TONE_ACTIVE` / `TONE_ENDED` |
 | V-3 `steps` | every run | ux.md §1.4 table; links only on "Done" and "Your turn" |
 | V-4 `group` | each unit (`runs.list_units`) | stage A: `DOC-` is `drafting`, `ROW-` is `checking_drafts`; B `applies`; C `dates`. The stand-in makes no `checking_drafts` units (B3) |
-| V-5 `counts` | every run | Counted from the stand-in data |
+| V-5 `counts` | every run | Counted from the stored rows, verdicts and entries (B3 step 5) |
 | V-6 `ended`, `failure`, `published_at`, `ended_because` | every run | `ended` (time and reason) is read from the run's last `gate_event` audit entry, because there is no "ended at" column |
 | V-7 `started_by_label` | every run | `runs.actor_label`: sign-in label plus " (mock)" |
 | V-8 G1 | `decisions.get_g1_view` | Row status, quote check, paragraph, flags, who-files choice, `decided` line; view `stage`, `summary`, `unused_paragraphs` |
@@ -108,7 +108,7 @@ own audit entry (each Tier 1 test checks that).
 | Shared guards | `services/guards.py` | `RUN_NOT_ACTIVE` → `RUN_STAGE_RUNNING` → `VERSION_MISMATCH`, in that order |
 | Start, abandon | `runs.py` | `RUN_ACTIVE` (the check and the insert run under `BEGIN IMMEDIATE`, so a double click cannot start two reviews), `VALIDATION` for the failure demo outside stand-in mode; abandon only at a gate |
 | Rule 9 | `services/stage_store.py` | `store_stage_outputs`: one transaction; refuses unless the run is `ACTIVE`, in `<stage>_RUNNING`, on the same `stage_attempt`, and every unit is done; otherwise the output is **discarded** and one audit entry says so. `fail_stage` makes the same check. A failed stage stores nothing. Rollback on any error: no half a stage |
-| Stored data | `rows`, `paragraphs`, `quote_checks`, `verdicts`, `calendar_versions`, `calendar_entries` | Stage A, B and C outputs are the fixed stand-in data (B3 swaps in the fixtures); stage B has one verdict per **approved** rule, stage C one entry per rule whose final answer is "applies" |
+| Stored data | `rows`, `paragraphs`, `quote_checks`, `verdicts`, `calendar_versions`, `calendar_entries` | Stage A and B outputs are the stand-in answers (B3 step 5); stage C's dates are placeholders until B4; stage B has one verdict per **approved** rule, stage C one entry per rule whose final answer is "applies" |
 | G1 decisions | `decisions.decide_row` | Stored in `row_decisions` (decide-once: checked, and the UNIQUE key as a backstop). Order: already decided → no answer → reject reason, or approve: quote check → weekend rule → filing party (offered values only) → reason over a flag. The other answer's fields are ignored (DL-48) |
 | G2 decisions | `decisions.decide_verdict` | Stored in `verdict_decisions`. The answer must fit AI's verdict (confirm repeats it, overrule gives the opposite, decide only for "can't tell"), else `VALIDATION`; overrule and decide need a reason |
 | Finish G1 / G2 | `gates.py` | Ended → wrong phase → stale page → `GATE_INCOMPLETE` (counts the undecided, and the "can't tell" ones at G2). `stage_attempt` goes back to 1 for the next stage |
@@ -129,26 +129,60 @@ cannot be stored (decide-once) until rows are. B3 therefore only has to replace 
 run in; that a row's posted `version` is not compared (the SAD lists `VERSION_MISMATCH` for the
 run, not for a row); `typed` as `{field: text}`; three sentences ux.md does not give.
 
+## B3 (stand-in part): steps 1 to 5 (2026-11-18)
+
+B3's stand-in part is built in seven small steps, one pull request each, so each can be reviewed
+alone. Steps 1 to 5 are done; steps 6 (trace, cost count, cost cap, stage timer) and 7 (CrewAI
+wiring behind the same functions, switched off, and the role harness) are next. No model is
+called anywhere.
+
+| Step | PR | What | Where |
+|---|---|---|---|
+| 1 Loader (W-02) | #92 | The 6 mock documents → 13 paragraphs, paragraph text only (no test notes, planted-conflict notes, header warning or amendments; CR-016). Refuses if the file and the config disagree | `backend/domain/sources.py`, `config/regulation/lu-part2.yaml` |
+| 2 Quote check (QN-1, W-04) | #93 | Trim, collapse ordinary spaces, tabs and line breaks, then the quote must be one unbroken piece of the **cited** paragraph. Case, punctuation and Unicode forms count | `backend/domain/quote_check.py` |
+| 3 Schemas and guardrails (CR-003) | #94 | The three step outputs as Pydantic models (unknown fields refused) and one guardrail per agent card | `backend/domain/schemas.py`, `guardrails.py` |
+| 4 Stand-in answers and agent functions (CR-030) | #95 | Recipient codes; the fund facts loader (ID, fact, value; event ID and description); hand-written answers (6 rows, 1 flag, 1 "unsure"); `extract_rows`, `check_conflicts`, `judge_applicability`, which put each answer through the real guardrail | `backend/domain/fund_facts.py`, `backend/stand_in/*.yaml`, `backend/runtime/agents.py` |
+| 5 Stages A and B wired | this PR | Stage A: loader → extract per primary document → demo rule if on → quote check per row → verifier per row; units: 5 documents then one check per rule. Stage B: fund facts → judge per approved rule. The store keeps the applicability rule, the quote check's reason and the flags; `offset` is stored as JSON. Pages get words for codes, recipient and document names from the config, and real fact values and counts | `backend/runtime/stages.py`, `services/stage_store.py`, `decisions.py`, `calendar.py`, `runs.py`, `backend/domain/wording.py` |
+
+**Operator decisions in B3 (2026-11-18):** an empty quote fails; only ordinary whitespace is
+collapsed; a date-shaped value is refused unless it is copied word for word from the agent's input
+(H-052); the judge's facts come from the mock profile through a loader; recipient code `LBR`;
+"who files" as the source writes it; a row the verifier has no answer for gets no flags; a
+**temporary demo rule** (`backend/stand_in/demo_row_temporary.yaml`, rule 7, cites `SRC-UCILAW-P1`)
+until B7 replaces it; the visual script's driving steps updated, snapshots not (H-053).
+
+**Placeholder dates until B4 (operator, 2026-11-18).** Stage C is still the shell stub: the three
+placeholder dates in `backend/stand_in/shell_data.py` attach to rules **1, 2 and 4**, whatever those
+rules are, if their final answer is "applies". So the calendar shows real rule names with dates
+that do not follow from the rules (for example the monthly report on 30 April). Rules 2 and 4 were
+chosen so the calendar keeps one "moved off a weekend" entry and one "May not be required" entry
+(rule 4 is the "AI can't tell" rule) until B4 works the dates out.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
-`AGENTS_MODE=real` refuses at the agent function. Stand-in placeholder data
-(`backend/stand_in/shell_data.py`) is generic, carries no answer-key IDs (`OBL-`, `C-1`, `I-1`,
-`AMD-`) and is not copied from `mock-data/`.
+`AGENTS_MODE=real` refuses at each agent function. The stand-in answers (`backend/stand_in/`) are
+hand-written from the mock paragraphs, carry no answer-key IDs (`OBL-`, `C-1`, `I-1`, `AMD-`) or
+notes, are never placed in a prompt, and pass the same guardrails as a model's output. The loaders
+never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half).
 
 ## Known gaps
 
-- `DEMO_ROW_NOT_APPROVABLE` and "Approval blocked" are **B7**; the demo rule can be approved until then.
-- `retry_run` is a stub (**B13b**). No stage timer (rule 6) and no `trace` table or cost count (**B3**).
-- Stage outputs are fixed stand-in data (`backend/stand_in/shell_data.py`); there are no checker flags,
-  every quote check passes, and the dates are fixed (**B3**, **B4**).
+- `DEMO_ROW_NOT_APPROVABLE` and "Approval blocked" are **B7**; the demo rule (temporary, rule 7)
+  can be approved until then.
+- `retry_run` is a stub (**B13b**). No stage timer (rule 6), `trace` table or cost count yet
+  (**B3 step 6**). CrewAI wiring and the role harness are **B3 step 7**.
+- Calendar dates are placeholders (**B4**), see above.
+- T-W04-6 (the verifier claims "quote ok" for a row code failed) has no test: the verifier's schema
+  has no such field, so the claim cannot reach the store, and the quote-check result is code's
+  alone. Revisit with the real verifier (B3 spike).
+- `runtime.agents.run_unit` is unused but kept until `@system.arch` updates the §4 row (H-052).
 - No Pydantic form models refusing unknown fields, no ruff/CI (`.github/workflows/ci.yml` is still
   to do in B1's follow-up).
 - The pages read the H-036 view fields (V-1 to V-12). The interim lookups in
   `parts/lookups.html` are `@frontend.eng`'s to delete.
 - A row's posted `version` is stored, not compared (the SAD names `VERSION_MISMATCH` for the run only).
 - Starlette 1.x prints a deprecation warning for `httpx` in the test client; harmless.
-- CrewAI adapter items (`backend/config/agents.yaml`, `tasks.yaml`, crew controls) are B3.
 
 ## Sources
 
@@ -232,3 +266,16 @@ No agent loop, no retrieval over live state, no side-effecting tool, no model cl
   `frontend.md`; applied on the B2 branch (PR #75). One more stale mark proposed (page 2 `refusal`).
   Handoff H-050 gives `@project.mgr` the checkpoint estimate. Stage time limit and Pydantic
   unknown-field refusal deliberately not started (operator).
+- 2026-11-18 · persona `backend-eng` · actions `develop-be`, `define-runtime` (stand-in only),
+  `document-backend` · `AAMAD_TARGET_RUNTIME=crewai` (CrewAI still not installed or imported) ·
+  `AGENTS_MODE=stand_in` · **B3 steps 1 to 5** in five PRs (#92 to #95, and step 5's): loader, quote
+  check, schemas and guardrails, stand-in answers and agent functions, stages A and B wired. 206
+  tests pass. Operator decisions above; handoffs H-052 (`@system.arch`) and H-053
+  (`@frontend.eng`). Visual check: **16 snapshots differ** (the 10 from H-051 and 6 new, listed in
+  H-053), none re-recorded; the other 12 match. No model call. LLM, temperature and max-token
+  controls: none resolved (no model yet). No diagram needed. `sad.md`, `ux.md` and the frozen
+  Netlify page not edited.
+- 2026-11-18 · persona `backend-eng` · `sync-docs` · after B3 step 5: operator approved all 3 items
+  and they were applied on the PR #96 branch: `frontend.md` (agent functions replace `run_unit`),
+  `backend.md` V-5 (counts from stored data) and the B2 "Stored data" row (stand-in answers;
+  placeholder dates until B4). Spec drift (SAD §4 `run_unit` row) is already in H-052.

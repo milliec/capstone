@@ -107,16 +107,19 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     await snap(sp, "03-review-status-your-turn", SPECIALIST);
     await open(sp, `${review}/g1`, "text=What's your decision on this rule?");
     await snap(sp, "04-check-rules-at-step", SPECIALIST);
+    // B3 step 5: stand-in stage A drafts 6 rules; the demo rule is rule 7. Rule 3 carries the one
+    // checker flag, so approving it needs a reason (B2). Rules 2, 3, 5 and 6 need "who files".
     await form(sp, `/specialist/rows/ROW-${rid}-1/decision`,
       { version: "1", decision: "approve", business_day_rule: "roll_forward", who_files: "AIFM" });
-    await form(sp, `/specialist/rows/ROW-${rid}-4/decision`,
+    await form(sp, `/specialist/rows/ROW-${rid}-7/decision`,
       { version: "1", decision: "reject", reject_reason: "Quote doesn't support the rule" });
     await open(sp, `${review}/g1`, "text=Rejected");
     await snap(sp, "04-check-rules-two-decided", [1280]);
     // B2: the server refuses to finish checking while a rule is undecided, so decide the others.
-    for (const n of [2, 3]) {
+    for (const n of [2, 3, 4, 5, 6]) {
       await form(sp, `/specialist/rows/ROW-${rid}-${n}/decision`,
-        { version: "1", decision: "approve", business_day_rule: "roll_forward" });
+        { version: "1", decision: "approve", business_day_rule: "roll_forward", who_files: "AIFM",
+          ...(n === 3 ? { approve_reason: "Checked: the law itself sets the deadline" } : {}) });
     }
     await form(sp, `${review}/g1/complete`, { run_version: "1" });
   });
@@ -125,12 +128,15 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     await open(sp, review, `a.btn[href$="/g2"]`);
     await open(sp, `${review}/g2`, "text=What's your answer on this rule?");
     await snap(sp, "05-confirm-applies-at-step", SPECIALIST);
-    await form(sp, `/specialist/verdicts/VER-${rid}-2/decision`,
+    // B3 step 5: answer 4 is the stand-in "AI can't tell", answer 6 "doesn't apply", the rest "applies".
+    await form(sp, `/specialist/verdicts/VER-${rid}-4/decision`,
       { version: "1", decision: "decide", value: "applies", decide_reason: "Not confirmed in fund records yet" });
     // B2: every answer must be decided before finishing.
-    await form(sp, `/specialist/verdicts/VER-${rid}-1/decision`,
-      { version: "1", decision: "confirm", value: "applies" });
-    await form(sp, `/specialist/verdicts/VER-${rid}-3/decision`,
+    for (const n of [1, 2, 3, 5]) {
+      await form(sp, `/specialist/verdicts/VER-${rid}-${n}/decision`,
+        { version: "1", decision: "confirm", value: "applies" });
+    }
+    await form(sp, `/specialist/verdicts/VER-${rid}-6/decision`,
       { version: "1", decision: "confirm", value: "does_not_apply" });
     await form(sp, `${review}/g2/complete`, { run_version: "2" });
   });
@@ -139,11 +145,16 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     await open(sp, review, `a.btn[href$="/g3"]`);
     await open(sp, `${review}/g3`, "text=Is this calendar ready for the General Partner?");
     await snap(sp, "06-publish-at-step", SPECIALIST);
-    // B2: the server compares the acknowledged lists with its own, so post them as the page does.
+    // B2: the server compares the acknowledged lists with its own, so post them as the page does:
+    // read from the page's own hidden fields (B3 step 5), so the script never repeats the data.
+    const listed = (name) => sp.locator(`input[name="${name}"]`).evaluateAll((els) => els.map((e) => e.value));
+    const ackLists = [
+      ...(await listed("rejected_row_ids")).map((v) => `&rejected_row_ids=${encodeURIComponent(v)}`),
+      ...(await listed("uncited_paragraph_ids")).map((v) => `&uncited_paragraph_ids=${encodeURIComponent(v)}`),
+    ].join("");
     await sp.request.post(`/specialist/calendars/CAL-${rid}/publish`, {
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      data: `run_version=3&decision=publish&acknowledged=true&rejected_row_ids=ROW-${rid}-4` +
-            `&uncited_paragraph_ids=SRC-STUB-P4&uncited_paragraph_ids=SRC-STUB-P5&uncited_paragraph_ids=SRC-STUB-P6`,
+      data: `run_version=3&decision=publish&acknowledged=true${ackLists}`,
     });
     await open(sp, review, "text=See the calendar as the General Partner sees it");
     await snap(sp, "03-review-status-published", [1280]);
@@ -152,7 +163,8 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     // B12 views (DL-49, H-040): wide only; below 960px the list alone shows, so set the width first.
     await gp.setViewportSize({ width: 1280, height: 900 });
     // The default view is Month (operator, 2026-11-17), so the List view gets its own picture.
-    await open(gp, "/calendar?view=list", "text=Stand-in rule 2");
+    // The name also appears in a hidden view's table, so wait for the visible copy.
+    await open(gp, "/calendar?view=list", "text=Subscription tax return and payment >> visible=true");
     await snap(gp, "07-calendar-gp-list-view", [1280]);
     await open(gp, "/calendar?view=year", "table.year-table");
     await snap(gp, "07-calendar-gp-year-view", [1280]);

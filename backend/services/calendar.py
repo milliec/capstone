@@ -28,7 +28,6 @@ def _entries(conn: sqlite3.Connection, run: dict) -> list[dict]:
     for e in stored:
         row = g1[e["row_id"]]
         chosen = row["decided"]["who_files"] if row["decided"] else None
-        offset = row["offset"].lstrip("+")
         moved = bool(e["moved"])
         entries.append({
             "entry_id": e["entry_id"], "row_id": e["row_id"], "period": e["period"],
@@ -38,7 +37,7 @@ def _entries(conn: sqlite3.Connection, run: dict) -> list[dict]:
             "who_files_label": chosen or ("Not known" if row["needs_who_files"]
                                           else row["responsible_role"].capitalize()),
             "recipient_name": row["recipient_name"],
-            "why": f"{row['frequency'].capitalize()} rule: due {offset} after {row['anchor']}.",
+            "why": f"{row['frequency'].capitalize()} rule: due {row['due']}.",
             "source_paragraph_id": row["source_paragraph_id"],
             "source_document": row["paragraph"]["document"],
             "quote": row["quote"],

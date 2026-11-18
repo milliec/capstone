@@ -292,7 +292,8 @@ def test_month_view_is_a_table_with_weekday_headers_and_paging(specialist_client
     table = html.split('<table class="month-table"', 1)[1].split("</table>", 1)[0]
     assert re.findall(r'<th scope="col">([A-Za-z]+)</th>', table) == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     assert "Due next" in table and "May not be required" in table
-    assert 'href="/calendar?view=month&amp;month=2027-05#entries"' in html  # lands back on the calendar
+    # The month view opens on the first entry's month (Feb 2027 since B3 step 5), so "next" is March.
+    assert 'href="/calendar?view=month&amp;month=2027-03#entries"' in html  # lands back on the calendar
     assert "No filings this month." in gp_client.get("/calendar?view=month&month=2027-05").text
 
 
@@ -319,8 +320,8 @@ def test_summary_cards_write_their_counts_as_text(specialist_client, gp_client, 
     html = gp_client.get("/calendar").text
     cards = html.split('<div class="kpis three" role="list" aria-label="Summary">', 1)[1].split('<section', 1)[0]
     text = " ".join(re.sub(r"<[^>]+>", " ", re.sub(r"<svg[\s\S]*?</svg>", " ", cards)).split())
-    assert "Due next Mon 19 Apr 2027 Stand-in rule 2: quarterly return" in text
-    assert "Entries in 2027: 2" in text and "May not be required 1" in text
+    assert "Due next Wed 10 Feb 2027 Statistical report A01" in text
+    assert "Entries in 2027: 3" in text and "May not be required 1" in text
     assert re.search(r'<svg class="dots"[^>]*aria-hidden="true"', cards)
 
 # --- After a decision, land on the next card to decide (operator, 2026-11-17) ---
@@ -335,7 +336,7 @@ def test_after_a_rule_decision_the_page_lands_on_the_next_rule_to_decide(special
 
 
 def test_the_next_card_wraps_round_then_points_at_finish(specialist_client, at_g1):
-    for n in (4, 2, 3):  # decide every rule but rule 1, ending with rule 3
+    for n in (4, 5, 6, 7, 2, 3):  # decide every rule but rule 1, ending with rule 3
         specialist_client.post(f"/specialist/rows/ROW-{at_g1}-{n}/decision",
                                data={"version": 1, "decision": "reject", "reject_reason": "Test"})
     html = specialist_client.get(f"/specialist/runs/{at_g1}/g1?after=ROW-{at_g1}-3").text

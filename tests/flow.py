@@ -12,6 +12,16 @@ from backend.services import FUND_ID, decisions, gates, publishing, runs
 
 SPECIALIST = "specialist-1"
 
+# The stand-in review since B3 step 5 (backend/stand_in/*.yaml): stage A drafts 6 rules, in
+# document order; the demo rule, when switched on, is rule 7. Stage B's answers: rule 4 is
+# "AI can't tell" (unsure), rule 6 "doesn't apply", the others "applies". Rule 3 has the one flag.
+RULES = (1, 2, 3, 4, 5, 6)
+DEMO_N = 7
+UNSURE_N = 4
+DOES_NOT_APPLY_N = 6
+APPLIES_NS = (1, 2, 3, 5)
+FLAGGED_N = 3
+
 
 def run_now(function, *args, **kwargs):
     """Stands in for FastAPI's background task: runs the stage at once, in this thread."""
@@ -20,10 +30,15 @@ def run_now(function, *args, **kwargs):
 
 # --- Over HTTP (page tests) ---------------------------------------------------------------------
 
-def approve_rule_http(client, run_id, n, rule="roll_forward", who="AIFM"):
+# Approving over a checker flag needs a written reason (B2), so the flagged rule gets one.
+FLAG_REASON = "Checked: the law itself sets the deadline"
+
+
+def approve_rule_http(client, run_id, n, rule="roll_forward", who="AIFM", reason=None):
+    reason = reason or (FLAG_REASON if n == FLAGGED_N else None)
     return client.post(f"/specialist/rows/ROW-{run_id}-{n}/decision", follow_redirects=False,
                        data={"version": 1, "decision": "approve", "business_day_rule": rule,
-                             "who_files": who})
+                             "who_files": who, **({"approve_reason": reason} if reason else {})})
 
 
 def reject_rule_http(client, run_id, n, reason="Test"):
@@ -32,20 +47,22 @@ def reject_rule_http(client, run_id, n, reason="Test"):
 
 
 def decide_every_rule_http(client, run_id, demo=False):
-    """Approve rules 1 to 3; reject the demo rule (4) when it is on."""
-    for n in (1, 2, 3):
+    """Approve rules 1 to 6; reject the demo rule (7) when it is on."""
+    for n in RULES:
         approve_rule_http(client, run_id, n)
     if demo:
-        reject_rule_http(client, run_id, 4, "Quote doesn't support the rule")
+        reject_rule_http(client, run_id, DEMO_N, "Quote doesn't support the rule")
 
 
 def answer_every_verdict_http(client, run_id):
-    """Rule 1: confirm applies. Rule 2 (AI can't tell): add it. Rule 3: confirm doesn't apply."""
+    """Confirm every "applies"; add the "AI can't tell" rule (4); confirm "doesn't apply" (6)."""
     post = lambda n, **data: client.post(f"/specialist/verdicts/VER-{run_id}-{n}/decision",
                                          data={"version": 1, **data}, follow_redirects=False)
-    post(1, decision="confirm", value="applies")
-    post(2, decision="decide", value="applies", decide_reason="Not confirmed in fund records yet")
-    post(3, decision="confirm", value="does_not_apply")
+    for n in APPLIES_NS:
+        post(n, decision="confirm", value="applies")
+    post(UNSURE_N, decision="decide", value="applies",
+         decide_reason="Not confirmed in fund records yet")
+    post(DOES_NOT_APPLY_N, decision="confirm", value="does_not_apply")
 
 
 def publish_http(client, run_id, run_version=3):
@@ -78,6 +95,7 @@ def start_to_g1(conn, settings, demo=False):
 
 
 def approve_rule(conn, run_id, n, rule="roll_forward", who="AIFM", reason=None):
+    reason = reason or (FLAG_REASON if n == FLAGGED_N else None)
     return decisions.decide_row(
         conn, row_id=f"ROW-{run_id}-{n}", version=1, decision="approve", business_day_rule=rule,
         who_files=who, approve_reason=reason, reject_reason=None, actor=SPECIALIST)
@@ -107,17 +125,19 @@ def finish_g2(conn, settings, run_id):
 
 
 def to_g3(conn, settings, demo=False):
-    """A review at G3: rules 1 to 3 approved, answers given (1 applies, 2 added, 3 doesn't
-    apply), so the calendar has two entries. Returns the run ID."""
+    """A review at G3: rules 1 to 6 approved (the demo rule rejected), every answer given as
+    `answer_every_verdict_http` does. Stage C's placeholder dates (until B4) cover rules 1, 2 and
+    4, which all end as "applies" (4 is added), so the calendar has three entries. Returns the run ID."""
     run_id = start_to_g1(conn, settings, demo)
-    for n in (1, 2, 3):
+    for n in RULES:
         approve_rule(conn, run_id, n)
     if demo:
-        reject_rule(conn, run_id, 4, "Quote doesn't support the rule")
+        reject_rule(conn, run_id, DEMO_N, "Quote doesn't support the rule")
     finish_g1(conn, settings, run_id)
-    answer(conn, run_id, 1, "confirm", "applies")
-    answer(conn, run_id, 2, "decide", "applies", "Not confirmed in fund records yet")
-    answer(conn, run_id, 3, "confirm", "does_not_apply")
+    for n in APPLIES_NS:
+        answer(conn, run_id, n, "confirm", "applies")
+    answer(conn, run_id, UNSURE_N, "decide", "applies", "Not confirmed in fund records yet")
+    answer(conn, run_id, DOES_NOT_APPLY_N, "confirm", "does_not_apply")
     finish_g2(conn, settings, run_id)
     return run_id
 

@@ -109,16 +109,28 @@ def _store_a(conn: sqlite3.Connection, run: dict, outputs: dict) -> None:
                      (run["run_id"], p["paragraph_id"], run["fund_id"], p["document_id"],
                       p["text"]))
     for r in outputs["rows"]:
+        # `offset` is stored as JSON text (B3 step 5): B4's date engine reads it as data, and the
+        # pages turn it into words (backend/domain/wording.py).
         conn.execute(
             """INSERT INTO rows (row_id, run_id, fund_id, source_paragraph_id, obligation_name,
                                  frequency, anchor, "offset", recipient_code, responsible_role,
-                                 business_day_rule, quote, origin)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                 applicability_rule, business_day_rule, quote, origin)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (r["row_id"], run["run_id"], run["fund_id"], r["source_paragraph_id"],
              r["obligation_name"], r["frequency"], r["anchor"], r["offset"], r["recipient_code"],
-             r["responsible_role"], r["business_day_rule"], r["quote"], r["origin"]))
-        conn.execute("INSERT INTO quote_checks (row_id, fund_id, result) VALUES (?, ?, ?)",
-                     (r["row_id"], run["fund_id"], r["quote_check"]))
+             r["responsible_role"], r.get("applicability_rule"), r["business_day_rule"],
+             r["quote"], r["origin"]))
+        conn.execute("INSERT INTO quote_checks (row_id, fund_id, result, mismatch) "
+                     "VALUES (?, ?, ?, ?)",
+                     (r["row_id"], run["fund_id"], r["quote_check"], r.get("mismatch")))
+        for f in r.get("flags", []):
+            conn.execute(
+                """INSERT INTO flags (row_id, run_id, fund_id, flag_type, explanation, field,
+                                      row_value, quote_says, other_paragraph_id, other_quote)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (r["row_id"], run["run_id"], run["fund_id"], f["flag_type"], f["explanation"],
+                 f.get("field"), f.get("row_value"), f.get("quote_says"),
+                 f.get("other_paragraph_id"), f.get("other_quote")))
 
 
 def _store_b(conn: sqlite3.Connection, run: dict, outputs: dict) -> None:
