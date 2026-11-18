@@ -21,6 +21,7 @@ import yaml
 from backend.domain import guardrails
 from backend.domain.quote_check import QuoteCheck
 from backend.domain.schemas import Flag, Row, Verdict
+from backend.runtime import prompts
 from backend.services.audit import now_utc
 from backend.services.trace import CallRecord
 from backend.settings import Settings
@@ -90,10 +91,13 @@ def _sha256(text: str) -> str:
 
 
 @lru_cache
-def _stand_in_version(name: str) -> str:
-    """The trace's prompt_version for a stand-in call: a hash of the stand-in answer file, so a
-    change to the fixed answers shows in the trace. B3 step 7 hashes agents.yaml and tasks.yaml."""
-    return "stand-in:" + _sha256((STAND_IN_DIR / f"{name}.yaml").read_text(encoding="utf-8"))[:16]
+def _stand_in_version(step: str, name: str) -> str:
+    """The trace's prompt_version for a stand-in call (B3 step 7a): the prompt version a real
+    call would use (a hash of the agent, task and example, backend/runtime/prompts.py), then
+    "+stand-in:" and a hash of the answer file that stood in for the model. A change to either
+    shows in the trace (CR-018)."""
+    answers = _sha256((STAND_IN_DIR / f"{name}.yaml").read_text(encoding="utf-8"))[:8]
+    return f"{prompts.prompt_version(step)}+stand-in:{answers}"
 
 
 def _stand_in_call(settings: Settings, *, step: str, name: str, inputs: dict, answer,
@@ -106,7 +110,7 @@ def _stand_in_call(settings: Settings, *, step: str, name: str, inputs: dict, an
     result = check(answer)
     if record is not None:
         record(CallRecord(
-            step=step, at=at, prompt_version=_stand_in_version(name),
+            step=step, at=at, prompt_version=_stand_in_version(step, name),
             input_hash=_sha256(json.dumps(inputs, sort_keys=True, ensure_ascii=False, default=str)),
             raw_output=json.dumps(answer, ensure_ascii=False),
             parsed_output=guardrails.to_json(result), validation_error=result.error,

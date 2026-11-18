@@ -1,0 +1,21 @@
+Document SRC-SAMPLE, "Sample Circular 9/99" (primary). Allowed recipient codes: SSA.
+
+SRC-SAMPLE-P1 Each fund that falls within this circular is to send the liquidity return L-4 to the Sample Supervisory Authority by the fifteenth calendar day after the close of every quarter. If that day is not a business day, the return is due on the following business day.
+SRC-SAMPLE-P2 The Sample Supervisory Authority may publish aggregated figures drawn from the returns it receives.
+
+Answer:
+{"rows": [{
+  "obligation_name": "Liquidity return L-4",
+  "frequency": "quarterly",
+  "anchor": "quarter_end",
+  "offset": {"unit": "calendar_days", "amount": 15},
+  "recipient_code": "SSA",
+  "recipient_name": "Sample Supervisory Authority",
+  "responsible_role": "not stated in source",
+  "applicability_rule": "The fund falls within the circular.",
+  "business_day_rule": "roll_forward",
+  "source_paragraph_id": "SRC-SAMPLE-P1",
+  "quote": "by the fifteenth calendar day after the close of every quarter"
+}]}
+
+Why: P1 states a duty, so it gives one row. It says who must comply but not who sends the return, so responsible_role is "not stated in source". It states what happens on a non-business day, so the business-day rule is taken from the text; had it been silent, the rule would be not_confirmed. P2 gives the authority a power and puts no deadline on the fund, so it gives no row.
