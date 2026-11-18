@@ -257,6 +257,16 @@ a stage's limit is the sum of its calls *with* their retries plus a margin, and 
 ends the stage. Results that arrive after the stage has failed are thrown away but still paid for.
 When a document gives the same limit in three places, add them up and check that they agree.
 
+**A guardrail should block the mistake, not the topic.** The rule "refuse any date in an agent's
+output" sounded safe, because a model must never work out a deadline. But a correct quote from a law
+can contain "31 October", and a correct rule can name the "Law of 17 December 2010", so the strict
+rule would have failed right answers. The fix was to say what the real risk is: refuse a date the
+agent *wrote itself*, allow one *copied word for word* from the text it was given. Two small details
+mattered too: month names only count when capitalised (so "rule 3 may apply" isn't read as "3 May"),
+and the checker that only copies evidence needed no date check at all. A rule like this only shows
+its flaw when real text runs through it, so the spec should be updated from what the build found
+(H-052).
+
 ## 3. Testing and evaluation
 
 **An answer key is how you prove the agents work.** QA runs the agents on the mock sources and compares
@@ -566,3 +576,5 @@ page's width with the screen's, which a look at the fixed page alone would have 
   check every page's width, not only the page you fixed)
 - 2026-11-17 · added one note from H-051 (run a failing visual test on the untouched code too, to know
   which failures are yours)
+- 2026-11-18 · added one note from H-052 (a guardrail should block the mistake, not the topic; refuse
+  a date the agent wrote, allow one it copied)
