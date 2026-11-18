@@ -31,3 +31,16 @@ documents:
   - id: SRC-PRACT
     title: Practitioner guide to Luxembourg fund filings
     type: secondary
+
+# The recipient codes an extracted row may use (sad.md §2 vocabulary; checked by the extractor's
+# guardrail) and each one's display name (DL-53), written as the sources write it.
+# B3 step 4.
+recipients:
+  - code: CSSF
+    name: CSSF
+  - code: AED
+    name: Administration de l'enregistrement, des domaines et de la TVA
+  - code: CNMV
+    name: CNMV
+  - code: LBR
+    name: Luxembourg Business Registers
