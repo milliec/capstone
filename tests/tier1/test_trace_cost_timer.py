@@ -44,7 +44,8 @@ def test_every_stand_in_call_writes_one_trace_line(conn, settings):
         assert line["spend_activity"] is None and line["eval_case"] is None
         assert line["cost_usd"] == 0 and line["late"] == 0 and line["attempt_n"] == 1
         assert line["parsed_output"] and line["validation_error"] is None and line["raw_output"]
-        assert line["prompt_version"].startswith("stand-in:")
+        # The prompt a real call would use, then the stand-in answer file (B3 step 7a).
+        assert re.fullmatch(r"[0-9a-f]{16}\+stand-in:[0-9a-f]{8}", line["prompt_version"])
         assert re.fullmatch(r"[0-9a-f]{64}", line["input_hash"]) and line["at"]
 
     for n in flow.RULES:

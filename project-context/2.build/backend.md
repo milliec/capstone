@@ -132,8 +132,25 @@ run, not for a row); `typed` as `{field: text}`; three sentences ux.md does not 
 ## B3 (stand-in part): steps 1 to 5 (2026-11-18)
 
 B3's stand-in part is built in seven small steps, one pull request each, so each can be reviewed
-alone. Steps 1 to 6 are done; step 7 (CrewAI wiring behind the same functions, switched off, and
-the role harness) is next. No model is called anywhere.
+alone. Steps 1 to 6 and 7a are done. Step 7b (install CrewAI and build the crews behind the
+same functions, switched off) is **postponed until just before the spike** (operator,
+2026-11-18); see "Step 7b: dry-run findings" below. No model is called anywhere, and no model ID
+is chosen (DL-40 waits for the first green path).
+
+**Step 7b: dry-run findings, for reuse before the spike (2026-11-18).** `uv pip install
+--dry-run "crewai==1.15.35"` against this `.venv`, nothing installed:
+
+- **Version:** `crewai==1.15.35` (released 2026-11-03), the newest stable release at least two
+  weeks old on that day; 1.15.42 was released the same day. Re-check before installing.
+- **Size:** 117 new packages (137 resolved), including `chromadb`, `lancedb`, `onnxruntime` and
+  `openai`.
+- **Downgrade:** CrewAI needs `pydantic<2.13`, so `pydantic` goes from 2.14.3 to 2.12.5 (and
+  `pydantic-core` 2.50.4 to 2.41.5). FastAPI 0.163.1 accepts it (`pydantic>=2.9.0`). Run every test
+  and the visual check after the install.
+- **Telemetry:** CrewAI ships OpenTelemetry and sends anonymous usage data by default. Switch it
+  off (`CREWAI_DISABLE_TELEMETRY=true`, `OTEL_SDK_DISABLED=true`) and add a test that it stays off.
+- **Plan then:** create the crews only in real mode, so tests and stand-in runs never import
+  CrewAI (T-MODE-1); real mode still refuses to call while `LLM_MODEL_*` is empty (DL-40).
 
 | Step | PR | What | Where |
 |---|---|---|---|
@@ -143,6 +160,7 @@ the role harness) is next. No model is called anywhere.
 | 4 Stand-in answers and agent functions (CR-030) | #95 | Recipient codes; the fund facts loader (ID, fact, value; event ID and description); hand-written answers (6 rows, 1 flag, 1 "unsure"); `extract_rows`, `check_conflicts`, `judge_applicability`, which put each answer through the real guardrail | `backend/domain/fund_facts.py`, `backend/stand_in/*.yaml`, `backend/runtime/agents.py` |
 | 5 Stages A and B wired | #96 | Stage A: loader → extract per primary document → demo rule if on → quote check per row → verifier per row; units: 5 documents then one check per rule. Stage B: fund facts → judge per approved rule. The store keeps the applicability rule, the quote check's reason and the flags; `offset` is stored as JSON. Pages get words for codes, recipient and document names from the config, and real fact values and counts | `backend/runtime/stages.py`, `services/stage_store.py`, `decisions.py`, `calendar.py`, `runs.py`, `backend/domain/wording.py` |
 | 6 Trace, cost count, cost cap, stage timer | this PR | **Trace** (CR-018): table with the §4 columns, append-only triggers; every agent call, stand-in included, writes one line, adds its cost to `runs.cost_so_far` and writes an `agent_output` audit entry whose `trace_ref` is the record key, in one transaction. **Cost cap** (CR-017): before each call, at `RUN_COST_CAP_USD` or above the unit fails with "cost cap" and no call starts. **Stage timer** (rule 6, DL-43): a timer on its own thread around each stage fails the running unit with "stage time limit"; a call still running finishes, its output is marked `late`, kept in the trace only, its cost counts, nothing is stored (T-RUN-6, T-RUN-8). `fail_stage` now checks and changes the run under one write lock, so the timer can never fail a stage that has just finished. Settings use the SAD names `STAGE_TIME_LIMIT_A`, `_B`, `_C`. `run_unit` deleted (H-052) | `backend/services/trace.py`, `backend/db/schema.sql`, `backend/runtime/stages.py`, `agents.py`, `services/stage_store.py`, `backend/settings.py`, `.env.example` |
+| 7a Prompts and role harness (no CrewAI yet) | this PR | `agents.yaml` and `tasks.yaml` written from the §2 agent cards (role, goal, backstory; instructions and expected output; braces only for inputs; no example of a demo trap); the cards' worked examples in `backend/config/examples/`, passed in as `{example}`. `prompts.py` builds each task's inputs from stored data only (Context strategy), fills them as CrewAI would and refuses a missing, unused or stray input, and gives each step's prompt version (hash of agent, task and example). Stand-in trace lines now record `<prompt version>+stand-in:<answer-file hash>`. Role harness call caps: spike 70, tuning 60, counted from the trace (EC-R10). Tests: T-LEAK-1 prompt half and the harness cap (Tier 1), T-PROMPT-1 and T-EXAMPLE-1 (Tier 2) | `backend/config/`, `backend/runtime/prompts.py`, `harness.py`, `agents.py` |
 
 **Operator decisions in B3 (2026-11-18):** an empty quote fails; only ordinary whitespace is
 collapsed; a date-shaped value is refused unless it is copied word for word from the agent's input
@@ -174,8 +192,9 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
   spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
   "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
-- Stand-in trace lines use `prompt_version` = `stand-in:` + a hash of the stand-in answer file
-  (there is no prompt yet); B3 step 7 switches it to a hash of `agents.yaml` and `tasks.yaml`.
+- **Step 7b postponed until just before the spike** (operator, 2026-11-18): CrewAI is not
+  installed; the crews, the per-call timeout and its one retry, and real mode stay refused. The role harness has its call
+  caps; the runner that makes the spike's per-role calls comes with the spike (after DL-40).
 - Calendar dates are placeholders (**B4**), see above.
 - T-W04-6 (the verifier claims "quote ok" for a row code failed) has no test: the verifier's schema
   has no such field, so the claim cannot reach the store, and the quote-check result is code's
@@ -296,3 +315,12 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   stub table (`run_unit` deleted) and Assumptions (`trace` built). Operator also accepted: a trace
   line that cannot be written fails the unit as "invalid output"; stand-in `prompt_version` is a
   hash of the answer file until B3 step 7.
+- 2026-11-18 · persona `backend-eng` · actions `develop-be`, `define-runtime` (YAML only),
+  `document-backend` · `AAMAD_TARGET_RUNTIME=crewai` (CrewAI still NOT installed: step 7b waits
+  for the operator) · `AGENTS_MODE=stand_in` · **B3 step 7a**: `backend/config/agents.yaml`,
+  `tasks.yaml`, `examples/`; `backend/runtime/prompts.py`, `harness.py`. 233 tests pass (15 new:
+  T-LEAK-1 prompt half and the harness cap in Tier 1; T-PROMPT-1 and T-EXAMPLE-1 in Tier 2). No
+  model call; no model ID chosen. LLM, temperature and max-token controls: none resolved (DL-40
+  pending). No diagram needed. `sad.md`, `ux.md` and the frozen Netlify page not edited.
+- 2026-11-18 · persona `backend-eng` · `sync-docs` · after B3 step 7a: Doc sync: no updates.
+- 2026-11-18 · persona `backend-eng` · operator decision: step 7b postponed until just before the spike; dry-run findings recorded above (crewai==1.15.35, 117 packages, pydantic 2.14.3 to 2.12.5, telemetry off with a test).

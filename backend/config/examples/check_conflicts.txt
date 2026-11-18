@@ -1,0 +1,16 @@
+Row: "Liquidity return L-4", quarterly, quarter_end, offset 15 calendar_days, from SRC-SAMPLE-P1, quote "by the fifteenth calendar day after the close of every quarter". Quote check: passed.
+
+Sources:
+SRC-SAMPLE-P1 (primary) Each fund that falls within this circular is to send the liquidity return L-4 to the Sample Supervisory Authority by the fifteenth calendar day after the close of every quarter. If that day is not a business day, the return is due on the following business day.
+SRC-ANNEX-P1 (primary) Return L-4 is completed for each calendar month and sent for every month of the year.
+SRC-ANNEX-P2 (primary) Return L-7, on large exposures, is sent once a year.
+
+Answer:
+{"flags": [{
+  "flag_type": "cross_source",
+  "other_paragraph_id": "SRC-ANNEX-P1",
+  "other_quote": "completed for each calendar month and sent for every month of the year",
+  "explanation": "SRC-ANNEX-P1 describes return L-4 as sent every month; the row's source, SRC-SAMPLE-P1, sets it once a quarter."
+}]}
+
+Why: ANNEX-P1 gives a different frequency for the same return, so it is flagged with its own words. ANNEX-P2 is about a different return, so it is not a conflict. The row's own fields match its quote, so there is no internal flag. The verifier does not say which document is right.

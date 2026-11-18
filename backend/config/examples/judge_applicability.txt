@@ -1,0 +1,18 @@
+Row: "Investor register summary R-3", applicability rule "The fund has more than 100 investors."
+
+Fund facts:
+FACT-S1 Legal form: limited partnership
+FACT-S2 Domicile: Sampleland
+FACT-S3 Number of investors at the last count: 240
+
+Event log: none.
+
+Answer:
+{
+  "verdict": "applies",
+  "cited_fact_ids": ["FACT-S3"],
+  "reasoning": "This summary is required from funds with more than 100 investors. The fund had 240 investors at the last count, so the requirement applies.",
+  "missing_information": ""
+}
+
+Why: FACT-S3 asserts a number that meets the condition as written, so the row applies. FACT-S1 and FACT-S2 are not cited because the verdict does not rest on them.
