@@ -663,7 +663,7 @@ built in this plan.
 |---|---|---|---|---|---|---|---|
 | CR-001 | Gate bypass (SD MN-003, MP-006) | Gate transitions (G1 complete → stage B may run; G2 complete → stage C; G3 → publish) are a state machine in the backend. It refuses any advance without the matching recorded decisions, whoever calls it. A page can only submit a decision. **The backend is the single owner of gate state**: a stage function is started only by the backend, carries no gate state, cannot start the next stage, and ends by returning outputs that the backend validates and stores | tool-call | Fail closed: on any doubt or error, no transition | Build crew · `@security.eng` verifies | AM T-02, T-03; audit entries for refused attempts; a test that calling a stage function directly changes no gate state | Refused attempts are logged and shown to the specialist as a plain message |
 | CR-002 | Agent side effects (PRD §3; AM A13, A14) | **No agent has a tool.** Code builds the inputs; outputs are returned values that code validates and stores as proposals. No code path leads from a model output to approve, publish, write a date or advance state | tool-call | Fail closed by construction: the capability does not exist | Build crew | AM T-07; the agent definitions in §2 | Not applicable |
-| CR-003 | Invalid model output (SD NFR-004) | Every model output is parsed against its schema before it is stored: row fields present and typed; exactly one paragraph ID, which exists; no date fields; a verdict from {applies, does not apply, unsure}; every cited fact ID exists; a flag type from the allowed set. Invalid output is kept only in the trace, and the run ends as `FAILED` | output | Fail closed | Build crew | AM T-11, T-27; the schema files; trace records of refused outputs | Run status names the step, the unit and the reason; a new run follows |
+| CR-003 | Invalid model output (SD NFR-004) | Every model output is parsed against its schema before it is stored: row fields present and typed; exactly one paragraph ID, which exists; no date fields, and no date-shaped value the agent wrote itself (one copied word for word from its input is allowed, §2 "Rules for all three cards", H-052); a verdict from {applies, does not apply, unsure}; every cited fact ID exists; a flag type from the allowed set. Invalid output is kept only in the trace, and the run ends as `FAILED` | output | Fail closed | Build crew | AM T-11, T-27; the schema files; trace records of refused outputs | Run status names the step, the unit and the reason; a new run follows |
 | CR-004 | Unauthorised actor (SD NFR-010) | The server checks the mocked role on every write: approve, reject, confirm, override, decide, publish, decline, abandon and start a run need `specialist`. GP routes are read-only and return published data only. Every state change is a `POST`, and the session cookie is `SameSite=Lax`. Hiding a button is not a control | tool-call | Fail closed | Build crew · `@security.eng` | AM T-06; the route list with the role each needs | Refusals are logged |
 | CR-005 | Unsourced row (SD MN-006) | The quote check W-04 under QN-1, in code. A row with no paragraph ID, an unknown ID or a quote that is not found cannot be approved. No reason unlocks it, and a verifier "pass" cannot override a code "fail" | output | Fail closed | Build crew | T-W04-1 to T-W04-6; AM T-04 | The blocked row is shown at G1 with the text that did not match (US-002 c7); it can only be rejected |
 | CR-006 | The verifier changes a row (SD MN-004) | The verifier returns flags only and has no way to write row fields. A test compares each row before and after verification | output | Fail closed: any difference fails the test and the build | Build crew | AM T-08 | Not applicable |
@@ -933,8 +933,15 @@ Strategy); **the exact model IDs and each role's reasoning setting are pending t
 - **Guardrails are code** (CR-003). A failure ends the run as `FAILED`; the model is never asked
   again (D5).
 - **No output field holds a calendar date.** A fixed deadline such as "31 October of the following
-  year" is written as a rule (`fixed_day_month`: day 31, month 10, `year_shift` 1). The guardrail
-  refuses any date-shaped value.
+  year" is written as a rule (`fixed_day_month`: day 31, month 10, `year_shift` 1). The extractor's
+  and the judge's guardrails refuse a date-shaped value **the agent wrote itself**, and allow one
+  **copied word for word from the text the agent was given** (compared after QN-1 steps 1 and 2,
+  trim and collapse spaces). A correct quote may contain "31 October", and an applicability rule
+  may name the "Law of 17 December 2010"; refusing those would fail correct output. Month names
+  count only when capitalised, so "rule 3 may apply" is not read as "3 May". The verifier's
+  guardrail needs no date check: its evidence must already be word for word in the row's quote or
+  a loaded paragraph. The intent is unchanged: a model never computes a date (CR-008, Build card
+  Never row). Code: `backend/domain/guardrails.py`, `find_date_shaped` (H-052).
 - **Each card's worked example is also its one-shot example in the prompt** (operator decision,
   DL-39 item 6), on one condition: **the example is drawn from text that is in none of the six demo
   rows, the planted row or any evaluation case, and it does not mirror a demo trap.** The examples
@@ -964,7 +971,7 @@ Strategy); **the exact model IDs and each role's reasoning setting are pending t
 | `anchor` | `month_end`, `quarter_end`, `financial_year_end`, `event_awareness`, `event_occurrence` |
 | `offset` | `{unit, amount}` with `unit` = `calendar_days` or `months`; or `{unit: fixed_day_month, day, month, year_shift}` with `year_shift` 0 or 1 |
 | `business_day_rule` | `roll_forward`, `roll_backward`, `no_roll`, `not_confirmed`. `not_confirmed` means the source is silent; it is never accepted as the G1 decision (DL-19 updated 2026-11-14) |
-| `recipient_code` | One of the codes listed in `config/regulation/lu-part2.yaml`, passed to the prompt |
+| `recipient_code` | One of the codes listed in `config/regulation/lu-part2.yaml`, passed to the prompt. MVP set (B3 step 4, H-052): `CSSF`, `AED`, `CNMV`, and `LBR` for the Luxembourg Business Registers (no source gives it a code, so the build named one). Each code's display name is written as the sources write it (DL-53). The extractor's guardrail refuses any other code |
 | `responsible_role` | Free text: the party's name as the document writes it, with no explanation added, or exactly `not stated in source`. Graded through the fixed lookup in EC-R11 (DL-41); no parties list is given to the extractor |
 | `flag_type` | `internal`, `cross_source` |
 | `verdict` | `applies`, `does_not_apply`, `unsure` |
@@ -1015,7 +1022,9 @@ extractor:
 
 Expected output (`output_pydantic`, `ExtractionResult`): `{rows: [Row]}` with exactly the fields
 in step 3. Guardrail: schema and vocabulary valid; every `source_paragraph_id` belongs to this
-document; `recipient_code` in the list; no date-shaped value. **The quote check is not in the
+document; `recipient_code` in the list; no date-shaped value the extractor wrote itself (one
+copied word for word from this document's paragraphs is allowed, "Rules for all three cards").
+**The quote check is not in the
 guardrail:** it runs afterwards as W-04, so a misquoted row reaches G1 blocked and visible instead
 of failing the run.
 
@@ -1161,7 +1170,8 @@ specialist's identity, other rows' verdicts, the answer key.
 Expected output (`output_pydantic`, `Verdict`): `verdict`, `cited_fact_ids` (one or more),
 `reasoning`, and `missing_information` (required when `unsure`, empty otherwise). Guardrail:
 verdict in the set; at least one cited ID, each one present in the input; `missing_information`
-present exactly when `unsure`; no date-shaped value.
+present exactly when `unsure`; no date-shaped value the judge wrote itself (one copied word for
+word from its input, the row, facts and events, is allowed, "Rules for all three cards").
 
 *Worked example (also the one-shot example).* Row "Investor register summary R-3", applicability
 rule "The fund has more than 100 investors." Facts: `FACT-S1` Legal form: limited partnership ·
@@ -1384,7 +1394,9 @@ shell (Build card, "Build approach"); the last column is what B2 or a later bloc
 | `publishing.decline_calendar(conn, *, calendar_id, run_version, decline_reason, actor)` | `POST …/decline` | Run `DECLINED`, audited | `REASON_REQUIRED` (B2). The "form `decision` matches the route" check (`VALIDATION`) stays in the page handler's form validation, because this signature has no `decision` |
 | `stage_store.add_units` · `mark_unit` · `store_stage_outputs` · `fail_stage` | — | Unit lines and phase moves; stage C creates the calendar | Rule 9 store and the stage-attempt check, **built in B2** (H-047). `finish_stage` was renamed `store_stage_outputs` in B2; the new name stands |
 | `runtime.stages.run_stage(settings, run_id, stage)` | — | Runs units one by one; the failure demo on stage A, unit 1, attempt 1, stand-in only | Stage timer, trace, cost cap (B3) |
-| `runtime.agents.run_unit(settings, stage, unit_id)` | — | Stand-in pause, no output; real mode raises | Fixed outputs, then the CrewAI wiring (B3) |
+| `runtime.agents.extract_rows(settings, *, document_id, paragraphs, recipient_codes)` | — | — (built in B3 step 4; replaces the shell's `run_unit`, H-052) | Stand-in: pause, read the fixed rows from `backend/stand_in/`, pass them through the extractor's guardrail; real mode raises. `paragraphs` is this document's only. CrewAI wiring (B3 step 7) |
+| `runtime.agents.check_conflicts(settings, *, row, quote_check, sources)` | — | — (built in B3 step 4, H-052) | Stand-in: as above, through the verifier's guardrail; a row with no stand-in answer gets no flags. `quote_check` is for information only (T-W04-6). CrewAI wiring (B3 step 7) |
+| `runtime.agents.judge_applicability(settings, *, row, fund_facts)` | — | — (built in B3 step 4, H-052) | Stand-in: as above, through the judge's guardrail. `fund_facts` holds the facts and events from the mock profile loader. CrewAI wiring (B3 step 7) |
 
 **What a stage function receives.** "Passing only the run ID" (below) means no data travels in
 memory: the stage function is given the **run ID and the stage name**, reads everything else from
@@ -1683,7 +1695,8 @@ versioned files:
 - `backend/config/agents.yaml` and `backend/config/tasks.yaml`: the three agents and their tasks.
 - `config/regulation/lu-part2.yaml`: conventions `D-1` to `D-7`, the mock holiday list, the open
   conventions for CR-027, and the list of source files, with each document's title and each
-  recipient code's display name (DL-53).
+  recipient code's display name (DL-53). Recipient codes: `CSSF`, `AED`, `CNMV`, `LBR` (§2 "Shared
+  output vocabulary").
 - `config/fund/FND-DEMO-01.yaml`: the fund profile, including its display name, regime line and
   year end (DL-53).
 - `config/policy/default.yaml`: client policy (the P-1 treatment). It holds **no default roll
@@ -3185,3 +3198,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-16 · persona `system-arch` (at the operator's instruction) · action `update` · **H-035:** recorded the stand-in shell's choices. Build card "Build approach": stubs move status and phase and write units, audit, calendar and publication records but run no check, allowed only in stand-in mode, and the first green path cannot pass before B2's checks. §4 new "Service functions" table (names and signatures from `2.build/backend.md`) and a note that a stage function gets the run ID and the stage name. "Identifiers and versions": verdict `VER-<run>-<n>` and calendar `CAL-<run>`. §4 new `trace` column list (from CR-018, DL-40, DL-43, DL-45, CR-030). The word "Sprint 3" was not used. H-032 was checked and needed no SAD change (already landed as DL-51 to DL-53, CR-032, CR-033, CR-029, DL-27, EC-014). `backend.md`, `ux.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
 - 2026-11-17 · persona `system-arch` (at the operator's instruction; handoff H-040, DL-49 update) · action `update` · **B12 pulled forward and its departures recorded.** Build card "Order" row and Order of work (new row 5a, old row 12 removed): B12 now sits after B5, before B7, B6 and B10 (it was last), built on the stub UI while the frontend waited on B2. Estimate: B12 row (helper allowed, built early), "Build order" paragraph, and the drop order (B12 as a whole after B6 and Tier 2, before B13b; the calendar then shows the List view alone). §3 page 7: **Month view is the default** (was List); the switch is a **radio group styled as tabs** with `:has()`, in place, no script (was "chosen by a link"); below 960 px only the List view shows. **Helper confirmed** (`backend/web/calendar_view.py`) on one condition: it stays display-only (no new field, no dropped or marked entry, no calculated date, no service or model call, nothing the viewer may not see). DL-49 summary row. Checked against the code before editing (`calendar.html`, `site.css`, `routes/calendar.py`, commits `f311130`, `a3e71dc`, `3c47ad3`). Totals unchanged (≈ 7.75). `ux.md`, `frontend.md`, `scaffold-plan.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
 - 2026-11-18 · persona `system-arch` (at the operator's instruction; handoffs H-046 and H-047) · action `update` · **Recorded B2's choices.** Checked against the code first (`backend/services/runs.py`, `guards.py`, `decisions.py`, `gates.py`, `publishing.py`, `stage_store.py`, `backend/main.py`). **H-046, both confirmed, no `ended_at` column:** "Identifiers and versions" new row, the review number (place among the fund's runs, oldest = 1, counted, not stored); §4 new paragraph after the Data table, "when and why a review ended" read from the run's last `gate_event` audit entry (safe because refusals are logged as `refusal`). **H-047:** (1) rule 9 built in B2: rule 9 text, Service functions row (`finish_stage` was renamed `store_stage_outputs` in B2; the new name stands), Estimate B2 and B13b rows, Order of work rows 2 and 3, SOQ-35; B3 keeps the `late` trace line and cost count for discarded output; not re-estimated. (2) New "Order of checks" paragraph after the Transitions table; a row's or verdict's posted `version` is **not compared and not stored** (the handoff said stored: the code stores the row's own version). (3) Start-up rule: rule 7 text and a new Service functions row `runs.fail_interrupted_runs`; it was already a B2 item in the Estimate. `backend.md`, `ux.md`, `scaffold-plan.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
+- 2026-11-18 · persona `system-arch` (at the operator's instruction; handoff H-052) · action `update` · **Recorded B3's choices: date rule, recipient codes, agent functions.** (1) Checked against the code first (`backend/domain/guardrails.py` `find_date_shaped`, `check_extraction`, `check_verdict`). §2 "Rules for all three cards": the extractor's and judge's guardrails refuse a date-shaped value the agent wrote itself and allow one copied word for word from its input (QN-1 steps 1 and 2); month names count only when capitalised; the verifier has no date check (its evidence is already checked word for word). Card 1 and card 3 guardrail lines and CR-003 point to that bullet. Never row and CR-008 unchanged (the intent, a model never computes a date, stands). (2) §2 "Shared output vocabulary" `recipient_code` row and the §4 configuration bullet list the MVP codes `CSSF`, `AED`, `CNMV`, `LBR` (Luxembourg Business Registers, a code the build named; checked against `config/regulation/lu-part2.yaml`). (3) §4 "Service functions": the `runtime.agents.run_unit` row is replaced by `extract_rows`, `check_conflicts` and `judge_applicability` with their signatures as built (checked against `backend/runtime/agents.py` and `runtime/stages.py`); deleting the unused `run_unit` code is `@backend.eng`'s. `backend.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
