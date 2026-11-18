@@ -80,7 +80,7 @@ what matter. Built in six small steps on separate branches (PRs #68 to #73), wit
 | V-2 `status_tone` | every run | ux.md §1.5 table, now in `runs.TONE_ACTIVE` / `TONE_ENDED` |
 | V-3 `steps` | every run | ux.md §1.4 table; links only on "Done" and "Your turn" |
 | V-4 `group` | each unit (`runs.list_units`) | stage A: `DOC-` is `drafting`, `ROW-` is `checking_drafts`; B `applies`; C `dates`. The stand-in makes no `checking_drafts` units (B3) |
-| V-5 `counts` | every run | Counted from the stand-in data |
+| V-5 `counts` | every run | Counted from the stored rows, verdicts and entries (B3 step 5) |
 | V-6 `ended`, `failure`, `published_at`, `ended_because` | every run | `ended` (time and reason) is read from the run's last `gate_event` audit entry, because there is no "ended at" column |
 | V-7 `started_by_label` | every run | `runs.actor_label`: sign-in label plus " (mock)" |
 | V-8 G1 | `decisions.get_g1_view` | Row status, quote check, paragraph, flags, who-files choice, `decided` line; view `stage`, `summary`, `unused_paragraphs` |
@@ -108,7 +108,7 @@ own audit entry (each Tier 1 test checks that).
 | Shared guards | `services/guards.py` | `RUN_NOT_ACTIVE` → `RUN_STAGE_RUNNING` → `VERSION_MISMATCH`, in that order |
 | Start, abandon | `runs.py` | `RUN_ACTIVE` (the check and the insert run under `BEGIN IMMEDIATE`, so a double click cannot start two reviews), `VALIDATION` for the failure demo outside stand-in mode; abandon only at a gate |
 | Rule 9 | `services/stage_store.py` | `store_stage_outputs`: one transaction; refuses unless the run is `ACTIVE`, in `<stage>_RUNNING`, on the same `stage_attempt`, and every unit is done; otherwise the output is **discarded** and one audit entry says so. `fail_stage` makes the same check. A failed stage stores nothing. Rollback on any error: no half a stage |
-| Stored data | `rows`, `paragraphs`, `quote_checks`, `verdicts`, `calendar_versions`, `calendar_entries` | Stage A, B and C outputs are the fixed stand-in data (B3 swaps in the fixtures); stage B has one verdict per **approved** rule, stage C one entry per rule whose final answer is "applies" |
+| Stored data | `rows`, `paragraphs`, `quote_checks`, `verdicts`, `calendar_versions`, `calendar_entries` | Stage A and B outputs are the stand-in answers (B3 step 5); stage C's dates are placeholders until B4; stage B has one verdict per **approved** rule, stage C one entry per rule whose final answer is "applies" |
 | G1 decisions | `decisions.decide_row` | Stored in `row_decisions` (decide-once: checked, and the UNIQUE key as a backstop). Order: already decided → no answer → reject reason, or approve: quote check → weekend rule → filing party (offered values only) → reason over a flag. The other answer's fields are ignored (DL-48) |
 | G2 decisions | `decisions.decide_verdict` | Stored in `verdict_decisions`. The answer must fit AI's verdict (confirm repeats it, overrule gives the opposite, decide only for "can't tell"), else `VALIDATION`; overrule and decide need a reason |
 | Finish G1 / G2 | `gates.py` | Ended → wrong phase → stale page → `GATE_INCOMPLETE` (counts the undecided, and the "can't tell" ones at G2). `stage_attempt` goes back to 1 for the next stage |
@@ -275,3 +275,7 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   H-053), none re-recorded; the other 12 match. No model call. LLM, temperature and max-token
   controls: none resolved (no model yet). No diagram needed. `sad.md`, `ux.md` and the frozen
   Netlify page not edited.
+- 2026-11-18 · persona `backend-eng` · `sync-docs` · after B3 step 5: operator approved all 3 items
+  and they were applied on the PR #96 branch: `frontend.md` (agent functions replace `run_unit`),
+  `backend.md` V-5 (counts from stored data) and the B2 "Stored data" row (stand-in answers;
+  placeholder dates until B4). Spec drift (SAD §4 `run_unit` row) is already in H-052.

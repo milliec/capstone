@@ -554,7 +554,8 @@ Optional, if B2 is in: click "Start a new review" while a review is in progress 
    `STAND_IN_UNIT_PAUSE_S` sets how slowly the units fill in.
 2. **Where the CrewAI crews connect next**: the pages never call an agent. They render what the
    service functions return. The crews connect in **B3** behind `backend/runtime/agents.py`
-   (`run_unit`), which today returns stand-in outputs with a pause; `backend/runtime/stages.py`
+   (`extract_rows`, `check_conflicts`, `judge_applicability`), which today return the stand-in
+   answers in `backend/stand_in/` with a pause; `backend/runtime/stages.py`
    runs the units and `backend/services/stage_store.py` stores them. Switching
    `AGENTS_MODE=stand_in` to `real` changes no template. Real calls wait for the first green path
    and DL-40 (Build card).
@@ -870,3 +871,5 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-18 · persona `frontend-eng` · H-048 (1): the abandon textarea reads `typed.reason` and only
   for an `abandon` refusal, as the other forms do (S-29). Small change reusing an existing pattern:
   no UX session. Checked by rendering the refused page. No snapshot shows a refused abandon.
+- 2026-11-18 · persona `backend-eng` · `sync-docs` (operator-approved) · "Where the CrewAI crews
+  connect next": the three agent functions replace `run_unit` (B3 step 5, PR #96). One sentence only.
