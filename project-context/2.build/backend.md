@@ -65,7 +65,7 @@ names below are derived from the SAD §4 routes (Open Question 1). Every stub sa
 | `publishing.decline_calendar(conn, *, calendar_id, run_version, decline_reason, actor)` | `POST …/decline` | `DECLINED`, audited | `REASON_REQUIRED`, decision/route match (B2) |
 | `stage_store.add_units`, `mark_unit`, `finish_stage`, `fail_stage` | — | Unit lines and phase moves; stage C creates the calendar version | Rule 9 store, stage-attempt check (B3) |
 | `runtime.stages.run_stage(settings, run_id, stage)` | — | Units one by one; failure demo on stage A unit 1, attempt 1, stand-in only | Stage timer, trace, cost cap (B3) |
-| `runtime.agents.run_unit(settings, stage, unit_id)` | — | Stand-in pause, no output; real mode raises | Fixed outputs, CrewAI wiring (B3) |
+| `runtime.agents.run_unit(settings, stage, unit_id)` | — | Deleted in B3 step 6 (H-052); replaced by the three agent functions | — |
 
 ## View fields for the pages (H-036, 2026-11-17)
 
@@ -132,9 +132,8 @@ run, not for a row); `typed` as `{field: text}`; three sentences ux.md does not 
 ## B3 (stand-in part): steps 1 to 5 (2026-11-18)
 
 B3's stand-in part is built in seven small steps, one pull request each, so each can be reviewed
-alone. Steps 1 to 5 are done; steps 6 (trace, cost count, cost cap, stage timer) and 7 (CrewAI
-wiring behind the same functions, switched off, and the role harness) are next. No model is
-called anywhere.
+alone. Steps 1 to 6 are done; step 7 (CrewAI wiring behind the same functions, switched off, and
+the role harness) is next. No model is called anywhere.
 
 | Step | PR | What | Where |
 |---|---|---|---|
@@ -142,7 +141,8 @@ called anywhere.
 | 2 Quote check (QN-1, W-04) | #93 | Trim, collapse ordinary spaces, tabs and line breaks, then the quote must be one unbroken piece of the **cited** paragraph. Case, punctuation and Unicode forms count | `backend/domain/quote_check.py` |
 | 3 Schemas and guardrails (CR-003) | #94 | The three step outputs as Pydantic models (unknown fields refused) and one guardrail per agent card | `backend/domain/schemas.py`, `guardrails.py` |
 | 4 Stand-in answers and agent functions (CR-030) | #95 | Recipient codes; the fund facts loader (ID, fact, value; event ID and description); hand-written answers (6 rows, 1 flag, 1 "unsure"); `extract_rows`, `check_conflicts`, `judge_applicability`, which put each answer through the real guardrail | `backend/domain/fund_facts.py`, `backend/stand_in/*.yaml`, `backend/runtime/agents.py` |
-| 5 Stages A and B wired | this PR | Stage A: loader → extract per primary document → demo rule if on → quote check per row → verifier per row; units: 5 documents then one check per rule. Stage B: fund facts → judge per approved rule. The store keeps the applicability rule, the quote check's reason and the flags; `offset` is stored as JSON. Pages get words for codes, recipient and document names from the config, and real fact values and counts | `backend/runtime/stages.py`, `services/stage_store.py`, `decisions.py`, `calendar.py`, `runs.py`, `backend/domain/wording.py` |
+| 5 Stages A and B wired | #96 | Stage A: loader → extract per primary document → demo rule if on → quote check per row → verifier per row; units: 5 documents then one check per rule. Stage B: fund facts → judge per approved rule. The store keeps the applicability rule, the quote check's reason and the flags; `offset` is stored as JSON. Pages get words for codes, recipient and document names from the config, and real fact values and counts | `backend/runtime/stages.py`, `services/stage_store.py`, `decisions.py`, `calendar.py`, `runs.py`, `backend/domain/wording.py` |
+| 6 Trace, cost count, cost cap, stage timer | this PR | **Trace** (CR-018): table with the §4 columns, append-only triggers; every agent call, stand-in included, writes one line, adds its cost to `runs.cost_so_far` and writes an `agent_output` audit entry whose `trace_ref` is the record key, in one transaction. **Cost cap** (CR-017): before each call, at `RUN_COST_CAP_USD` or above the unit fails with "cost cap" and no call starts. **Stage timer** (rule 6, DL-43): a timer on its own thread around each stage fails the running unit with "stage time limit"; a call still running finishes, its output is marked `late`, kept in the trace only, its cost counts, nothing is stored (T-RUN-6, T-RUN-8). `fail_stage` now checks and changes the run under one write lock, so the timer can never fail a stage that has just finished. Settings use the SAD names `STAGE_TIME_LIMIT_A`, `_B`, `_C`. `run_unit` deleted (H-052) | `backend/services/trace.py`, `backend/db/schema.sql`, `backend/runtime/stages.py`, `agents.py`, `services/stage_store.py`, `backend/settings.py`, `.env.example` |
 
 **Operator decisions in B3 (2026-11-18):** an empty quote fails; only ordinary whitespace is
 collapsed; a date-shaped value is refused unless it is copied word for word from the agent's input
@@ -170,13 +170,16 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 
 - `DEMO_ROW_NOT_APPROVABLE` and "Approval blocked" are **B7**; the demo rule (temporary, rule 7)
   can be approved until then.
-- `retry_run` is a stub (**B13b**). No stage timer (rule 6), `trace` table or cost count yet
-  (**B3 step 6**). CrewAI wiring and the role harness are **B3 step 7**.
+- `retry_run` is a stub (**B13b**). CrewAI wiring and the role harness are **B3 step 7**. The
+  per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
+  spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
+  "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
+- Stand-in trace lines use `prompt_version` = `stand-in:` + a hash of the stand-in answer file
+  (there is no prompt yet); B3 step 7 switches it to a hash of `agents.yaml` and `tasks.yaml`.
 - Calendar dates are placeholders (**B4**), see above.
 - T-W04-6 (the verifier claims "quote ok" for a row code failed) has no test: the verifier's schema
   has no such field, so the claim cannot reach the store, and the quote-check result is code's
   alone. Revisit with the real verifier (B3 spike).
-- `runtime.agents.run_unit` is unused but kept until `@system.arch` updates the §4 row (H-052).
 - No Pydantic form models refusing unknown fields, no ruff/CI (`.github/workflows/ci.yml` is still
   to do in B1's follow-up).
 - The pages read the H-036 view fields (V-1 to V-12). The interim lookups in
@@ -199,7 +202,7 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - The stub function names follow the SAD §4 routes (Open Question 1).
 - The operator's request for stubs that move run states overrides the Build card's "no state
   logic" wording for the shell only (Open Question 2).
-- `trace` waits for B3 because the SAD names its record key but not its columns.
+- `trace` was built in B3 step 6 with the §4 columns (H-035).
 - Templates are placeholders; their look is `@frontend.eng`'s work in B5.
 
 ## Open Questions
@@ -211,8 +214,9 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
    2026-11-16). Accept, or hand to `@system.arch` to update the Build card row.
 3. **Verdict and calendar IDs.** *Answered: accepted; SAD to record them (H-035).* The SAD gives no scheme for verdict or calendar IDs; the shell uses
    `VER-<run>-<n>` and `CAL-<run>`.
-4. **Env names.** Only the §4 names the shell needs were added. The `CALL_TIMEOUT_*_S` /
-   `STAGE_LIMIT_*_S` renames in `setup.md` Open Points are still waiting.
+4. **Env names.** Only the §4 names the shell needs were added. *Partly answered in B3 step 6:*
+   the stage limits now use the SAD's `STAGE_TIME_LIMIT_A`, `_B`, `_C` (`.env.example` renamed
+   from `STAGE_LIMIT_*_S`). The `CALL_TIMEOUT_*_S` rename waits for the real calls (B3 spike).
 
 5. **Order of checks.** Where the SAD lists several codes for one action, the first that applies
    wins: ended → wrong phase → stale page → the action's own checks; for a decision, already
@@ -279,3 +283,16 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   and they were applied on the PR #96 branch: `frontend.md` (agent functions replace `run_unit`),
   `backend.md` V-5 (counts from stored data) and the B2 "Stored data" row (stand-in answers;
   placeholder dates until B4). Spec drift (SAD §4 `run_unit` row) is already in H-052.
+- 2026-11-18 · persona `backend-eng` · actions `develop-be`, `document-backend` ·
+  `AAMAD_TARGET_RUNTIME=crewai` (CrewAI still not installed or imported) · `AGENTS_MODE=stand_in` ·
+  **B3 step 6**: `trace` table and service, cost count, cost cap, stage timer, `fail_stage` under
+  one write lock, `STAGE_TIME_LIMIT_*` settings, `run_unit` deleted (H-052 outcome). 218 tests pass
+  (12 new, incl. T-RUN-6 and T-RUN-8; the timer tests passed 15 runs in a row). Visual check: the
+  same 16 snapshots differ as after step 5 (H-053), none re-recorded. No model call. LLM,
+  temperature and max-token controls: none resolved (no model yet). No diagram needed. `sad.md`,
+  `ux.md` and the frozen Netlify page not edited.
+- 2026-11-18 · persona `backend-eng` · `sync-docs` · after B3 step 6: operator approved all 4 items:
+  `setup.md` env table and Open Point (stage limit names; operator kept the rename), `backend.md`
+  stub table (`run_unit` deleted) and Assumptions (`trace` built). Operator also accepted: a trace
+  line that cannot be written fails the unit as "invalid output"; stand-in `prompt_version` is a
+  hash of the answer file until B3 step 7.

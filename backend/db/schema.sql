@@ -6,9 +6,9 @@
 --     cannot point at another fund's run.
 --   * SQLite has no enum: an enum is a TEXT column with a CHECK on its allowed values.
 --   * Decision tables allow one decision per row / verdict (UNIQUE, CR-009).
---   * audit_log is append-only: triggers refuse UPDATE and DELETE (CR-013).
+--   * audit_log and trace are append-only: triggers refuse UPDATE and DELETE (CR-013).
 --
--- Not here yet: `trace` (the SAD names its record key but not its columns; it comes with B3).
+-- `trace` came with B3 step 6, with the columns in sad.md §4 "The `trace` columns" (H-035).
 -- Every statement uses IF NOT EXISTS, so applying the file twice is harmless.
 
 -- The fund is a config file (config/fund/FND-DEMO-01.yaml), not a table (DL-50 item 1).
@@ -210,4 +210,50 @@ CREATE TRIGGER IF NOT EXISTS audit_log_no_delete
 BEFORE DELETE ON audit_log
 BEGIN
     SELECT RAISE(ABORT, 'audit_log is append-only');
+END;
+
+-- One line per model call attempt (CR-018), stand-in calls included, so the cost count and the
+-- audit link work the same way in both modes; the run's stored mode tells them apart.
+-- Columns from sad.md §4 "The `trace` columns" (H-035). B3 step 6.
+CREATE TABLE IF NOT EXISTS trace (
+    trace_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id            TEXT NOT NULL,
+    fund_id           TEXT NOT NULL,
+    step              TEXT NOT NULL,                     -- extract_rows, check_conflicts, judge_applicability
+    stage_attempt     INTEGER NOT NULL CHECK (stage_attempt IN (1, 2)),   -- DL-51
+    unit_id           TEXT NOT NULL,
+    attempt_n         INTEGER NOT NULL,                  -- the call attempt (a retry is 2)
+    at                TEXT NOT NULL,                     -- when the call started, ISO 8601 UTC
+    prompt_version    TEXT NOT NULL,                     -- hash of the agent and task content used
+    model             TEXT NOT NULL DEFAULT '',          -- empty in stand-in mode
+    model_returned    TEXT NOT NULL DEFAULT '',          -- empty in stand-in mode (DL-40)
+    settings_json     TEXT NOT NULL DEFAULT '{}',
+    max_tokens        INTEGER,                           -- empty in stand-in mode
+    input_hash        TEXT NOT NULL,
+    raw_output        TEXT,
+    parsed_output     TEXT,                              -- or validation_error, never both
+    validation_error  TEXT,
+    tokens_in         INTEGER NOT NULL DEFAULT 0,
+    tokens_out        INTEGER NOT NULL DEFAULT 0,
+    cost_usd          REAL NOT NULL DEFAULT 0,
+    duration_ms       INTEGER NOT NULL DEFAULT 0,
+    spend_activity    TEXT CHECK (spend_activity IS NULL OR spend_activity IN
+                        ('spike', 'tuning', 'evaluation', 'rehearsal', 'demo')),  -- CR-030
+    eval_case         TEXT CHECK (eval_case IS NULL OR eval_case IN
+                        ('altered_quote', 'I-1', 'injection')),                   -- DL-45
+    late              INTEGER NOT NULL DEFAULT 0 CHECK (late IN (0, 1)),          -- DL-43, rule 9
+    UNIQUE (run_id, step, stage_attempt, unit_id, attempt_n),                     -- the record key
+    FOREIGN KEY (run_id, fund_id) REFERENCES runs (run_id, fund_id)
+);
+
+CREATE TRIGGER IF NOT EXISTS trace_no_update
+BEFORE UPDATE ON trace
+BEGIN
+    SELECT RAISE(ABORT, 'trace is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trace_no_delete
+BEFORE DELETE ON trace
+BEGIN
+    SELECT RAISE(ABORT, 'trace is append-only');
 END;

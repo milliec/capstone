@@ -1,7 +1,8 @@
 """Settings, read from the environment (and the git-ignored .env file) once.
 
-Variable names follow SAD §4 "Sign-in and secrets". Only the settings the app shell uses are read
-here; the timeouts, stage limits and model settings come in with B3.
+Variable names follow SAD §4 "Sign-in and secrets". B3 step 6 adds the cost cap
+(RUN_COST_CAP_USD) and the stage time limits (STAGE_TIME_LIMIT_A, _B, _C). The per-call timeouts
+and model settings come with the real agents (B3 step 7 and the spike).
 
 Two rules this file enforces (Build card, CR-030, DL-54):
 - AGENTS_MODE defaults to "stand_in" when it is not set (T-MODE-1).
@@ -47,6 +48,24 @@ class Settings:
     stand_in_unit_pause_s: float
     session_secret: str
     database_path: Path
+    run_cost_cap_usd: float = 2.50                     # CR-017, DL-36
+    # Seconds per stage on the backend's own timer (rule 6, DL-43); replaced after the spike.
+    stage_time_limits: dict = None                     # {"A": 375.0, "B": 150.0, "C": 30.0}
+
+
+STAGE_TIME_LIMIT_DEFAULTS = {"A": 375.0, "B": 150.0, "C": 30.0}
+
+
+def _positive(env: dict, name: str, default: float) -> float:
+    """A number setting that must be above 0; empty means the default."""
+    raw = env.get(name, "").strip()
+    try:
+        value = float(raw) if raw else default
+    except ValueError:
+        raise SettingsError(f"{name} must be a number, not {raw!r}")
+    if value <= 0:
+        raise SettingsError(f"{name} must be above 0")
+    return value
 
 
 def load_settings(env: dict[str, str] | None = None) -> Settings:
@@ -93,4 +112,7 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         stand_in_unit_pause_s=pause,
         session_secret=session_secret,
         database_path=database_path,
+        run_cost_cap_usd=_positive(env, "RUN_COST_CAP_USD", 2.50),
+        stage_time_limits={stage: _positive(env, f"STAGE_TIME_LIMIT_{stage}", default)
+                           for stage, default in STAGE_TIME_LIMIT_DEFAULTS.items()},
     )
