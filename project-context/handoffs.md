@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-052: "No date-shaped value": the guardrails allow a date copied word for word from the agent's input
+- From: @backend.eng (B3 step 3, operator decision 2026-11-18)   To: @system.arch   Date: 2026-11-18
+- Touches: sad.md §2 agent cards ("Rules for all three cards": "The guardrail refuses any date-shaped value"; card 1 and card 3 guardrails "no date-shaped value"); Build card Never row; CR-003
+- Ask: Reword the rule so it matches what B3 built and the operator approved: a guardrail refuses a date-shaped value **the agent wrote itself**, and allows one that is **copied word for word from the text the agent was given** (QN-1 steps 1 and 2 applied to both). Month names count only when capitalised ("rule 3 may apply" is not "3 May"). Code: `backend/domain/guardrails.py`, `find_date_shaped`; tests `tests/tier1/test_guardrails.py`.
+- Why: Read literally, the rule fails correct output: the `SRC-VATLAW-P1` quote must contain "31 October", and an applicability rule may name the "Law of 17 December 2010" (the answer key's own `OBL-01` rule does). The intent, "a model never computes a date" (Never row), is kept.
+- Outcome: (the owner fills this in)
+
 ### H-048: FYI and one fix: refusals are live; the abandon box reads `typed` the wrong way; the visual script changed
 - From: @backend.eng (B2)   To: @frontend.eng   Date: 2026-11-17
 - Touches: `backend/web/templates/pages/review_status.html` (the abandon textarea); `tests/visual/visual.spec.js`; 2.build/frontend.md §10.1 V-12
