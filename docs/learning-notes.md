@@ -340,6 +340,15 @@ the last published one instead of with a screenshot someone remembers. A failing
 text change is expected; the job is to list the pictures, not to re-record them, so the person who owns
 the approval can see exactly what moved.
 
+**Clicking like a person finds what a shortcut test skips.** To film a walkthrough, a script clicked
+through the app with a real cursor instead of sending form data straight to the server, as the
+screenshot tests do. On the demo rule it pressed "Approve rule", and the server approved it, although
+the page says that rule must not be approved. The screenshot tests never noticed, because they only
+ever send "reject" for that rule. It was a known unbuilt block, not a bug, but nothing on screen said
+so. Lesson: a test that takes the fast route checks the pages, not the choices a person could make on
+them; walk the slow route by hand or by script before showing the work. It's like a prototype where
+only the happy-path hotspots are wired: the review looks fine until someone taps the other button.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
