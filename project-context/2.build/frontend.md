@@ -594,6 +594,7 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-27 | Click-through feedback: land on the next card after a decision (W-7); no jump when switching calendar views | ✅ | `0eed7b4`, `e827a3e`. Measured in a real browser: next card 24px from the top, first Tab inside it; tabs stay at 80px through every switch |
 | S-19 | H-036 view fields from `@backend.eng` | ✅ | V-1 to V-11 landed in PRs #68 to #73, V-12 with B2 (#75) |
 | S-28 | H-045: delete the interim lookups and their fallbacks | ✅ | `001d348` (fallbacks, merged in #78 before it was finished) and `e44f4c7` (the 14 interim tables, an unused import, the stepper test). Every page renders at AT_G1, AT_G2, AT_G3, published, abandoned, declined and failed, plus sign-in, 403 and 404; 138 tests pass |
+| S-29 | H-048: abandon box shows the typed reason | ✅ | `review_status.html` reads `typed.reason` (V-12 dict), only when the refusal's anchor is `abandon`, like the other forms. Checked by rendering: a blank reason comes back as typed (422); a stale page leaves the box empty; a rule 2 refusal does not fill it |
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
 
@@ -866,3 +867,6 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   Page 7 row now says the summary cards and the Month, Year and List views are built (display-only);
   §2 Page 7 "published" row no longer names the two-month week grid, which the Month view replaced.
   Docs only. No code. No snapshots touched.
+- 2026-11-18 · persona `frontend-eng` · H-048 (1): the abandon textarea reads `typed.reason` and only
+  for an `abandon` refusal, as the other forms do (S-29). Small change reusing an existing pattern:
+  no UX session. Checked by rendering the refused page. No snapshot shows a refused abandon.
