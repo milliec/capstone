@@ -23,6 +23,19 @@ work out a state, check a rule, or hide a button to enforce one. Where a templat
 the stub services do not send yet, this spec lists it in §10 for `@backend.eng`; the template does
 not work it out instead.
 
+## Out of scope (MVP)
+
+A signpost only. Each line points to where the deferral is recorded; this list makes no decisions.
+
+| Not in the MVP | Where it is recorded |
+|---|---|
+| Source picking: the two-column source/draft layout and the source picker (A5) | §5 CSS plan, `app.css` sections 7 and 10 to 13 |
+| The Funds pages, the view switch and "Add fund" (future scope) | §5 CSS plan, `app.css` sections 10 to 13 |
+| Closing the phone menu on an outside tap or Escape (operator decision H-062; Escape would need a script exception, a polish-week idea) | §11 "Later (not this sprint)"; §9 S-32 |
+| A shorter phone layout for the publish page (22 entries, about 10,000 px tall at 360 px; ux.md only requires 360 px for the GP calendar, UX-012) | §9 S-34 |
+| Retry after a failed run (B13b) | Assumptions ("Retry is left out") |
+| View fields dropped from H-036 (`index`, `total`, `next_undecided`, `show_forms`, `refused`, and the calendar `summary`, `weeks`, `months[]` as server fields) | §10 "Dropped from H-036"; Open Question 10 |
+
 ---
 
 ## 1. Templates: what each one is, and which route and stub it uses
@@ -894,3 +907,4 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-19 · persona `frontend-eng` · `update-visual-baselines` (operator approved all 16, H-053, H-054, H-055) · nothing re-recorded: all 16 were already recorded (15 in cc286a4, the 360 px calendar one in 5823849). `npm run test:visual` passes. Outcomes in `handoffs.md` filled in and the three entries moved to "Done".
 - 2026-11-19 · persona `frontend-eng` · `document-frontend` (handoff H-063 to `@ux.designer`) · asks ux.md to record S-33 (sign-in first when narrow) and S-34 (specialist pages at 360 px; beyond UX-012). `handoffs.md` only; no code, no snapshot touched.
 - 2026-11-19 · persona `frontend-eng` · `document-frontend` (docs only) · "Later" note now records the H-062 decision (outside-click / Escape close not in the MVP, polish-week idea); two 2026-11-17 audit lines that said "snapshot refresh proposed, not written" now say they were resolved. No code, no snapshot touched.
+- 2026-11-19 · persona `frontend-eng` · `document-frontend` (docs only) · Added an "Out of scope (MVP)" signpost near the top that points to where each deferral is already recorded (source picking A5, Funds pages, phone-menu outside-tap / Escape close, shorter publish phone layout, Retry, fields dropped from H-036). No new decisions. No code, no snapshot touched.
