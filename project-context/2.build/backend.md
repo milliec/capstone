@@ -335,7 +335,7 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
 - **Step 7b in progress** (plan approved 2026-11-19; PR 1 done): CrewAI is installed with its
   outside connections off, but nothing builds a crew yet; the crews, the per-call timeout and its
-  one retry come in PRs 2 to 5, and real mode stays refused until then. The role harness has its call
+  one retry come in PRs 2 to 6, and real mode stays refused until then. The role harness has its call
   caps; the runner that makes the spike's per-role calls comes with the spike (after DL-40).
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
   rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
