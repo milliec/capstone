@@ -4,9 +4,7 @@ import pytest
 
 from backend.db.connection import connect, init_db
 from backend.services import FUND_ID
-from backend.services.audit import list_audit
-from backend.services.refusals import (HTTP_STATUS, SENTENCES, Refusal, Refused, refuse,
-                                       sentence)
+from backend.services.refusals import HTTP_STATUS, SENTENCES, Refusal, Refused, refuse, sentence
 
 
 def test_every_code_has_a_status_and_at_least_one_sentence():

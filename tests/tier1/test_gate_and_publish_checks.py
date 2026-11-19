@@ -116,10 +116,10 @@ def g3(conn, settings):
 
 def publish(conn, run_id, **fields):
     run = runs.get_run(conn, run_id)
-    args = dict(calendar_id=f"CAL-{run_id}", run_version=run["run_version"], acknowledged=True,
-                rejected_row_ids=[r["row_id"] for r in decisions.rejected_rows(conn, run)],
-                uncited_paragraph_ids=[p["paragraph_id"] for p in decisions.unused_paragraphs(conn, run)],
-                actor=ACTOR)
+    args = {"calendar_id": f"CAL-{run_id}", "run_version": run["run_version"], "acknowledged": True,
+                "rejected_row_ids": [r["row_id"] for r in decisions.rejected_rows(conn, run)],
+                "uncited_paragraph_ids": [p["paragraph_id"] for p in decisions.unused_paragraphs(conn, run)],
+                "actor": ACTOR}
     args.update(fields)
     return lambda: publishing.publish_calendar(conn, **args)
 
@@ -153,8 +153,8 @@ def test_a_matching_publish_works_once_and_records_what_was_acknowledged(conn, g
 
 def test_decline_needs_a_reason_and_the_right_state(conn, g3):
     def decline(**fields):
-        args = dict(calendar_id=f"CAL-{g3}", run_version=runs.get_run(conn, g3)["run_version"],
-                    decline_reason="Dates look off", actor=ACTOR)
+        args = {"calendar_id": f"CAL-{g3}", "run_version": runs.get_run(conn, g3)["run_version"],
+                    "decline_reason": "Dates look off", "actor": ACTOR}
         args.update(fields)
         return lambda: publishing.decline_calendar(conn, **args)
 

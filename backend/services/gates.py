@@ -8,9 +8,9 @@ starts.
 """
 
 import sqlite3
-from typing import Callable
+from collections.abc import Callable
 
-from backend.services import FUND_ID, guards
+from backend.services import guards
 from backend.services.audit import write_audit
 from backend.services.refusals import NotFound, refuse
 from backend.settings import Settings

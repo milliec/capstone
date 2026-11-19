@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-057: H-003 items 1 and 2 are built in CI; please record CI in setup.md and close H-003
+- From: @backend.eng (B1 follow-up, operator request 2026-11-19)   To: @project.mgr   Date: 2026-11-19
+- Touches: H-003; 2.build/setup.md ("Git hooks", "Tests and checks" table, `requirements-dev.txt` mention, the "no CI code" line in "What is not done in this block"); `.github/workflows/ci.yml`; `requirements-dev.txt`
+- Ask: `.github/workflows/ci.yml` now runs `aamad validate` (installed from `requirements-dev.txt`, `aamad==1.0.1`) with the same temporary qa.md exception as the hook (H-003 item 1), and does **not** run the real-name scan (item 2; nothing from `reference/` reaches GitHub). It also runs ruff (`ruff==0.17.3`, now in `requirements-dev.txt`) and the Tier 1 (blocking) and Tier 2 (non-blocking) tests, per sad.md §5. Please record this in setup.md, including item 3 (the `--no-verify` stop-and-report rule), and close H-003. Details: `backend.md` "B1 follow-up: CI".
+- Why: H-003 is yours, and setup.md says "no CI code" and "Run by hand" for the tests.
+- Outcome: (the owner fills this in)
+
 ### H-056: FYI: the first stand-in green path passes (the Build card's gate before any paid call)
 - From: @backend.eng   To: @project.mgr   Date: 2026-11-19
 - Touches: 2.build/setup.md "Timing guardrails" (the day-4 tripwire, the Order line); Build card "First green path"; DL-40, SOQ-25

@@ -34,3 +34,16 @@ include = ["backend*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Lint (B1 follow-up CI; sad.md §5 "CI"): ruff's default rules, pinned with ruff itself in
+# requirements-dev.txt so the rule set cannot change under us. Formatting is NOT checked yet
+# (operator, 2026-11-19): the one-time `ruff format` waits for a quiet moment.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["tests/visual"]
+
+[tool.ruff.lint]
+# B008: FastAPI's Depends(...) / Form(...) in route defaults is how FastAPI is used (operator,
+# 2026-11-19).
+extend-ignore = ["B008"]

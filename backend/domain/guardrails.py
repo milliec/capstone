@@ -26,7 +26,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from backend.domain.quote_check import check_quote, normalise
-from backend.domain.schemas import ExtractionResult, VerificationResult, Verdict
+from backend.domain.schemas import ExtractionResult, Verdict, VerificationResult
 
 
 @dataclass(frozen=True)

@@ -30,6 +30,7 @@ B3 step 6:
 import json
 import sqlite3
 import threading
+from functools import partial
 
 import yaml
 
@@ -39,8 +40,8 @@ from backend.domain.fund_facts import load_fund_facts
 from backend.domain.quote_check import check_quote
 from backend.domain.schemas import Row
 from backend.runtime import agents
-from backend.services import runs as runs_service
 from backend.services import audit, stage_store, trace
+from backend.services import runs as runs_service
 from backend.settings import ROOT, Settings
 
 # The planted demo row (CR-029, B7): see the file's own note. Not a stand-in answer: code adds it
@@ -90,7 +91,8 @@ def _still_current(conn, run: dict, stage: str) -> bool:
 def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, call):
     """Run one unit: check it may start, call the agent, trace the call, mark the unit.
 
-    `call(record)` runs the agent function with the trace recorder. In order:
+    `call(record=...)` runs the agent function with the trace recorder (a functools.partial
+    with the unit's own inputs already bound, so a loop variable can never leak in). In order:
       1. the stage stopped meanwhile (timer, abandon)  → stop, start no call;
       2. the run reached its cost cap (CR-017)         → fail with "cost cap", start no call;
       3. call the agent; its trace line, cost and audit entry are written as it returns (CR-018);
@@ -114,7 +116,7 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
                                       call=call_record, spend_activity=spend))
 
     try:
-        result = call(record)
+        result = call(record=record)
     except agents.DemoFailure:
         # The failure demo (B13a, rule 11): the stand-in extractor failed on purpose.
         stage_store.fail_stage(conn, run, stage, unit_id, "demo failure")
@@ -159,9 +161,9 @@ def _stage_a(conn, settings: Settings, run: dict) -> dict:
         demo_fail = (index == 0 and bool(run["demo_fail_step1"]) and run["stage_attempt"] == 1
                      and settings.agents_mode == "stand_in")
         own = {pid: text for pid, text in paragraphs.items() if pid.startswith(document_id + "-P")}
-        rows = _run_unit(conn, settings, run, "A", document_id, lambda record: agents.extract_rows(
-            settings, document_id=document_id, paragraphs=own, recipient_codes=codes,
-            record=record, demo_fail=demo_fail))
+        rows = _run_unit(conn, settings, run, "A", document_id, partial(
+            agents.extract_rows, settings, document_id=document_id, paragraphs=own,
+            recipient_codes=codes, demo_fail=demo_fail))
         drafted += [{**r.model_dump(), "origin": "model"} for r in rows]
 
     if run["demo_planted_row"]:   # added by code, after the model rows (CR-029)
@@ -178,9 +180,9 @@ def _stage_a(conn, settings: Settings, run: dict) -> dict:
 
     stage_store.add_units(conn, run, "A", [(r["row_id"], r["obligation_name"]) for r in drafted])
     for row in drafted:
-        flags = _run_unit(conn, settings, run, "A", row["row_id"], lambda record: agents.check_conflicts(
-            settings, row=row, quote_check=checks[row["row_id"]], sources=paragraphs,
-            record=record))
+        flags = _run_unit(conn, settings, run, "A", row["row_id"], partial(
+            agents.check_conflicts, settings, row=row, quote_check=checks[row["row_id"]],
+            sources=paragraphs))
         row["flags"] = [f.model_dump() for f in flags]
         row["offset"] = json.dumps(row["offset"])   # stored as JSON text (stage_store)
 
@@ -202,8 +204,8 @@ def _stage_b(conn, settings: Settings, run: dict) -> dict:
     for row_id, _label in units:
         # The judge sees the row's fields and quote only (sad.md "Model and Context Strategy").
         row = {k: by_id[row_id][k] for k in _JUDGE_FIELDS}
-        verdict = _run_unit(conn, settings, run, "B", row_id, lambda record: agents.judge_applicability(
-            settings, row=row, fund_facts=facts, record=record))
+        verdict = _run_unit(conn, settings, run, "B", row_id, partial(
+            agents.judge_applicability, settings, row=row, fund_facts=facts))
         verdicts.append({
             "verdict_id": f"VER-{run['run_id']}-{_row_n(row_id)}", "row_id": row_id,
             "verdict": verdict.verdict, "reasoning": verdict.reasoning,

@@ -8,7 +8,6 @@ import sqlite3
 
 from backend.services import decisions, runs
 
-
 DIRECTION = {"roll_forward": "following working day", "roll_backward": "preceding working day"}
 
 # The "why" line's first word, from the rule's frequency in words (B4: "Annually rule" and

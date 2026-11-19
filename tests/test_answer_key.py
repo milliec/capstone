@@ -13,6 +13,7 @@ import datetime as dt
 import re
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 ROOT = Path(__file__).resolve().parent.parent
 KEY = ROOT / "project-context/1.define/mock-data/expected-obligation-library.md"
@@ -216,14 +217,19 @@ OBL_02_NAME = "Subscription tax return and payment"
 def entry_rows(page):
     """The calendar entry rows (<tr id="r-N">) of a mock-up page, as HTML strings."""
     html = (PROTOTYPE / page).read_text(encoding="utf-8")
-    return re.findall(r'<tr id="r-\d+".*?</tr>', html, re.S)
+    return re.findall(r'<tr id="r-\d+".*?</tr>', html, re.DOTALL)
 
 
+@unittest.skipUnless(PROTOTYPE.exists(),
+                     "docs/prototype is private (git-ignored), so it is absent in CI; "
+                     "the real pages are checked by T-W13-1 in tests/tier1/test_date_engine.py")
 class OpenQuestionMarkOnViewsTests(unittest.TestCase):
     """The OQ-7 mark on the two calendar views.
 
     No app is built yet, so these check the mock-ups in docs/prototype (the layout reference). When
     the real pages exist, SAD T-W13-1 checks them; keep the same two expectations.
+    Since B4 the real pages exist and T-W13-1 checks them, so these run only where the private
+    mock-ups are on disk (the operator's machine), and are skipped in CI.
     """
 
     def test_specialist_calendar_shows_the_mark_on_obl_02_rows_only(self):
@@ -245,7 +251,7 @@ class OpenQuestionMarkOnViewsTests(unittest.TestCase):
 
     def test_g3_mark_does_not_block_publishing(self):
         html = (PROTOTYPE / "publish.html").read_text(encoding="utf-8")
-        form = re.search(r'<form class="decision".*?</form>', html, re.S).group(0)
+        form = re.search(r'<form class="decision".*?</form>', html, re.DOTALL).group(0)
         publish_button = re.search(r'<button[^>]*>Publish calendar</button>', form)
         self.assertIsNotNone(publish_button, "no Publish calendar button")
         self.assertNotIn("disabled", publish_button.group(0))
@@ -288,7 +294,7 @@ class ConventionTests(unittest.TestCase):
 class WhoFilesTests(unittest.TestCase):
     """The specialist's expected "who files" settings at G1 use the exact profile labels."""
 
-    EXPECTED = {
+    EXPECTED: ClassVar[dict[str, str]] = {
         "OBL-01": "Fund administrator",
         "OBL-02": "Fund administrator",
         "OBL-03": "Fund administrator",

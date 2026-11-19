@@ -2,3 +2,5 @@
 # Install with: pip install -r requirements-dev.txt
 # Pinned to the version in the operator's local .venv so CI and the git hooks agree.
 aamad==1.0.1
+# The linter CI runs (sad.md §5 "CI"); settings in pyproject.toml [tool.ruff].
+ruff==0.17.3

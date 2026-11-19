@@ -1,12 +1,12 @@
 """The audit log: append-only (CR-013). The database triggers refuse UPDATE and DELETE."""
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def now_utc() -> str:
     """The current time as an ISO 8601 string in UTC, used for every stored timestamp."""
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def write_audit(conn: sqlite3.Connection, *, fund_id: str, actor: str, event_type: str,

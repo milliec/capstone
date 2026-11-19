@@ -1,0 +1,73 @@
+# CI: the shared backstop for every pull request (sad.md §5 "CI"; B1 follow-up; handoff H-003).
+#
+# What it runs, with stand-in agents only (no model is ever called, SD NFR-011):
+#   1. Lint with ruff (version pinned in requirements-dev.txt, settings in pyproject.toml).
+#      Formatting is NOT checked yet (operator, 2026-11-19).
+#   2. Tier 1 tests: they BLOCK the merge (sad.md §9 "Test tiers", DL-42).
+#   3. Tier 2 tests: they run and report, but do not block until promoted (§9).
+#   4. aamad validate (H-003), with the same temporary qa.md exception as the git hook.
+#
+# What it must NEVER do (this repository is public; CLAUDE.md, H-003):
+#   - run the real-name scan: its identifier list lives in the git-ignored reference/ folder and
+#     must never reach GitHub, as a file or a secret. The scan stays on the operator's machine.
+#   - hold a model key. There is no OPENAI_API_KEY here, and AGENTS_MODE is stand_in.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read          # read the code; nothing else
+
+concurrency:              # a newer push to the same branch cancels the older run
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AGENTS_MODE: stand_in          # never a real model (CR-030)
+      STAND_IN_UNIT_PAUSE_S: "0"     # tests set this too; no pause in CI
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the app, test and dev dependencies (pinned)
+        run: pip install -e ".[test]" -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check backend tests
+
+      - name: Tier 1 tests (blocking)
+        run: pytest -q tests/tier1 tests/test_answer_key.py
+
+      - name: Tier 2 tests (not blocking yet)
+        continue-on-error: true
+        run: pytest -q tests/tier2
+
+      - name: Framework validator (aamad validate)
+        # Same rule as scripts/git-hooks/run-checks.sh: every [ERROR] blocks EXCEPT the known
+        # "qa.md missing" line, a TEMPORARY exception until @qa.eng writes 2.build/qa.md (H-002).
+        # When it ends, remove it here AND in run-checks.sh together.
+        run: |
+          set +e
+          out="$(aamad validate 2>&1)"
+          status=$?
+          printf '%s\n' "$out"
+          if [ "$status" -ne 0 ]; then
+            other_errors="$(printf '%s\n' "$out" | grep '^\[ERROR\]' \
+              | grep -v 'project-context/2.build/qa.md: Build artifact missing')"
+            if [ -n "$other_errors" ]; then
+              echo "aamad validate reported errors."
+              exit 1
+            fi
+            echo "NOTE: ignoring only the known 'qa.md missing' finding (temporary, H-002)."
+          fi
