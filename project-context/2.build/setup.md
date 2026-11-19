@@ -260,22 +260,25 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 
 ## Hand-off: what is next for each downstream agent
 
-*Refreshed 2026-11-19 (H-060). Merged on `main`: B1 with CI, B2, B3 stand-in steps 1 to 6 and 7a,
-B13a, B4, B7, B12, and **the first green path** (H-056). B5's status is being aligned between
-`backend.md` and `frontend.md` (H-059). Order from here, per the Build card: operator pins DL-40 →
-B3 step 7b and the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then B12, then
-B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs.md`.*
+*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065). Merged on `main`: B1 with
+CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B5, B7, B12, and **the first green path** (H-056).
+**DL-40 is pinned** (H-064) and the four CrewAI settings changes are recorded in `sad.md` (H-065), so
+nothing blocks step 7b. **Sprint 3 is treated as done at the stand-in bar** (operator, 2026-11-19).
+`@backend.eng` has merged **7b PR 1** (CrewAI installed, PR #127). **The rest of step 7b, the spike, B8
+and B9 start next week** (week of 2026-11-23). Order from there, per the
+Build card: B3 step 7b and the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then
+B12, then B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs.md`.*
 
 | Agent | Next |
 |---|---|
-| Operator | **Pin DL-40 / SOQ-25** (model IDs in `.env`, never committed, and in `decision-log.md`). Nothing that costs money runs before it. Then say when B3 step 7b (installing CrewAI) and the spike start. Approve the 16 proposed visual snapshots (H-053, H-054, H-055). Re-check the B1 + B2 timing after B7 |
-| `@backend.eng` | H-059 (B5 status in `backend.md`) and H-061 (close H-036). After the DL-40 pin: **B3 step 7b** (install CrewAI, build the crews behind the same agent functions), then the spike with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows |
-| `@frontend.eng` | **Waiting for the operator:** the 16 proposed snapshots (H-055, H-053; candidates in `tests/visual/candidates/`, git-ignored). H-027 and H-048 are done. Later: **B6** light visual pass (dropped first). Moves its finished entries to Done (H-061) |
+| Operator | Say "go" for the rest of **B3 step 7b** (PRs 2 to 6; PR 1, the install, is merged) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: 15 of 16 are approved and recorded; **`07-calendar-gp-published-360`** waits for the mobile layout fix (H-055). Re-check the B1 + B2 timing now that B7 is done |
+| `@backend.eng` | **B3 step 7b**, PR 1 done (CrewAI 1.15.35 installed, #127); next the crews behind the same agent functions, using the H-065 settings: our own single retry, strict `response_format`, our guardrails, `max_iter: 1`, the `interceptor` that counts every request). Then the **spike** with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
+| `@frontend.eng` | The mobile layout fix for `07-calendar-gp-published-360`, then its baseline can be re-recorded (the operator approves it). H-061: move your finished entries (H-048, H-027, H-054) to Done. Later: **B6** light visual pass (dropped first) |
 | `@qa.eng` | Review `tests/tier1/test_green_path.py` (co-owned, H-056). Then **B8** the evaluation runner, with `T-MAP-1` passing before the first evaluation run; **B9** tuning and one evaluation cycle with the operator. Writes `2.build/qa.md` in **B10**, which ends the temporary validator exception (H-002) |
-| `@ux.designer` | Nothing blocking. Answers questions from `ux.md` and reviews the pages again after B6 |
-| `@system.arch` | Nothing blocking. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
-| `@project.mgr` | This table and the README stay current as blocks merge. When `qa.md` exists, remove the temporary `qa.md` exception in `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` together (H-002) |
-| `@security.eng`, `@devops.eng`, `@integration.eng` | **B10** only (acceptance pass, security checklist, rehearsal, final run instructions). The README run instructions already exist (PR #107). Nothing before the green path and the evaluation cycle |
+| `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
+| `@system.arch` | Nothing blocking: H-064 and H-065 are done. H-061 (H-040) still needs the entry moved to Done. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
+| `@project.mgr` | This table and the README stay current as blocks merge (the README status note was last aligned in H-058). When `qa.md` exists, remove the temporary `qa.md` exception in `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` together (H-002) |
+| `@security.eng`, `@devops.eng`, `@integration.eng` | **B10** only (acceptance pass, security checklist, rehearsal, final run instructions). The README run instructions already exist (PR #107). Nothing before the evaluation cycle |
 
 ## Sources
 
@@ -348,6 +351,10 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 - 2026-11-19 · persona `project-mgr` · action `document-setup` (handoff H-061) · "Hand-off" table
   updated: `@frontend.eng` row now shows the snapshots waiting for the operator, with H-027 and
   H-048 done; `@backend.eng` row mentions H-061. No code. No model call.
+- 2026-11-19 · persona `project-mgr` · action `document-setup` (operator request) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · "Hand-off" table refreshed: DL-40 pinned (H-064), H-065 done,
+  H-059 done, snapshots 15 of 16 approved, H-063 open for `@ux.designer`; Sprint 3 treated as done at
+  the stand-in bar and the rest of step 7b (after PR 1), the spike, B8 and B9 start next week. No code. No model call.
 - 2026-11-19 · persona `backend-eng` · `sync-docs` (operator-approved) · `AAMAD_TARGET_RUNTIME=crewai`
   · B3 step 7b PR 1: CrewAI 1.15.35 recorded as installed (Virtualenv note and "CrewAI settings"),
   pydantic 2.12.5 and the four forced switches noted; `output_pydantic` replaced by the strict
