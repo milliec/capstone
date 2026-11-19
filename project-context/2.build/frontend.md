@@ -790,6 +790,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
     (cards' top margin removed): rejected by the operator, "cards are still not top aligned". At
     1280 px the third card wrapped onto a second row. Decided: **always one row**: every unit card
     shares one row, tops aligned, stacked below 760 px. A new refresh is proposed for that layout.
+- **Mobile calendar (360 px, operator 2026-11-19):** the General Partner's calendar at 360 px needs a layout fix (it is now one 9,276 px column of 22 entries). Not yet specified what is wrong; `@frontend.eng` to look with the operator. Until then `07-calendar-gp-published-360` keeps its old baseline and the visual check fails on that one picture.
 
 ## Audit
 
@@ -876,3 +877,4 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-18 · persona `backend-eng` · `sync-docs` (operator-approved) · "Where the CrewAI crews
   connect next": the three agent functions replace `run_unit` (B3 step 5, PR #96). One sentence only.
 - 2026-11-19 · persona `frontend-eng` · `sync-docs` · §2 ("Approval blocked" is now sent) and §7 step 6 (B2 and B7 built) updated after the H-055, H-048 and H-027 change set; no rejected items.
+- 2026-11-19 · persona `frontend-eng` · `update-visual-baselines` (operator approved 15 of 16) · 15 snapshots re-recorded; `07-calendar-gp-published-360` held back (mobile fix, see Open Questions).
