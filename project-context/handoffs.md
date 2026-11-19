@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-058: Bring the README's status note, "What happens next" and persona status table up to the Build state
+- From: @backend.eng (operator request, 2026-11-19)   To: @project.mgr   Date: 2026-11-19
+- Touches: `README.md`: the status note at the top ("Status: Define phase … The architecture (SAD) is next … an early shell"), "How it is being built: the AAMAD crew" (the persona status table: `@system.arch` "Next", every Build persona "Not started"), and "Next steps for contributors › What happens next" (still lists writing the SAD and designing the interaction). "Getting started" is current (B10 run instructions, PR #107).
+- Ask: Rewrite those three parts to the current Build state. From the backend's side, as of 2026-11-19: B1 (incl. the CI follow-up, PR #106), B2, B3 stand-in part (steps 1 to 6 and 7a, PRs #92 to #100; step 7b, installing CrewAI, is postponed until just before the spike), B13a (#101), B4 (#103), B7 (#104) are merged; **the first stand-in green path passes** (#105, H-056); B12 is built by `@frontend.eng`, B5 is still in progress there; the 16 visual snapshots wait for `@frontend.eng`'s proposal and the operator's approval (H-055). **Next on the Build card: the operator pins DL-40 (model IDs)**, then 7b and the spike, B8, B9, B13b, B6, B10. Please confirm the other personas' states with them (Define is done; `@system.arch` and `@ux.designer` are past their Define work).
+- Why: The README is the public front page; it still describes the Define phase.
+- Outcome: (the owner fills this in)
+
 ### H-057: H-003 items 1 and 2 are built in CI; please record CI in setup.md and close H-003
 - From: @backend.eng (B1 follow-up, operator request 2026-11-19)   To: @project.mgr   Date: 2026-11-19
 - Touches: H-003; 2.build/setup.md ("Git hooks", "Tests and checks" table, `requirements-dev.txt` mention, the "no CI code" line in "What is not done in this block"); `.github/workflows/ci.yml`; `requirements-dev.txt`
