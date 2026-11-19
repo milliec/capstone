@@ -368,7 +368,7 @@ def test_already_decided_rule_shows_its_sentence_in_the_card(specialist_client, 
     specialist_client.post(f"/specialist/rows/ROW-{at_g1}-1/decision", data=data)
     r = specialist_client.post(f"/specialist/rows/ROW-{at_g1}-1/decision", data=data)
     assert r.status_code == 409
-    card = re.search(r'<article[^>]*id="row-1".*?</article>', r.text, re.S).group(0)
+    card = re.search(r'<article[^>]*id="row-1".*?</article>', r.text, re.DOTALL).group(0)
     assert 'class="decided"' in card
     assert "This rule was already decided, so your decision was not recorded." in card
 
@@ -380,7 +380,7 @@ def test_already_decided_answer_shows_its_sentence_in_the_card(specialist_client
     specialist_client.post(f"/specialist/verdicts/VER-{at_g1}-1/decision", data=data)
     r = specialist_client.post(f"/specialist/verdicts/VER-{at_g1}-1/decision", data=data)
     assert r.status_code == 409
-    card = re.search(r'<article[^>]*id="verdict-1".*?</article>', r.text, re.S).group(0)
+    card = re.search(r'<article[^>]*id="verdict-1".*?</article>', r.text, re.DOTALL).group(0)
     assert "This answer was already decided, so your decision was not recorded." in card
 
 
