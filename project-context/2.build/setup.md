@@ -63,8 +63,8 @@ it, DL-44).
 | Dev tooling | `uv pip install --python .venv -r requirements-dev.txt` (aamad 1.0.1) | Restores the framework validator used by the hooks. |
 
 The previous Python 3.15 `.venv` was moved outside the repo as a backup on 13 Nov 2026 and can be
-deleted once B2 installs CrewAI cleanly. `@backend.eng` installs CrewAI into this `.venv` in B2 and
-pins the exact version here.
+deleted now that CrewAI is installed cleanly. `@backend.eng` installed CrewAI into this `.venv` in
+B3 step 7b, PR 1 (2026-11-19), pinned as `crewai==1.15.35` (see "CrewAI settings" below).
 
 ## CrewAI settings (D1 to D6)
 
@@ -74,17 +74,22 @@ architect before anyone cites a single D-number.
 
 - Three crews, **one agent and one task each** (extractor, verifier, judge). No multi-agent crew, no
   Flow.
-- Each task returns a typed result through **`output_pydantic`**.
+- Each task returns a typed result through a **strict `response_format`** (the step's JSON schema),
+  checked by our own code against the Pydantic schemas; `output_pydantic` is not used (SAD §2,
+  H-065).
 - **No tools** on any agent.
 - **No memory.**
 - **No delegation** (`allow_delegation` off).
 - **`guardrail_max_retries: 0`.** No automatic retry or re-ask. The only retry is the one allowed
   per model call by the Timeouts row (a second timeout becomes `model service`).
 
-Nothing in this block installs or imports CrewAI. The app shell (`@backend.eng`, 2026-11-16) installed
-the web stack, pinned in `pyproject.toml`: fastapi 0.163.1, uvicorn 0.54.0, jinja2 3.1.6,
-python-multipart 0.0.34, itsdangerous 2.2.0, pyyaml 6.0.3; for tests, pytest 9.2.0 and httpx 0.28.1.
-CrewAI still comes in with B3 (stand-in part) and is recorded here then.
+The app shell (`@backend.eng`, 2026-11-16) installed the web stack, pinned in `pyproject.toml`:
+fastapi 0.163.1, uvicorn 0.54.0, jinja2 3.1.6, python-multipart 0.0.34, itsdangerous 2.2.0,
+pyyaml 6.0.3; for tests, pytest 9.2.0 and httpx 0.28.1. **CrewAI 1.15.35** was added in B3 step 7b,
+PR 1 (2026-11-19). It needs `pydantic<2.13`, so pydantic is 2.12.5 (was 2.14.3). It is loaded only
+in real mode, through `backend/runtime/crewai_setup.py`, which first forces four switches off:
+`CREWAI_DISABLE_TELEMETRY=true`, `OTEL_SDK_DISABLED=true`, `CREWAI_TRACING_ENABLED=false` (CrewAI's
+own tracing) and `CREWAI_DISABLE_VERSION_CHECK=true`. Stand-in mode never loads it (T-MODE-1).
 
 ## Environment variables
 
@@ -259,14 +264,15 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B5, B7, B12, and **the first green path** (H-056).
 **DL-40 is pinned** (H-064) and the four CrewAI settings changes are recorded in `sad.md` (H-065), so
 nothing blocks step 7b. **Sprint 3 is treated as done at the stand-in bar** (operator, 2026-11-19).
-**B3 step 7b, the spike, B8 and B9 start next week** (week of 2026-11-23). Order from there, per the
+`@backend.eng` has merged **7b PR 1** (CrewAI installed, PR #127). **The rest of step 7b, the spike, B8
+and B9 start next week** (week of 2026-11-23). Order from there, per the
 Build card: B3 step 7b and the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then
 B12, then B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs.md`.*
 
 | Agent | Next |
 |---|---|
-| Operator | Say "go" for **B3 step 7b** (install CrewAI) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: 15 of 16 are approved and recorded; **`07-calendar-gp-published-360`** waits for the mobile layout fix (H-055). Re-check the B1 + B2 timing now that B7 is done |
-| `@backend.eng` | **B3 step 7b** (install CrewAI, build the crews behind the same agent functions, using the H-065 settings: our own single retry, strict `response_format`, our guardrails, `max_iter: 1`, the `interceptor` that counts every request). Then the **spike** with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
+| Operator | Say "go" for the rest of **B3 step 7b** (PRs 2 to 6; PR 1, the install, is merged) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: 15 of 16 are approved and recorded; **`07-calendar-gp-published-360`** waits for the mobile layout fix (H-055). Re-check the B1 + B2 timing now that B7 is done |
+| `@backend.eng` | **B3 step 7b**, PR 1 done (CrewAI 1.15.35 installed, #127); next the crews behind the same agent functions, using the H-065 settings: our own single retry, strict `response_format`, our guardrails, `max_iter: 1`, the `interceptor` that counts every request). Then the **spike** with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
 | `@frontend.eng` | The mobile layout fix for `07-calendar-gp-published-360`, then its baseline can be re-recorded (the operator approves it). H-061: move your finished entries (H-048, H-027, H-054) to Done. Later: **B6** light visual pass (dropped first) |
 | `@qa.eng` | Review `tests/tier1/test_green_path.py` (co-owned, H-056). Then **B8** the evaluation runner, with `T-MAP-1` passing before the first evaluation run; **B9** tuning and one evaluation cycle with the operator. Writes `2.build/qa.md` in **B10**, which ends the temporary validator exception (H-002) |
 | `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
@@ -348,4 +354,8 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 - 2026-11-19 · persona `project-mgr` · action `document-setup` (operator request) ·
   `AAMAD_TARGET_RUNTIME=crewai` · "Hand-off" table refreshed: DL-40 pinned (H-064), H-065 done,
   H-059 done, snapshots 15 of 16 approved, H-063 open for `@ux.designer`; Sprint 3 treated as done at
-  the stand-in bar and step 7b, the spike, B8 and B9 start next week. No code. No model call.
+  the stand-in bar and the rest of step 7b (after PR 1), the spike, B8 and B9 start next week. No code. No model call.
+- 2026-11-19 · persona `backend-eng` · `sync-docs` (operator-approved) · `AAMAD_TARGET_RUNTIME=crewai`
+  · B3 step 7b PR 1: CrewAI 1.15.35 recorded as installed (Virtualenv note and "CrewAI settings"),
+  pydantic 2.12.5 and the four forced switches noted; `output_pydantic` replaced by the strict
+  `response_format` (H-065). No code. No model call.

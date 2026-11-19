@@ -1,7 +1,8 @@
 # Application dependencies for the one FastAPI process (SAD §4).
 # Versions are pinned exactly to what was installed on 2026-11-16 with Python 3.12.16, and recorded
-# in project-context/2.build/backend.md. CrewAI is NOT here yet: it comes in with block B3
-# (stand-in part), and no model is called before the first green path (Build card).
+# in project-context/2.build/backend.md. CrewAI came in with B3 step 7b (2026-11-19); it is only
+# loaded in real mode, through backend/runtime/crewai_setup.py, which switches its telemetry,
+# tracing and version check off first. Stand-in mode never loads it (T-MODE-1).
 
 [project]
 name = "compliance-calendar"
@@ -15,6 +16,8 @@ dependencies = [
     "python-multipart==0.0.34",  # lets FastAPI read HTML form posts
     "itsdangerous==2.2.0",       # signs the session cookie (mock sign-in)
     "pyyaml==6.0.3",             # reads config/fund/FND-DEMO-01.yaml
+    "crewai==1.15.35",           # the agent runtime (B3 step 7b; real mode only). It needs
+                                 # pydantic<2.13, so pydantic is 2.12.5 (was 2.14.3)
 ]
 
 [project.optional-dependencies]

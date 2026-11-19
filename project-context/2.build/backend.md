@@ -291,6 +291,32 @@ variables (B023); a rule-9 test expects `sqlite3.IntegrityError` instead of any 
 tests in a copy with only the committed files: 221 passed, 4 skipped. `make lint` runs the same lint
 locally.
 
+## B3 step 7b, PR 1: CrewAI installed, its outside connections off (2026-11-19)
+
+The step 7b plan (operator, 2026-11-19; SAD changes in H-065) is six small PRs: 1 install and
+telemetry off, 2 model settings and per-call token limits, 3 a fake OpenAI for tests, 4 the crews
+behind the three agent functions, 5 our single DL-43 retry and one trace line per attempt, 6 docs.
+No real key and no paid call in any of them; the spike waits for the operator.
+
+| What | Where |
+|---|---|
+| `crewai==1.15.35` pinned in the app's dependencies (CI installs it too) | `pyproject.toml` |
+| **The one door to CrewAI**: `load_crewai()` forces four switches, then imports it. Telemetry (`CREWAI_DISABLE_TELEMETRY`, `OTEL_SDK_DISABLED`), CrewAI's own **tracing** (`CREWAI_TRACING_ENABLED=false`; it can send a first run's traces to the CrewAI platform, separate from telemetry) and its **version check** (`CREWAI_DISABLE_VERSION_CHECK=true`; it asks the package index). Forced, so `.env` cannot turn them back on | `backend/runtime/crewai_setup.py` |
+| The same four switches in CI and, as information, in `.env.example` | `.github/workflows/ci.yml`, `.env.example` |
+| **Tests (Tier 1):** in a fresh process with every network connection blocked and the environment asking for the opposite, loading CrewAI and building a one-agent crew opens no connection, and CrewAI itself reports telemetry and tracing off. **T-MODE-1:** every backend module is imported and a whole stand-in review (the green path) runs, and CrewAI is never loaded. Both tests were seen to fail with the switch broken and with a stray `import crewai` | `tests/tier1/test_crewai_setup.py` |
+
+**What the install changed** (checked against `main` before the install):
+
+- **Packages:** 115 new. Of the packages already installed, only two changed: `pydantic` 2.14.3 →
+  2.12.5 and `pydantic-core` 2.50.4 → 2.41.5 (CrewAI needs `pydantic<2.13`; FastAPI 0.163.1
+  accepts it).
+- **Tests:** 273 before, 275 after (the 2 new ones); none changed result.
+- **Test warnings:** 2 → 1. Gone: Starlette's "use `httpx2` instead of `httpx`" warning. CrewAI
+  brings in `httpx2` 2.16.2, and Starlette's test client uses it when it is there. The page tests
+  pass unchanged. Still there: pytest's warning about a `product(...)` in `test_demo_row.py`
+  (unrelated).
+- **Lint:** clean. **Visual check:** passes, no snapshot changed.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -307,8 +333,9 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
   spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
   "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
-- **Step 7b postponed until just before the spike** (operator, 2026-11-18): CrewAI is not
-  installed; the crews, the per-call timeout and its one retry, and real mode stay refused. The role harness has its call
+- **Step 7b in progress** (plan approved 2026-11-19; PR 1 done): CrewAI is installed with its
+  outside connections off, but nothing builds a crew yet; the crews, the per-call timeout and its
+  one retry come in PRs 2 to 5, and real mode stays refused until then. The role harness has its call
   caps; the runner that makes the spike's per-role calls comes with the spike (after DL-40).
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
   rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
@@ -498,3 +525,9 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   longer calls the templates placeholders. The B7 audit line above ("B5 is still in progress") is
   history and stays; this line corrects it. H-061: H-036 closed (V-12 landed with B2, PR #75). Docs
   only. No model call.
+- 2026-11-19 · persona `backend-eng` · actions `develop-be`, `document-backend` ·
+  `AAMAD_TARGET_RUNTIME=crewai` (CrewAI 1.15.35 installed; loaded only by `load_crewai()`, real
+  mode only) · `AGENTS_MODE=stand_in` · **B3 step 7b, PR 1**: crewai pinned; telemetry, CrewAI
+  tracing and the version check forced off; 2 Tier 1 tests (no connection; T-MODE-1 with the green
+  path). pydantic 2.14.3 → 2.12.5; 275 tests pass; one test warning gone (httpx2); lint clean;
+  visual check unchanged. No model call, no key.
