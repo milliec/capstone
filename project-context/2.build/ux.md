@@ -110,6 +110,32 @@ status page the title starts with the review and its status words instead:
 drafting the rules`, so a screen-reader user can check progress from the tab while the page refreshes
 (operator, 2026-11-17).
 
+**Mobile shell (below 960 px)** (operator decision, 2026-11-19, H-062; on every page except sign-in).
+Below 960 px, the same width at which the calendar's Month and Year views hide (page 7), the sidebar
+is not shown. A slim top bar of about 56 px shows instead, so the page content starts straight
+below it. From 960 px up nothing changes. The bar holds, left to right:
+
+1. The **"acme"** wordmark, a link home. The product name "Compliance calendar" is not shown on
+   the bar (it stays in the page `<title>`).
+2. **"Your turn"** as a text tag, only when a review waits for the specialist (the same signal as
+   the "Filing rules" tag in the sidebar). Words, never colour alone (§1.5). It is on the closed
+   bar so it is not hidden inside the menu.
+3. A **"Menu"** button with a three-line icon. The icon is decoration; the word "Menu" is the
+   label. It is a native `<details>`/`<summary>`: the `<summary>` is the button, so keyboard
+   (Enter, Space) and screen readers work with no script. The wordmark link and the tag sit
+   **beside** the `<summary>`, not inside it, because a screen reader treats a `<summary>` as one
+   button and would lose a link inside it.
+
+**The panel** opens **over** the content (it does not push the page down) and holds what the
+sidebar's items 2 to 4 hold, in the same order and words: the fund, the navigation (with the
+"Your turn" tag on "Filing rules"), the person signed in with the demo label line, and "Sign out".
+One source for both, so they never differ.
+
+**Closing.** The menu closes when the person taps "Menu" again or follows a link (the next page
+loads closed). **It does not close on a tap outside it or on Escape: no script in the MVP**
+(operator decision, H-062). Escape-to-close is a possible polish-week item, listed in §9; it would
+need a script exception.
+
 ### 1.4 The four-step stepper (one sitting, not three interruptions)
 
 Every specialist page about one review (3 to 6) shows the same stepper under the H1 (U3, U4,
@@ -1199,6 +1225,7 @@ unstyled.
 | UX-021 | **With Retry** (B13b built; sad.md rule 10): a failed review shows the "Retry step {k}" button, visible and enabled, and the link "Or start a new review from Filing rules"; clicking Retry puts the review back to "In progress" at that step, keeps every earlier decision, and adds one audit entry | Page 3 "Failed review", D10, G-3 |
 | UX-022 | **Without Retry** (the B5 page, and the page if B13b is dropped; a failure-demo review ends here until B13b is built): a failed review shows only the link "Start a new review from Filing rules"; the page source has no Retry form, button or text (not hidden, not disabled), and a new review can be started | Page 3 "Failed review", §1.2 |
 | UX-023 | On a published calendar at 1024 px or wider, the Month tab is ticked on first load and only the Month view shows; choosing Year or List shows only that view without a page reload; with `?view=list` the List tab is ticked. Below 960 px only the List view shows and the switch is hidden. No view shows a moved mark, a flag or a review status | Page 7 items 6 to 8, H-042, SAD §3 page 7, DL-49 |
+| UX-024 | Below 960 px a slim top bar replaces the sidebar: wordmark link, a "Your turn" text tag when it applies, and a "Menu" `<details>` button; its panel opens over the content and holds the fund, the nav links, the signed-in person and "Sign out"; it closes on tapping "Menu" again or following a link, and not on an outside tap or Escape. From 960 px up the sidebar shows and no bar | §1.3 (Mobile shell), H-062 |
 
 ## 9. Post-MVP ideas (not in the Build card; not designed)
 
@@ -1211,6 +1238,8 @@ unstyled.
 - **An audit-log page** for the specialist: the run's audit entries (who, when, what, reason,
   refusals) in one read-only table. Would be an eighth page, so a SAD change. In the MVP the demo
   uses what the SAD already provides (Open Question 3, closed).
+- **Close the phone menu on Escape or an outside tap** (H-062). Out of the MVP: native `<details>` does
+  neither and the project ships no script. A polish-week item; it would need a script exception.
 - **"Approve and go to next row" in one click**, to save time at G1. Only if the 30-minute target
   is missed in the rehearsal.
 
@@ -1614,3 +1643,9 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   UX-023. Sources now list the SAD page 7 row and the DL-49 update. The "chosen by a link" note in
   the entry above is out of date: `sad.md` was corrected in PR #82. Approval status left `approved`:
   no layout or wording changed, only gaps filled. No code. No model call.
+- 2026-11-19 · persona `ux-designer` · action `design-ux` (revision, H-062, operator decision) ·
+  branch `ux-designer/h062-mobile-shell` · recorded the mobile shell built by `@frontend.eng`
+  (checked against `parts/sidebar.html`, `parts/side_body.html` and `site.css`): new "Mobile shell
+  (below 960 px)" in §1.3, new check UX-024, new §9 idea (Escape and outside-tap close). Operator
+  decision: no outside-tap or Escape close in the MVP, so the no-script rule holds. Approval status
+  left `approved`. No code. No model call.
