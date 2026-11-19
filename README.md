@@ -3,9 +3,11 @@
 AI agents read regulatory text and draft source-linked filing rules. A compliance specialist checks and
 approves them, and ordinary code turns them into a fund's compliance calendar.
 
-> **Status: Define phase.** Requirements, user stories and mock data are written. The architecture
-> (SAD) is next. **The application is an early shell** (the seven pages on stand-in data, stub
-> services, stand-in agents, no model call): see [Getting started](#getting-started).
+> **Status: Build phase.** Define is done (requirements, user stories, mock data, architecture and
+> interaction design). **A clickable stand-in app runs locally**: the seven pages, the gates, the
+> date code and the planted demo row work end to end on stand-in agents (fixed test outputs), and
+> the first end-to-end green path passes in the automated tests. **No AI model has been called yet**:
+> that waits for the operator to choose the models. See [Getting started](#getting-started).
 >
 > This is a six-week capstone project. All data is mock and the fund is fictional. Nothing here is
 > legal advice.
@@ -166,15 +168,15 @@ the work and hand over through written documents in `project-context/`. Persona 
 | Phase | Persona | Owns | Status |
 |---|---|---|---|
 | 1. Define | `@product-mgr` | Requirements, PRD, user stories | ✅ Done (handover approved 2026-11-09) |
-| 1. Define | `@system.arch` | Architecture (SAD): pattern, agent roster, estimate | ⏳ Next |
-| 1. Define | `@ux.designer` | Interaction design and visual direction (`ux.md`) | ⏳ After the SAD |
-| 2. Build | `@project.mgr` | Project scaffold and environment | Not started |
-| 2. Build | `@frontend.eng` | Specialist and GP web surfaces | Not started |
-| 2. Build | `@backend.eng` | Agents, gates, date code, storage | Not started |
-| 2. Build | `@integration.eng` | Connecting frontend and backend | Not started |
-| 2. Build | `@qa.eng` | Tests and evaluation against the answer key | Not started |
-| 2. Build | `@security.eng` | Security review before delivery | Not started |
-| 3. Deliver | `@devops.eng` | Run instructions and user guide | Not started |
+| 1. Define | `@system.arch` | Architecture (SAD): pattern, agent roster, estimate | ✅ Done (SAD complete for the MVP; Build-week records only) |
+| 1. Define | `@ux.designer` | Interaction design and visual direction (`ux.md`) | ✅ Done (`ux.md` and the style note; edits on request) |
+| 2. Build | `@project.mgr` | Project scaffold and environment | ✅ Done (setup, git hooks, CI recorded in `setup.md`); keeps the plan and README current |
+| 2. Build | `@frontend.eng` | Specialist and GP web surfaces | 🟡 Pages and calendar views built; closing checks and the visual snapshot refresh wait for the operator |
+| 2. Build | `@backend.eng` | Agents, gates, date code, storage | 🟡 Stand-in path built and the first green path passes; CrewAI and real agents come after the model pin |
+| 2. Build | `@integration.eng` | Connecting frontend and backend | Not started (no separate step so far: the pages call the services directly) |
+| 2. Build | `@qa.eng` | Tests and evaluation against the answer key | 🟡 Answer-key tests and the green path co-owned; evaluation runner (B8) and `qa.md` not started |
+| 2. Build | `@security.eng` | Security review before delivery | Not started (the final acceptance block, B10) |
+| 3. Deliver | `@devops.eng` | Run instructions and user guide | 🟡 Run instructions are in [Getting started](#getting-started); the rest is not started |
 
 ## Getting started
 
@@ -370,22 +372,23 @@ Two paths are **git-ignored** and never committed: `reference/` (private source 
 
 ### What happens next
 
-1. ✅ **Approve the Define handover.** Done on 2026-11-09: the operator signed off
-   [`context-summary.md`](project-context/1.define/context-summary.md).
-2. **Write the SAD** (`@system.arch`). It must:
-   - choose the application pattern and the CrewAI agent roster,
-   - estimate whether the work fits the **six-week** timebox, and agree a cut line between the core
-     demo path and hardening,
-   - estimate the stretch goal (F10) separately,
-   - confirm or replace the intended frontend framework (Next.js),
-   - walk through the two extensibility scenarios (a fictional RAIF, and possible marketing in
-     Singapore) on paper,
-   - list the code folders, so the approval-design rule can cover them.
-3. **Design the interaction** (`@ux.designer` → `ux.md`).
-4. **Settle the open operator questions:** four-eyes review timing, programme submission requirements,
-   the origin of the reused prototype front end, and a manual-effort estimate for the demo obligations.
-   See *Open Questions* in the [PRD](project-context/1.define/prd.md#open-questions).
-5. **Build**, then **Deliver**, following [`AGENTS.md`](AGENTS.md) and [`CHECKLIST.md`](CHECKLIST.md).
+1. ✅ **Define is done.** The operator approved the handover on 2026-11-09, and the SAD, the
+   interaction design (`ux.md`) and the style note followed.
+2. ✅ **The stand-in app is built.** Project setup and CI, the service layer and gates, the stand-in
+   agents and the two stages they feed, the date code, the planted demo row, the failure demo, the
+   seven pages and the calendar views. **The first end-to-end green path passes** (start, three
+   steps, publish, the General Partner's view, the audit log), with no model call.
+3. **Next: the operator picks the AI models** (the model pin). Nothing that costs money runs before
+   that, and `AGENTS_MODE` stays `stand_in` until then.
+4. **Then the real agents.** Install CrewAI and build the three agents behind the same functions,
+   run one small spike with timings, build the evaluation runner against the answer key, tune the
+   prompts and run one evaluation cycle.
+5. **Alongside:** refresh the visual snapshots (the operator approves them), then retry, the light
+   visual pass if time allows, and the final acceptance, security and run-instruction pass.
+6. **Settle the open operator questions:** four-eyes review timing, programme submission
+   requirements, the origin of the reused prototype front end, and a manual-effort estimate for the
+   demo obligations. See *Open Questions* in the [PRD](project-context/1.define/prd.md#open-questions).
+7. **Deliver**, following [`AGENTS.md`](AGENTS.md) and [`CHECKLIST.md`](CHECKLIST.md).
 
 ### How to contribute
 
