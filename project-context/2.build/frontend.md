@@ -793,8 +793,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
     (cards' top margin removed): rejected by the operator, "cards are still not top aligned". At
     1280 px the third card wrapped onto a second row. Decided: **always one row**: every unit card
     shares one row, tops aligned, stacked below 760 px. A new refresh is proposed for that layout.
-- **Mobile calendar (360 px, operator 2026-11-19):** the General Partner's calendar at 360 px needs a layout fix (it is now one 9,276 px column of 22 entries). Not yet specified what is wrong; `@frontend.eng` to look with the operator. Until then `07-calendar-gp-published-360` keeps its old baseline and the visual check fails on that one picture.
-- **Mobile calendar (360 px) — 2026-11-19, in progress:** built as H-062 (phone menu). Both 360 px calendar pictures (`07-calendar-gp-published-360`, `07-calendar-gp-empty-360`) now differ and wait for the operator's approval; the operator asked to propose the published one only, so the empty one needs a decision.
+- **Mobile calendar (360 px) — resolved 2026-11-19:** the phone layout was built as H-062 (phone menu) and S-34. The operator approved the two 360 px calendar baselines (`07-calendar-gp-published-360`, `07-calendar-gp-empty-360`) in commit 5823849, and approved all 16 proposed snapshots (H-053, H-054, H-055) on the same day. All 16 are recorded and the visual check passes.
 
 ## Audit
 
@@ -887,4 +886,5 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-19 · persona `frontend-eng` · `sync-docs` (operator-approved, 3 items) · sidebar breakpoint paragraph, "Later" note, sign-in left-panel row; no rejected items. Also: 3 baselines re-recorded with approval (`01-sign-in-360`, `07-calendar-gp-published-360`, `07-calendar-gp-empty-360`).
 - 2026-11-19 · persona `frontend-eng` · operator request (specialist pages at 360 px, S-34) · `filing_rules.html`, `check_rules.html`, `confirm_applies.html`, `publish.html`, `site.css`; no snapshot touched.
 - 2026-11-19 · persona `frontend-eng` · `sync-docs` · Doc sync: no updates (specialist 360 px tables, S-34).
+- 2026-11-19 · persona `frontend-eng` · `update-visual-baselines` (operator approved all 16, H-053, H-054, H-055) · nothing re-recorded: all 16 were already recorded (15 in cc286a4, the 360 px calendar one in 5823849). `npm run test:visual` passes. Outcomes in `handoffs.md` filled in and the three entries moved to "Done".
 - 2026-11-19 · persona `frontend-eng` · `document-frontend` (handoff H-063 to `@ux.designer`) · asks ux.md to record S-33 (sign-in first when narrow) and S-34 (specialist pages at 360 px; beyond UX-012). `handoffs.md` only; no code, no snapshot touched.
