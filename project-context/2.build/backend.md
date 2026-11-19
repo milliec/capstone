@@ -176,6 +176,21 @@ that do not follow from the rules (for example the monthly report on 30 April). 
 chosen so the calendar keeps one "moved off a weekend" entry and one "May not be required" entry
 (rule 4 is the "AI can't tell" rule) until B4 works the dates out.
 
+## B13a: failure demo and stand-in pause (2026-11-19)
+
+Most of B13a was already in place from the app shell and B2: the `demo_fail_step1` switch on the
+run and its audit entry, the start-form checkbox shown only with stand-in agents, `VALIDATION` for
+the field in real mode, the `demo failure` reason and its sentence, the "Failure demo on" label in
+the specialist page header, `STAND_IN_UNIT_PAUSE_S` with the per-unit wait, and T-PAUSE-1. B13a adds:
+
+| What | Where |
+|---|---|
+| **The stand-in extractor hook** (CR-033: "the stand-in extractor fails stage A's first unit"). The stage no longer fakes the failure itself: it calls `extract_rows(..., demo_fail=True)` for stage A's first unit on the first stage attempt, in stand-in mode, and the extractor pauses and raises `DemoFailure`. The unit goes through the normal unit path (cost cap check, "running", failure recorded) and fails with `demo failure`. No output, so no trace line | `backend/runtime/agents.py`, `stages.py` |
+| **T-DEMOFAIL-1** in one Tier 1 file: switch off runs normally; switch on fails unit 1 with the other four `waiting` (and unit 1 runs alone first, rule 11), one audit entry, nothing stored; real mode refuses the field (`VALIDATION`, no run); the extractor hook refuses real mode; the specialist page shows the label and "Without Retry", and no GP calendar view contains "Failure demo" | `tests/tier1/test_demo_failure.py` |
+
+Retry of the failed stage (rule 10, T-RETRY-1) is **B13b**. Until then a failure-demo run stays
+`FAILED` and the page offers only a new review (`ux.md` page 3, "Without Retry").
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -324,3 +339,10 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   pending). No diagram needed. `sad.md`, `ux.md` and the frozen Netlify page not edited.
 - 2026-11-18 · persona `backend-eng` · `sync-docs` · after B3 step 7a: Doc sync: no updates.
 - 2026-11-18 · persona `backend-eng` · operator decision: step 7b postponed until just before the spike; dry-run findings recorded above (crewai==1.15.35, 117 packages, pydantic 2.14.3 to 2.12.5, telemetry off with a test).
+- 2026-11-19 · persona `backend-eng` · actions `develop-be`, `document-backend` ·
+  `AAMAD_TARGET_RUNTIME=crewai` (CrewAI not installed; step 7b postponed) · `AGENTS_MODE=stand_in` ·
+  **B13a**: the failure demo now runs through the stand-in extractor hook (CR-033); T-DEMOFAIL-1 in
+  one Tier 1 file. 239 tests pass (6 new). Visual check: the same 16 snapshots differ as after B3
+  step 5 (H-053), none new, none re-recorded. No model call. No diagram needed. `sad.md`, `ux.md`
+  and the frozen Netlify page not edited.
+- 2026-11-19 · persona `backend-eng` · `sync-docs` · after B13a: Doc sync: no updates.

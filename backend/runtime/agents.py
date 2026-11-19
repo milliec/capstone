@@ -54,6 +54,11 @@ class MissingStandInOutput(Exception):
     failure. Raised loudly so a gap is fixed instead of hidden."""
 
 
+class DemoFailure(Exception):
+    """The failure demo (DL-52, CR-033, rule 11): the stand-in extractor fails on purpose. The unit
+    fails with the reason "demo failure". It is never raised in real mode."""
+
+
 def unit_pause(settings: Settings, sleep=None) -> None:
     """Wait the stand-in pause for one unit. Does nothing in real mode.
 
@@ -121,9 +126,19 @@ def _stand_in_call(settings: Settings, *, step: str, name: str, inputs: dict, an
 
 
 def extract_rows(settings: Settings, *, document_id: str, paragraphs: dict[str, str],
-                 recipient_codes: list[str], record: Recorder | None = None) -> list[Row]:
-    """W-03: one primary document → its obligation rows. `paragraphs` is THIS document's only."""
+                 recipient_codes: list[str], record: Recorder | None = None,
+                 demo_fail: bool = False) -> list[Row]:
+    """W-03: one primary document → its obligation rows. `paragraphs` is THIS document's only.
+
+    `demo_fail` is the stand-in extractor hook for the failure demo (B13a, CR-033): the stage
+    sets it for stage A's first unit on the first stage attempt when the run's switch is on. The
+    unit pauses like any stand-in unit (so it shows "running" for a moment), then fails. No output
+    is produced, so no trace line is written. Real mode never gets here (refused first).
+    """
     _refuse_real_mode(settings)
+    if demo_fail:
+        unit_pause(settings)
+        raise DemoFailure(f"Failure demo: {document_id} fails on purpose")
     answers = _stand_in("extractor")
     if document_id not in answers:
         raise MissingStandInOutput(f"No stand-in rows for {document_id}")
