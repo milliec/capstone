@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-063: Operator decision: the specialist pages also work at 360 px (tables stack); sign-in box first when narrow
+- From: @frontend.eng (operator request, 2026-11-19)   To: @ux.designer   Date: 2026-11-19
+- Touches: 2.build/ux.md §7 (responsive, the line that says specialist pages are designed for 1280 px and must not break at 1024 px), UX-012 (360 px is required only for the GP calendar), page 1 (sign-in); frontend.md S-33, S-34
+- Ask: Record two things the build now does that ux.md does not say. (1) **Specialist pages at 360 px:** the four specialist pages (reviews list, rule check, confirm, publish) have no sideways scroll at 360 px. Their 8 tables use the existing `stack-sm` pattern: each row becomes a block and each cell shows its column name (`data-label`). Measured before the change, the pages were 366 to 911 px wide on a 360 px screen. Please say whether this is now a requirement (a new UX-ID next to UX-012) or only a courtesy. The publish page is about 10,000 px tall at 360 px with 22 entries; no shorter phone layout is designed, so say if you want one. (2) **Sign-in at 1100 px and narrower:** the sign-in box comes first, under a small decorative wordmark, and the story panel follows. Page 1 already says "the sign-in box comes first on small screens"; the build had missed it (S-33). Nothing to decide unless you want the wording changed.
+- Why: `@frontend.eng` does not edit ux.md, and ux.md only requires 360 px for the GP calendar, so both changes sit outside the contract.
+- Outcome: (the owner fills this in)
+
 ### H-062: Operator decision: below 960 px the sidebar becomes a top bar with a menu button
 - From: @frontend.eng (operator decision, 2026-11-19)   To: @ux.designer   Date: 2026-11-19
 - Touches: 2.build/ux.md §1.3 (the sidebar), page 7 (the GP calendar at 360 px), §7 (responsive), UX-012; frontend.md S-32

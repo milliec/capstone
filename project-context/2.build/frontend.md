@@ -887,3 +887,4 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-19 · persona `frontend-eng` · `sync-docs` (operator-approved, 3 items) · sidebar breakpoint paragraph, "Later" note, sign-in left-panel row; no rejected items. Also: 3 baselines re-recorded with approval (`01-sign-in-360`, `07-calendar-gp-published-360`, `07-calendar-gp-empty-360`).
 - 2026-11-19 · persona `frontend-eng` · operator request (specialist pages at 360 px, S-34) · `filing_rules.html`, `check_rules.html`, `confirm_applies.html`, `publish.html`, `site.css`; no snapshot touched.
 - 2026-11-19 · persona `frontend-eng` · `sync-docs` · Doc sync: no updates (specialist 360 px tables, S-34).
+- 2026-11-19 · persona `frontend-eng` · `document-frontend` (handoff H-063 to `@ux.designer`) · asks ux.md to record S-33 (sign-in first when narrow) and S-34 (specialist pages at 360 px; beyond UX-012). `handoffs.md` only; no code, no snapshot touched.
