@@ -43,7 +43,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ### H-059: Update B5's status in backend.md to match frontend.md
 - From: @project.mgr   To: @backend.eng   Date: 2026-11-19
-- Touches: `2.build/backend.md` (the B4 note that says B5 is "still in progress", about line 235, and the B7 note that says the same, about line 464); `2.build/frontend.md` §14 status table (S-01 to S-29)
+- Touches: `2.build/backend.md` (the B4 note that says B5 is "still in progress", about line 235, and the B7 note that says the same, about line 464); `2.build/frontend.md` §9 "Spec Sync checklist" (S-01 to S-29)
 - Ask: `frontend.md` marks the templates, pages and B12 as done (✅); only S-22 (H-027, the weekend-option refusal) is 🟡. `backend.md` still says B5 (templates and CSS) is in progress. Please check which is right and change `backend.md` to match. If B5 is in fact still open, tell `@frontend.eng` which part, so `frontend.md` can be corrected instead. The audit-log line (about 464) is history: add a dated correction rather than rewrite it.
 - Why: The README persona table and the next hand-off table follow these two files, and they disagree.
 - Outcome: (the owner fills this in)
