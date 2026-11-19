@@ -34,6 +34,19 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-065: Before step 7b: four CrewAI settings change (retries, output format, guardrails, max_iter)
+- From: @backend.eng (operator approval, 2026-11-19)   To: @system.arch   Date: 2026-11-19
+- Touches: sad.md §2 "Application Runtime Specification" (the "Outputs" and "Errors" bullets; the "CrewAI settings" table rows `max_iter`, `Task.guardrail` and `max_retry_limit`; D1, D3, D5), the three agent cards (`max_iter: 2`; "Expected output (`output_pydantic`, ...)"), §6 "Runtime checks" row, SA-13; DL-43 and the H-064 Outcome (unchanged in substance)
+- Ask: Record four changes the operator approved for step 7b (project rule: a new retry or re-ask is a SAD edit first). **No 7b code until this entry's Outcome.**
+  1. **Retries:** crewai's `max_retry_limit` and the OpenAI HTTP client's `max_retries` are both **0**. DL-43's single retry (timeout, transport or provider error) is done **in our code** around the call, so each attempt gets its own trace line. D1's setting changes from `max_retry_limit: 1` to this; T-RUN-2 shows two timeouts give exactly 2 attempts and then `model service` (H-064 condition a).
+  2. **Output format:** tasks do **not** set `output_pydantic`. Each step's schema goes to OpenAI as a **strict `response_format`** (JSON schema), and our code validates the answer with the existing Pydantic schemas; invalid output fails the unit. D3 still describes `expected_output`; only the enforcement moves.
+  3. **Guardrails:** tasks do **not** set `Task.guardrail`. Our guardrails (CR-003) run in our code after the call, the same path as stand-in mode. `guardrail_max_retries: 0` is still set explicitly (H-064 condition b), so the library default of 3 can never apply.
+  4. **`max_iter: 1`** (was 2) on all three agents: with no tools, a second loop turn could only be a second paid call.
+- Reason, found by @backend.eng (crewai 1.15.35, throwaway environment, no network, no model call): (a) when the answer does not parse into `output_pydantic`, crewai's converter **calls the model again to repair it**, a hidden re-ask outside D5 whose cost the trace would not see; (b) running our guardrails after the call keeps **one check path** for stand-in and real mode, in code the tests already cover, and that path has no way to ask the model again; (c) crewai's OpenAI client accepts an **`interceptor`** on its HTTP client, which sees **every** request it sends, whichever layer sends it. 7b uses it to trace, cost and count each attempt, including crewai's silent repeat without `reasoning_effort` (H-064 condition c). The test rule is: one unit sends **exactly one** request, except our one DL-43 retry and that silent repeat; the fake OpenAI in the tests counts them.
+- Also for the record (operator, 2026-11-19): "ran off the pinned reasoning setting" shows in the **trace and in the spike and evaluation reports only**, not on the review status page in the MVP (a possible polish item later).
+- Why: four settings in §2 would no longer match the code, and two of them are about retries and re-asks.
+- Outcome: (the owner fills this in)
+
 ### H-063: Operator decision: the specialist pages also work at 360 px (tables stack); sign-in box first when narrow
 - From: @frontend.eng (operator request, 2026-11-19)   To: @ux.designer   Date: 2026-11-19
 - Touches: 2.build/ux.md §7 (responsive, the line that says specialist pages are designed for 1280 px and must not break at 1024 px), UX-012 (360 px is required only for the GP calendar), page 1 (sign-in); frontend.md S-33, S-34
