@@ -382,3 +382,18 @@ def test_already_decided_answer_shows_its_sentence_in_the_card(specialist_client
     assert r.status_code == 409
     card = re.search(r'<article[^>]*id="verdict-1".*?</article>', r.text, re.S).group(0)
     assert "This answer was already decided, so your decision was not recorded." in card
+
+
+# --- Specialist tables stack on a phone instead of scrolling sideways (360 px) ----------------------
+
+def test_every_specialist_table_stacks_and_labels_its_cells(specialist_client, at_g1):
+    flow.decide_every_rule_http(specialist_client, at_g1, demo=True)
+    specialist_client.post(f"/specialist/runs/{at_g1}/g1/complete", data={"run_version": 1})
+    pages = ["/specialist/runs", f"/specialist/runs/{at_g1}/g1", f"/specialist/runs/{at_g1}/g2"]
+    for path in pages:
+        html = specialist_client.get(path).text
+        tables = re.findall(r"<table[^>]*>", html)
+        assert tables, path
+        assert all("stack-sm" in t for t in tables), (path, tables)
+        # every data cell after a row header says which column it is
+        assert not re.findall(r"<td(?![^>]*data-label)[^>]*>", html), path

@@ -94,11 +94,11 @@
     <div>
       <h3>Cited facts</h3>
       {%- if v.cited_facts is defined %}
-      <table>
+      <table class="stack-sm">
         <thead><tr><th scope="col">Fact ID</th><th scope="col">Fact</th><th scope="col">Value</th></tr></thead>
         <tbody>
           {%- for f in v.cited_facts %}
-          <tr><th scope="row"><span class="id">{{ f.fact_id }}</span></th><td>{{ f.label }}</td><td>{{ f.value }}</td></tr>
+          <tr><th scope="row"><span class="id">{{ f.fact_id }}</span></th><td data-label="Fact">{{ f.label }}</td><td data-label="Value">{{ f.value }}</td></tr>
           {%- endfor %}
         </tbody>
       </table>

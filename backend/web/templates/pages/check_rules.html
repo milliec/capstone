@@ -64,15 +64,15 @@
 <section class="section" aria-labelledby="index-h">
   <div class="sec-h"><h2 id="index-h">Rules</h2></div>
   <div class="card">
-    <table>
+    <table class="stack-sm">
       <thead><tr><th scope="col">Rule</th><th scope="col">Obligation</th><th scope="col">Needs attention</th><th scope="col">Status</th></tr></thead>
       <tbody>
         {%- for c in ns.cards %}
         <tr>
           <th scope="row"><a href="#row-{{ c.i }}">Rule {{ c.i }}</a> · <span class="id">{{ c.r.row_id }}</span></th>
-          <td>{{ c.r.obligation_name }}</td>
-          <td>{{ (c.r.needs_attention|join(", ")) if c.r.needs_attention is defined else ("Demo" if c.r.origin == "demo" else "") }}</td>
-          <td>{{ ui.tag(c.words, c.tone) }}</td>
+          <td data-label="Obligation">{{ c.r.obligation_name }}</td>
+          <td data-label="Needs attention">{{ (c.r.needs_attention|join(", ")) if c.r.needs_attention is defined else ("Demo" if c.r.origin == "demo" else "") }}</td>
+          <td data-label="Status">{{ ui.tag(c.words, c.tone) }}</td>
         </tr>
         {%- endfor %}
       </tbody>
@@ -185,11 +185,11 @@
   <div class="sec-h"><div><h2 id="unused-h">Check nothing was missed: paragraphs that no rule uses</h2>
     <p>These {{ view.unused_paragraphs|length }} paragraphs were loaded but no approved or undecided rule uses them. This list does not say whether they contain obligations. If one does, the review missed it: reject or finish as usual, then start a new review. You will see this list again when you publish.</p></div></div>
   <div class="card">
-    <table>
+    <table class="stack-sm">
       <thead><tr><th scope="col">Paragraph ID</th><th scope="col">Source document</th><th scope="col">Text</th></tr></thead>
       <tbody>
         {%- for p in view.unused_paragraphs %}
-        <tr><th scope="row"><span class="id">{{ p.paragraph_id }}</span></th><td>{{ p.document }}</td><td>{{ p.text }}</td></tr>
+        <tr><th scope="row"><span class="id">{{ p.paragraph_id }}</span></th><td data-label="Source document">{{ p.document }}</td><td data-label="Text">{{ p.text }}</td></tr>
         {%- endfor %}
       </tbody>
     </table>
