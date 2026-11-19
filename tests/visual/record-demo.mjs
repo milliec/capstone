@@ -177,29 +177,46 @@ async function story(page) {
   await waitThenContinue(page, "g1");
   await look(page.locator("#index-h"), PACE.read);
 
-  // Rules 1 to 3: approve. Rule 1's source does not say who files, so the specialist chooses.
-  const approve = async (i, weekendRule, whoFiles) => {
+  // Approve one rule. The options are what the page asks for on that rule:
+  //   whoFiles  only when the source does not say who files (the page then shows the question)
+  //   reason    only when the AI checker raised a flag (the page then asks why you approve anyway)
+  //   slow      linger to read the card; without it the rule is approved at a brisker pace
+  const approve = async (i, { whoFiles, reason, slow } = {}) => {
     const card = page.locator(`#row-${i}`);
-    await look(card.locator("h2"), PACE.read);
+    await look(card.locator("h2"), slow ? PACE.read : 500);
+    if (reason) await look(card.getByText("Flagged by the AI checker"), 2600); // read the flag
     await click(page, option(card, 'input[data-answer="approve"]'));
-    await click(page, option(card, `input[name="business_day_rule"][value="${weekendRule}"]`));
+    await click(page, option(card, 'input[name="business_day_rule"][value="roll_forward"]'));
     if (whoFiles) await click(page, option(card, `input[name="who_files"][value="${whoFiles}"]`));
-    await pause(PACE.glance);
-    await submit(page, card.getByRole("button", { name: "Approve rule" }), PACE.glance);
+    if (reason) await type(page, card.locator('textarea[name="approve_reason"]'), reason);
+    await pause(slow ? PACE.glance : 300);
+    await submit(page, card.getByRole("button", { name: "Approve rule" }), slow ? PACE.glance : 500);
   };
-  await approve(1, "roll_forward", "AIFM");
-  await approve(2, "roll_forward");
-  await approve(3, "no_roll");
+  // Rules 1 to 6 are the real ones (stand-in answers over the mock sources).
+  await approve(1, { slow: true });
+  await approve(2, { whoFiles: "AIFM" });
+  // Rule 3: the checker flagged that two sources disagree. A person settles it, with a reason.
+  await approve(3, { whoFiles: "AIFM", reason: "The law is the binding source, not the guide.", slow: true });
+  await approve(4);
+  await approve(5, { whoFiles: "AIFM" });
+  await approve(6, { whoFiles: "Tax advisor" });
 
-  // Rule 4 is the demo rule: reject it with a reason.
-  // TODO after block B7: the server will refuse to approve this rule. Film that first (choose
-  // Approve, press "Approve rule", pause on the refusal), then reject. Today the server would
-  // approve it (backend/services/decisions.py says the refusal is "not here yet"), so the film
-  // must not press Approve here.
-  const demo = page.locator("#row-4");
+  // Rule 7 is the demo rule: a genuine quote that does not say what the rule claims.
+  // First try to approve it. The server refuses (block B7, DEMO_ROW_NOT_APPROVABLE).
+  const demo = page.locator("#row-7");
   await look(demo.locator("h2"), 2600);
+  await click(page, option(demo, 'input[data-answer="approve"]'));
+  await click(page, option(demo, 'input[name="business_day_rule"][value="roll_forward"]'));
+  await click(page, option(demo, 'input[name="who_files"][value="AIFM"]'));
+  await pause(PACE.glance);
+  await submit(page, demo.getByRole("button", { name: "Approve rule" }), 2200);
+  // The page reloads at the top with "Not done. The reason is shown beside rule 7." Follow its link.
+  await click(page, page.getByRole("link", { name: "Go to rule 7" }));
+  await look(demo.locator(".refusal"), 0);
+  await pause(3200); // the hero moment: hold completely still on "Approval blocked" and the reason
+  // Then do what the refusal says: reject it, with a short reason.
   await click(page, option(demo, 'input[data-answer="reject"]'));
-  await type(page, demo.locator('textarea[name="reject_reason"]'), "The quote doesn't support this rule.");
+  await type(page, demo.locator('textarea[name="reject_reason"]'), "Quote doesn't support the rule");
   await submit(page, demo.getByRole("button", { name: "Reject rule" }));
 
   // Finish step 2.
@@ -211,16 +228,18 @@ async function story(page) {
   const answers = await page.locator("article.rule-card").count();
   for (let i = 1; i <= answers; i++) {
     const card = page.locator(`#verdict-${i}`);
-    await look(card.locator("h2"), PACE.read);
     if (await card.locator('input[data-answer="add"]').count()) {
-      // "AI" could not tell: add it, marked "May not be required", and say why.
+      // "AI: can't tell". Linger on why, then add it (marked "May not be required") and say why.
+      await look(card.locator("h2"), 3200);
       await click(page, option(card, 'input[data-answer="add"]'));
       await type(page, card.locator('textarea[name="decide_reason"]'), "Not confirmed in the fund's records yet.");
       await submit(page, card.getByRole("button", { name: "Add to the calendar" }), PACE.glance);
     } else {
+      // "AI: applies" or "AI: doesn't apply". Read the first one properly; the rest go faster.
+      await look(card.locator("h2"), i === 1 ? PACE.read : 500);
       await click(page, option(card, 'input[data-answer="confirm"]'));
-      await pause(PACE.glance);
-      await submit(page, card.getByRole("button", { name: /^Confirm/ }), PACE.glance);
+      await pause(i === 1 ? PACE.glance : 300);
+      await submit(page, card.getByRole("button", { name: /^Confirm/ }), i === 1 ? PACE.glance : 500);
     }
   }
   await look(page.locator("#finish"), PACE.glance);
