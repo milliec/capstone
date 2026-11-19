@@ -152,7 +152,7 @@ def refuse(conn, code: str, context: str = "", *, actor: str, fund_id: str, run_
            target_label: str | None = None, short: str | None = None,
            link_text: str | None = None, typed: dict | None = None, **values) -> NoReturn:
     """Audit the refusal, then raise `Refused`. Call this BEFORE the first write of a request."""
-    from backend.services.audit import write_audit   # here: audit stays free of this module
+    from backend.services.audit import write_audit  # here: audit stays free of this module
 
     text = sentence(code, context, **values)
     write_audit(conn, fund_id=fund_id, actor=actor, event_type="refusal", run_id=run_id,

@@ -34,7 +34,7 @@ def conn(settings):
 def _key_entries():
     """KEY §4 as [(paragraph_id, calculated date, calendar due date, open question)]."""
     text = KEY.read_text(encoding="utf-8")
-    para_of = dict(re.findall(r"^\| `(OBL-\d+)` \|.*\| `(SRC-[A-Z0-9]+-P\d+)` \|$", text, re.M))
+    para_of = dict(re.findall(r"^\| `(OBL-\d+)` \|.*\| `(SRC-[A-Z0-9]+-P\d+)` \|$", text, re.MULTILINE))
     section = text.split("## 4.", 1)[1].split("## 5.", 1)[0]
     rows = []
     for line in section.splitlines():
@@ -140,7 +140,7 @@ def test_a_generation_error_fails_the_run_and_stores_nothing(conn, settings, mon
     run_id = flow.to_g3(conn, settings)
     run = runs.get_run(conn, run_id)
     assert (run["status"], run["phase"]) == ("FAILED", "C_RUNNING")
-    unit = [u for u in runs.list_units(conn, run_id) if u["stage"] == "C"][0]
+    unit = next(u for u in runs.list_units(conn, run_id) if u["stage"] == "C")
     assert unit["failure_reason"] == "calendar generation"
     assert conn.execute("SELECT COUNT(*) FROM calendar_versions").fetchone()[0] == 0
     assert conn.execute("SELECT COUNT(*) FROM audit_log WHERE reason LIKE 'Two approved rules%'"

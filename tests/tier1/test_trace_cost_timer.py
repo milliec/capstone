@@ -12,7 +12,7 @@ import pytest
 
 from backend.db.connection import connect, init_db
 from backend.runtime import agents
-from backend.services import FUND_ID, runs, stage_store, trace
+from backend.services import runs, stage_store, trace
 from backend.settings import SettingsError, load_settings
 from tests import flow
 

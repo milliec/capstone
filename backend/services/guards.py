@@ -26,7 +26,7 @@ def require_phase(conn, run: dict, phase: str, actor: str, **where) -> None:
     """
     if run["phase"] == phase:
         return
-    from backend.services.runs import STOPPED_STEP   # here: runs imports this module
+    from backend.services.runs import STOPPED_STEP  # here: runs imports this module
 
     if run["phase"].endswith("_RUNNING"):
         context = "dates" if run["phase"] == "C_RUNNING" else "working"

@@ -5,8 +5,8 @@ VERSION_MISMATCH, REASON_REQUIRED, VALIDATION). `retry_run` is still a stub (B13
 """
 
 import sqlite3
+from collections.abc import Callable
 from datetime import date
-from typing import Callable
 
 from backend.domain.ids import new_run_id
 from backend.services import gates, guards

@@ -45,9 +45,9 @@ def refused(conn, function, code, **expected):
 
 
 def row(conn, run_id, n, **fields):
-    args = dict(row_id=f"ROW-{run_id}-{n}", version=1, decision="approve",
-                business_day_rule="roll_forward", who_files="AIFM", approve_reason=None,
-                reject_reason=None, actor=ACTOR)
+    args = {"row_id": f"ROW-{run_id}-{n}", "version": 1, "decision": "approve",
+                "business_day_rule": "roll_forward", "who_files": "AIFM", "approve_reason": None,
+                "reject_reason": None, "actor": ACTOR}
     args.update(fields)
     return lambda: decisions.decide_row(conn, **args)
 
@@ -163,8 +163,8 @@ def g2(conn, settings, g1):
 
 
 def verdict(conn, run_id, n, **fields):
-    args = dict(verdict_id=f"VER-{run_id}-{n}", version=1, decision="confirm", value="applies",
-                confirm_reason=None, override_reason=None, decide_reason=None, actor=ACTOR)
+    args = {"verdict_id": f"VER-{run_id}-{n}", "version": 1, "decision": "confirm", "value": "applies",
+                "confirm_reason": None, "override_reason": None, "decide_reason": None, "actor": ACTOR}
     args.update(fields)
     return lambda: decisions.decide_verdict(conn, **args)
 

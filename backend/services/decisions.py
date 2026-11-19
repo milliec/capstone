@@ -19,7 +19,7 @@ import sqlite3
 
 from backend.domain import sources, wording
 from backend.domain.fund_facts import load_fund_facts
-from backend.services import FUND_ID, guards, runs
+from backend.services import guards, runs
 from backend.services.audit import now_utc, write_audit
 from backend.services.refusals import NotFound, refuse
 

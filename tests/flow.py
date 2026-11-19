@@ -7,7 +7,6 @@ helpers do that over HTTP (`*_http`, for page tests) or by calling the services 
 
 import re
 
-from backend.runtime.stages import run_stage
 from backend.services import FUND_ID, decisions, gates, publishing, runs
 
 SPECIALIST = "specialist-1"

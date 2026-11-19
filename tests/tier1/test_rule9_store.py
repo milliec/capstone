@@ -2,12 +2,15 @@
 in one transaction, only when every unit is valid, and only if the run is still ACTIVE, in that
 stage's phase and on the same stage attempt. Anything else is discarded and stores nothing."""
 
+import sqlite3
+
 import pytest
 
 from backend.db.connection import connect, init_db
 from backend.runtime import stages
 from backend.services import FUND_ID, runs, stage_store
 from tests import flow
+
 
 def stand_in_outputs(conn, settings, run):
     """Stage A's outputs, built the way the stage builds them but not stored (B3 step 5).
@@ -56,7 +59,7 @@ def test_if_anything_fails_midway_nothing_is_stored(conn, settings):
     run = _running_stage_a(conn, settings)
     outputs = stand_in_outputs(conn, settings, run)
     outputs["rows"][1]["row_id"] = outputs["rows"][0]["row_id"]        # duplicate row ID
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.IntegrityError):                        # the primary key refuses it
         stage_store.store_stage_outputs(conn, run_id=run["run_id"], fund_id=FUND_ID, stage="A",
                                         stage_attempt=1, outputs=outputs)
     assert all(count == 0 for count in _counts(conn).values())

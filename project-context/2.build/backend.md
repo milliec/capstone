@@ -265,6 +265,30 @@ row's Approve (303 instead of 409); with the code restored, it passes.
 the B3 spike, with step 7b (install CrewAI) just before it. No model ID is chosen and no paid call is
 made by `@backend.eng`.
 
+## B1 follow-up: CI (2026-11-19)
+
+`.github/workflows/ci.yml` (sad.md §5 "CI", handoff H-003) runs on every pull request and every
+push to `main`, with stand-in agents, no model key and read-only permissions:
+
+| Step | Blocks a merge? |
+|---|---|
+| `ruff check backend tests` (ruff 0.17.3, pinned in `requirements-dev.txt`; settings in `pyproject.toml`: line length 100, Python 3.12, ruff's default rules minus `B008`, FastAPI's `Depends()`/`Form()` defaults) | Yes |
+| Tier 1 tests: `pytest tests/tier1 tests/test_answer_key.py` | Yes |
+| Tier 2 tests: `pytest tests/tier2` | No (`continue-on-error`, until promoted, §9) |
+| `aamad validate` (1.0.1), with the same temporary `qa.md` exception as `scripts/git-hooks/run-checks.sh` (H-002: remove both together) | Yes |
+
+**Never in CI:** the real-name scan (its list is in the git-ignored `reference/`, H-003) and any
+model key. **Formatting is not checked yet** (operator, 2026-11-19): the one-time `ruff format`
+(55 of 70 files) waits for a quiet moment, announced by handoff.
+
+To get there: `ruff check --fix` (safe fixes only: imports, newer spellings) and 13 by hand. The
+stage functions now pass each unit's inputs with `functools.partial` instead of a lambda over loop
+variables (B023); a rule-9 test expects `sqlite3.IntegrityError` instead of any `Exception`
+(B017); `tests/test_answer_key.py`'s mock-up checks are **skipped when `docs/prototype` is absent**
+(private, so absent in CI; the real pages are checked by T-W13-1). Checked by running the blocking
+tests in a copy with only the committed files: 221 passed, 4 skipped. `make lint` runs the same lint
+locally.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -292,8 +316,8 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - T-W04-6 (the verifier claims "quote ok" for a row code failed) has no test: the verifier's schema
   has no such field, so the claim cannot reach the store, and the quote-check result is code's
   alone. Revisit with the real verifier (B3 spike).
-- No Pydantic form models refusing unknown fields, no ruff/CI (`.github/workflows/ci.yml` is still
-  to do in B1's follow-up).
+- No Pydantic form models refusing unknown fields. CI checks lint but not formatting yet (see "B1
+  follow-up: CI").
 - The pages read the H-036 view fields (V-1 to V-12). The interim lookups in
   `parts/lookups.html` are `@frontend.eng`'s to delete.
 - A row's posted `version` is stored, not compared (the SAD names `VERSION_MISMATCH` for the run only).
@@ -452,3 +476,10 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   model call; no model ID chosen. `sad.md`, `ux.md` and the frozen Netlify page not edited.
 - 2026-11-19 · persona `backend-eng` · `sync-docs` · after the green path test: Doc sync: no updates
   (setup.md's tripwire is `@project.mgr`'s to record, H-056).
+- 2026-11-19 · persona `backend-eng` · actions `develop-be` (CI), `document-backend` ·
+  `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · **B1 follow-up: CI**:
+  `.github/workflows/ci.yml` (ruff, Tier 1 blocking, Tier 2 not blocking, aamad validate with the
+  qa.md exception; no name scan, no model key); ruff 0.17.3 pinned and configured (defaults minus
+  B008, operator); 37 lint findings fixed (24 by ruff's safe fixes, 13 by hand); mock-up checks
+  skip without `docs/prototype`; `make lint`. 270 tests pass locally; 221 passed and 4 skipped in a
+  committed-files-only copy. Handoff H-057 to `@project.mgr`. No model call.

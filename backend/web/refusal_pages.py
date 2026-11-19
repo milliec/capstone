@@ -13,7 +13,6 @@ from fastapi import HTTPException, Request
 
 from backend.db.connection import connect
 from backend.domain.ids import run_id_from_child
-from backend.services import FUND_ID
 from backend.services import runs as runs_service
 from backend.services.auth import identity_from_session
 from backend.services.refusals import Refusal

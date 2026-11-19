@@ -12,9 +12,9 @@ returning, so the units table fills in one row at a time. Real mode NEVER pauses
 import hashlib
 import json
 import time
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
-from typing import Callable
 
 import yaml
 

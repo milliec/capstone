@@ -27,8 +27,8 @@ def paragraphs():
 def _answer_key_quotes():
     """[(OBL id, paragraph id, quote)] from answer key §1: the rows table and the quotes table."""
     text = KEY.read_text(encoding="utf-8")
-    para_of = dict(re.findall(r"^\| `(OBL-\d+)` \|.*\| `(SRC-[A-Z0-9]+-P\d+)` \|$", text, re.M))
-    quotes = re.findall(r'^\| `(OBL-\d+)` \| "(.+)" \|$', text, re.M)
+    para_of = dict(re.findall(r"^\| `(OBL-\d+)` \|.*\| `(SRC-[A-Z0-9]+-P\d+)` \|$", text, re.MULTILINE))
+    quotes = re.findall(r'^\| `(OBL-\d+)` \| "(.+)" \|$', text, re.MULTILINE)
     return [(obl, para_of[obl], q) for obl, q in quotes]
 
 
