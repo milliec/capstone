@@ -357,3 +357,28 @@ def test_after_an_answer_decision_the_page_lands_on_the_next_answer(specialist_c
     assert r.headers["location"] == f"/specialist/runs/{at_g1}/g2?after=VER-{at_g1}-1#next"
     html = specialist_client.get(r.headers["location"].split("#")[0]).text
     assert re.search(r'<article class="rule-card[^"]*" id="verdict-2"[^>]*>\s*<span class="jump" id="next"></span>', html)
+
+
+# --- ALREADY_DECIDED is shown inside the decided card (H-048 part 2) ---------------------------
+# The card has no form after it is decided, so the sentence must be in the "decided" block;
+# otherwise the top line says "shown beside rule 1" and nothing is there.
+
+def test_already_decided_rule_shows_its_sentence_in_the_card(specialist_client, at_g1):
+    data = {"version": 1, "decision": "approve", "business_day_rule": "roll_forward", "who_files": "AIFM"}
+    specialist_client.post(f"/specialist/rows/ROW-{at_g1}-1/decision", data=data)
+    r = specialist_client.post(f"/specialist/rows/ROW-{at_g1}-1/decision", data=data)
+    assert r.status_code == 409
+    card = re.search(r'<article[^>]*id="row-1".*?</article>', r.text, re.S).group(0)
+    assert 'class="decided"' in card
+    assert "This rule was already decided, so your decision was not recorded." in card
+
+
+def test_already_decided_answer_shows_its_sentence_in_the_card(specialist_client, at_g1):
+    flow.decide_every_rule_http(specialist_client, at_g1, demo=True)
+    specialist_client.post(f"/specialist/runs/{at_g1}/g1/complete", data={"run_version": 1})
+    data = {"version": 1, "decision": "confirm", "value": "applies"}
+    specialist_client.post(f"/specialist/verdicts/VER-{at_g1}-1/decision", data=data)
+    r = specialist_client.post(f"/specialist/verdicts/VER-{at_g1}-1/decision", data=data)
+    assert r.status_code == 409
+    card = re.search(r'<article[^>]*id="verdict-1".*?</article>', r.text, re.S).group(0)
+    assert "This answer was already decided, so your decision was not recorded." in card

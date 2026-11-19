@@ -13,17 +13,15 @@
 {%- set rows = view.rows -%}
 {%- set n = rows|length -%}
 
-{#- Each rule's status words and tone: the server's (H-036 V-8). "Approval blocked" when this
-    request's refusal is the demo-rule one for this card (ux.md page 4, UX-003). -#}
+{#- Each rule's status words and tone: the server's (H-036 V-8). The server sends "Approval blocked"
+    for the demo rule after a refused approval, read from the audit log (ux.md page 4, UX-003;
+    H-055), so the page only prints it. -#}
 {%- set ns = namespace(cards=[], undecided=[]) -%}
 {%- for r in rows -%}
   {%- set i = loop.index -%}
-  {%- set st = namespace(words=r.status, tone=r.status_tone, decided=r.decided is not none) -%}
-  {%- if refusal and refusal.code is defined and refusal.code == "DEMO_ROW_NOT_APPROVABLE" and refusal.anchor == "row-" ~ i -%}
-    {%- set st.words = "Approval blocked" -%}{%- set st.tone = "problem" -%}
-  {%- endif -%}
-  {%- set ns.cards = ns.cards + [{"i": i, "r": r, "words": st.words, "tone": st.tone, "decided": st.decided}] -%}
-  {%- if not st.decided -%}{%- set ns.undecided = ns.undecided + [i] -%}{%- endif -%}
+  {%- set decided = r.decided is not none -%}
+  {%- set ns.cards = ns.cards + [{"i": i, "r": r, "words": r.status, "tone": r.status_tone, "decided": decided}] -%}
+  {%- if not decided -%}{%- set ns.undecided = ns.undecided + [i] -%}{%- endif -%}
 {%- endfor -%}
 {%- set left = ns.undecided|length -%}
 
@@ -159,6 +157,8 @@
     {% include "parts/decision_rule.html" %}
     {%- elif c.decided %}
     <div class="decided">
+      {#- ALREADY_DECIDED lands here: the card has no form now, so its sentence is shown in this block. -#}
+      {{ ui.refusal_here(refusal, "row-" ~ i) }}
       {%- if r.decided is defined %}
       <p><b>{{ c.words }}</b> by {{ r.decided.by_label }} at {{ r.decided.at|time }}.
         {%- if r.decided.business_day_rule %} Weekend or holiday: {{ L.BDR_CHOICE_WORDS.get(r.decided.business_day_rule, "") }}.{% endif %}
