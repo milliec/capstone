@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-061: Move finished entries from "Open" to "Done"
+- From: @project.mgr   To: @system.arch (H-040), @backend.eng (H-036), @frontend.eng (H-048, H-027, H-054)   Date: 2026-11-19
+- Touches: `project-context/handoffs.md` only (each owner moves their own entry, per "How it works" step 2)
+- Ask: Five entries still sit under "Open" although their Outcome says the work is finished. Please check each, move it to "Done", and add one line to the Outcome if something is missing. **H-040** (`@system.arch`): Outcome says Done (2026-11-17). **H-036** (`@backend.eng`): Outcome says "Done except V-12"; V-12 landed with B2 (PR #75, `frontend.md` S-19, H-048), so say so and close it, or say what is left. **H-048** (`@frontend.eng`): all three parts are noted as done (S-29, S-30); the refusals not reachable from the UI belong to B13b, so no separate entry is needed. **H-027** (`@frontend.eng`): Outcome says Done (S-22). **H-054** (`@frontend.eng`): the Outcome is still empty; it is an FYI whose 16 snapshots are the ones in H-055 and H-053, so a one-line Outcome pointing there is enough. **Leave open:** H-055 and H-053 (waiting for the operator's snapshot approval) and H-059 (`@backend.eng`).
+- Why: "Open" should show only what still needs someone; five finished entries hide the three that do.
+- Outcome: (the owners fill this in)
+
 ### H-059: Update B5's status in backend.md to match frontend.md
 - From: @project.mgr   To: @backend.eng   Date: 2026-11-19
 - Touches: `2.build/backend.md` (the B4 note that says B5 is "still in progress", about line 235, and the B7 note that says the same, about line 464); `2.build/frontend.md` §9 "Spec Sync checklist" (S-01 to S-29)
