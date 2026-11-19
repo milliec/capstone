@@ -133,9 +133,9 @@ run, not for a row); `typed` as `{field: text}`; three sentences ux.md does not 
 
 B3's stand-in part is built in seven small steps, one pull request each, so each can be reviewed
 alone. Steps 1 to 6 and 7a are done. Step 7b (install CrewAI and build the crews behind the
-same functions, switched off) is **postponed until just before the spike** (operator,
-2026-11-18); see "Step 7b: dry-run findings" below. No model is called anywhere, and no model ID
-is chosen (DL-40 waits for the first green path).
+same functions, switched off) has an approved plan (2026-11-19): PR 1 is done, and PRs 2 to 6 are
+next week. See "Step 7b: dry-run findings" below. DL-40 is pinned (PR #121). No model is called
+anywhere: `AGENTS_MODE` stays `stand_in`.
 
 **Step 7b: dry-run findings, for reuse before the spike (2026-11-18).** `uv pip install
 --dry-run "crewai==1.15.35"` against this `.venv`, nothing installed:
