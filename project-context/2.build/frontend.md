@@ -696,8 +696,10 @@ column is kept as the record of the interim behaviour.
 | Refusals | every ux.md §5 refusal on the page, with its 409 or 422 status | every ux.md §5 refusal on the page | V-12 and B2 |
 
 **Later (not this sprint).** Collapsible nav below the breakpoint: done 2026-11-19 (S-32, H-062):
-below 960 px the sidebar is a top bar with a native `<details>` Menu; keyboard checked. Still open:
-closing the panel on an outside click or Escape (needs a script; asked in H-062).
+below 960 px the sidebar is a top bar with a native `<details>` Menu; keyboard checked. Closing the
+panel on an outside click or Escape: **decided in H-062 (operator): not in the MVP.** The menu closes
+on tapping Menu again or following a link, which keeps the no-script rule. Escape-to-close is a
+polish-week idea (it needs a script exception).
 
 **Wording to confirm with `@ux.designer`** (not in ux.md): the empty "Paragraphs no rule uses" list
 on page 6 shows "None."; the fallback lines above that drop a count or date; the rule-card column
@@ -831,14 +833,17 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-17 · persona `frontend-eng` · page 7 week grid and month grouping, display-only (operator):
   web-layer helper (W-5), template, styles, 7 layout tests and 2 page tests; rendered at 1280 and
   360 px; keyboard pass unchanged on the calendar (5 Tab stops). Marked droppable after B6 and
-  Tier 2, before B13b. Snapshot refresh proposed, not written.
+  Tier 2, before B13b. Snapshot refresh proposed, not written. *(Later: resolved. The calendar
+  baselines were approved and recorded on 2026-11-17 in `3d6218b`; nothing is pending.)*
 - 2026-11-17 · persona `frontend-eng` · unit groups (operator): `group` per unit added to the §10.1
   contract and to H-036; page 3 shows units under their group headings when sent, today's stage
   view until then (`6a2fb2b`). Tests 69; visual 24 of 24, so no snapshot refresh now; the step 1
   status snapshots will change when the backend sends `group` (with the H-006 refresh).
 - 2026-11-17 · persona `frontend-eng` · B12 pulled forward (operator; H-040, H-041): dot chart and
   List / Month / Year views, display-only (W-5, W-6); 10 layout tests and 5 page tests (77 in all);
-  keyboard pass with real key presses clean; snapshot refresh proposed, not written.
+  keyboard pass with real key presses clean; snapshot refresh proposed, not written. *(Later:
+  resolved. Approved and recorded 2026-11-17 in `3d6218b` and `fee183e`; the 16 proposed on
+  2026-11-19 (H-053, H-054, H-055) are recorded too, and the visual check passes.)*
 - 2026-11-17 · persona `frontend-eng` · page 7 rebuilt like `gp-calendar.html` (operator): summary
   cards with the dot chart, one calendar with a tab-styled radio switch (only the chosen view shows,
   no reload, no script); the two-month grid replaced by the Month view and removed from the helper.
@@ -888,3 +893,4 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-19 · persona `frontend-eng` · `sync-docs` · Doc sync: no updates (specialist 360 px tables, S-34).
 - 2026-11-19 · persona `frontend-eng` · `update-visual-baselines` (operator approved all 16, H-053, H-054, H-055) · nothing re-recorded: all 16 were already recorded (15 in cc286a4, the 360 px calendar one in 5823849). `npm run test:visual` passes. Outcomes in `handoffs.md` filled in and the three entries moved to "Done".
 - 2026-11-19 · persona `frontend-eng` · `document-frontend` (handoff H-063 to `@ux.designer`) · asks ux.md to record S-33 (sign-in first when narrow) and S-34 (specialist pages at 360 px; beyond UX-012). `handoffs.md` only; no code, no snapshot touched.
+- 2026-11-19 · persona `frontend-eng` · `document-frontend` (docs only) · "Later" note now records the H-062 decision (outside-click / Escape close not in the MVP, polish-week idea); two 2026-11-17 audit lines that said "snapshot refresh proposed, not written" now say they were resolved. No code, no snapshot touched.
