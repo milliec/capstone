@@ -245,6 +245,26 @@ nothing from it (the G1 page already had the refusal's place).
 Not built: "an evaluation run with the switch on is refused" (T-DEMO-1, EC-R7) needs the evaluation
 runner (**B8**).
 
+## The first green path (2026-11-19): passes
+
+`tests/tier1/test_green_path.py` (Tier 1) drives one review through the pages, as the specialist
+and the General Partner would, with `AGENTS_MODE=stand_in` and no model: the GP sees "being
+prepared" → start with the demo rule → stand-in stage A (7 rules) → G1: Approve on the planted row
+refused (409, the DL-44 sentence, "Approval blocked"), rules 1 to 6 approved with the demo's
+choices, the planted row rejected → stand-in stage B → G2 (the "can't tell" rule added) → stage C
+(22 dates) → G3 page; the GP still sees "being prepared" → publish with the acknowledgement → the GP
+sees the published calendar (22 entries, 4 "May not be required", due next Mon 11 Jan 2027, no
+OQ-7, moved or demo marks, labelled stand-in) → the audit log shows every step in order (start,
+switch, stage A, G1, stage B, G2, stage C, publish), 18 agent outputs each pointing at its trace
+line, the one refusal, 13 decisions; cost 0 and no model in the trace.
+
+Checked that the test can fail: with the demo-row refusal switched off, it fails at the planted
+row's Approve (303 instead of 409); with the code restored, it passes.
+
+**What this unlocks (Build card):** the operator may now pin DL-40 (the model IDs, SOQ-25). Only then
+the B3 spike, with step 7b (install CrewAI) just before it. No model ID is chosen and no paid call is
+made by `@backend.eng`.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -425,3 +445,10 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   `ux.md` and the frozen Netlify page not edited.
 - 2026-11-19 · persona `backend-eng` · `sync-docs` · after B7: Doc sync: no updates.
 - 2026-11-19 · persona `backend-eng` · operator approved the planted row's content as proposed (B7).
+- 2026-11-19 · persona `backend-eng` · actions `develop-be` (tests), `document-backend` ·
+  `AAMAD_TARGET_RUNTIME=crewai` (CrewAI not installed) · `AGENTS_MODE=stand_in` · **The first green
+  path**: `tests/tier1/test_green_path.py`, passes (checked to fail with the demo refusal off). 270
+  tests pass. Handoff H-056 to `@project.mgr`. No page or template change, so no visual change. No
+  model call; no model ID chosen. `sad.md`, `ux.md` and the frozen Netlify page not edited.
+- 2026-11-19 · persona `backend-eng` · `sync-docs` · after the green path test: Doc sync: no updates
+  (setup.md's tripwire is `@project.mgr`'s to record, H-056).

@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-056: FYI: the first stand-in green path passes (the Build card's gate before any paid call)
+- From: @backend.eng   To: @project.mgr   Date: 2026-11-19
+- Touches: 2.build/setup.md "Timing guardrails" (the day-4 tripwire, the Order line); Build card "First green path"; DL-40, SOQ-25
+- Ask: Record that the first green path passed on 2026-11-19 (`tests/tier1/test_green_path.py`, Tier 1; details in `backend.md` "The first green path"), so the day-4 tripwire is cleared and the next item in the Order is the operator's DL-40 pin. `@qa.eng` co-owns the green path (Order of work) and may want to review the test.
+- Why: The tripwire and the "no paid call before the green path" rule both depend on this date.
+- Outcome: (the owner fills this in)
+
 ### H-055: B7 is in: the server sends "Approval blocked"; the demo rule has its real wording; the snapshot review can start
 - From: @backend.eng (B7)   To: @frontend.eng   Date: 2026-11-19
 - Touches: `backend/web/templates/pages/check_rules.html` (the interim "Approval blocked" logic, lines 16 to 24); the snapshots listed in H-053 and H-054; 2.build/frontend.md §10.1 V-8 (`status`)
