@@ -63,8 +63,8 @@ it, DL-44).
 | Dev tooling | `uv pip install --python .venv -r requirements-dev.txt` (aamad 1.0.1) | Restores the framework validator used by the hooks. |
 
 The previous Python 3.15 `.venv` was moved outside the repo as a backup on 13 Nov 2026 and can be
-deleted once B2 installs CrewAI cleanly. `@backend.eng` installs CrewAI into this `.venv` in B2 and
-pins the exact version here.
+deleted now that CrewAI is installed cleanly. `@backend.eng` installed CrewAI into this `.venv` in
+B3 step 7b, PR 1 (2026-11-19), pinned as `crewai==1.15.35` (see "CrewAI settings" below).
 
 ## CrewAI settings (D1 to D6)
 
@@ -74,17 +74,22 @@ architect before anyone cites a single D-number.
 
 - Three crews, **one agent and one task each** (extractor, verifier, judge). No multi-agent crew, no
   Flow.
-- Each task returns a typed result through **`output_pydantic`**.
+- Each task returns a typed result through a **strict `response_format`** (the step's JSON schema),
+  checked by our own code against the Pydantic schemas; `output_pydantic` is not used (SAD §2,
+  H-065).
 - **No tools** on any agent.
 - **No memory.**
 - **No delegation** (`allow_delegation` off).
 - **`guardrail_max_retries: 0`.** No automatic retry or re-ask. The only retry is the one allowed
   per model call by the Timeouts row (a second timeout becomes `model service`).
 
-Nothing in this block installs or imports CrewAI. The app shell (`@backend.eng`, 2026-11-16) installed
-the web stack, pinned in `pyproject.toml`: fastapi 0.163.1, uvicorn 0.54.0, jinja2 3.1.6,
-python-multipart 0.0.34, itsdangerous 2.2.0, pyyaml 6.0.3; for tests, pytest 9.2.0 and httpx 0.28.1.
-CrewAI still comes in with B3 (stand-in part) and is recorded here then.
+The app shell (`@backend.eng`, 2026-11-16) installed the web stack, pinned in `pyproject.toml`:
+fastapi 0.163.1, uvicorn 0.54.0, jinja2 3.1.6, python-multipart 0.0.34, itsdangerous 2.2.0,
+pyyaml 6.0.3; for tests, pytest 9.2.0 and httpx 0.28.1. **CrewAI 1.15.35** was added in B3 step 7b,
+PR 1 (2026-11-19). It needs `pydantic<2.13`, so pydantic is 2.12.5 (was 2.14.3). It is loaded only
+in real mode, through `backend/runtime/crewai_setup.py`, which first forces four switches off:
+`CREWAI_DISABLE_TELEMETRY=true`, `OTEL_SDK_DISABLED=true`, `CREWAI_TRACING_ENABLED=false` (CrewAI's
+own tracing) and `CREWAI_DISABLE_VERSION_CHECK=true`. Stand-in mode never loads it (T-MODE-1).
 
 ## Environment variables
 
@@ -343,3 +348,7 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 - 2026-11-19 · persona `project-mgr` · action `document-setup` (handoff H-061) · "Hand-off" table
   updated: `@frontend.eng` row now shows the snapshots waiting for the operator, with H-027 and
   H-048 done; `@backend.eng` row mentions H-061. No code. No model call.
+- 2026-11-19 · persona `backend-eng` · `sync-docs` (operator-approved) · `AAMAD_TARGET_RUNTIME=crewai`
+  · B3 step 7b PR 1: CrewAI 1.15.35 recorded as installed (Virtualenv note and "CrewAI settings"),
+  pydantic 2.12.5 and the four forced switches noted; `output_pydantic` replaced by the strict
+  `response_format` (H-065). No code. No model call.

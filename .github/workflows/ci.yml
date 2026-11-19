@@ -32,6 +32,12 @@ jobs:
     env:
       AGENTS_MODE: stand_in          # never a real model (CR-030)
       STAND_IN_UNIT_PAUSE_S: "0"     # tests set this too; no pause in CI
+      # CrewAI's outside connections off (B3 step 7b). The code forces these too
+      # (backend/runtime/crewai_setup.py); set here so nothing in CI ever reaches out.
+      CREWAI_DISABLE_TELEMETRY: "true"
+      OTEL_SDK_DISABLED: "true"
+      CREWAI_TRACING_ENABLED: "false"
+      CREWAI_DISABLE_VERSION_CHECK: "true"
     steps:
       - uses: actions/checkout@v4
 
