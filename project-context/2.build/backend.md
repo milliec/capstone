@@ -12,6 +12,22 @@ skeleton, the full schema, mock sign-in, stub services with their B2 places, the
 placeholders, and Tier 1 tests for what the shell supports. **Not** the real step logic: no
 checks beyond the role check, no stored rows, verdicts or entries, no CrewAI, no model call.
 
+## How this maps to CrewAI terms
+
+A reading aid only. Nothing here is a new decision; each line points to where it is recorded.
+
+- **Scenario:** the one review flow: Extractor → quote check → Verifier → G1 → Judge → G2 → date
+  engine → G3 → publish. Recorded in `sad.md` §2 "Runtime shape"; built in "B3 (stand-in part)" below.
+- **Tasks and agents:** three single-agent crews, defined in `backend/config/agents.yaml` and
+  `tasks.yaml`, behind `extract_rows`, `check_conflicts` and `judge_applicability`
+  (`backend/runtime/agents.py`). Recorded in "B3 (stand-in part)", step 7a.
+- **Tools:** none, by design. Recorded in `sad.md` "Pattern Decision" and "Pattern Decision
+  compliance" below.
+- **Process:** not CrewAI's `Process`. The backend runs stages A, B and C in plain Python ("the
+  backend owns the steps"; `backend/runtime/stages.py`). Recorded in `sad.md` §2 "Runtime shape".
+- **Kickoff:** one kickoff per unit, inside each agent function, arriving in step 7b PR 4. Until
+  then `start_run` runs with the stand-in answers. Recorded in "B3 step 7b, PR 1" below.
+
 ## How to run
 
 ```bash
@@ -336,7 +352,7 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - **Step 7b in progress** (plan approved 2026-11-19; PR 1 done): CrewAI is installed with its
   outside connections off, but nothing builds a crew yet; the crews, the per-call timeout and its
   one retry come in PRs 2 to 6, and real mode stays refused until then. The role harness has its call
-  caps; the runner that makes the spike's per-role calls comes with the spike (after DL-40).
+  caps; the runner that makes the spike's per-role calls comes with the spike (DL-40 is pinned).
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
   rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
   the fund's event log; it does not read the log's "Obligation" column (that column names the
@@ -531,3 +547,8 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   tracing and the version check forced off; 2 Tier 1 tests (no connection; T-MODE-1 with the green
   path). pydantic 2.14.3 → 2.12.5; 275 tests pass; one test warning gone (httpx2); lint clean;
   visual check unchanged. No model call, no key.
+- 2026-11-19 · persona `backend-eng` · `document-backend` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  `AGENTS_MODE=stand_in` · operator request: added "How this maps to CrewAI terms" near the top
+  (scenario, tasks and agents, tools, process, kickoff), pointers only, no new decisions. The B3
+  intro was already corrected on `main` (DL-40 pinned, step 7b plan approved); the one stale
+  "(after DL-40)" in Known gaps now says DL-40 is pinned. Docs only. No model call.
