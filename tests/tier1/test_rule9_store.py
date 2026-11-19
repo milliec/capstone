@@ -130,7 +130,8 @@ def test_stage_b_makes_verdicts_only_for_approved_rules_and_c_entries_only_for_a
     flow.answer(conn, run_id, 5, "confirm", "applies")
     flow.answer(conn, run_id, 6, "override", "applies", "Applies after all")
     flow.finish_g2(conn, settings, run_id)
-    # Stage C's placeholder dates (until B4) cover rules 1, 2 and 4; rule 2 was rejected at G1.
-    entries = [r[0] for r in conn.execute("SELECT row_id FROM calendar_entries ORDER BY due_date")]
-    assert entries == [f"ROW-{run_id}-4", f"ROW-{run_id}-1"]
+    # Every rule whose final answer is "applies" has entries (B4); rule 2 was rejected at G1.
+    entries = [r[0] for r in conn.execute("SELECT row_id FROM calendar_entries")]
+    assert sorted({_n for _n in (int(e.rsplit("-", 1)[1]) for e in entries)}) == [1, 3, 4, 5, 6]
+    assert len(entries) == 12 + 1 + 4 + 1 + 1     # monthly, annual, quarterly, event, fixed day
     assert conn.execute("SELECT COUNT(*) FROM calendar_versions").fetchone()[0] == 1

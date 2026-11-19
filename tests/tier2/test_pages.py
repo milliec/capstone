@@ -291,10 +291,13 @@ def test_month_view_is_a_table_with_weekday_headers_and_paging(specialist_client
     html = gp_client.get("/calendar?view=month").text
     table = html.split('<table class="month-table"', 1)[1].split("</table>", 1)[0]
     assert re.findall(r'<th scope="col">([A-Za-z]+)</th>', table) == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    assert "Due next" in table and "May not be required" in table
-    # The month view opens on the first entry's month (Feb 2027 since B3 step 5), so "next" is March.
-    assert 'href="/calendar?view=month&amp;month=2027-03#entries"' in html  # lands back on the calendar
-    assert "No filings this month." in gp_client.get("/calendar?view=month&month=2027-05").text
+    assert "Due next" in table
+    # The month view opens on the next due date's month (Jan 2027 since B4), so "next" is February.
+    assert 'href="/calendar?view=month&amp;month=2027-02#entries"' in html  # lands back on the calendar
+    feb = gp_client.get("/calendar?view=month&month=2027-02").text
+    assert "May not be required" in feb.split('<table class="month-table"', 1)[1].split("</table>", 1)[0]
+    # Every month of 2027 has a filing (the monthly report), so take one outside the year.
+    assert "No filings this month." in gp_client.get("/calendar?view=month&month=2026-12").text
 
 
 def test_year_view_is_a_table_with_row_and_column_headers(specialist_client, gp_client, at_g1):
@@ -320,8 +323,8 @@ def test_summary_cards_write_their_counts_as_text(specialist_client, gp_client, 
     html = gp_client.get("/calendar").text
     cards = html.split('<div class="kpis three" role="list" aria-label="Summary">', 1)[1].split('<section', 1)[0]
     text = " ".join(re.sub(r"<[^>]+>", " ", re.sub(r"<svg[\s\S]*?</svg>", " ", cards)).split())
-    assert "Due next Wed 10 Feb 2027 Statistical report A01" in text
-    assert "Entries in 2027: 3" in text and "May not be required 1" in text
+    assert "Due next Mon 11 Jan 2027 Monthly financial information report U1.1" in text
+    assert "Entries in 2027: 22" in text and "May not be required 4" in text
     assert re.search(r'<svg class="dots"[^>]*aria-hidden="true"', cards)
 
 # --- After a decision, land on the next card to decide (operator, 2026-11-17) ---

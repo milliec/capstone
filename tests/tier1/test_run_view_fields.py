@@ -79,10 +79,10 @@ def test_ended_failure_and_counts(settings):
     """V-5, V-6: counts, the abandon reason and time, and the failure details."""
     init_db(settings.database_path)
     conn = connect(settings.database_path)
-    # Counted from what the stages stored (B3 step 5): 6 rules, 1 "can't tell", and stage C's
-    # 3 placeholder dates (B4 replaces them).
+    # Counted from what the stages stored: 6 rules, 1 "can't tell", and the date engine's 22
+    # entries (B4: the VAT rule does not apply, so it has none).
     at_g3 = flow.to_g3(conn, settings)
-    assert runs.get_run(conn, at_g3)["counts"] == {"rules": 6, "unsure": 1, "dates": 3}
+    assert runs.get_run(conn, at_g3)["counts"] == {"rules": 6, "unsure": 1, "dates": 22}
     run_id = _run_at(conn, settings, "ACTIVE", "AT_G1")
     assert runs.get_run(conn, run_id)["counts"] == {"rules": 0, "unsure": 0, "dates": 0}
     assert runs.get_run(conn, run_id)["ended"] is None
@@ -220,17 +220,23 @@ def test_g3_view_publish_outcome_and_previous_publication(settings):
     assert view["uncited_paragraph_ids"] == [
         "SRC-CSSF15627-P1", "SRC-CSSF15627-P3", "SRC-UCILAW-P1", "SRC-UCILAW-P3", "SRC-CNMV-P2",
         "SRC-PRACT-P1", "SRC-PRACT-P2", "SRC-PRACT-P3"]
-    assert [e["due_date"] for e in view["entries"]] == ["2027-02-10", "2027-04-19", "2027-04-30"]
-    by_row = {e["row_id"]: e for e in view["entries"]}
-    e1, e2, e4 = (by_row[f"ROW-{run_id}-{n}"] for n in (1, 2, 4))
+    # The date engine (B4): rules 1 (12 monthly), 2 (4 quarterly), 4 (4 quarterly) and 5 (1 event).
+    assert len(view["entries"]) == 21
+    assert [e["due_date"] for e in view["entries"]] == sorted(e["due_date"] for e in view["entries"])
+    first = {}
+    for e in view["entries"]:
+        first.setdefault(e["row_id"], e)
+    e1, e2, e4 = (first[f"ROW-{run_id}-{n}"] for n in (1, 2, 4))
     assert e1["who_files_label"] == "Fund administrator"     # the source names the filer
     assert e2["who_files_label"] == "Auditor"                # chosen at G1
-    assert e1["marks"]["moved"] is None
     assert e1["why"] == "Monthly rule: due 10 calendar days after month end."
     assert e1["source_paragraph_id"] == "SRC-CSSF15627-P2" and e1["recipient_name"] == "CSSF"
-    assert e2["marks"]["moved"] == {"from_date": "2027-04-18", "to_date": "2027-04-19",
-                                    "direction": "following working day"}
-    # Rule 4 was "AI can't tell" and the specialist added it, so its entry is precautionary.
+    # Sun 10 Jan 2027 rolls forward to Mon 11 Jan (the rule chosen at G1).
+    assert (e1["due_date"], e1["marks"]["moved"]) == ("2027-01-11", {
+        "from_date": "2027-01-10", "to_date": "2027-01-11", "direction": "following working day"})
+    assert (e2["due_date"], e2["marks"]["moved"]) == ("2027-01-20", None)
+    assert e2["open_question_id"] == "OQ-7" and e1["open_question_id"] is None    # CR-027
+    # Rule 4 was "AI can't tell" and the specialist added it, so its entries are precautionary.
     assert (e1["precautionary"], e2["precautionary"], e4["precautionary"]) == (False, False, True)
 
     flow.publish(conn, run_id)

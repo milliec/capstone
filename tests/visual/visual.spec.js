@@ -116,10 +116,18 @@ test("the stubbed UI, page by page", async ({ browser }) => {
     await open(sp, `${review}/g1`, "text=Rejected");
     await snap(sp, "04-check-rules-two-decided", [1280]);
     // B2: the server refuses to finish checking while a rule is undecided, so decide the others.
+    // B4: with the demo's G1 choices (answer key §5), so the calendar is the demo calendar.
+    const demoChoices = {
+      2: { business_day_rule: "no_roll", who_files: "Fund administrator" },
+      3: { business_day_rule: "roll_forward", who_files: "Fund administrator",
+           approve_reason: "Checked: the law itself sets the deadline" },
+      4: { business_day_rule: "roll_backward" },
+      5: { business_day_rule: "roll_backward", who_files: "AIFM" },
+      6: { business_day_rule: "no_roll", who_files: "Tax advisor" },
+    };
     for (const n of [2, 3, 4, 5, 6]) {
       await form(sp, `/specialist/rows/ROW-${rid}-${n}/decision`,
-        { version: "1", decision: "approve", business_day_rule: "roll_forward", who_files: "AIFM",
-          ...(n === 3 ? { approve_reason: "Checked: the law itself sets the deadline" } : {}) });
+        { version: "1", decision: "approve", ...demoChoices[n] });
     }
     await form(sp, `${review}/g1/complete`, { run_version: "1" });
   });

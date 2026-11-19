@@ -22,6 +22,15 @@ DOES_NOT_APPLY_N = 6
 APPLIES_NS = (1, 2, 3, 5)
 FLAGGED_N = 3
 
+# The specialist's demo choices at G1 (B4), as the answer key's §5 expects them, so a whole review
+# gives exactly the demo calendar (KEY §4: 22 entries). Business-day rule per rule, and "who files"
+# for the rules whose source is silent (rules 1 and 4 name their filer). Single-decision helpers
+# below keep their simple defaults.
+DEMO_RULES = {1: "roll_forward", 2: "no_roll", 3: "roll_forward", 4: "roll_backward",
+              5: "roll_backward", 6: "no_roll"}
+DEMO_WHO = {1: None, 2: "Fund administrator", 3: "Fund administrator", 4: None, 5: "AIFM",
+            6: "Tax advisor"}
+
 
 def run_now(function, *args, **kwargs):
     """Stands in for FastAPI's background task: runs the stage at once, in this thread."""
@@ -38,7 +47,8 @@ def approve_rule_http(client, run_id, n, rule="roll_forward", who="AIFM", reason
     reason = reason or (FLAG_REASON if n == FLAGGED_N else None)
     return client.post(f"/specialist/rows/ROW-{run_id}-{n}/decision", follow_redirects=False,
                        data={"version": 1, "decision": "approve", "business_day_rule": rule,
-                             "who_files": who, **({"approve_reason": reason} if reason else {})})
+                             **({"who_files": who} if who else {}),
+                             **({"approve_reason": reason} if reason else {})})
 
 
 def reject_rule_http(client, run_id, n, reason="Test"):
@@ -47,9 +57,9 @@ def reject_rule_http(client, run_id, n, reason="Test"):
 
 
 def decide_every_rule_http(client, run_id, demo=False):
-    """Approve rules 1 to 6; reject the demo rule (7) when it is on."""
+    """Approve rules 1 to 6 with the demo's choices; reject the demo rule (7) when it is on."""
     for n in RULES:
-        approve_rule_http(client, run_id, n)
+        approve_rule_http(client, run_id, n, rule=DEMO_RULES[n], who=DEMO_WHO[n])
     if demo:
         reject_rule_http(client, run_id, DEMO_N, "Quote doesn't support the rule")
 
@@ -125,12 +135,12 @@ def finish_g2(conn, settings, run_id):
 
 
 def to_g3(conn, settings, demo=False):
-    """A review at G3: rules 1 to 6 approved (the demo rule rejected), every answer given as
-    `answer_every_verdict_http` does. Stage C's placeholder dates (until B4) cover rules 1, 2 and
-    4, which all end as "applies" (4 is added), so the calendar has three entries. Returns the run ID."""
+    """A review at G3: rules 1 to 6 approved with the demo's G1 choices (the demo rule rejected),
+    every answer given as `answer_every_verdict_http` does. The date engine (B4) then gives the
+    demo calendar: 22 entries (rule 6, VAT, does not apply). Returns the run ID."""
     run_id = start_to_g1(conn, settings, demo)
     for n in RULES:
-        approve_rule(conn, run_id, n)
+        approve_rule(conn, run_id, n, rule=DEMO_RULES[n], who=DEMO_WHO[n])
     if demo:
         reject_rule(conn, run_id, DEMO_N, "Quote doesn't support the rule")
     finish_g1(conn, settings, run_id)
