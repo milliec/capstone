@@ -845,16 +845,46 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Considered**: giving the extractor the fund's parties table (rejected: it would judge facts about
   the fund, and its context would no longer be one document); removing the judge's rule entirely
   (rejected by the operator: the rule is sound, only its wording needed to be general).
-- **Pending, not part of this decision**: the exact model IDs. **DL-40 is held** until the operator
-  has checked them against the OpenAI account's model list and pricing (SAD SOQ-25, which also sets
-  out whether the verifier is from a different family than the extractor).
+- **Pending, not part of this decision**: the exact model IDs. *(Recorded later as DL-40,
+  2026-11-19.)*
 - **Changed**: SAD (new "Agent cards" in §2; MVP scope steps 3 and 6; W-03, W-07, W-16; call counts;
   Model and Context Strategy; CR-007, CR-016; §3 G1 page; §4 route, refusal code and
   `row_decisions`; EC-001; SA-7; the estimate note for B5; SOQ-24, SOQ-25). For `@product-mgr`:
   US-001 criterion 2, the answer key's notes on responsible role and pattern, and the related G1
   story wording (SAD SOQ-24).
 
-*DL-40 is reserved for the model IDs, held until the operator has checked them (SAD SOQ-25).*
+### DL-40 · Model IDs and reasoning settings, pinned by the operator
+
+- **Decision** (operator, 2026-11-19; closes SAD SOQ-25; recorded through handoff H-064). All three
+  roles use OpenAI **aliases**; OpenAI offers no dated snapshots, so **any change in a model's
+  behaviour under the same ID is treated as a release** (SAD swap-as-release rule).
+  1. **Extractor** `LLM_MODEL_EXTRACT=gpt-6-luna`: `reasoning_effort` `none`, temperature 0.
+  2. **Verifier** `LLM_MODEL_VERIFY=gpt-5.6-terra`: `reasoning_effort` `low`. A different family from
+     the extractor and the judge (the weak point SOQ-25 raised). It **switches to the judge's model
+     only if the spike misses the planted conflict** (DL-26).
+  3. **Judge** `LLM_MODEL_JUDGE=gpt-6.1-terra`: `reasoning_effort` `medium`, no temperature.
+     **Upgraded to `gpt-6.2-sol` only if the spike shows the judge is too weak.**
+  4. **Every call sets its own `max_completion_tokens`**, so one call cannot exceed the cost cap
+     (CR-017).
+  5. **The IDs live in the operator's `.env`, never in a committed file.**
+  6. Pinned **after** the first stand-in green path passed (DL-42 item 8). No paid call has been made.
+- **Checked by `@backend.eng`** (2026-11-19, crewai 1.15.35, throwaway environment, no network, no
+  model call): all three IDs are in crewai's bundled model catalogue (provider OpenAI, reasoning
+  models, 922k-token context) and go to the chat completions endpoint unchanged, with the settings
+  above. `gpt-6.2-sol` is **not** in the catalogue: it works, but crewai would assume an 8,192-token
+  context, so an upgrade must **set the context size by hand**. Whether `gpt-6-luna` accepts
+  temperature 0 is **not known until the spike**; a refusal fails the call with a clear error
+  (crewai does not drop it silently).
+- **Why**: the model IDs were the one open item in DL-39 and SOQ-25. The verifier is a different
+  family from the other two, so a shared blind spot is less likely (SD MD-003, DL-25, DL-26), and
+  each upgrade has a stated trigger, so no switch happens without evidence.
+- **Considered**: the 2026-11-12 proposal (verifier `gpt-6.1-terra`, judge `gpt-6.1-sol`): not
+  chosen; the operator pinned `gpt-5.6-terra` and `gpt-6.1-terra` after checking the account.
+- **Changed**: SAD Model and Context Strategy (the sampling sentence), Agent cards note, Known
+  limitations ("A new run at temperature 0"), DL-39 row, SOQ-25 (closed), SOQ-25 item in the open
+  list; DL-43 confirmation below (handoff H-064).
+- **DL-43 check (H-064, `@system.arch`, 2026-11-19)**: the three step 7b retry settings meet DL-43's
+  one-retry rule **with two conditions**; see the H-064 Outcome in `handoffs.md`.
 
 ### DL-41 · Responsible role is graded through a fixed lookup to the profile's party names
 
@@ -1400,3 +1430,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction, second pass) · action `update` · DL-51 update (refusals confirmed; `calendar generation` refuses a retry; B13 after B9, dropped next after B6), DL-52 update (T-DEMOFAIL-1 Tier 1 once B13 is built), DL-53 update (CR-027 names the OQ-7 rows by source paragraph and recipient code); operator decisions
 - 2026-11-16 · persona `system-arch` (at the operator's instruction; handoff H-033) · action `update` · new DL-54 (B13 split into B13a Failure demo and stand-in pause, kept, after B3, and B13b Retry, after B9, dropped next after B6; new setting `STAND_IN_UNIT_PAUSE_S`; T-DEMOFAIL-1 Tier 1 from B13a; new Tier 1 test T-PAUSE-1); DL-52 update (the failure demo no longer depends on Retry). Operator decisions
 - 2026-11-17 · persona `system-arch` (at the operator's instruction; handoff H-040) · action `update` · DL-49 update: B12 built now (before B6 and B10), switch is a `:has()` radio group, Month is the default, the display-only helper is confirmed with its condition; B12 dropped as a whole after B6 and Tier 2, before B13b. Operator decisions
+- 2026-11-19 · persona `system-arch` (at the operator's instruction; handoff H-064) · action `update` · new DL-40 (model IDs pinned by the operator: extractor `gpt-6-luna`, verifier `gpt-5.6-terra`, judge `gpt-6.1-terra`, with each role's reasoning setting, per-call `max_completion_tokens`, IDs only in `.env`; SAD SOQ-25 closed); the three step 7b retry settings checked against DL-43 (met, with two conditions in the H-064 Outcome). Operator decision

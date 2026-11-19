@@ -98,8 +98,9 @@ Otherwise a failed run is followed by a new run. See "Known limitations".
 | **DL-35** | This MVP rewrite, and three simplifications **accepted by the operator**: (a) a plain stage function in place of a Flow wrapper, on the condition that the three agents stay CrewAI agents; (b) no "out of date" machinery, because each row and verdict is decided once, with the version still recorded on every decision; (c) entry IDs without the quote start position |
 | **DL-36** | **Model spend: a target of about US$15 in total.** The per-run hard stop is US$2.50. Building uses stand-in agents, which call no model. Real model calls are allowed only for the spike, a capped number of tuning calls, one evaluation cycle of three runs, one rehearsal run and the demo run |
 | **DL-38** | *Parked by DL-42.* A hosted portfolio demo was a stretch goal outside the five days. It is now **Future Work (F-18)**; its design is kept in Appendix A and is not built in this plan |
-| **DL-39** | **Agent cards** (in §2). The loader strips the mock files' answers before any prompt (T-LEAK-1). The extractor sees only the primary documents and reports "who files" only when the source states it; otherwise the specialist sets it at G1. No `pattern` field; code derives it for the report. The judge's general rule is worded generally. Each card's worked example is its one-shot example, drawn from text in no demo row, planted row or evaluation case and mirroring no demo trap (T-EXAMPLE-1 and a review table). The exact model IDs are held until the operator checks them (SOQ-25) |
-| **DL-41** | **Responsible role is graded through a fixed lookup** (EC-R11), written before the first evaluation run: code maps the extractor's free text to a profile party name, then matches exactly; text that does not map is a miss (T-MAP-1). No parties list in the extractor's prompt (DL-39 stands). DL-40 is reserved for the model IDs (SOQ-25) |
+| **DL-39** | **Agent cards** (in §2). The loader strips the mock files' answers before any prompt (T-LEAK-1). The extractor sees only the primary documents and reports "who files" only when the source states it; otherwise the specialist sets it at G1. No `pattern` field; code derives it for the report. The judge's general rule is worded generally. Each card's worked example is its one-shot example, drawn from text in no demo row, planted row or evaluation case and mirroring no demo trap (T-EXAMPLE-1 and a review table). The exact model IDs are pinned in DL-40 |
+| **DL-40** | **Model IDs and reasoning settings, pinned by the operator (2026-11-19; SOQ-25 closed).** Extractor `gpt-6-luna` (`reasoning_effort` `none`, temperature 0); verifier `gpt-5.6-terra` (`low`; a different family from the other two; switches to the judge's model only if the spike misses the planted conflict, DL-26); judge `gpt-6.1-terra` (`medium`, no temperature; upgraded to `gpt-6.2-sol` only if the spike shows it is too weak, and then the context size is set by hand). OpenAI aliases, no dated snapshots, so a change in behaviour is treated as a release. Every call sets its own `max_completion_tokens` (CR-017). IDs only in the operator's `.env` |
+| **DL-41** | **Responsible role is graded through a fixed lookup** (EC-R11), written before the first evaluation run: code maps the extractor's free text to a profile party name, then matches exactly; text that does not map is a miss (T-MAP-1). No parties list in the extractor's prompt (DL-39 stands). The model IDs are in DL-40 |
 | **DL-42** | **Capacity: 5 days planned, 8 days hard stop.** The estimate now counts the hours that were noted but not added (stand-in mode and harness, the "who files" choice, the loader tests): about 6 days likely. **Tests in two tiers**: Tier 1 blocks the build, Tier 2 is done if time allows. **Tripwire**: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2 (moved from day 3 on 2026-11-13, SOQ-30). The hosted demo (DL-38) is parked as Future Work F-18. At least US$5 stays for the rehearsal and the demo (EC-R10 point 4). See "Estimate" |
 | **DL-43** | **One timeout rule everywhere.** Each model call has its own timeout, with the HTTP client timeout slightly below it; a timed-out call is retried once, and only a second timeout is a final failure (`model service`, voidable under EC-R8). Each stage limit is the sum of its calls with one retry each, plus about 25%: A ≈ 375 s, B ≈ 150 s, C 30 s. **The backend stage timer is the real bound**; CrewAI `max_execution_time` does not cancel a call in flight. Late results after a stage fails are discarded but count towards cost. Starting values, replaced after the spike |
 | **DL-44** | **The planted demo row keeps its Approve button.** Clicking it is refused by the server (`DEMO_ROW_NOT_APPROVABLE`), audited and shown as a plain message; the specialist then rejects the row. Replaces "offers reject only" (DL-31, SOQ-18). *Updated 2026-11-14:* the message is the plain copy in CR-029, and the row's chip then reads "Approval blocked". *Updated 2026-11-16:* the copy now says why there is no legal basis (CR-029) |
@@ -599,15 +600,20 @@ the personas that build the product, not the product).
   | Verifier (W-05, W-06) | **Default: a mid-tier model, different from the other two** (DL-26). **It switches to the judge's reasoning model** only if the mid-tier model misses any planted conflict in the bake-off | `LLM_MODEL_VERIFY` | Two different models are less likely to share a blind spot, which strengthens the separate verifier (SD MD-003). Same provider, so no second live service (SD MN-002) |
   | Applicability judge (W-11) | A **reasoning** model | `LLM_MODEL_JUDGE` | Applicability is the judgement-heavy step, and a wrong "does not apply" is the costliest error (P-1) |
 
-  No other step uses a model. **Exact model IDs are checked against the provider's current list
-  before the measurement spike** (block B3) and recorded in the decision log. From then on, a
-  change to any role's model is a release (see the rule below). **Claude Code is the build tool
-  only**: no application call goes to it, and its usage is not part of the application's model
-  spend. *(This sampling sentence is rewritten when DL-40 records the model IDs; see SOQ-25.)*
-  Sampling is set for repeatability: temperature 0 where the model accepts it, and a fixed
-  `max_tokens` per step. A reasoning model may not accept a temperature setting, so the spike
-  records whether the judge's verdicts are stable across runs, and EC-R1 (3 of 3) then measures
-  it. The model, sampling settings, `max_tokens` and prompt version are logged for every call.
+  No other step uses a model. **The model IDs are pinned in DL-40 (operator, 2026-11-19)**:
+  extractor `gpt-6-luna`, verifier `gpt-5.6-terra`, judge `gpt-6.1-terra`. They are OpenAI
+  aliases with no dated snapshots, so a change in a model's behaviour under the same ID is treated
+  as a release (see the rule below), and so is any change of ID. The IDs live in the operator's
+  `.env`, never in a committed file. **Claude Code is the build tool only**: no application call
+  goes to it, and its usage is not part of the application's model spend.
+  Sampling is set for repeatability, per role (DL-40): the extractor runs with `reasoning_effort`
+  `none` and temperature 0, the verifier with `low`, the judge with `medium` and **no temperature**
+  (a reasoning model may not accept one). Every call sets its own `max_completion_tokens`, so one
+  call cannot exceed the cost cap (CR-017). Whether `gpt-6-luna` accepts temperature 0 is shown by
+  the spike; a refusal fails the call with a clear error. The spike also records whether the
+  judge's verdicts are stable across runs, and EC-R1 (3 of 3) then measures it. The model string
+  the API returns, the sampling settings, `max_completion_tokens` and the prompt version are logged
+  for every call.
 - **Context strategy**: **built by code for each call.** A call receives only the stored data its
   step needs; nothing carries over from an earlier call.
 
@@ -920,8 +926,8 @@ follows these in place of the adapter text they name.
 `agents.yaml` and `tasks.yaml` are written from these cards. **Role, goal and backstory** go into
 `agents.yaml`; **instructions** and **expected output** go into `tasks.yaml`, with `{braces}` for
 the inputs code fills in. The model for each role is set in configuration (Model and Context
-Strategy); **the exact model IDs and each role's reasoning setting are pending the operator
-(SOQ-25)** and are not part of the cards.
+Strategy); **the exact model IDs and each role's reasoning setting are pinned in DL-40** and are
+not part of the cards.
 
 **Rules for all three cards.**
 
@@ -2353,7 +2359,7 @@ is.
 
 | Limitation | What it means | What protects the GP |
 |---|---|---|
-| A wrong row can only be rejected | With no edit, a row with a wrong field or a misquote is rejected, and its obligation leaves the calendar. A new run at temperature 0 may repeat the same mistake | The G3 acknowledgement lists every rejected row and uncited paragraph before publishing (CR-028) |
+| A wrong row can only be rejected | With no edit, a row with a wrong field or a misquote is rejected, and its obligation leaves the calendar. A new run with the same pinned models and settings (the extractor at temperature 0, DL-40) may repeat the same mistake | The G3 acknowledgement lists every rejected row and uncited paragraph before publishing (CR-028) |
 | A wrong decision cannot be undone | A wrong approval, rejection or verdict is corrected only by abandoning the run at a gate and starting a new one | Nothing reaches a GP before G3 |
 | A second failure in stage B or C discards the G1 and G2 work | A first failure can be retried once and keeps every decision (DL-51). A second failure of the same stage, or a cost-cap or calendar-generation failure, ends the run for good, and the new run repeats the gates. **The 30-minute review measurement (EC-011) is taken on a run with no failures and no retries** | No gate opens on a failed stage |
 | The same obligation from two documents can be published twice | There is no duplicate warning. Generation fails closed only when two approved rows give the same entry ID (same paragraph, recipient and period). Otherwise the specialist's review at G3 is the only check. The demo set contains no such pair | The whole calendar is reviewed at G3 |
@@ -2443,7 +2449,7 @@ field per form, and nothing else.
 | 5a | B12 Calendar Month and Year views and charts | `@frontend.eng`, `@ux.designer` | **Pulled forward from last, by the operator on 2026-11-17 (H-040, DL-49 update).** Front end only, one-day timebox, parked when the day ends (DL-49). Built on the stub UI while the frontend waited on B2 (H-036). It comes before B6 and B10, so B10's accessibility and copy checks now cover the new views and it needs no separate check. **Dropped as a whole after B6 and Tier 2, before B13b** (operator, H-040); the page then shows the List view alone |
 | 6 | B7 Planted demo row | `@backend.eng` | Before the visual pass |
 | — | **First green path** (gate, not a block) | `@backend.eng`, `@qa.eng` | The full stand-in happy path in the Build card passes end to end with `AGENTS_MODE=stand_in`. **Nothing below this row that spends money starts before it passes** |
-| — | **Pin DL-40** (SOQ-25) | operator | The operator confirms the model IDs in their OpenAI account and DL-40 is recorded. Only after the green path |
+| — | **Pin DL-40** (SOQ-25) | operator | **Done 2026-11-19** (after the green path): the operator pinned the model IDs and DL-40 is recorded (H-064) |
 | 7 | **B3 spike**, then the verifier bake-off | `@backend.eng`, operator | The first real model calls (DL-26, EC-R10). Timings replace the starting limits in §2 |
 | 8 | B8 Evaluation runner and report | `@qa.eng` | With the trace export (D4) and the void rule (EC-R8) |
 | 9 | B9 Tuning, then the evaluation cycle | `@qa.eng`, operator | Capped at half a day and 60 real calls (EC-R9). Then the one cycle (EC-R10) |
@@ -2582,10 +2588,14 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
   (Spain)", which the source does not literally say; it should point to the same mapping. (c) The
   **answer key §1** column heading "Responsible role (as the source states it)" should say the
   value is the profile's party name after mapping.
-- **SOQ-25** (operator, **before the spike**, block B3, which now runs after B5 and B7 and the
-  first green path): **the exact model IDs and each role's
-  reasoning setting. DL-40 is held** until the operator has confirmed the IDs in their own OpenAI
-  account's model list, with its pricing. *Note from the final review (operator):* OpenAI lists
+- **SOQ-25** (operator, before the spike, block B3, which runs after B5 and B7 and the first green
+  path): **the exact model IDs and each role's reasoning setting.** **Answered 2026-11-19
+  (operator; recorded as DL-40, handoff H-064):** extractor `gpt-6-luna` (`none`, temperature 0),
+  verifier `gpt-5.6-terra` (`low`; the different-family option below was taken), judge
+  `gpt-6.1-terra` (`medium`, no temperature; `gpt-6.2-sol` only if the spike shows the judge is too
+  weak). The two sentences this item named (the sampling sentence in Model and Context Strategy and
+  the "new run at temperature 0" wording in Known limitations) are rewritten. *The discussion below
+  is kept as the record of the proposal.* *Note from the final review (operator):* OpenAI lists
   `gpt-5.6-terra` as the official replacement for `gpt-5-mini`; confirm it in the account along
   with the three proposed IDs. **When DL-40 is recorded**, the "temperature 0" sentence in Model
   and Context Strategy is rewritten to match (see the third consequence below), together with the
@@ -2611,7 +2621,7 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
     extractor (SD MD-003) and the cost difference is small; otherwise keep `gpt-6.1-terra`, which
     meets DL-25 and DL-26 as written. Either way, every model comes from one provider, so the
     independence is between models, not vendors; a second provider was rejected in DL-25.
-  - On confirmation, DL-40 records the IDs, with three consequences for this document: no
+  - *(Proposal, now answered.)* On confirmation, DL-40 records the IDs, with three consequences for this document: no
     temperature setting (all current models are reasoning models; a reasoning setting per role
     instead), the model string the API returns logged in the trace (no dated versions are offered),
     and per-model prices in `config/models.yaml`.
@@ -2644,8 +2654,8 @@ DL-14). SA-4, SA-9 and SA-12 belonged to cut features and are retired.
   `BUSINESS_DAY_RULE_REQUIRED` with `roll_backward`, the answer-first field rule of DL-48, one
   active run, abandon at a gate) are all decided here. Open items near it, none of which stops
   B2 from starting:
-  (a) **DL-40 / SOQ-25, the model IDs** (operator): blocks the **B3 spike**, not B2; pinned only
-  after the first stand-in green path.
+  (a) **DL-40 / SOQ-25, the model IDs**: **answered 2026-11-19 (operator)**, pinned after the first
+  stand-in green path passed. The **B3 spike** may now start (step 7b first).
   (b) **SOQ-28 (a), who draws the run-state diagram** (operator): not blocking; the
   "Transitions and guards" table is the content.
   (c) **SOQ-29, the untiered tests**, including T-RUN-2 and T-RUN-4 to T-RUN-8 (operator): they
@@ -3199,3 +3209,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-17 · persona `system-arch` (at the operator's instruction; handoff H-040, DL-49 update) · action `update` · **B12 pulled forward and its departures recorded.** Build card "Order" row and Order of work (new row 5a, old row 12 removed): B12 now sits after B5, before B7, B6 and B10 (it was last), built on the stub UI while the frontend waited on B2. Estimate: B12 row (helper allowed, built early), "Build order" paragraph, and the drop order (B12 as a whole after B6 and Tier 2, before B13b; the calendar then shows the List view alone). §3 page 7: **Month view is the default** (was List); the switch is a **radio group styled as tabs** with `:has()`, in place, no script (was "chosen by a link"); below 960 px only the List view shows. **Helper confirmed** (`backend/web/calendar_view.py`) on one condition: it stays display-only (no new field, no dropped or marked entry, no calculated date, no service or model call, nothing the viewer may not see). DL-49 summary row. Checked against the code before editing (`calendar.html`, `site.css`, `routes/calendar.py`, commits `f311130`, `a3e71dc`, `3c47ad3`). Totals unchanged (≈ 7.75). `ux.md`, `frontend.md`, `scaffold-plan.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
 - 2026-11-18 · persona `system-arch` (at the operator's instruction; handoffs H-046 and H-047) · action `update` · **Recorded B2's choices.** Checked against the code first (`backend/services/runs.py`, `guards.py`, `decisions.py`, `gates.py`, `publishing.py`, `stage_store.py`, `backend/main.py`). **H-046, both confirmed, no `ended_at` column:** "Identifiers and versions" new row, the review number (place among the fund's runs, oldest = 1, counted, not stored); §4 new paragraph after the Data table, "when and why a review ended" read from the run's last `gate_event` audit entry (safe because refusals are logged as `refusal`). **H-047:** (1) rule 9 built in B2: rule 9 text, Service functions row (`finish_stage` was renamed `store_stage_outputs` in B2; the new name stands), Estimate B2 and B13b rows, Order of work rows 2 and 3, SOQ-35; B3 keeps the `late` trace line and cost count for discarded output; not re-estimated. (2) New "Order of checks" paragraph after the Transitions table; a row's or verdict's posted `version` is **not compared and not stored** (the handoff said stored: the code stores the row's own version). (3) Start-up rule: rule 7 text and a new Service functions row `runs.fail_interrupted_runs`; it was already a B2 item in the Estimate. `backend.md`, `ux.md`, `scaffold-plan.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
 - 2026-11-18 · persona `system-arch` (at the operator's instruction; handoff H-052) · action `update` · **Recorded B3's choices: date rule, recipient codes, agent functions.** (1) Checked against the code first (`backend/domain/guardrails.py` `find_date_shaped`, `check_extraction`, `check_verdict`). §2 "Rules for all three cards": the extractor's and judge's guardrails refuse a date-shaped value the agent wrote itself and allow one copied word for word from its input (QN-1 steps 1 and 2); month names count only when capitalised; the verifier has no date check (its evidence is already checked word for word). Card 1 and card 3 guardrail lines and CR-003 point to that bullet. Never row and CR-008 unchanged (the intent, a model never computes a date, stands). (2) §2 "Shared output vocabulary" `recipient_code` row and the §4 configuration bullet list the MVP codes `CSSF`, `AED`, `CNMV`, `LBR` (Luxembourg Business Registers, a code the build named; checked against `config/regulation/lu-part2.yaml`). (3) §4 "Service functions": the `runtime.agents.run_unit` row is replaced by `extract_rows`, `check_conflicts` and `judge_applicability` with their signatures as built (checked against `backend/runtime/agents.py` and `runtime/stages.py`); deleting the unused `run_unit` code is `@backend.eng`'s. `backend.md` and the frozen `docs/architecture-decisions-summary.html` were not edited. `AAMAD_TARGET_RUNTIME=crewai`. No code. No model call.
+- 2026-11-19 · persona `system-arch` (at the operator's instruction; handoff H-064) · action `update` · **Recorded DL-40 and closed SOQ-25.** The operator's pin: extractor `gpt-6-luna`, verifier `gpt-5.6-terra`, judge `gpt-6.1-terra`, with each role's reasoning setting, a `max_completion_tokens` on every call, IDs only in `.env`. Rewrote the sampling sentence in Model and Context Strategy, the Known limitations "new run" wording and the agent-card note; DL-39 and DL-41 rows point to DL-40; new DL-40 row; SOQ-25 marked answered; open-item (a) and the "Pin DL-40" order row marked done. The three step 7b retry settings were checked against DL-43 (see the H-064 Outcome); D1 and D5 text unchanged. No model call made. Operator decision
