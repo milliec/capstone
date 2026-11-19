@@ -76,22 +76,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 <!-- H-004 to H-026 come from the design exploration in docs/prototype/ (see docs/prototype/HANDOVER.md).
      One entry per difference row. Nothing in docs/prototype overrides sad.md until the owner decides. -->
 
-### H-026: Decide the "Not designed" gaps and the scope split for the new mock-ups
-- From: operator (design exploration)   To: operator   Date: 2026-11-14
-- Touches: docs/prototype/HANDOVER.md "Not designed" and "Suggested scope"; sad.md Build card and estimate blocks B5, B6; SD §9; W-19a, W-03b
-- Ask: (1) Decide how each gap gets designed or scoped out before the pages are built: abandoning a review at a step (W-19a, no control in the mock-ups); the failed, abandoned and declined states of a review; overruling an ordinary verdict at step 3 (only the "AI can't tell" case is designed); rules 4, 5 and 6 at the rule check and rule 5 at step 3 (collapsed placeholders); the 403, 404 and server-error pages. (2) Accept or change the suggested scope split: **in the build** are sign-in, Filing rules, the four review steps, the calendar List view, and the `app.css` tokens and shell; **after the stand-in green path passes** are the Month and Year views, dot chart, bars and ring; **future scope (SD §9)** is the Funds list and adding a second fund. (3) Say whether the missing rows A6 and A11 exist: the handover note lists A1 to A5 and A7 to A10 only.
-- Why: The plan allows about one day for pages (B5) and a quarter-day for styling (B6), and this design is larger than that, so only the operator can trade scope against the five days.
-- Decision (operator, 2026-11-14): **Partly decided.** Scope: A10 is in the MVP, built last with a one-day timebox (H-012); U7 and U8 get half a day in total (H-019, H-020); A5 is post-MVP (H-008). **Still open:** the five "Not designed" gaps, whether Funds and adding a second fund stay future scope, and whether rows A6 and A11 exist.
-- Outcome: (the owner fills this in)
-
-### H-020: New visual style: Lexend, Inter, rounded corners, Iconoir (U8)
-- From: operator (design exploration)   To: @ux.designer   Date: 2026-11-14
-- Touches: 2.build/style-note.md; docs/prototype/app.css tokens
-- Ask: Decide whether to update the style note to Lexend headings, Inter body, 6px corners on cards and buttons, pill chips and Iconoir icons (MIT licence, inline SVG).
-- Why: The style note specifies Inter Tight, a top-left-only card radius and sharp buttons.
-- Decision (operator, 2026-11-14): **In MVP, with limits.** U7 and U8 together get half a day of styling in total; drop anything that doesn't fit.
-- Outcome: **Done.** 2026-11-15, `@ux.designer`: `2.build/style-note.md` now describes `docs/prototype/app.css` as the source of truth (Lexend / Inter / DM Mono, 6px radii, the orange, brass, slate and bordeaux status families, motion and reduced-motion rules) and has an Icons section for Iconoir. `2.build/ux.md` §6 now says "Done" and points to it.
-
 ### H-003: Add `aamad validate` to CI, and make `--no-verify` a stop-and-report
 - From: @system.arch (operator request)   To: @project.mgr   Date: 2026-11-13
 - Touches: setup.md (Git hooks section, and the "no CI code" line in the B1 scope), `.github/workflows/` (new), `requirements-dev.txt` (new, already created by @system.arch at the operator's request), `scripts/git-hooks/run-checks.sh`
@@ -107,6 +91,22 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-026: Decide the "Not designed" gaps and the scope split for the new mock-ups
+- From: operator (design exploration)   To: operator   Date: 2026-11-14
+- Touches: docs/prototype/HANDOVER.md "Not designed" and "Suggested scope"; sad.md Build card and estimate blocks B5, B6; SD §9; W-19a, W-03b
+- Ask: (1) Decide how each gap gets designed or scoped out before the pages are built: abandoning a review at a step (W-19a, no control in the mock-ups); the failed, abandoned and declined states of a review; overruling an ordinary verdict at step 3 (only the "AI can't tell" case is designed); rules 4, 5 and 6 at the rule check and rule 5 at step 3 (collapsed placeholders); the 403, 404 and server-error pages. (2) Accept or change the suggested scope split: **in the build** are sign-in, Filing rules, the four review steps, the calendar List view, and the `app.css` tokens and shell; **after the stand-in green path passes** are the Month and Year views, dot chart, bars and ring; **future scope (SD §9)** is the Funds list and adding a second fund. (3) Say whether the missing rows A6 and A11 exist: the handover note lists A1 to A5 and A7 to A10 only.
+- Why: The plan allows about one day for pages (B5) and a quarter-day for styling (B6), and this design is larger than that, so only the operator can trade scope against the five days.
+- Decision (operator, 2026-11-14): **Partly decided.** Scope: A10 is in the MVP, built last with a one-day timebox (H-012); U7 and U8 get half a day in total (H-019, H-020); A5 is post-MVP (H-008). **Still open:** the five "Not designed" gaps, whether Funds and adding a second fund stay future scope, and whether rows A6 and A11 exist.
+- Outcome: (operator, 2026-11-19) **Done.** Decisions: **(1)** Funds and adding a second fund: future scope (SD §9). **(2)** Abandoned and declined states, and overruling an ordinary verdict at step 3: covered by `ux.md` (the 16 Nov gaps) and already built; no mock-up needed for the MVP. **(3)** Rules 4 to 6 at the rule check: same card pattern as rules 1 to 3; nothing new to design. **(4)** Rows A6 and A11: do not exist in `HANDOVER.md` (the 28 Feb change is Q1, already recorded in H-024); closed as not applicable.
+
+### H-020: New visual style: Lexend, Inter, rounded corners, Iconoir (U8)
+- From: operator (design exploration)   To: @ux.designer   Date: 2026-11-14
+- Touches: 2.build/style-note.md; docs/prototype/app.css tokens
+- Ask: Decide whether to update the style note to Lexend headings, Inter body, 6px corners on cards and buttons, pill chips and Iconoir icons (MIT licence, inline SVG).
+- Why: The style note specifies Inter Tight, a top-left-only card radius and sharp buttons.
+- Decision (operator, 2026-11-14): **In MVP, with limits.** U7 and U8 together get half a day of styling in total; drop anything that doesn't fit.
+- Outcome: **Done.** 2026-11-15, `@ux.designer`: `2.build/style-note.md` now describes `docs/prototype/app.css` as the source of truth (Lexend / Inter / DM Mono, 6px radii, the orange, brass, slate and bordeaux status families, motion and reduced-motion rules) and has an Icons section for Iconoir. `2.build/ux.md` §6 now says "Done" and points to it.
 
 ### H-052: Record B3 choices: the date guardrail allows a date copied from the agent's input; recipient code `LBR`; `run_unit` replaced
 - From: @backend.eng (B3 steps 3 to 5, operator decisions 2026-11-18)   To: @system.arch   Date: 2026-11-18
