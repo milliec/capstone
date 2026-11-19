@@ -35,6 +35,9 @@
 
 {% block main %}
 <div class="inner">
+  {#- Stacked layout only (1100 px and narrower): the sign-in box comes first, so the wordmark leads it;
+      the story panel below drops its own. Hidden on wide screens (site.css). Decorative repeat. -#}
+  <p class="brand brand-narrow" aria-hidden="true"><b>acme</b><i></i></p>
   <h1>Sign in to the demo</h1>
   <p class="intro">Choose a role to explore the demo with mock data. You don't need a password.</p>
   {{ ui.refusal_top(refusal) }}

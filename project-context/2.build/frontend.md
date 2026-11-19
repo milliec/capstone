@@ -101,7 +101,7 @@ looked up.
 | **States** | default; refused (`VALIDATION`: an identity that does not exist) |
 | **Reads** | `identities[]` (`identity_id`, `label`) ✅; `refusal` ✅ (a plain sentence on this page; every other page gets the shared refusal object, V-12) |
 | **Shows** | no sidebar; "acme"; H1 "Sign in to the demo"; the intro line (carries the demo label, UX-001); two forms, equal weight, each with its hint; "The fund and the firm are fictional." |
-| **Left panel** | **Operator decision 2026-11-17 (option C, H-037):** the mock-up's ivory panel: wordmark, three decorative cards (`aria-hidden`, hidden below 1100 px, no per-date labels so the answer key is not shipped), the tagline "AI drafts. People approve." and two first-person paragraphs. **Portfolio voice on this page only**; every other page keeps the product voice (ux.md §1.6). The tagline is a paragraph, so "Sign in to the demo" stays the one H1 |
+| **Left panel** | **Operator decision 2026-11-17 (option C, H-037):** the mock-up's ivory panel: wordmark, three decorative cards (`aria-hidden`, hidden below 1100 px, no per-date labels so the answer key is not shipped), the tagline "AI drafts. People approve." and two first-person paragraphs. **Portfolio voice on this page only**; every other page keeps the product voice (ux.md §1.6). The tagline is a paragraph, so "Sign in to the demo" stays the one H1. At 1100 px and narrower the sign-in box comes first, with a small wordmark, and this panel follows below it without its own wordmark (S-33) |
 | **Posts** | `POST /sign-in` with `identity_id` (hidden), one form per identity. Buttons: "Sign in as the compliance specialist", "Sign in as the General Partner / Fund Manager" |
 
 ### Page 2 · Filing rules
@@ -441,7 +441,7 @@ with a 22 px `.sq` heading and 15 px rows, cards use `.evidence` (source and AI'
 side above 1180 px) and the sidebar foot has the `.avatar`. One deliberate difference: the
 mock-up draws the in-progress step in orange; here it is brass, matching the operator's status
 families (orange is "Your turn" only). **Breakpoint:** the sidebar stays beside the content down to
-960 px (was 1100 px in the mock-up, which was a guess); below that it stacks.
+960 px (was 1100 px in the mock-up, which was a guess); below that it becomes a slim top bar with a Menu button (S-32, H-062).
 
 **Sections taken from `app.css`**
 
@@ -599,6 +599,8 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | ✅ | Rendered 2026-11-19 with B2: approve with no weekend choice gives 422, the top line and the sentence in the card; no `required`. Typed text kept, answer shown unchosen (ux.md) |
 | S-30 | H-048 part 2: look at each page with each refusal | ✅ | Rendered 22 cases in Chromium (page 3, 4, 5, 6, ended review). **One gap fixed:** `ALREADY_DECIDED` (G1, G2) left the card without its sentence (the card is decided, so no form); now shown in the decided block (2 Tier 2 tests). Not reachable from the UI, so not looked at: `QUOTE_CHECK_FAILED`, `RUN_STAGE_RUNNING`, `RUN_NOT_FAILED`, `RETRY_*` |
 | S-31 | H-055 (1): print the server's status | ✅ | `check_rules.html` no longer checks for `DEMO_ROW_NOT_APPROVABLE`; it prints `status` and `status_tone`. Checked: "Approval blocked" shows after the refusal and after a reload |
+| S-32 | H-062 (operator): phone menu below 960 px | ✅ | `parts/sidebar.html` + new `parts/side_body.html`, `site.css` (959 px block). Slim bar (56 px): wordmark, "Your turn" text tag, native `<details>` Menu that opens over the content. Checked in Chromium at 360, 768 and 1024 px: sidebar unchanged at 1024; keyboard Tab and Enter work; the GP calendar has no sideways scroll at 360. **Not caused by the menu:** a table on the specialist rule page is 528 px wide at 360 px (specialist pages are specified from 1024 px). Changes 2 pictures at 360 px: `07-calendar-gp-published` and `07-calendar-gp-empty`; neither re-recorded |
+| S-33 | Sign-in page, stacked layout (1100 px and narrower), operator 2026-11-19 | ✅ | Built to ux.md page 1's own intent ("the sign-in box comes first on small screens"), which the build had missed: only the cards were hidden. Now `.enter` is ordered first with a small `acme` wordmark (`.brand-narrow`, decorative); the story panel follows with no second wordmark and a 28 px tagline. Checked at 360, 768, 1280 px: both buttons end at 470 px on a 740 px screen; 1280 px unchanged; Tab goes skip link, specialist, General Partner. Reading order: the story is still first in the HTML; the skip link goes to the sign-in box. Changes `01-sign-in-360`; not re-recorded |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
 
 ---
@@ -692,9 +694,9 @@ column is kept as the record of the interim behaviour.
 | Page 7 | no summary cards, no two-month grid, heading "All entries" without the year; "Who files" and "Why" empty | **Built (B12, H-040, H-041):** summary cards with the dot chart, and one calendar with Month (default), Year and List views, all arranged on the page from the entries sent (display-only, W-5, W-6); "Who files" and "Why" filled (V-10). V-11 `summary`, `weeks` and `months[]` are not needed and not built | page 7 as built, above |
 | Refusals | every ux.md §5 refusal on the page, with its 409 or 422 status | every ux.md §5 refusal on the page | V-12 and B2 |
 
-**Later (not this sprint).** Collapsible nav below the breakpoint (no-JS `<details>`/`<summary>`
-first, then keyboard and screen-reader checks). Until then, below 960 px the sidebar stacks above
-the content (operator, 2026-11-17).
+**Later (not this sprint).** Collapsible nav below the breakpoint: done 2026-11-19 (S-32, H-062):
+below 960 px the sidebar is a top bar with a native `<details>` Menu; keyboard checked. Still open:
+closing the panel on an outside click or Escape (needs a script; asked in H-062).
 
 **Wording to confirm with `@ux.designer`** (not in ux.md): the empty "Paragraphs no rule uses" list
 on page 6 shows "None."; the fallback lines above that drop a count or date; the rule-card column
@@ -791,6 +793,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
     1280 px the third card wrapped onto a second row. Decided: **always one row**: every unit card
     shares one row, tops aligned, stacked below 760 px. A new refresh is proposed for that layout.
 - **Mobile calendar (360 px, operator 2026-11-19):** the General Partner's calendar at 360 px needs a layout fix (it is now one 9,276 px column of 22 entries). Not yet specified what is wrong; `@frontend.eng` to look with the operator. Until then `07-calendar-gp-published-360` keeps its old baseline and the visual check fails on that one picture.
+- **Mobile calendar (360 px) — 2026-11-19, in progress:** built as H-062 (phone menu). Both 360 px calendar pictures (`07-calendar-gp-published-360`, `07-calendar-gp-empty-360`) now differ and wait for the operator's approval; the operator asked to propose the published one only, so the empty one needs a decision.
 
 ## Audit
 
@@ -878,3 +881,6 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   connect next": the three agent functions replace `run_unit` (B3 step 5, PR #96). One sentence only.
 - 2026-11-19 · persona `frontend-eng` · `sync-docs` · §2 ("Approval blocked" is now sent) and §7 step 6 (B2 and B7 built) updated after the H-055, H-048 and H-027 change set; no rejected items.
 - 2026-11-19 · persona `frontend-eng` · `update-visual-baselines` (operator approved 15 of 16) · 15 snapshots re-recorded; `07-calendar-gp-published-360` held back (mobile fix, see Open Questions).
+- 2026-11-19 · persona `frontend-eng` · operator decision (phone menu below 960 px, H-062) · `sidebar.html`, `side_body.html`, `site.css`; no snapshot re-recorded.
+- 2026-11-19 · persona `frontend-eng` · operator request (sign-in first on narrow screens, S-33) · `sign_in.html`, `site.css`; no snapshot re-recorded.
+- 2026-11-19 · persona `frontend-eng` · `sync-docs` (operator-approved, 3 items) · sidebar breakpoint paragraph, "Later" note, sign-in left-panel row; no rejected items. Also: 3 baselines re-recorded with approval (`01-sign-in-360`, `07-calendar-gp-published-360`, `07-calendar-gp-empty-360`).

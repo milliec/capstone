@@ -100,6 +100,9 @@ a.brand:hover b { text-decoration: underline; text-decoration-color: var(--brass
 .who .r { font-size: 12px; color: var(--muted); }
 .main { padding: 28px 32px 64px; min-width: 0; max-width: 1240px; }
 
+/* Phone menu (below 960 px, operator decision 2026-11-19): hidden on wide screens, see the 959px block */
+.topbar { display: none; }
+
 /* 4. Page parts */
 .crumb ol { list-style: none; margin: 0 0 14px; padding: 0; font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); }
 .crumb li + li::before { content: "›"; margin-right: 8px; color: var(--muted); }
@@ -397,6 +400,7 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
 .enter h1 { font-size: 30px; }
 .enter .intro { margin-bottom: 4px; }
 .enter .brand { padding: 0; } /* the sidebar's 28px inset does not apply on sign-in */
+.enter .brand-narrow { display: none; } /* shown only in the stacked layout, see the 1100px block */
 .enter .hint { margin-top: 8px; }
 .role-form { margin: 0; }
 .role { display: block; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 18px 20px; cursor: pointer; font: inherit; color: inherit; transition: background-color 200ms linear, border-color 200ms linear; }
@@ -458,8 +462,13 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
   /* Stacked: each half only as tall as its content, so the sign-in buttons are not pushed down */
   .signin.with-stage { grid-template-columns: minmax(0, 1fr); align-content: start; min-height: 0; }
   .stage, .enter { padding: 32px 24px; }
-  .stage .tagline { margin-top: 32px; }
-  .enter { justify-content: flex-start; }
+  /* The sign-in box comes first (ux.md page 1: "the sign-in box comes first on small screens"); the story
+     panel follows as a quieter "about" block with no second wordmark and a smaller tagline. */
+  .enter { order: -1; justify-content: flex-start; }
+  .enter .brand-narrow { display: flex; margin-bottom: 8px; }
+  .stage .brand { display: none; }
+  .stage .tagline { margin-top: 0; font-size: 28px; }
+  .stage > p:not(.brand):not(.tagline) { font-size: 16px; }
   .shell { grid-template-columns: 232px minmax(0, 1fr); }
   .main { padding: 24px 20px 56px; }
   .brand, .product, .nav a, .side-foot { padding-left: 20px; padding-right: 20px; }
@@ -472,6 +481,29 @@ blockquote.small { font-size: 13px; line-height: 1.5; margin-top: 6px; }
   .shell { grid-template-columns: minmax(0, 1fr); } .side { position: static; height: auto; }
   .kpis, .kpis.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .main { padding: 24px 12px 48px; }
+
+  /* Phone menu: the sidebar is replaced by a slim bar (about 56 px), so the page content starts
+     straight under it. The menu panel opens OVER the content, it does not push it down. */
+  .side { display: none; }
+  .shell { gap: 8px; padding: 8px; }
+  .topbar { display: flex; align-items: center; gap: 12px; position: relative; min-height: 56px;
+    padding: 8px 12px 8px 16px; background: var(--card); border-radius: var(--r-panel); }
+  .topbar .brand { padding: 0; }
+  .topbar .brand b { font-size: 26px; }
+  .topbar .turn { display: inline-flex; }
+  .menu { margin-left: auto; }
+  .menu summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+    min-height: 40px; padding: 0 14px; border: 1px solid var(--ink); border-radius: var(--r-btn);
+    font: 400 15px/1 var(--font-head); letter-spacing: -0.01em; color: var(--ink); }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu summary:hover, .menu[open] summary { background: var(--panel); }
+  .menu .menu-icon { width: 16px; height: 2px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; flex: none; }
+  .menu-body { position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; display: flex;
+    flex-direction: column; background: var(--card); border-radius: var(--r-panel); padding: 4px 0 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
+  .menu-body .fund { margin: 12px 20px 0; padding-top: 4px; border-top: 0; }
+  .menu-body .nav { margin-top: 12px; }
+  .menu-body .side-foot { margin-top: 12px; }
 }
 @media (max-width: 760px) {
   .units-grid { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); }
