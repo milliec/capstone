@@ -483,3 +483,10 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   B008, operator); 37 lint findings fixed (24 by ruff's safe fixes, 13 by hand); mock-up checks
   skip without `docs/prototype`; `make lint`. 270 tests pass locally; 221 passed and 4 skipped in a
   committed-files-only copy. Handoff H-057 to `@project.mgr`. No model call.
+- 2026-11-19 · persona `backend-eng` · B10 run instructions (operator request): README "Getting
+  started" rewritten: prerequisites (Git, uv, make, Node for the visual check), install, run
+  (`/health`), the demo walkthrough (the green path, with the answer key §5 G1 choices), the failure
+  demo, reset, settings, checks (incl. CI), troubleshooting; planning-docs part kept; "Project
+  structure" and "How to contribute" lines on running updated. Every command and page label checked
+  against the app (started on a spare port; `/health` 200). Other stale README parts (the status
+  note, "What happens next", the persona status table) left for the operator. No code change.
