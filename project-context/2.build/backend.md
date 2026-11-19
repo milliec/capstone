@@ -232,8 +232,10 @@ or two rules giving one entry ID (DL-35, both named) stop generation: stage C's 
 ## B7: the planted demo row (2026-11-19)
 
 Built straight after B4 at the operator's request (2026-11-19). The Build card puts B5 and B12
-before B7: B12 is built; B5 (templates and CSS, `@frontend.eng`) is still in progress, and B7 needed
-nothing from it (the G1 page already had the refusal's place).
+before B7: B12 is built, and so is B5 (templates and CSS, `@frontend.eng`; `frontend.md` §9, S-01
+to S-34 all ✅). B7 needed nothing from either (the G1 page already had the refusal's place).
+*(Corrected 2026-11-19, H-059: this note first said B5 was "still in progress"; `frontend.md` showed
+it done.)*
 
 | What | Where |
 |---|---|
@@ -339,7 +341,8 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - The operator's request for stubs that move run states overrides the Build card's "no state
   logic" wording for the shell only (Open Question 2).
 - `trace` was built in B3 step 6 with the §4 columns (H-035).
-- Templates are placeholders; their look is `@frontend.eng`'s work in B5.
+- The templates and CSS are `@frontend.eng`'s (B5, done: `frontend.md` §9). The backend sends the
+  view fields (H-036) and the refusal object; the pages decide nothing.
 
 ## Open Questions
 
@@ -490,3 +493,8 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   structure" and "How to contribute" lines on running updated. Every command and page label checked
   against the app (started on a spare port; `/health` 200). Other stale README parts (the status
   note, "What happens next", the persona status table) left for the operator. No code change.
+- 2026-11-19 · persona `backend-eng` · `document-backend` · H-059: B5's status corrected to done, to
+  match `frontend.md` §9 (S-01 to S-34 ✅): the B7 section notes the correction, and Assumptions no
+  longer calls the templates placeholders. The B7 audit line above ("B5 is still in progress") is
+  history and stays; this line corrects it. H-061: H-036 closed (V-12 landed with B2, PR #75). Docs
+  only. No model call.
