@@ -34,27 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-058: Bring the README's status note, "What happens next" and persona status table up to the Build state
-- From: @backend.eng (operator request, 2026-11-19)   To: @project.mgr   Date: 2026-11-19
-- Touches: `README.md`: the status note at the top ("Status: Define phase … The architecture (SAD) is next … an early shell"), "How it is being built: the AAMAD crew" (the persona status table: `@system.arch` "Next", every Build persona "Not started"), and "Next steps for contributors › What happens next" (still lists writing the SAD and designing the interaction). "Getting started" is current (B10 run instructions, PR #107).
-- Ask: Rewrite those three parts to the current Build state. From the backend's side, as of 2026-11-19: B1 (incl. the CI follow-up, PR #106), B2, B3 stand-in part (steps 1 to 6 and 7a, PRs #92 to #100; step 7b, installing CrewAI, is postponed until just before the spike), B13a (#101), B4 (#103), B7 (#104) are merged; **the first stand-in green path passes** (#105, H-056); B12 is built by `@frontend.eng`, B5 is still in progress there; the 16 visual snapshots wait for `@frontend.eng`'s proposal and the operator's approval (H-055). **Next on the Build card: the operator pins DL-40 (model IDs)**, then 7b and the spike, B8, B9, B13b, B6, B10. Please confirm the other personas' states with them (Define is done; `@system.arch` and `@ux.designer` are past their Define work).
-- Why: The README is the public front page; it still describes the Define phase.
-- Outcome: (the owner fills this in)
-
-### H-057: H-003 items 1 and 2 are built in CI; please record CI in setup.md and close H-003
-- From: @backend.eng (B1 follow-up, operator request 2026-11-19)   To: @project.mgr   Date: 2026-11-19
-- Touches: H-003; 2.build/setup.md ("Git hooks", "Tests and checks" table, `requirements-dev.txt` mention, the "no CI code" line in "What is not done in this block"); `.github/workflows/ci.yml`; `requirements-dev.txt`
-- Ask: `.github/workflows/ci.yml` now runs `aamad validate` (installed from `requirements-dev.txt`, `aamad==1.0.1`) with the same temporary qa.md exception as the hook (H-003 item 1), and does **not** run the real-name scan (item 2; nothing from `reference/` reaches GitHub). It also runs ruff (`ruff==0.17.3`, now in `requirements-dev.txt`) and the Tier 1 (blocking) and Tier 2 (non-blocking) tests, per sad.md §5. Please record this in setup.md, including item 3 (the `--no-verify` stop-and-report rule), and close H-003. Details: `backend.md` "B1 follow-up: CI".
-- Why: H-003 is yours, and setup.md says "no CI code" and "Run by hand" for the tests.
-- Outcome: (the owner fills this in)
-
-### H-056: FYI: the first stand-in green path passes (the Build card's gate before any paid call)
-- From: @backend.eng   To: @project.mgr   Date: 2026-11-19
-- Touches: 2.build/setup.md "Timing guardrails" (the day-4 tripwire, the Order line); Build card "First green path"; DL-40, SOQ-25
-- Ask: Record that the first green path passed on 2026-11-19 (`tests/tier1/test_green_path.py`, Tier 1; details in `backend.md` "The first green path"), so the day-4 tripwire is cleared and the next item in the Order is the operator's DL-40 pin. `@qa.eng` co-owns the green path (Order of work) and may want to review the test.
-- Why: The tripwire and the "no paid call before the green path" rule both depend on this date.
-- Outcome: (the owner fills this in)
-
 ### H-055: B7 is in: the server sends "Approval blocked"; the demo rule has its real wording; the snapshot review can start
 - From: @backend.eng (B7)   To: @frontend.eng   Date: 2026-11-19
 - Touches: `backend/web/templates/pages/check_rules.html` (the interim "Approval blocked" logic, lines 16 to 24); the snapshots listed in H-053 and H-054; 2.build/frontend.md §10.1 V-8 (`status`)
@@ -111,13 +90,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 <!-- H-004 to H-026 come from the design exploration in docs/prototype/ (see docs/prototype/HANDOVER.md).
      One entry per difference row. Nothing in docs/prototype overrides sad.md until the owner decides. -->
 
-### H-003: Add `aamad validate` to CI, and make `--no-verify` a stop-and-report
-- From: @system.arch (operator request)   To: @project.mgr   Date: 2026-11-13
-- Touches: setup.md (Git hooks section, and the "no CI code" line in the B1 scope), `.github/workflows/` (new), `requirements-dev.txt` (new, already created by @system.arch at the operator's request), `scripts/git-hooks/run-checks.sh`
-- Ask: (1) Add a CI job that runs `aamad validate` only, as a backup for commits made with `--no-verify`. CI installs the validator with `pip install -r requirements-dev.txt`, which pins `aamad==1.0.1` (the version in the operator's local `.venv`); keep that pin in step with the local one and mention the file in setup.md. It must carry the same temporary qa.md exception as the hook until H-002 removes both together. (2) Keep the real-name scan local only: CI must not run it, and `reference/real-identifiers.txt` must never be uploaded, copied into a CI secret, or committed. (3) Record in setup.md the same rule that is now in the root `CLAUDE.md` (added by @system.arch with the operator's approval): any `--no-verify` commit by an agent is a stop-and-report to the operator, not something to fix quietly. Do not edit `CLAUDE.md` again for this.
-- Why: Hooks are per clone and can be skipped; CI is the shared backstop, but the identifier list is itself sensitive, so that one check stays on the operator's machine.
-- Outcome: (the owner fills this in)
-
 ### H-002: Remove the qa.md exception from run-checks.sh when qa.md is written
 - From: @system.arch (operator request)   To: @project.mgr   Date: 2026-11-13
 - Touches: `scripts/git-hooks/run-checks.sh` (the TEMPORARY qa.md exception in check 3), setup.md open question on qa.md
@@ -126,6 +98,34 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-056: FYI: the first stand-in green path passes (the Build card's gate before any paid call)
+- From: @backend.eng   To: @project.mgr   Date: 2026-11-19
+- Touches: 2.build/setup.md "Timing guardrails" (the day-4 tripwire, the Order line); Build card "First green path"; DL-40, SOQ-25
+- Ask: Record that the first green path passed on 2026-11-19 (`tests/tier1/test_green_path.py`, Tier 1; details in `backend.md` "The first green path"), so the day-4 tripwire is cleared and the next item in the Order is the operator's DL-40 pin. `@qa.eng` co-owns the green path (Order of work) and may want to review the test.
+- Why: The tripwire and the "no paid call before the green path" rule both depend on this date.
+- Outcome (`@project.mgr`, 2026-11-19): **Done.** `2.build/setup.md` "Timing guardrails" now records that the first green path passed on 2026-11-19 (`tests/tier1/test_green_path.py`, PR #105) and that the day-4 tripwire is cleared, so B6 and Tier 2 stay in the plan. The "no paid call" rule is met on its first half only: the operator's DL-40 / SOQ-25 pin, the next item in the Order, is still open. `@qa.eng` co-owns the green path and may review the test.
+
+### H-057: H-003 items 1 and 2 are built in CI; please record CI in setup.md and close H-003
+- From: @backend.eng (B1 follow-up, operator request 2026-11-19)   To: @project.mgr   Date: 2026-11-19
+- Touches: H-003; 2.build/setup.md ("Git hooks", "Tests and checks" table, `requirements-dev.txt` mention, the "no CI code" line in "What is not done in this block"); `.github/workflows/ci.yml`; `requirements-dev.txt`
+- Ask: `.github/workflows/ci.yml` now runs `aamad validate` (installed from `requirements-dev.txt`, `aamad==1.0.1`) with the same temporary qa.md exception as the hook (H-003 item 1), and does **not** run the real-name scan (item 2; nothing from `reference/` reaches GitHub). It also runs ruff (`ruff==0.17.3`, now in `requirements-dev.txt`) and the Tier 1 (blocking) and Tier 2 (non-blocking) tests, per sad.md §5. Please record this in setup.md, including item 3 (the `--no-verify` stop-and-report rule), and close H-003. Details: `backend.md` "B1 follow-up: CI".
+- Why: H-003 is yours, and setup.md says "no CI code" and "Run by hand" for the tests.
+- Outcome (`@project.mgr`, 2026-11-19): **Done.** `2.build/setup.md`: new "CI" subsection under "Git hooks" (what `ci.yml` runs, which steps block, the `requirements-dev.txt` pins for `aamad` and `ruff`, no name scan and no model key, the temporary `qa.md` exception to remove in both places with H-002); the `--no-verify` stop-and-report rule; the "Tests and checks" table now says where each check runs; the "no CI code" line in "What is not done in this block" is marked as B1-as-first-done. H-003 closed.
+
+### H-058: Bring the README's status note, "What happens next" and persona status table up to the Build state
+- From: @backend.eng (operator request, 2026-11-19)   To: @project.mgr   Date: 2026-11-19
+- Touches: `README.md`: the status note at the top ("Status: Define phase … The architecture (SAD) is next … an early shell"), "How it is being built: the AAMAD crew" (the persona status table: `@system.arch` "Next", every Build persona "Not started"), and "Next steps for contributors › What happens next" (still lists writing the SAD and designing the interaction). "Getting started" is current (B10 run instructions, PR #107).
+- Ask: Rewrite those three parts to the current Build state. From the backend's side, as of 2026-11-19: B1 (incl. the CI follow-up, PR #106), B2, B3 stand-in part (steps 1 to 6 and 7a, PRs #92 to #100; step 7b, installing CrewAI, is postponed until just before the spike), B13a (#101), B4 (#103), B7 (#104) are merged; **the first stand-in green path passes** (#105, H-056); B12 is built by `@frontend.eng`, B5 is still in progress there; the 16 visual snapshots wait for `@frontend.eng`'s proposal and the operator's approval (H-055). **Next on the Build card: the operator pins DL-40 (model IDs)**, then 7b and the spike, B8, B9, B13b, B6, B10. Please confirm the other personas' states with them (Define is done; `@system.arch` and `@ux.designer` are past their Define work).
+- Why: The README is the public front page; it still describes the Define phase.
+- Outcome (`@project.mgr`, 2026-11-19): **Done.** `README.md`: the status note now says Build phase, a clickable stand-in app, the first green path passing and no model called yet; "What happens next" is rewritten (Define done, stand-in app built, next: the model pin, then the real agents, snapshots and the rest of the Build card order); the persona table is updated. **Persona states were taken from each persona's own files and handoffs, not confirmed with them:** `@frontend.eng` and `@qa.eng` are marked in progress and `@devops.eng` partly done (run instructions), and `@integration.eng` and `@security.eng` not started. The owners may correct those cells. Note: `frontend.md` marks the seven pages and B12 done while `backend.md` still calls B5 in progress; the README follows `frontend.md` and says "closing checks" remain.
+
+### H-003: Add `aamad validate` to CI, and make `--no-verify` a stop-and-report
+- From: @system.arch (operator request)   To: @project.mgr   Date: 2026-11-13
+- Touches: setup.md (Git hooks section, and the "no CI code" line in the B1 scope), `.github/workflows/` (new), `requirements-dev.txt` (new, already created by @system.arch at the operator's request), `scripts/git-hooks/run-checks.sh`
+- Ask: (1) Add a CI job that runs `aamad validate` only, as a backup for commits made with `--no-verify`. CI installs the validator with `pip install -r requirements-dev.txt`, which pins `aamad==1.0.1` (the version in the operator's local `.venv`); keep that pin in step with the local one and mention the file in setup.md. It must carry the same temporary qa.md exception as the hook until H-002 removes both together. (2) Keep the real-name scan local only: CI must not run it, and `reference/real-identifiers.txt` must never be uploaded, copied into a CI secret, or committed. (3) Record in setup.md the same rule that is now in the root `CLAUDE.md` (added by @system.arch with the operator's approval): any `--no-verify` commit by an agent is a stop-and-report to the operator, not something to fix quietly. Do not edit `CLAUDE.md` again for this.
+- Why: Hooks are per clone and can be skipped; CI is the shared backstop, but the identifier list is itself sensitive, so that one check stays on the operator's machine.
+- Outcome (`@project.mgr`, 2026-11-19): **Done.** Items 1 and 2 were built by `@backend.eng` (`.github/workflows/ci.yml`, H-057): `aamad validate` runs in CI from `requirements-dev.txt` (`aamad==1.0.1`) with the same temporary `qa.md` exception as the hook, and CI does not run the real-name scan. Item 3 (the `--no-verify` stop-and-report rule) and the CI description are recorded in `2.build/setup.md` "Git hooks" and "CI". The `qa.md` exception is still in place in both files until H-002.
 
 ### H-026: Decide the "Not designed" gaps and the scope split for the new mock-ups
 - From: operator (design exploration)   To: operator   Date: 2026-11-14

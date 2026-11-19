@@ -37,6 +37,14 @@ it, DL-44).
 - Order (as in the `sad.md` Build card, after H-040 and DL-54): B1 → B2 → B3 (stand-in only) →
   B13a → B4 → B5 → **B12** → B7 → **first green path** → pin DL-40 → B3 spike → B8 → B9 → B13b →
   B6 → B10. **Drop order:** B6 and Tier 2, then B12 as a whole, then B13b; never T-MAP-1.
+- **First green path passed on 2026-11-19 (H-056, `@backend.eng`).** `tests/tier1/test_green_path.py`
+  (Tier 1; details in `backend.md` "The first green path", PR #105) drives start → step 1 → G1 with
+  the demo row refused then rejected → step 2 → G2 → step 3 → G3 ack → GP view → audit log, with
+  stand-in agents and no model. **The day-4 tripwire is cleared**: B6 and Tier 2 stay in the plan,
+  and the "no paid call before the green path" rule is met on its first half. **Still closed:** the
+  second half, the operator's pin of `SOQ-25` / `DL-40` (model IDs), which is the next item in the
+  Order. `@qa.eng` co-owns the green path and may review the test. The B1 + B2 re-check "after B7"
+  above is still the operator's call.
 
 ## Runtime target
 
@@ -131,11 +139,42 @@ blocked):
    not run the scan (H-003 keeps it local), so there is nothing to change there today.
 3. `.venv/bin/aamad validate`.
 
+**`--no-verify` is a stop-and-report, not a quiet fix (H-003 item 3; same rule as the root
+`CLAUDE.md`).** Never commit or push with `--no-verify`. If a hook blocks, stop and tell the
+operator. An agent that used `--no-verify` says so at once. CI (below) is the backstop for
+`aamad validate` only; it cannot replace the name scan.
+
+### CI (B1 follow-up, H-003 and H-057)
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`, with stand-in
+agents (`AGENTS_MODE=stand_in`, pause 0), **no model key** and read-only permissions. It installs
+`pip install -e ".[test]" -r requirements-dev.txt`. `requirements-dev.txt` pins `aamad==1.0.1` (keep
+it in step with the local `.venv`) and `ruff==0.17.3`.
+
+| Step | Blocks a merge? |
+|---|---|
+| `ruff check backend tests` (settings in `pyproject.toml`; formatting is not checked yet) | Yes |
+| Tier 1 tests: `pytest tests/tier1 tests/test_answer_key.py` | Yes |
+| Tier 2 tests: `pytest tests/tier2` | No (`continue-on-error` until promoted, `sad.md` §9) |
+| `aamad validate`, with the same temporary `qa.md` exception as the hook | Yes |
+
+- **H-003 item 1 (validator in CI): built.** The exception for the one finding `project-context/
+  2.build/qa.md: Build artifact missing` is in `ci.yml` and in `run-checks.sh`. **H-002 removes both
+  in the same change** when `@qa.eng` writes `qa.md`.
+- **H-003 item 2 (no name scan in CI): built.** CI never runs the scan, and
+  `reference/real-identifiers.txt` is never uploaded, copied into a secret or committed.
+- **H-003 item 3:** recorded above.
+- Details and the lint fixes that got CI green: `backend.md` "B1 follow-up: CI". `make lint` runs the
+  same lint locally.
+
 ## Tests and checks
 
 | Check | Command | Runs in the hook or CI? |
 |---|---|---|
-| All Python tests (stand-in agents, no model call) | `make test` | No. Run by hand |
+| All Python tests (stand-in agents, no model call) | `make test` | By hand; **CI runs them too** (Tier 1 blocks, Tier 2 does not) |
+| Lint (ruff) | `make lint` | **CI** (blocks) |
+| Framework validator | `.venv/bin/aamad validate` | The commit and push hooks, and **CI** (both with the temporary `qa.md` exception) |
+| Real-name scan | the command in `CLAUDE.md` | The commit and push hooks only. **Never CI** (H-003) |
 | Visual check (Playwright snapshots of the stubbed UI) | `cd tests/visual && npm run test:visual` | **No.** Not part of `make test`, the commit hook or CI |
 
 **Visual check: install once** (needs Node; the app itself stays Python):
@@ -207,8 +246,11 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 
 ## What is not done in this block
 
-- No backend, frontend, agent or CI code, and no dependency installs (B2 onward).
-- No `README.md` created or changed.
+- No backend, frontend, agent or CI code, and no dependency installs (B2 onward). *This describes
+  B1 as first done on 2026-11-13. `@backend.eng` has since built B2 to B4, B7, B13a and the CI
+  workflow (H-057); this section is not rewritten, and the sections above record the current state.*
+- No `README.md` created or changed in B1. (Later: `@backend.eng` wrote the run instructions, PR
+  #107, and `@project.mgr` brought the status parts up to date, H-058.)
 - No diagram was needed.
 
 ## Hand-off: what is next for each downstream agent
@@ -278,3 +320,11 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 - 2026-11-18 · persona `backend-eng` · `sync-docs` (operator-approved) · after B3 step 6: the stage
   limit variables are `STAGE_TIME_LIMIT_A`, `_B`, `_C` (env table and the Open Point on names). The
   operator kept the rename. No other change.
+- 2026-11-19 · persona `project-mgr` · action `document-setup` (handoffs H-056, H-057; H-003 closed) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · recorded the first green path pass and the cleared day-4 tripwire
+  in "Timing guardrails"; added the CI subsection and the `--no-verify` rule under "Git hooks"; the
+  "Tests and checks" table now says where each check runs; marked the B1 "not done" list as
+  B1-as-first-done. No code. No model call.
+- 2026-11-19 · persona `project-mgr` · `sync-docs` (handoff H-058, operator request) · `README.md`
+  status note, persona status table and "What happens next" brought up to the Build state. No code.
+  No model call.
