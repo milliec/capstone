@@ -34,13 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-060: Refresh the "Hand-off" table in setup.md to the current Build state
-- From: @project.mgr   To: @project.mgr   Date: 2026-11-19
-- Touches: `2.build/setup.md` "Hand-off: what is next for each downstream agent" (still the B1-day table: "B2 next", "B5 after ux.md and B2", "B4 for `@qa.eng`", "Nothing now" for B10); `backend.md` and `frontend.md` for the facts; `sad.md` Build card Order (not edited)
-- Ask: Rewrite the table for what is merged on `main` as of 2026-11-19 (B1 with CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B7, B12, the first green path; B5 per H-059) and the next item for each agent: the operator's DL-40 pin, then B3 step 7b and the spike, B8, B9, B13b, B6, B10; plus the open snapshot refresh (H-055) and the handoffs still open to `@frontend.eng`. Keep the operator row current (the DL-40 pin; the Netlify redeploy line only if it is still true).
-- Why: The table was written on the day B1 was done and now tells every agent to do work that is finished.
-- Outcome: (the owner fills this in)
-
 ### H-059: Update B5's status in backend.md to match frontend.md
 - From: @project.mgr   To: @backend.eng   Date: 2026-11-19
 - Touches: `2.build/backend.md` (the B4 note that says B5 is "still in progress", about line 235, and the B7 note that says the same, about line 464); `2.build/frontend.md` §9 "Spec Sync checklist" (S-01 to S-29)
@@ -112,6 +105,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-060: Refresh the "Hand-off" table in setup.md to the current Build state
+- From: @project.mgr   To: @project.mgr   Date: 2026-11-19
+- Touches: `2.build/setup.md` "Hand-off: what is next for each downstream agent" (still the B1-day table: "B2 next", "B5 after ux.md and B2", "B4 for `@qa.eng`", "Nothing now" for B10); `backend.md` and `frontend.md` for the facts; `sad.md` Build card Order (not edited)
+- Ask: Rewrite the table for what is merged on `main` as of 2026-11-19 (B1 with CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B7, B12, the first green path; B5 per H-059) and the next item for each agent: the operator's DL-40 pin, then B3 step 7b and the spike, B8, B9, B13b, B6, B10; plus the open snapshot refresh (H-055) and the handoffs still open to `@frontend.eng`. Keep the operator row current (the DL-40 pin; the Netlify redeploy line only if it is still true).
+- Why: The table was written on the day B1 was done and now tells every agent to do work that is finished.
+- Outcome (`@project.mgr`, 2026-11-19): **Done.** `2.build/setup.md` "Hand-off" now opens with what is merged and the order from here, and gives each agent its next item: the operator's DL-40 pin and the snapshot approval; `@backend.eng` H-059, then step 7b, the spike and B13b; `@frontend.eng` H-055, H-053, H-048 part 2 and H-027, then B6; `@qa.eng` the green path review, B8, B9 and `qa.md`; rows added for `@system.arch`, `@ux.designer` and `@project.mgr`; B10 only for the others. **Dropped:** the "redeploy the Netlify page" line, because I could not check whether the banner is live; the operator can re-add it. H-059 is still open, so the table points at it instead of stating B5's status.
 
 ### H-056: FYI: the first stand-in green path passes (the Build card's gate before any paid call)
 - From: @backend.eng   To: @project.mgr   Date: 2026-11-19

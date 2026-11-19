@@ -255,14 +255,22 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 
 ## Hand-off: what is next for each downstream agent
 
+*Refreshed 2026-11-19 (H-060). Merged on `main`: B1 with CI, B2, B3 stand-in steps 1 to 6 and 7a,
+B13a, B4, B7, B12, and **the first green path** (H-056). B5's status is being aligned between
+`backend.md` and `frontend.md` (H-059). Order from here, per the Build card: operator pins DL-40 →
+B3 step 7b and the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then B12, then
+B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs.md`.*
+
 | Agent | Next |
 |---|---|
-| `@backend.eng` | **B2**: service layer, run states and gate checks, before any page or agent. Installs dependencies (CrewAI and the web stack) and records them here. Checkpoint at 1.3 days for B1 + B2 |
-| `@ux.designer` | `ux.md`, the page-by-page note for the seven pages, needed before B5 |
-| `@frontend.eng` | B5 templates in `backend/web/`, after `ux.md` and B2 |
-| `@qa.eng` | B4 date engine against the 22-entry answer key; Tier 1 tests; the first green path with `@backend.eng` |
-| `@security.eng`, `@devops.eng` | B10 only. Nothing now |
-| Operator | Pin DL-40 only after the first green path passes. Redeploy the Netlify page after this branch merges so the banner goes live |
+| Operator | **Pin DL-40 / SOQ-25** (model IDs in `.env`, never committed, and in `decision-log.md`). Nothing that costs money runs before it. Then say when B3 step 7b (installing CrewAI) and the spike start. Approve the batched visual snapshot refresh (H-053, H-054, H-055). Re-check the B1 + B2 timing after B7 |
+| `@backend.eng` | H-059 (B5 status in `backend.md`). After the DL-40 pin: **B3 step 7b** (install CrewAI, build the crews behind the same agent functions), then the spike with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows |
+| `@frontend.eng` | Open handoffs: **H-055** (print the server's "Approval blocked" status and propose the 16 new snapshots, with H-053 and H-054), **H-053** (look at the flag box), **H-048** part 2 (look at each page with each of the 17 refusals) and **H-027** (confirm the weekend-option refusal). Later: **B6** light visual pass (dropped first) |
+| `@qa.eng` | Review `tests/tier1/test_green_path.py` (co-owned, H-056). Then **B8** the evaluation runner, with `T-MAP-1` passing before the first evaluation run; **B9** tuning and one evaluation cycle with the operator. Writes `2.build/qa.md` in **B10**, which ends the temporary validator exception (H-002) |
+| `@ux.designer` | Nothing blocking. Answers questions from `ux.md` and reviews the pages again after B6 |
+| `@system.arch` | Nothing blocking. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
+| `@project.mgr` | This table and the README stay current as blocks merge. When `qa.md` exists, remove the temporary `qa.md` exception in `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` together (H-002) |
+| `@security.eng`, `@devops.eng`, `@integration.eng` | **B10** only (acceptance pass, security checklist, rehearsal, final run instructions). The README run instructions already exist (PR #107). Nothing before the green path and the evaluation cycle |
 
 ## Sources
 
@@ -327,4 +335,8 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   B1-as-first-done. No code. No model call.
 - 2026-11-19 · persona `project-mgr` · `sync-docs` (handoff H-058, operator request) · `README.md`
   status note, persona status table and "What happens next" brought up to the Build state. No code.
+  No model call.
+- 2026-11-19 · persona `project-mgr` · action `document-setup` (handoff H-060) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · "Hand-off" table rewritten for the Build state after the first
+  green path. The old Netlify-banner line was dropped: the banner's state was not checked. No code.
   No model call.
