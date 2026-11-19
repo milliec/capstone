@@ -178,59 +178,124 @@ the work and hand over through written documents in `project-context/`. Persona 
 
 ## Getting started
 
-### Run the app shell (stand-in agents only)
-
-The app is an early shell: mock sign-in and the seven pages from ux.md, lightly styled, driven by
-stub services and stand-in agents. **No AI model is called.** Full run instructions come in B10.
-
-The pages never call an AI themselves: they show what the service functions return. The CrewAI
-crews connect in block B3, behind `backend/runtime/agents.py`, which today returns stand-in
-outputs with a short pause per unit. Switching from stand-in agents to the real model changes no
-page.
-
-```bash
-make install              # Python 3.12 .venv, app and test dependencies, git hooks
-cp .env.example .env      # then set SESSION_SECRET to any local random value
-make run                  # open http://localhost:8000 ; stop with Ctrl+C
-make test                 # every test, stand-in agents, no model call
-```
-
-**Sign in** with one of the two mock identities (no password):
-
-- **Compliance specialist**: Filing rules, start a review, steps 2 to 4, publish.
-- **General Partner / Fund Manager**: the calendar only, view only.
-
-Tick "Make step 1 fail (demo)" on the start form to see the failed state. To start from nothing,
-stop the app and delete `data/app.db`.
-
-### Work on the planning documents
-
-These steps get you set up to read and work on the planning documents.
+The app runs on your own machine as one process: a FastAPI server that shows the seven pages and
+runs the review. **It uses stand-in agents: fixed test answers, no AI model is called and nothing
+costs money.** Every page says so. Real model calls come later, only for measured runs (see the
+SAD's Build card).
 
 ### Prerequisites
 
-- Git
-- Python 3.12 (the app needs `>=3.12,<3.14`; `make install` creates `.venv` with it via `uv`)
-- An AI coding tool that can load persona files, such as Claude Code or Cursor
+- **Git**
+- **[uv](https://docs.astral.sh/uv/)**, which `make install` uses to create the Python 3.12
+  environment (the app needs Python `>=3.12,<3.14`)
+- **make** (preinstalled on macOS and Linux)
+- **Node.js**, only if you want to run the visual check (see "Checks")
 
-### 1. Clone and set up
+### 1. Install
 
 ```bash
 git clone <this-repo-url>
 cd capstone
-
-# Create an isolated Python environment and install the AAMAD command-line tool
-python3 -m venv .venv
-.venv/bin/pip install aamad
+make install              # creates .venv (Python 3.12), installs the app, test and dev tools, git hooks
+cp .env.example .env      # your local settings; .env is git-ignored and never committed
 ```
 
-### 2. Check the documents pass the framework's quality gates
+Then open `.env` and set `SESSION_SECRET` to any long random value, for example the output of:
 
 ```bash
-.venv/bin/aamad validate
+python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-### 3. Read in this order
+Leave `AGENTS_MODE=stand_in`. No API key is needed.
+
+### 2. Run the app
+
+```bash
+make run                  # open http://localhost:8000 ; stop it with Ctrl+C
+```
+
+`http://localhost:8000/health` answers `{"status": "ok"}` once the app is up. The database is a single SQLite
+file, `data/app.db`, created on first start.
+
+**Sign in** with one of the two mock identities (no password; sign-in is a demo, not access
+control):
+
+- **Compliance specialist**: Filing rules, start a review, check and decide at each step, publish.
+- **General Partner / Fund Manager**: the published calendar only, view only.
+
+### 3. Walk through a review (the demo path)
+
+This is the path the automated green-path test follows (`tests/tier1/test_green_path.py`).
+
+1. Sign in as the **General Partner**: the calendar says it is being prepared. **Sign out.**
+2. Sign in as the **Compliance specialist**. On **Filing rules**, tick **"Add the demo rule
+   (rule 7)"** and press **Start a new review**. The review page fills in unit by unit (each
+   stand-in step waits about a second, so you can watch it work).
+3. **Step 2, check the rules** (7 rules). For each rule, choose **Approve** or **Reject**:
+   - On **rule 7 (the demo rule)**, try **Approve**: the server refuses it, because its quote is
+     genuine but does not support the rule. Choose **Reject** and give a reason, for example
+     "Quote doesn't support the rule".
+   - To approve, choose what happens **if the deadline falls on a weekend or holiday**. The demo
+     uses: rule 1 *following working day*, rule 2 *keep the date*, rule 3 *following working day*,
+     rules 4 and 5 *preceding working day*, rule 6 *keep the date*.
+   - Where the source doesn't say **who files**, pick one: rules 2 and 3 *Fund administrator*,
+     rule 5 *AIFM*, rule 6 *Tax advisor*.
+   - **Rule 3** carries a checker flag (two sources disagree), so approving it needs a short
+     reason.
+   - Press **Finish checking**.
+4. **Step 3, confirm what applies** (6 answers). Confirm each answer the AI gave. On **rule 4**
+   the AI can't tell (registration not confirmed): choose **Yes, add it until someone confirms**
+   and give a reason. Press **Finish and calculate dates**.
+5. **Step 4, publish.** Check the 22 dates, read the rejected rule and the unused paragraphs, tick
+   the box that says you've read them, and press **Publish calendar**.
+6. Sign out and sign in as the **General Partner**: the published calendar shows 22 dates, 4 of
+   them marked "May not be required".
+
+**See a failed review:** tick **"Make step 1 fail (demo)"** on the start form. Step 1 stops at its
+first unit, the review ends as failed, and the page offers a new review.
+
+**Start again from nothing:** stop the app and delete `data/app.db`.
+
+### Settings (`.env`)
+
+| Setting | What it does |
+|---|---|
+| `AGENTS_MODE` | `stand_in` (the default): fixed answers, no model. `real` is not built yet: the agent functions refuse it, and the model IDs wait for DL-40 |
+| `STAND_IN_UNIT_PAUSE_S` | Seconds each stand-in step waits, so you can watch the units fill in. Default 1 |
+| `RUN_COST_CAP_USD` | The hard stop on one review's model cost. Default 2.50 (always 0 with stand-in agents) |
+| `STAGE_TIME_LIMIT_A`, `_B`, `_C` | Seconds before a step is stopped as too slow. Defaults 375, 150, 30 |
+| `SESSION_SECRET` | Signs the sign-in cookie. Any long random value |
+| `DATABASE_PATH` | Where the SQLite file is. Default `data/app.db` |
+
+`OPENAI_API_KEY` and `SPEND_ACTIVITY` are only for real model calls; leave them as they are.
+
+### Checks
+
+| Command | What it checks | Where it also runs |
+|---|---|---|
+| `make test` | Every test, stand-in agents, no model call | CI (Tier 1 blocks a merge; Tier 2 reports) |
+| `make lint` | Python lint with `ruff` | CI (blocks a merge) |
+| `.venv/bin/aamad validate` | The planning documents pass the framework's quality gates | Git hooks and CI |
+| `cd tests/visual && npm run test:visual` | Screenshots of every page against the approved ones | Nowhere else; run by hand after a page change |
+| The real-name scan in [`CLAUDE.md`](CLAUDE.md) | No real names in committed files | Git hooks only (maintainers; it needs the private list in `reference/`) |
+
+CI is GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), on every pull
+request. The visual check needs a one-off install: `cd tests/visual && npm install
+--ignore-scripts && npx playwright install chromium`.
+
+### Troubleshooting
+
+- **"Address already in use"**: another app holds port 8000. Stop it, or start this one on another
+  port: `.venv/bin/python -m uvicorn backend.main:create_app --factory --port 8001`.
+- **"Review N is still in progress, so a new review can't start"**: only one review runs at a
+  time. Open it from Filing rules and
+  finish it, or abandon it while it waits at a step.
+- **A review stuck on "working" after a restart**: on start-up the app marks any review that was
+  interrupted mid-step as failed ("service restarted"); start a new one.
+
+### Work on the planning documents
+
+#### Read in this order
 
 1. [`capstone-brief.md`](project-context/1.define/capstone-brief.md): one-page summary
 2. [`prd.md`](project-context/1.define/prd.md): happy path, features, constraints
@@ -241,20 +306,16 @@ python3 -m venv .venv
 5. [`mock-data/`](project-context/1.define/mock-data/): the inputs and the answer key
 6. [`decision-log.md`](project-context/1.define/decision-log.md): what changed and why
 
-### 4. Work with a persona
+#### Work with a persona
 
-Open the repo in your AI tool, load a persona file and give it a command. For example, in Claude Code:
+You also need an AI coding tool that can load persona files, such as Claude Code or Cursor. Open
+the repo in it, load a persona file and give it a command. For example, in Claude Code:
 
 ```
 @.cursor/agents/system-arch.md *create-sad
 ```
 
 Each persona's file lists its commands, the files it reads and the files it may write.
-
-### Later: running the app
-
-Once Build starts, the language-model API key will go in a local `.env` file. `.env` is git-ignored and
-must never be committed. Setup and run instructions will be added by `@devops.eng` in the Deliver phase.
 
 ## Project structure
 
@@ -289,11 +350,12 @@ capstone/
 │   ├── 2.build/              # Build artifacts: setup, scaffold plan, UX note, backend notes
 │   └── 3.deliver/            # Empty until Deliver
 │
-├── backend/                  # The one FastAPI app: services, runtime, pages (early shell)
-├── config/                   # Business config, e.g. the fictional fund's profile
+├── backend/                  # The one FastAPI app: services, runtime, pages, stand-in agents
+├── config/                   # The fund profile, the regulation (sources, holidays), the demo row
 ├── tests/                    # tier1/ blocks merges; tier2/ if time allows
 ├── pyproject.toml            # App dependencies (pinned)
-├── Makefile                  # make install, make run, make test
+├── Makefile                  # make install, make run, make test, make lint
+├── .github/workflows/ci.yml  # CI: lint, tests, framework validator (no model, no name scan)
 │
 └── docs/
     ├── aamad-framework.md    # The AAMAD framework's own README
@@ -333,10 +395,9 @@ Two paths are **git-ignored** and never committed: `reference/` (private source 
   the PRD belongs to `@product-mgr` and the SAD to `@system.arch`.
 - **Work on a branch.** Never commit to `main`. Changes reach `main` only through a reviewed pull
   request.
-- **Run the checks** before opening a pull request:
-  - `.venv/bin/aamad validate`
-  - the real-name scan in [`CLAUDE.md`](CLAUDE.md) (maintainers only; it needs the private list in
-    `reference/`)
+- **Run the checks** before opening a pull request (see [Checks](#checks)): `make test`,
+  `make lint`, `.venv/bin/aamad validate`, and the real-name scan in [`CLAUDE.md`](CLAUDE.md)
+  (maintainers only; it needs the private list in `reference/`). CI runs all but the scan.
 
 ### Rules for this public repository
 
