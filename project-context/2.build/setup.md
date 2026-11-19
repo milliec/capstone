@@ -263,9 +263,9 @@ B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs
 
 | Agent | Next |
 |---|---|
-| Operator | **Pin DL-40 / SOQ-25** (model IDs in `.env`, never committed, and in `decision-log.md`). Nothing that costs money runs before it. Then say when B3 step 7b (installing CrewAI) and the spike start. Approve the batched visual snapshot refresh (H-053, H-054, H-055). Re-check the B1 + B2 timing after B7 |
-| `@backend.eng` | H-059 (B5 status in `backend.md`). After the DL-40 pin: **B3 step 7b** (install CrewAI, build the crews behind the same agent functions), then the spike with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows |
-| `@frontend.eng` | Open handoffs: **H-055** (print the server's "Approval blocked" status and propose the 16 new snapshots, with H-053 and H-054), **H-053** (look at the flag box), **H-048** part 2 (look at each page with each of the 17 refusals) and **H-027** (confirm the weekend-option refusal). Later: **B6** light visual pass (dropped first) |
+| Operator | **Pin DL-40 / SOQ-25** (model IDs in `.env`, never committed, and in `decision-log.md`). Nothing that costs money runs before it. Then say when B3 step 7b (installing CrewAI) and the spike start. Approve the 16 proposed visual snapshots (H-053, H-054, H-055). Re-check the B1 + B2 timing after B7 |
+| `@backend.eng` | H-059 (B5 status in `backend.md`) and H-061 (close H-036). After the DL-40 pin: **B3 step 7b** (install CrewAI, build the crews behind the same agent functions), then the spike with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows |
+| `@frontend.eng` | **Waiting for the operator:** the 16 proposed snapshots (H-055, H-053; candidates in `tests/visual/candidates/`, git-ignored). H-027 and H-048 are done. Later: **B6** light visual pass (dropped first). Moves its finished entries to Done (H-061) |
 | `@qa.eng` | Review `tests/tier1/test_green_path.py` (co-owned, H-056). Then **B8** the evaluation runner, with `T-MAP-1` passing before the first evaluation run; **B9** tuning and one evaluation cycle with the operator. Writes `2.build/qa.md` in **B10**, which ends the temporary validator exception (H-002) |
 | `@ux.designer` | Nothing blocking. Answers questions from `ux.md` and reviews the pages again after B6 |
 | `@system.arch` | Nothing blocking. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
@@ -340,3 +340,6 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   `AAMAD_TARGET_RUNTIME=crewai` · "Hand-off" table rewritten for the Build state after the first
   green path. The old Netlify-banner line was dropped: the banner's state was not checked. No code.
   No model call.
+- 2026-11-19 · persona `project-mgr` · action `document-setup` (handoff H-061) · "Hand-off" table
+  updated: `@frontend.eng` row now shows the snapshots waiting for the operator, with H-027 and
+  H-048 done; `@backend.eng` row mentions H-061. No code. No model call.
