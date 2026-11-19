@@ -135,6 +135,15 @@ the summary was itself a snapshot from two days earlier. Lesson: anything that d
 from outside (a portfolio, a pitch, a README) needs a re-check whenever a phase closes. It's like a
 case-study deck that still shows last quarter's screens.
 
+**Two personas writing at once can take the same number.** The backend persona picked the next free
+handoff number, H-063, and opened a pull request. While that request waited, the frontend persona
+merged its own entry, also called H-063, at the same spot in `handoffs.md`. Neither had done anything
+wrong: each checked the numbers on `main`, but the other's entry was still on a separate branch. The
+clash showed up as a request that could no longer merge, and the fix was to renumber the late one
+(H-064). Lesson: when several people or agents add to a shared numbered list, check the highest number
+on every open branch right before committing, not when you start writing. It's like two designers
+both naming a new frame "v3" in shared files: whoever saves second has to rename.
+
 ## 2. Designing AI agent systems
 
 **Why I build this by directing a team of agents.** Two reasons. First, I want first-hand experience
@@ -578,3 +587,5 @@ page's width with the screen's, which a look at the fixed page alone would have 
   which failures are yours)
 - 2026-11-18 · added one note from H-052 (a guardrail should block the mistake, not the topic; refuse
   a date the agent wrote, allow one it copied)
+- 2026-11-19 · added one note from H-064 (two personas took the same handoff number; check every open
+  branch right before committing)
