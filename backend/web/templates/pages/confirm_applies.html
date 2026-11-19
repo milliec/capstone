@@ -123,6 +123,8 @@
     {% include "parts/decision_answer.html" %}
     {%- elif c.decided %}
     <div class="decided">
+      {#- ALREADY_DECIDED lands here: the card has no form now, so its sentence is shown in this block. -#}
+      {{ ui.refusal_here(refusal, "verdict-" ~ i) }}
       {%- if v.decided is defined and v.decided %}
       <p><b>{{ c.decided }}</b> by {{ v.decided.by_label }} at {{ v.decided.at|time }}.{% if v.decided.reason %} Reason: {{ v.decided.reason }}{% endif %}</p>
       {%- else %}

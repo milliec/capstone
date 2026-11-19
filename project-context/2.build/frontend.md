@@ -81,7 +81,7 @@ stepper and run-labels macros replace them.
 ## 2. Each page: states, data read, forms posted
 
 "Reads" names the field the template needs. ✅ = the stub view sends it (H-036 landed 2026-11-17: V-1 to V-12, V-12 with B2). ⏳ = still
-not sent: "Approval blocked" (B7) and the web-layer items of §10.2. The template never works a ⏳ field out by itself.
+not sent: the web-layer items of §10.2. ("Approval blocked" is sent since B7, 2026-11-19, H-055.) The template never works a ⏳ field out by itself.
 
 **Interim lookups: deleted (H-045, 17 Nov 2026).** Until H-036 landed, `parts/lookups.html` held
 ux.md's fixed tables keyed by `run.status` and `run.phase` (status tone, stepper states, the step a
@@ -517,7 +517,7 @@ The **Depends on** column says what must be built for the step to show what `ux.
 | 3 | Tick "Add the demo rule (rule 7)", then "Start a new review" | Review status, step 1 "In progress", pill "AI is drafting the rules", "Last updated at …", labels "Stand-in agents" and "Demo rule on" | Stub (`review_number`, `rendered_at`: H-036) |
 | 4 | Wait about 12 seconds | The page refreshes every 3 s; units go "Waiting" → "Running" → "Done" one by one; then "The rules are ready for you to check", pill "Your turn: check the rules", sidebar "Your turn" | Stub (the "Checking the drafts" group: H-036) |
 | 5 | "Check the rules" | Summary cards, rule index, one card per rule, every card with its quote-check line; the demo rule tagged "Demo" | Stub shows the rules; quote check, paragraph, flags and counts need B2/B3 (H-036) |
-| 6 | On the demo rule: choose "Approve", pick a weekend option, "Approve rule" | **Refused on the page**: lands on the demo rule; "Not done" box with the `DEMO_ROW_NOT_APPROVABLE` sentence; tag "Approval blocked"; top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; nothing preselected | ⚠️ **Needs B2 + B7.** The refusal is a service check; the stub records any approval. **If B2 and B7 are not built by Friday, skip this step** (operator, 2026-11-17) |
+| 6 | On the demo rule: choose "Approve", pick a weekend option, "Approve rule" | **Refused on the page**: lands on the demo rule; "Not done" box with the `DEMO_ROW_NOT_APPROVABLE` sentence; tag "Approval blocked"; top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; nothing preselected | ✅ B2 and B7 are built (2026-11-19). The server refuses the approval and the page shows it (S-30, S-31). Keep this step in the demo. |
 | 7 | Choose "Reject", type "Quote doesn't support the rule", "Reject rule" | "Rejected by Compliance specialist (mock) at 14:05. Reason: …"; "Next rule to decide" | Stub (the decided line's who and when: H-036) |
 | 8 | Decide the other rules (one Approve over a flag, one Reject), "Finish checking" | Review status, step 3 "In progress", "AI is checking what applies", units fill in, then "Ready for you to confirm what applies" | Stub |
 | 9 | "Confirm what applies": confirm one answer, overrule one with a reason, and for the "can't tell" one choose "Yes, add it until someone confirms" with a reason | Each card shows its decided line; progress counts down; "Finish and calculate dates" | Stub (cited facts, progress, decided lines: H-036) |
@@ -596,7 +596,9 @@ Updated after every commit. Status: ⬜ not started · 🟡 in progress · ✅ d
 | S-19 | H-036 view fields from `@backend.eng` | ✅ | V-1 to V-11 landed in PRs #68 to #73, V-12 with B2 (#75) |
 | S-28 | H-045: delete the interim lookups and their fallbacks | ✅ | `001d348` (fallbacks, merged in #78 before it was finished) and `e44f4c7` (the 14 interim tables, an unused import, the stepper test). Every page renders at AT_G1, AT_G2, AT_G3, published, abandoned, declined and failed, plus sign-in, 403 and 404; 138 tests pass |
 | S-29 | H-048: abandon box shows the typed reason | ✅ | `review_status.html` reads `typed.reason` (V-12 dict), only when the refusal's anchor is `abandon`, like the other forms. Checked by rendering: a blank reason comes back as typed (422); a stale page leaves the box empty; a rule 2 refusal does not fill it |
-| S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | 🟡 | Template side done: the card's refusal slot and the top line, no `required` (tested). The refusal itself is B2 |
+| S-22 | H-027 (weekend-option refusal from ux.md, no `required`) | ✅ | Rendered 2026-11-19 with B2: approve with no weekend choice gives 422, the top line and the sentence in the card; no `required`. Typed text kept, answer shown unchosen (ux.md) |
+| S-30 | H-048 part 2: look at each page with each refusal | ✅ | Rendered 22 cases in Chromium (page 3, 4, 5, 6, ended review). **One gap fixed:** `ALREADY_DECIDED` (G1, G2) left the card without its sentence (the card is decided, so no form); now shown in the decided block (2 Tier 2 tests). Not reachable from the UI, so not looked at: `QUOTE_CHECK_FAILED`, `RUN_STAGE_RUNNING`, `RUN_NOT_FAILED`, `RETRY_*` |
+| S-31 | H-055 (1): print the server's status | ✅ | `check_rules.html` no longer checks for `DEMO_ROW_NOT_APPROVABLE`; it prints `status` and `status_tone`. Checked: "Approval blocked" shows after the refusal and after a reload |
 | S-20 | **Spec-to-code pass before merge** | ✅ | 17 Nov 2026: files, macros, form fields and answer markers, CSS classes and markers match. Fixed: §10.1 rewritten as the exact field contract; stale sentences (sign-in panel, charts, tests, visual baseline, calendar grid); two dead CSS rules removed. Open: Question 10 (fields no template reads; the week grid). Run again if anything changes before the merge |
 
 ---
@@ -873,3 +875,4 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
   no UX session. Checked by rendering the refused page. No snapshot shows a refused abandon.
 - 2026-11-18 · persona `backend-eng` · `sync-docs` (operator-approved) · "Where the CrewAI crews
   connect next": the three agent functions replace `run_unit` (B3 step 5, PR #96). One sentence only.
+- 2026-11-19 · persona `frontend-eng` · `sync-docs` · §2 ("Approval blocked" is now sent) and §7 step 6 (B2 and B7 built) updated after the H-055, H-048 and H-027 change set; no rejected items.
