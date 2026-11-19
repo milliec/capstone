@@ -166,8 +166,8 @@ is chosen (DL-40 waits for the first green path).
 collapsed; a date-shaped value is refused unless it is copied word for word from the agent's input
 (H-052); the judge's facts come from the mock profile through a loader; recipient code `LBR`;
 "who files" as the source writes it; a row the verifier has no answer for gets no flags; a
-**temporary demo rule** (`backend/stand_in/demo_row_temporary.yaml`, rule 7, cites `SRC-UCILAW-P1`)
-until B7 replaces it; the visual script's driving steps updated, snapshots not (H-053).
+**temporary demo rule** (rule 7, cited `SRC-UCILAW-P1`) until B7 replaced it with
+`config/demo/planted-row.yaml`; the visual script's driving steps updated, snapshots not (H-053).
 
 **Placeholder dates, B3 step 5 to B4 (operator, 2026-11-18).** Until B4, stage C attached three
 placeholder dates to rules 1, 2 and 4. B4 replaced them with the date engine and deleted
@@ -229,6 +229,22 @@ or two rules giving one entry ID (DL-35, both named) stop generation: stage C's 
 `@qa.eng` shares B4 (Order of work): EC-007 and the answer-key date checks
 (`tests/test_answer_key.py`) both pass.
 
+## B7: the planted demo row (2026-11-19)
+
+Built straight after B4 at the operator's request (2026-11-19). The Build card puts B5 and B12
+before B7: B12 is built; B5 (templates and CSS, `@frontend.eng`) is still in progress, and B7 needed
+nothing from it (the G1 page already had the refusal's place).
+
+| What | Where |
+|---|---|
+| **The fixture** (CR-029, DL-31): a real quote, word for word in `SRC-CSSF15627-P3`, that does not support the rule. The paragraph says how the monthly report is sent (a secure electronic channel); the row claims a monthly "Secure channel transmission confirmation" due 5 calendar days after month end. The quote check passes; nothing in the quote sets a deadline. No answer-key ID. Replaces the temporary demo rule | `config/demo/planted-row.yaml` (the temporary file is deleted) |
+| **The refusal** (DL-44): an approve on a row with origin `demo` is refused with `DEMO_ROW_NOT_APPROVABLE` first among the approve checks, whatever reason or business-day rule was sent, and audited. The Approve button stays visible; reject with a reason is the only decision it can get | `backend/services/decisions.py` `decide_row` |
+| **"Approval blocked"** (ux.md page 4): once an approval has been refused, the server sends that status (tone `problem`) for the demo rule until it is rejected, read from the refusal's audit entry, so it survives a reload | `decisions.get_g1_view` (H-036 V-8 `status`) |
+| **Tests**: T-DEMO-1 (off: 6 rows, no switch entry; on: 7 rows, the 7th `demo`, quote check pass, verifier ran, switch entry; reject logged and in the G3 rejected list, never on a calendar) and T-DEMO-2 (every approve refused and logged, with and without a reason, with each rule; stays pending; "Approval blocked"; G1 waits for the reject; the page shows the sentence) | `tests/tier1/test_demo_row.py` |
+
+Not built: "an evaluation run with the switch on is refused" (T-DEMO-1, EC-R7) needs the evaluation
+runner (**B8**).
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -239,8 +255,8 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 
 ## Known gaps
 
-- `DEMO_ROW_NOT_APPROVABLE` and "Approval blocked" are **B7**; the demo rule (temporary, rule 7)
-  can be approved until then.
+- An evaluation run with the demo-row switch on is not refused yet: there is no evaluation run
+  before the evaluation runner (**B8**, EC-R7).
 - `retry_run` is a stub (**B13b**). CrewAI wiring and the role harness are **B3 step 7**. The
   per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
   spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
@@ -399,3 +415,13 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-19 · persona `backend-eng` · operator decisions on B4: choices 1 to 4 accepted; choice 2
   recorded under Known gaps as an MVP limitation. `sync-docs`: item 1 approved and applied (B2 table
   "Stored data": stage C's dates are the date engine's).
+- 2026-11-19 · persona `backend-eng` · actions `develop-be`, `document-backend` ·
+  `AAMAD_TARGET_RUNTIME=crewai` (CrewAI not installed; step 7b postponed) · `AGENTS_MODE=stand_in` ·
+  **B7** (operator asked for it straight after B4; B5 is still in progress with `@frontend.eng`):
+  `config/demo/planted-row.yaml` replaces the temporary demo rule; `DEMO_ROW_NOT_APPROVABLE` first
+  among the approve checks; "Approval blocked" from the audit log. 269 tests pass (14 new: T-DEMO-1,
+  T-DEMO-2). Visual check: the same 16 snapshots differ (H-053, H-054, H-055), none new, none
+  re-recorded. Handoff H-055 to `@frontend.eng`. No model call. No diagram needed. `sad.md`,
+  `ux.md` and the frozen Netlify page not edited.
+- 2026-11-19 · persona `backend-eng` · `sync-docs` · after B7: Doc sync: no updates.
+- 2026-11-19 · persona `backend-eng` · operator approved the planted row's content as proposed (B7).

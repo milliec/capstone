@@ -1,0 +1,25 @@
+# The planted demo row (CR-029, DL-31, DL-44; block B7). Mock data only.
+#
+# Added by CODE, never by a model, as the last row of stage A when the run's "Add the demo rule"
+# switch is on; stored with origin "demo" and labelled "Demo" wherever it appears. The evaluation
+# runner never reads this file, and an evaluation run refuses to start with the switch on (EC-R7).
+#
+# What makes it a planted row: the quote is REAL, word for word in its paragraph, so the code
+# quote check passes; but the quote does not support the rule. SRC-CSSF15627-P3 says HOW the
+# monthly report is sent (through a secure electronic channel); it sets no duty with a deadline,
+# no frequency and no "5 calendar days". The specialist must notice that and reject it at G1;
+# the server refuses any approval (DEMO_ROW_NOT_APPROVABLE).
+#
+# It carries no answer-key ID and is not drawn from the answer key's rows (CR-016).
+
+obligation_name: Secure channel transmission confirmation
+frequency: monthly
+anchor: month_end
+offset: {unit: calendar_days, amount: 5}
+recipient_code: CSSF
+recipient_name: CSSF
+responsible_role: not stated in source
+applicability_rule: The undertaking reports to the CSSF electronically.
+business_day_rule: not_confirmed
+source_paragraph_id: SRC-CSSF15627-P3
+quote: The report shall be transmitted through the CSSF's secure electronic reporting channel.

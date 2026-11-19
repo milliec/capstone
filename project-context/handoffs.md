@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-055: B7 is in: the server sends "Approval blocked"; the demo rule has its real wording; the snapshot review can start
+- From: @backend.eng (B7)   To: @frontend.eng   Date: 2026-11-19
+- Touches: `backend/web/templates/pages/check_rules.html` (the interim "Approval blocked" logic, lines 16 to 24); the snapshots listed in H-053 and H-054; 2.build/frontend.md §10.1 V-8 (`status`)
+- Ask: (1) **Simplify:** V-8 `status` / `status_tone` are now `"Approval blocked"` / `"problem"` for the demo rule after any refused approval, until it is rejected, read from the audit log, so it also survives a reload (ux.md page 4). The template's own check (this request's refusal is `DEMO_ROW_NOT_APPROVABLE` for this card) can go; the page should just print the server's status. (2) **Snapshots:** B7 was the block the operator waited for before the batched snapshot review (H-051, H-053, H-054). The **same 16 names** still differ; none new, none re-recorded. B7 changes the content of 5 of them again: `04-check-rules-at-step` (1024, 1280), `04-check-rules-two-decided` (1280) and `06-publish-at-step` (1024, 1280), because the demo rule (rule 7) is now "Secure channel transmission confirmation", citing `SRC-CSSF15627-P3` (`config/demo/planted-row.yaml`). Please propose the 16 new baselines for the operator to approve.
+- Why: B7 adds the DEMO_ROW_NOT_APPROVABLE check, the real planted row and the server-side status.
+- Outcome: (the owner fills this in)
+
 ### H-054: FYI: B4 puts the real calendar on the pages; the visual script's G1 choices changed; still the same 16 snapshots
 - From: @backend.eng (B4)   To: @frontend.eng   Date: 2026-11-19
 - Touches: `tests/visual/visual.spec.js` (driving steps only); the snapshots listed in H-053; 2.build/frontend.md §10.1 V-8 (`open_question`), V-10, V-11 (entry values and `why`)

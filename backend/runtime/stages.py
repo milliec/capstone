@@ -41,10 +41,11 @@ from backend.domain.schemas import Row
 from backend.runtime import agents
 from backend.services import runs as runs_service
 from backend.services import audit, stage_store, trace
-from backend.settings import Settings
+from backend.settings import ROOT, Settings
 
-# The temporary demo rule until B7 (operator, 2026-11-18): see the file's own note.
-DEMO_ROW_FILE = agents.STAND_IN_DIR / "demo_row_temporary.yaml"
+# The planted demo row (CR-029, B7): see the file's own note. Not a stand-in answer: code adds it
+# in both modes when the run's switch is on, so it lives in config/, not backend/stand_in/.
+DEMO_ROW_FILE = ROOT / "config" / "demo" / "planted-row.yaml"
 
 # What a unit's output can fail with, short of a crash: a guardrail refusal, or a gap in the
 # stand-in files. Both end the stage as "invalid output" (failure reason 4).
@@ -136,8 +137,9 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
 # --- Stage A --------------------------------------------------------------------------------
 
 def _demo_row() -> dict:
-    """The temporary demo rule, checked against the row schema like any row (it is code's, not a
-    model's, so it skips the extractor's guardrail)."""
+    """The planted demo row (CR-029), checked against the row schema like any row (it is code's,
+    not a model's, so it skips the extractor's guardrail). The quote check and the verifier then
+    run on it like on every other row (SOQ-22)."""
     return Row.model_validate(yaml.safe_load(DEMO_ROW_FILE.read_text(encoding="utf-8"))).model_dump()
 
 
