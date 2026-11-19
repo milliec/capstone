@@ -10,8 +10,8 @@ B3 step 5 (stand-in part):
            the switch is on (code, CR-029) → quote check per row (code, W-04) → check_conflicts
            per row. Units: one per document ("drafting"), then one per row ("checking_drafts").
   Stage B  load the fund facts (code) → judge_applicability per approved row.
-  Stage C  STILL PLACEHOLDER DATES until B4 (the date engine): one entry per approved rule whose
-           final answer is "applies", for rules 1, 2 and 4 only (backend/stand_in/shell_data.py).
+  Stage C  the date engine (B4, backend/domain/dates.py) on every approved rule whose final
+           answer is "applies"; a generation error fails the run with "calendar generation".
 The units run one after another: in stand-in mode the per-unit pause makes them fill in one by one
 (DL-54). A unit whose output fails its guardrail fails the stage with "invalid output" (D5).
 Failure demo (DL-52, rule 11): stage A's first unit, first stage attempt, stand-in mode only.
@@ -34,15 +34,14 @@ import threading
 import yaml
 
 from backend.db.connection import connect
-from backend.domain import sources
+from backend.domain import dates, sources
 from backend.domain.fund_facts import load_fund_facts
 from backend.domain.quote_check import check_quote
 from backend.domain.schemas import Row
 from backend.runtime import agents
 from backend.services import runs as runs_service
-from backend.services import stage_store, trace
+from backend.services import audit, stage_store, trace
 from backend.settings import Settings
-from backend.stand_in import shell_data
 
 # The temporary demo rule until B7 (operator, 2026-11-18): see the file's own note.
 DEMO_ROW_FILE = agents.STAND_IN_DIR / "demo_row_temporary.yaml"
@@ -214,31 +213,36 @@ def _stage_b(conn, settings: Settings, run: dict) -> dict:
 # --- Stage C (placeholder dates until B4) ---------------------------------------------------
 
 def _stage_c(conn, settings: Settings, run: dict) -> dict:
-    """STUB until B4: placeholder dates for rules 1, 2 and 4, if their answer is "applies"."""
+    """Stage C (W-13, B4): the date engine on every approved rule whose final answer at G2 is
+    "applies", with the business-day rule the specialist chose at G1 and the precautionary mark
+    when the specialist added a rule AI could not decide. Code only, no model. If generation
+    stops (a rule with no business-day rule, two rules giving one entry ID), the unit fails with
+    "calendar generation" and nothing is stored (CR-011, rule 9)."""
     units = stage_units(conn, run, "C")
     stage_store.add_units(conn, run, "C", units)
-    stage_store.mark_unit(conn, run, "C", units[0][0], "running")
-    dates = {e["row_n"]: e for e in shell_data.ENTRIES}
-    entries = []
-    for d in conn.execute(
-            """SELECT r.*, vd.decision AS g2_decision, vd.final_value, rd.business_day_rule AS chosen
-               FROM verdict_decisions vd JOIN verdicts v ON v.verdict_id = vd.verdict_id
-               JOIN rows r ON r.row_id = v.row_id
-               JOIN row_decisions rd ON rd.row_id = r.row_id
-               WHERE r.run_id = ? AND vd.final_value = 'applies' ORDER BY r.rowid""",
-            (run["run_id"],)):
-        n = _row_n(d["row_id"])
-        if n not in dates:
-            continue
-        e = dates[n]
-        entries.append({
-            "entry_id": f"ENT-{run['fund_id']}-{d['source_paragraph_id']}-{d['recipient_code']}-{e['period']}",
-            "row_id": d["row_id"], "period": e["period"], "due_date": e["due_date"],
-            "unadjusted_date": e.get("moved_from"), "business_day_rule": d["chosen"],
-            "moved": e["moved"], "precautionary": d["g2_decision"] == "decide",
-            "open_question_id": e["open_question_id"]})
-    stage_store.mark_unit(conn, run, "C", units[0][0], "done")
-    return {"entries": entries}
+    unit_id = units[0][0]
+    stage_store.mark_unit(conn, run, "C", unit_id, "running")
+    rules = [dates.Rule(row_id=d["row_id"], source_paragraph_id=d["source_paragraph_id"],
+                        recipient_code=d["recipient_code"], anchor=d["anchor"],
+                        offset=json.loads(d["offset"]), business_day_rule=d["chosen"],
+                        precautionary=d["g2_decision"] == "decide")
+             for d in conn.execute(
+                 """SELECT r.*, vd.decision AS g2_decision, rd.business_day_rule AS chosen
+                    FROM verdict_decisions vd JOIN verdicts v ON v.verdict_id = vd.verdict_id
+                    JOIN rows r ON r.row_id = v.row_id
+                    JOIN row_decisions rd ON rd.row_id = r.row_id
+                    WHERE r.run_id = ? AND vd.final_value = 'applies' ORDER BY r.rowid""",
+                 (run["run_id"],))]
+    try:
+        entries = dates.generate(rules, dates.calendar_from_config(run["fund_id"]))
+    except dates.CalendarError as error:
+        stage_store.fail_stage(conn, run, "C", unit_id, "calendar generation")
+        audit.write_audit(conn, fund_id=run["fund_id"], actor="stage C", event_type="system",
+                          run_id=run["run_id"], subject_id=unit_id, reason=str(error))
+        conn.commit()
+        raise _StageStopped
+    stage_store.mark_unit(conn, run, "C", unit_id, "done")
+    return {"entries": [vars(e) for e in entries]}
 
 
 _STAGES = {"A": _stage_a, "B": _stage_b, "C": _stage_c}

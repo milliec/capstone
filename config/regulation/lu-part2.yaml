@@ -44,3 +44,42 @@ recipients:
     name: CNMV
   - code: LBR
     name: Luxembourg Business Registers
+
+# --- B4: the date engine's configuration (W-13, sad.md §4) ------------------------------------
+# The date conventions the engine applies (backend/domain/dates.py). Recorded here, in words, so
+# the engine's rules are visible in config; the code implements them. D-6 is retired (DL-19).
+conventions:
+  D-1: Day offsets are counted in calendar days.
+  D-2: From a period end (month, quarter or year end), an offset in months lands on the last day
+    of the target month.
+  D-3: From an event date, an offset in months keeps the same day of the month, moved back to the
+    month's last day if that day does not exist.
+  D-4: Each approved row carries its own business-day rule (roll forward, roll backward, no roll).
+    Both rolls skip weekends and the holidays below. There is no default; a row without a rule
+    stops generation.
+  D-5: Domain guidance for the specialist's G1 choice (regulatory reporting rolls forward, tax
+    does not roll). The engine never applies it by itself.
+  D-7: D-2 is applied first, then the business-day rule.
+
+# Mock Luxembourg public holidays (a stand-in for an official holiday calendar). Both rolls skip
+# them. Mock data only.
+holidays:
+  - 2027-01-01   # New Year
+  - 2027-03-29   # Easter Monday
+  - 2027-05-01   # Labour Day
+  - 2027-05-06   # Ascension Day
+  - 2027-05-09   # Europe Day
+  - 2027-05-17   # Whit Monday
+  - 2027-06-23   # National Day
+  - 2027-08-15   # Assumption
+  - 2027-11-01   # All Saints
+  - 2027-12-25   # Christmas
+  - 2027-12-26   # St Stephen's Day
+
+# Conventions whose application is still an open question (CR-027, DL-20). Each names the rows it
+# affects by source paragraph and recipient code, never by an answer-key ID (SOQ-33). Every entry
+# from such a row carries the mark; it does not block publishing and the GP never sees it.
+open_conventions:
+  - question_id: OQ-7
+    source_paragraph_id: SRC-UCILAW-P2
+    recipient_code: AED

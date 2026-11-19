@@ -51,3 +51,17 @@ def load_fund_facts(fund_id: str = "FND-DEMO-01") -> dict:
     events = [{"event_id": _clean(r[0]), "event": _clean(r[1])}
               for r in _table_rows(markdown, _EVENTS_HEADING)]
     return {"facts": facts, "events": events}
+
+
+@lru_cache
+def load_event_dates(fund_id: str = "FND-DEMO-01") -> list[dict]:
+    """The event log with its dates, for the DATE ENGINE only (B4, W-13); never given to the judge.
+
+    [{event_id, occurred, aware}] as ISO dates: when the change happened and when the fund became
+    aware of it. The table's "Obligation" column is not read: the engine applies every logged
+    event to every event-anchored rule (one event and one such rule in the MVP).
+    """
+    markdown = (ROOT / load_fund(fund_id)["profile_file"]).read_text(encoding="utf-8")
+    # Event table columns: Event ID | Event | Date the change happened | Date the fund became aware
+    return [{"event_id": _clean(r[0]), "occurred": _clean(r[2]), "aware": _clean(r[3])}
+            for r in _table_rows(markdown, _EVENTS_HEADING)]

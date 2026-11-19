@@ -108,7 +108,7 @@ own audit entry (each Tier 1 test checks that).
 | Shared guards | `services/guards.py` | `RUN_NOT_ACTIVE` → `RUN_STAGE_RUNNING` → `VERSION_MISMATCH`, in that order |
 | Start, abandon | `runs.py` | `RUN_ACTIVE` (the check and the insert run under `BEGIN IMMEDIATE`, so a double click cannot start two reviews), `VALIDATION` for the failure demo outside stand-in mode; abandon only at a gate |
 | Rule 9 | `services/stage_store.py` | `store_stage_outputs`: one transaction; refuses unless the run is `ACTIVE`, in `<stage>_RUNNING`, on the same `stage_attempt`, and every unit is done; otherwise the output is **discarded** and one audit entry says so. `fail_stage` makes the same check. A failed stage stores nothing. Rollback on any error: no half a stage |
-| Stored data | `rows`, `paragraphs`, `quote_checks`, `verdicts`, `calendar_versions`, `calendar_entries` | Stage A and B outputs are the stand-in answers (B3 step 5); stage C's dates are placeholders until B4; stage B has one verdict per **approved** rule, stage C one entry per rule whose final answer is "applies" |
+| Stored data | `rows`, `paragraphs`, `quote_checks`, `verdicts`, `calendar_versions`, `calendar_entries` | Stage A and B outputs are the stand-in answers (B3 step 5); stage C's dates are the date engine's (B4); stage B has one verdict per **approved** rule, stage C one entry per rule whose final answer is "applies" |
 | G1 decisions | `decisions.decide_row` | Stored in `row_decisions` (decide-once: checked, and the UNIQUE key as a backstop). Order: already decided → no answer → reject reason, or approve: quote check → weekend rule → filing party (offered values only) → reason over a flag. The other answer's fields are ignored (DL-48) |
 | G2 decisions | `decisions.decide_verdict` | Stored in `verdict_decisions`. The answer must fit AI's verdict (confirm repeats it, overrule gives the opposite, decide only for "can't tell"), else `VALIDATION`; overrule and decide need a reason |
 | Finish G1 / G2 | `gates.py` | Ended → wrong phase → stale page → `GATE_INCOMPLETE` (counts the undecided, and the "can't tell" ones at G2). `stage_attempt` goes back to 1 for the next stage |
@@ -169,12 +169,9 @@ collapsed; a date-shaped value is refused unless it is copied word for word from
 **temporary demo rule** (`backend/stand_in/demo_row_temporary.yaml`, rule 7, cites `SRC-UCILAW-P1`)
 until B7 replaces it; the visual script's driving steps updated, snapshots not (H-053).
 
-**Placeholder dates until B4 (operator, 2026-11-18).** Stage C is still the shell stub: the three
-placeholder dates in `backend/stand_in/shell_data.py` attach to rules **1, 2 and 4**, whatever those
-rules are, if their final answer is "applies". So the calendar shows real rule names with dates
-that do not follow from the rules (for example the monthly report on 30 April). Rules 2 and 4 were
-chosen so the calendar keeps one "moved off a weekend" entry and one "May not be required" entry
-(rule 4 is the "AI can't tell" rule) until B4 works the dates out.
+**Placeholder dates, B3 step 5 to B4 (operator, 2026-11-18).** Until B4, stage C attached three
+placeholder dates to rules 1, 2 and 4. B4 replaced them with the date engine and deleted
+`backend/stand_in/shell_data.py` (see "B4" below).
 
 ## B13a: failure demo and stand-in pause (2026-11-19)
 
@@ -190,6 +187,47 @@ the specialist page header, `STAND_IN_UNIT_PAUSE_S` with the per-unit wait, and 
 
 Retry of the failed stage (rule 10, T-RETRY-1) is **B13b**. Until then a failure-demo run stays
 `FAILED` and the page offers only a new review (`ux.md` page 3, "Without Retry").
+
+## B4: stage C, the date engine (2026-11-19)
+
+**What it does.** `backend/domain/dates.py` turns every approved rule whose final G2 answer is
+"applies" into calendar entries, in plain code (no model computes a date, SD MN-005): anchors
+(month end, quarter end, the fund's financial year end, or each logged event's awareness or
+occurrence date) → offset (`D-1` calendar days; `D-2` months from a period end land on the month's
+last day; `D-3` months from an event keep the day or the month's end; a fixed day and month, in the
+anchor's year or the next) → the business-day rule chosen at G1 (`D-4`, `D-7`: roll forward, roll
+backward or no roll, skipping weekends and the config's holidays) → kept if the calendar due date is
+inside the fund's horizon. Marks: moved, precautionary (added at G2), and the open question
+(CR-027). Entry ID `ENT-<fund>-<paragraph>-<recipient>-<period>`, independent of the due date.
+
+**Fail closed.** A rule with no business-day rule (T-W13-2; there is no default, `D-6` is retired)
+or two rules giving one entry ID (DL-35, both named) stop generation: stage C's unit fails with
+`calendar generation`, nothing is stored (CR-011), and the audit log keeps the exact reason.
+
+| Part | Where |
+|---|---|
+| Conventions in words, the 2027 mock holidays, open convention `OQ-7` → `SRC-UCILAW-P2` + `AED` | `config/regulation/lu-part2.yaml` |
+| Financial year end and calendar horizon (2027) | `config/fund/FND-DEMO-01.yaml` |
+| Event dates for the engine only (the judge still gets ID and description) | `backend/domain/fund_facts.py` `load_event_dates` |
+| The engine and its config loader | `backend/domain/dates.py` |
+| Stage C on the engine; `shell_data.py` deleted | `backend/runtime/stages.py` |
+| G1 `open_question` set from the config (was always `False`); the "why" line says Monthly, Quarterly, Annual, Event-triggered | `services/decisions.py`, `calendar.py` |
+| Tests: **EC-007** (a demo review gives the answer key's 22 entries exactly: calculated and calendar dates, 6 moved, 4 OQ-7, 4 precautionary), **EC-008** / **T-ID-2**, **T-W13-1**, **T-W13-2**, the collision, the failure path, `D-2`, `D-3`, events, holidays, the fixed day, the horizon, the why words | `tests/tier1/test_date_engine.py` |
+
+**Choices where the SAD is silent (for review):**
+1. **The horizon applies to the calendar due date** (after the roll), not the calculated date.
+   No demo date crosses a year end, so the 22 entries are the same either way.
+2. **Every logged event applies to every event-anchored rule.** The event log's "Obligation" column
+   is not read (it names the answer). The MVP has one event and one such rule. Accepted by the operator
+   and recorded under Known gaps as an MVP limitation.
+3. **The period is taken from the anchor:** `YYYY-MM` for a month or quarter end, `FY<year>` for a
+   financial year end, the event ID for an event (the SAD's examples).
+4. **Test helpers and the visual script decide a whole review with the demo's G1 choices** (answer
+   key §5: rule and "who files" per rule), so a full test review gives exactly the demo calendar.
+   Single-decision helpers keep "roll forward" and "AIFM".
+
+`@qa.eng` shares B4 (Order of work): EC-007 and the answer-key date checks
+(`tests/test_answer_key.py`) both pass.
 
 ## Pattern Decision compliance
 
@@ -210,7 +248,11 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - **Step 7b postponed until just before the spike** (operator, 2026-11-18): CrewAI is not
   installed; the crews, the per-call timeout and its one retry, and real mode stay refused. The role harness has its call
   caps; the runner that makes the spike's per-role calls comes with the spike (after DL-40).
-- Calendar dates are placeholders (**B4**), see above.
+- **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
+  rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
+  the fund's event log; it does not read the log's "Obligation" column (that column names the
+  answer, CR-016). The MVP has one event and one such rule, so the result is right. A real system
+  would link each event to its obligation explicitly.
 - T-W04-6 (the verifier claims "quote ok" for a row code failed) has no test: the verifier's schema
   has no such field, so the claim cannot reach the store, and the quote-check result is code's
   alone. Revisit with the real verifier (B3 spike).
@@ -346,3 +388,14 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   step 5 (H-053), none new, none re-recorded. No model call. No diagram needed. `sad.md`, `ux.md`
   and the frozen Netlify page not edited.
 - 2026-11-19 · persona `backend-eng` · `sync-docs` · after B13a: Doc sync: no updates.
+- 2026-11-19 · persona `backend-eng` · actions `develop-be`, `document-backend` ·
+  `AAMAD_TARGET_RUNTIME=crewai` (CrewAI not installed; step 7b postponed) · `AGENTS_MODE=stand_in` ·
+  **B4**: the date engine (`backend/domain/dates.py`), its config (holidays, open convention OQ-7,
+  horizon, year end), event dates for the engine, stage C on the engine (`shell_data.py` deleted),
+  the G1 OQ-7 note, the why words. 255 tests pass (16 new; EC-007 gives the answer key's 22 entries
+  exactly); `tests/test_answer_key.py` passes. Visual check: the same 16 snapshots differ (H-053,
+  H-054), none new, none re-recorded; the visual script's G1 choices follow answer key §5 (H-054).
+  No model call. No diagram needed. `sad.md`, `ux.md` and the frozen Netlify page not edited.
+- 2026-11-19 · persona `backend-eng` · operator decisions on B4: choices 1 to 4 accepted; choice 2
+  recorded under Known gaps as an MVP limitation. `sync-docs`: item 1 approved and applied (B2 table
+  "Stored data": stage C's dates are the date engine's).

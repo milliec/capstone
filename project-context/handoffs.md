@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-054: FYI: B4 puts the real calendar on the pages; the visual script's G1 choices changed; still the same 16 snapshots
+- From: @backend.eng (B4)   To: @frontend.eng   Date: 2026-11-19
+- Touches: `tests/visual/visual.spec.js` (driving steps only); the snapshots listed in H-053; 2.build/frontend.md §10.1 V-8 (`open_question`), V-10, V-11 (entry values and `why`)
+- Ask: (1) **Snapshots** (with H-053, when the operator asks after B7): the **same 16 names** still differ; none new, none re-recorded. B4 changes the content of 11 of them again: `04-check-rules-at-step` (1024, 1280) and `04-check-rules-two-decided` (1280) now show the OQ-7 note on rule 2; `06-publish-at-step` (1024, 1280) and the five `07-calendar-*` pictures show the 22 real entries; `03-review-status-published` (1280) counts 22 dates. (2) **For information:** V-8 `open_question` is now `"OQ-7"` on rule 2 (was always `False`); entries are the date engine's (6 moved, 4 OQ-7 for the specialist, 4 "May not be required"); the `why` line starts Monthly, Quarterly, Annual or Event-triggered (was the capitalised code, "Annually", "On occurrence"). The Month view now opens on January 2027 (the next due date). **Driving-step change:** rules 2 to 6 are approved with the demo's G1 choices from answer key §5 (no roll / forward / back / back / no roll; "who files" Fund administrator, Fund administrator, AIFM, Tax advisor), so the pictures show the demo calendar. No `snap(...)` call changed.
+- Why: B4 replaces stage C's placeholder dates with the date engine (W-13).
+- Outcome: (the owner fills this in)
+
 ### H-053: FYI and two asks: B3 step 5 puts real stand-in data on every page; the visual script's driving steps changed; 16 snapshots differ
 - From: @backend.eng (B3 step 5, operator approval 2026-11-18)   To: @frontend.eng   Date: 2026-11-18
 - Touches: `tests/visual/visual.spec.js` (driving steps only); the 16 snapshots below; 2.build/frontend.md §10.1 V-4, V-5, V-8, V-9 (values, not names)

@@ -112,6 +112,10 @@ def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
     """
     titles = _titles(conn, run["run_id"])
     recipients = sources.list_recipients()
+    # CR-027 (B4): a rule whose paragraph and recipient match an open convention says at G1 that
+    # its business-day rule depends on that open question. Derived here, never stored (SOQ-33).
+    open_questions = {(c["source_paragraph_id"], c["recipient_code"]): c["question_id"]
+                      for c in sources.load_regulation_config()["open_conventions"]}
     records = conn.execute(
         """SELECT r.*, q.result AS quote_result, p.paragraph_text, p.document_id,
                   d.decision AS g1_decision, d.business_day_rule AS d_rule, d.who_files AS d_who,
@@ -144,7 +148,9 @@ def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
                           "text": r["paragraph_text"]},
             "flags": flags, "has_flag": bool(flags),
             "needs_who_files": r["responsible_role"] == SOURCE_SILENT,
-            "filing_parties": FILING_PARTIES, "open_question": False,
+            "filing_parties": FILING_PARTIES,
+            "open_question": open_questions.get((r["source_paragraph_id"], r["recipient_code"]),
+                                                False),
             "needs_attention": ["Demo"] if r["origin"] == "demo" else [], "tags": [],
             "recipient_name": recipients.get(r["recipient_code"], r["recipient_code"]),
             "decided": _decided_line(d) if decision else None,

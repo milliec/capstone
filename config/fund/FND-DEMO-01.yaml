@@ -1,5 +1,5 @@
 # Fund profile for the one fictional demo fund (DL-53). Mock data only.
-# Display fields, plus where the judge's facts come from (B3 step 4).
+# Display fields, where the judge's facts come from (B3 step 4), and the calendar settings (B4).
 fund_id: FND-DEMO-01
 name: Bramblegate Credit Opportunities SICAV
 regime: Luxembourg UCI Part II
@@ -9,3 +9,9 @@ year_end: 31 Dec
 # keeps only each fact's ID, fact and value, and each event's ID and description: never the
 # "Decides" column, test notes or event dates (CR-016, DL-39, sad.md "Model and Context Strategy").
 profile_file: project-context/1.define/mock-data/mock-fund-profile.md
+
+# The date engine's fund settings (B4, W-13). The calendar covers due dates in the horizon; the
+# financial year end anchors annual rules. Event dates are read from the event log by the engine
+# only (never given to the judge).
+financial_year_end: {month: 12, day: 31}
+calendar_horizon: {start: 2027-01-01, end: 2027-12-31}

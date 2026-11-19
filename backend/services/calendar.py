@@ -1,7 +1,7 @@
 """The calendar: G3 page data and the published calendar the General Partner reads (CR-012).
 
-STUBS for the entries: the date engine is B4, so the entries are placeholders. The published
-calendar lookup is real: the newest publications row for the fund is the live one (DL-50 item 5).
+The entries are the date engine's (B4, backend/domain/dates.py), stored by stage C. The published
+calendar lookup: the newest publications row for the fund is the live one (DL-50 item 5).
 """
 
 import sqlite3
@@ -11,10 +11,15 @@ from backend.services import decisions, runs
 
 DIRECTION = {"roll_forward": "following working day", "roll_backward": "preceding working day"}
 
+# The "why" line's first word, from the rule's frequency in words (B4: "Annually rule" and
+# "On occurrence rule" did not read as English).
+WHY_KIND = {"monthly": "Monthly", "quarterly": "Quarterly", "annually": "Annual",
+            "on occurrence": "Event-triggered"}
+
 
 def _entries(conn: sqlite3.Connection, run: dict) -> list[dict]:
     """The run's calendar entries, read from what stage C stored, with the fields the pages read
-    (H-036 V-10, V-11). STUB: the dates are fixed stand-in dates (B4 works them out).
+    (H-036 V-10, V-11). The dates are the date engine's (B4).
 
     Each entry is joined to its rule (as G1 shows it) and to what the specialist chose there. The
     page prints these words as sent and works nothing out.
@@ -37,7 +42,8 @@ def _entries(conn: sqlite3.Connection, run: dict) -> list[dict]:
             "who_files_label": chosen or ("Not known" if row["needs_who_files"]
                                           else row["responsible_role"].capitalize()),
             "recipient_name": row["recipient_name"],
-            "why": f"{row['frequency'].capitalize()} rule: due {row['due']}.",
+            "why": f"{WHY_KIND.get(row['frequency'], row['frequency'].capitalize())} rule: "
+                   f"due {row['due']}.",
             "source_paragraph_id": row["source_paragraph_id"],
             "source_document": row["paragraph"]["document"],
             "quote": row["quote"],
@@ -95,5 +101,5 @@ def get_published_calendar(conn: sqlite3.Connection, fund_id: str) -> dict | Non
     if pub is None:
         return None
     pub = dict(pub)
-    pub["entries"] = _entries(conn, runs.get_run(conn, pub["run_id"]))  # STUB: B4 reads calendar_entries
+    pub["entries"] = _entries(conn, runs.get_run(conn, pub["run_id"]))
     return pub
