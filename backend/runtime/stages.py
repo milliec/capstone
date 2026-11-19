@@ -115,6 +115,10 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
 
     try:
         result = call(record)
+    except agents.DemoFailure:
+        # The failure demo (B13a, rule 11): the stand-in extractor failed on purpose.
+        stage_store.fail_stage(conn, run, stage, unit_id, "demo failure")
+        raise _StageStopped
     except _UNIT_FAILURES:
         if late and late[0]:
             raise _StageStopped          # late AND invalid: the trace has it; nothing else to do
@@ -148,16 +152,15 @@ def _stage_a(conn, settings: Settings, run: dict) -> dict:
 
     drafted = []
     for index, (document_id, _title) in enumerate(documents):
-        if index == 0 and run["demo_fail_step1"] and run["stage_attempt"] == 1 \
-                and settings.agents_mode == "stand_in":
-            stage_store.mark_unit(conn, run, "A", document_id, "running")
-            agents.unit_pause(settings)  # so unit 1 shows 'running' for a moment first
-            stage_store.fail_stage(conn, run, "A", document_id, "demo failure")
-            raise _StageStopped
+        # The failure demo (rule 11, CR-033): stage A's FIRST unit, FIRST stage attempt, stand-in
+        # mode only, through the stand-in extractor hook. The units run one by one, so units 2 to
+        # 5 never start and stay "waiting".
+        demo_fail = (index == 0 and bool(run["demo_fail_step1"]) and run["stage_attempt"] == 1
+                     and settings.agents_mode == "stand_in")
         own = {pid: text for pid, text in paragraphs.items() if pid.startswith(document_id + "-P")}
         rows = _run_unit(conn, settings, run, "A", document_id, lambda record: agents.extract_rows(
             settings, document_id=document_id, paragraphs=own, recipient_codes=codes,
-            record=record))
+            record=record, demo_fail=demo_fail))
         drafted += [{**r.model_dump(), "origin": "model"} for r in rows]
 
     if run["demo_planted_row"]:   # added by code, after the model rows (CR-029)
