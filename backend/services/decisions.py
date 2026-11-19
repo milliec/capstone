@@ -9,7 +9,10 @@ the review has ended (RUN_NOT_ACTIVE) → it is not at this gate (RUN_STAGE_RUNN
 already decided (ALREADY_DECIDED) → no answer chosen, or an answer the form cannot make
 (VALIDATION) → the checks for the chosen answer. A refusal is audited and changes nothing.
 
-Not here yet: DEMO_ROW_NOT_APPROVABLE and "Approval blocked" (B7, which uses the refusal object).
+B7 (CR-029, DL-44): an approve on the planted demo row (origin "demo") is refused FIRST among the
+approve checks, with DEMO_ROW_NOT_APPROVABLE, whatever else was sent (reason, business-day rule),
+so the only decision a demo row can ever get is reject (T-DEMO-2). After a refused approval its
+status at G1 reads "Approval blocked" (ux.md page 4), read from that refusal's audit entry.
 """
 
 import sqlite3
@@ -124,10 +127,16 @@ def get_g1_view(conn: sqlite3.Connection, run: dict) -> dict:
            JOIN paragraphs p ON p.run_id = r.run_id AND p.paragraph_id = r.source_paragraph_id
            LEFT JOIN row_decisions d ON d.row_id = r.row_id
            WHERE r.run_id = ? ORDER BY r.rowid""", (run["run_id"],)).fetchall()
+    # B7: demo rows whose approval has been refused at least once (their audit entries).
+    blocked = {b["subject_id"] for b in conn.execute(
+        "SELECT DISTINCT subject_id FROM audit_log WHERE run_id = ? AND refusal_code = ?",
+        (run["run_id"], "DEMO_ROW_NOT_APPROVABLE"))}
     rows = []
     for r in records:
         decision = r["g1_decision"]
         status, tone = ROW_STATUS.get(decision, ("To decide", "action"))
+        if decision is None and r["row_id"] in blocked:
+            status, tone = "Approval blocked", "problem"     # ux.md page 4, until it is rejected
         flags = _flags(conn, r["row_id"])
         d = {"business_day_rule": r["d_rule"], "who_files": r["d_who"], "reason": r["d_reason"],
              "decided_by": r["decided_by"], "decided_at": r["decided_at"]}
@@ -201,6 +210,8 @@ def decide_row(conn: sqlite3.Connection, *, row_id: str, version: int, decision:
             refuse_here("REASON_REQUIRED", "reject_rule")
         rule, filer = None, None
     else:
+        if row["origin"] == "demo":       # B7: never approvable, whatever else was sent (DL-44)
+            refuse_here("DEMO_ROW_NOT_APPROVABLE")
         if row["quote_result"] != "pass":
             refuse_here("QUOTE_CHECK_FAILED", para_id=row["source_paragraph_id"])
         if business_day_rule not in BUSINESS_DAY_RULES:

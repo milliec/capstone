@@ -17,8 +17,8 @@ from backend.runtime import prompts
 from backend.settings import ROOT
 
 MOCK = ROOT / "project-context/1.define/mock-data"
-# The planted-row fixture: the temporary demo rule until B7 writes config/demo/planted-row.yaml.
-PLANTED = ROOT / "backend/stand_in/demo_row_temporary.yaml"
+# The planted-row fixture (B7).
+PLANTED = ROOT / "config/demo/planted-row.yaml"
 
 SAMPLE_INPUTS = {
     "extract_rows": {"document_id": "SRC-X", "document_title": "A title",
