@@ -54,13 +54,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: `@frontend.eng` does not edit ux.md, and ux.md only requires 360 px for the GP calendar, so both changes sit outside the contract.
 - Outcome: (the owner fills this in)
 
-### H-062: Operator decision: below 960 px the sidebar becomes a top bar with a menu button
-- From: @frontend.eng (operator decision, 2026-11-19)   To: @ux.designer   Date: 2026-11-19
-- Touches: 2.build/ux.md §1.3 (the sidebar), page 7 (the GP calendar at 360 px), §7 (responsive), UX-012; frontend.md S-32
-- Ask: Record the narrow-screen shell in ux.md. **Below 960 px the sidebar is not shown.** A slim top bar (about 56 px) shows instead: the wordmark (a link home), **"Your turn" as a text tag** when the server sets `your_turn` (never colour alone), and a **Menu** button. The button is a native `<details>`/`<summary>` (keyboard and screen-reader friendly, no script). Its panel opens **over** the content, not pushing it down, and holds the same four things as the sidebar: fund, navigation, who is signed in, Sign out. At 960 px and wider nothing changes. Reason (operator): the stacked sidebar took a lot of room at phone width and pushed the content down. Please also say whether the panel should close itself on an outside click or Escape (native `<details>` does neither; adding it needs a script, which the project avoids).
-- Why: The operator asked for a burger menu and responsive design instead of the stacked sidebar. ux.md has no mobile shell, and `@frontend.eng` does not edit ux.md.
-- Outcome: (the owner fills this in)
-
 ### H-061: Move finished entries from "Open" to "Done"
 - From: @project.mgr   To: @system.arch (H-040), @backend.eng (H-036), @frontend.eng (H-048, H-027, H-054)   Date: 2026-11-19
 - Touches: `project-context/handoffs.md` only (each owner moves their own entry, per "How it works" step 2)
@@ -139,6 +132,14 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+
+### H-062: Operator decision: below 960 px the sidebar becomes a top bar with a menu button
+- From: @frontend.eng (operator decision, 2026-11-19)   To: @ux.designer   Date: 2026-11-19
+- Touches: 2.build/ux.md §1.3 (the sidebar), page 7 (the GP calendar at 360 px), §7 (responsive), UX-012; frontend.md S-32
+- Ask: Record the narrow-screen shell in ux.md. **Below 960 px the sidebar is not shown.** A slim top bar (about 56 px) shows instead: the wordmark (a link home), **"Your turn" as a text tag** when the server sets `your_turn` (never colour alone), and a **Menu** button. The button is a native `<details>`/`<summary>` (keyboard and screen-reader friendly, no script). Its panel opens **over** the content, not pushing it down, and holds the same four things as the sidebar: fund, navigation, who is signed in, Sign out. At 960 px and wider nothing changes. Reason (operator): the stacked sidebar took a lot of room at phone width and pushed the content down. Please also say whether the panel should close itself on an outside click or Escape (native `<details>` does neither; adding it needs a script, which the project avoids).
+- Why: The operator asked for a burger menu and responsive design instead of the stacked sidebar. ux.md has no mobile shell, and `@frontend.eng` does not edit ux.md.
+- Outcome (`@ux.designer`, 2026-11-19): **Done.** `2.build/ux.md`: new "Mobile shell (below 960 px)" in §1.3 (bar, text "Your turn" tag, native `<details>` Menu, panel over the content, same contents as the sidebar), new check UX-024, new §9 idea. **Decision (operator): no outside-tap or Escape close in the MVP**; the menu closes on tapping Menu again or following a link, keeping the no-script rule. Escape-to-close is a polish-week item (needs a script exception). Not changed here: the code (it already matches) and `frontend.md`.
 
 ### H-060: Refresh the "Hand-off" table in setup.md to the current Build state
 - From: @project.mgr   To: @project.mgr   Date: 2026-11-19
