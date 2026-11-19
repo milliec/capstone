@@ -30,7 +30,7 @@
   <div class="sec-h"><h2 id="reviews-h">Reviews</h2></div>
   {%- if runs %}
   <div class="card">
-    <table class="reviews">
+    <table class="reviews stack-sm">
       <thead>
         <tr>
           <th scope="col">Review</th>
@@ -44,10 +44,10 @@
         {%- for r in runs %}
         <tr>
           <th scope="row"><a href="/specialist/runs/{{ r.run_id }}">{{ ui.review_name(r) }}</a></th>
-          <td class="num">{{ r.started_at|datetime }}</td>
-          <td>{{ "On" if r.demo_planted_row else "Off" }}</td>
-          <td>{{ ui.run_tag(r) }}</td>
-          <td>{{ r.ended_because if r.ended_because is defined and r.ended_because else "" }}</td>
+          <td class="num" data-label="Started">{{ r.started_at|datetime }}</td>
+          <td data-label="Demo rule">{{ "On" if r.demo_planted_row else "Off" }}</td>
+          <td data-label="Status">{{ ui.run_tag(r) }}</td>
+          <td data-label="Ended because">{{ r.ended_because if r.ended_because is defined and r.ended_because else "" }}</td>
         </tr>
         {%- endfor %}
       </tbody>

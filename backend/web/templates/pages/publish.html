@@ -36,7 +36,7 @@
 <section class="section" aria-labelledby="cal-h">
   <div class="sec-h"><h2 id="cal-h">Calendar</h2></div>
   <div class="card">
-    <table>
+    <table class="stack-sm">
       <thead>
         <tr>
           <th scope="col">Due date</th><th scope="col">What</th><th scope="col">Who files</th>
@@ -47,15 +47,15 @@
         {%- for e in entries %}
         <tr>
           <th scope="row" class="when">{{ e.due_date|date }}</th>
-          <td>{{ e.obligation_name }}</td>
-          <td>{{ e.who_files_label if e.who_files_label is defined else "" }}</td>
-          <td>{{ e.recipient_name if e.recipient_name is defined else "" }}</td>
-          <td>
+          <td data-label="What">{{ e.obligation_name }}</td>
+          <td data-label="Who files">{{ e.who_files_label if e.who_files_label is defined else "" }}</td>
+          <td data-label="Sent to">{{ e.recipient_name if e.recipient_name is defined else "" }}</td>
+          <td data-label="Marks">
             {%- if e.moved %}{{ ui.mark_label("moved", e.marks.moved if e.marks is defined else none) }}{% endif %}
             {%- if e.precautionary %}{{ ui.mark_label("precautionary") }}{% endif %}
-            {%- if e.open_question_id %}{{ ui.mark_label("open_question") }}{% endif %}
+            {%- if e.open_question_id %}{{ ui.mark_label("open_question") }}{% endif -%}
           </td>
-          <td>
+          <td data-label="Why (the General Partner sees this)">
             {%- if e.why is defined %}{{ e.why }}{% endif %}
             {%- if e.source_paragraph_id is defined %}<span class="m">Source: paragraph <span class="id">{{ e.source_paragraph_id }}</span></span>{% endif %}
           </td>
@@ -72,12 +72,12 @@
   <div class="card">
     <div class="card-h"><h3>Rules you rejected</h3></div>
     {%- if (rejected if rejected is not none else view.rejected_row_ids) %}
-    <table>
+    <table class="stack-sm">
       <thead><tr><th scope="col">Rule</th><th scope="col">Your reason</th></tr></thead>
       <tbody>
         {%- if rejected is not none %}
         {%- for r in rejected %}
-        <tr><th scope="row">{{ r.label }}{% if r.is_demo %} {{ ui.tag("Demo") }}{% endif %}</th><td>{{ r.reason }}</td></tr>
+        <tr><th scope="row">{{ r.label }}{% if r.is_demo %} {{ ui.tag("Demo") }}{% endif %}</th><td data-label="Your reason">{{ r.reason }}</td></tr>
         {%- endfor %}
         {%- else %}
         {%- for id in view.rejected_row_ids %}
@@ -94,12 +94,12 @@
   <div class="card">
     <div class="card-h"><h3>Paragraphs no rule uses</h3><p>No approved rule uses these paragraphs. The calendar has nothing from them.</p></div>
     {%- if (unused if unused is not none else view.uncited_paragraph_ids) %}
-    <table>
+    <table class="stack-sm">
       <thead><tr><th scope="col">Paragraph ID</th><th scope="col">Source</th><th scope="col">What it says</th></tr></thead>
       <tbody>
         {%- if unused is not none %}
         {%- for p in unused %}
-        <tr><th scope="row"><span class="id">{{ p.paragraph_id }}</span></th><td>{{ p.document }}</td><td>{{ p.text }}</td></tr>
+        <tr><th scope="row"><span class="id">{{ p.paragraph_id }}</span></th><td data-label="Source">{{ p.document }}</td><td data-label="What it says">{{ p.text }}</td></tr>
         {%- endfor %}
         {%- else %}
         {%- for id in view.uncited_paragraph_ids %}
