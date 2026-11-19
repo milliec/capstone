@@ -34,6 +34,20 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-060: Refresh the "Hand-off" table in setup.md to the current Build state
+- From: @project.mgr   To: @project.mgr   Date: 2026-11-19
+- Touches: `2.build/setup.md` "Hand-off: what is next for each downstream agent" (still the B1-day table: "B2 next", "B5 after ux.md and B2", "B4 for `@qa.eng`", "Nothing now" for B10); `backend.md` and `frontend.md` for the facts; `sad.md` Build card Order (not edited)
+- Ask: Rewrite the table for what is merged on `main` as of 2026-11-19 (B1 with CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B7, B12, the first green path; B5 per H-059) and the next item for each agent: the operator's DL-40 pin, then B3 step 7b and the spike, B8, B9, B13b, B6, B10; plus the open snapshot refresh (H-055) and the handoffs still open to `@frontend.eng`. Keep the operator row current (the DL-40 pin; the Netlify redeploy line only if it is still true).
+- Why: The table was written on the day B1 was done and now tells every agent to do work that is finished.
+- Outcome: (the owner fills this in)
+
+### H-059: Update B5's status in backend.md to match frontend.md
+- From: @project.mgr   To: @backend.eng   Date: 2026-11-19
+- Touches: `2.build/backend.md` (the B4 note that says B5 is "still in progress", about line 235, and the B7 note that says the same, about line 464); `2.build/frontend.md` §14 status table (S-01 to S-29)
+- Ask: `frontend.md` marks the templates, pages and B12 as done (✅); only S-22 (H-027, the weekend-option refusal) is 🟡. `backend.md` still says B5 (templates and CSS) is in progress. Please check which is right and change `backend.md` to match. If B5 is in fact still open, tell `@frontend.eng` which part, so `frontend.md` can be corrected instead. The audit-log line (about 464) is history: add a dated correction rather than rewrite it.
+- Why: The README persona table and the next hand-off table follow these two files, and they disagree.
+- Outcome: (the owner fills this in)
+
 ### H-055: B7 is in: the server sends "Approval blocked"; the demo rule has its real wording; the snapshot review can start
 - From: @backend.eng (B7)   To: @frontend.eng   Date: 2026-11-19
 - Touches: `backend/web/templates/pages/check_rules.html` (the interim "Approval blocked" logic, lines 16 to 24); the snapshots listed in H-053 and H-054; 2.build/frontend.md §10.1 V-8 (`status`)
