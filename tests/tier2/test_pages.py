@@ -210,7 +210,7 @@ def test_failed_sentence_uses_the_servers_failure_when_sent():
     html = _render("pages/review_status.html", run=run, units=[], fund=FUND, identity=None,
                    agents_mode="stand_in", your_turn=False, current_path="/", refresh_on=True,
                    rendered_at="2026-11-17T09:00:00+00:00")
-    assert ("This review failed at step 3 (You confirm what applies), at unit Server unit label. "
+    assert ("This review failed at step 3 (You confirm what applies), while working on Server unit label. "
             "Server reason sentence. Nothing moved forward.") in " ".join(html.split())
 
 
@@ -267,7 +267,7 @@ def test_units_follow_the_servers_group_in_ux_order():
     ])
     headings = re.findall(r'<h3 class="sq[^"]*" id="units-([a-z_]+)">([^<]+)</h3>', html)
     assert headings == [("drafting", "Drafting the rules"), ("checking_drafts", "Checking the drafts"),
-                        ("other", "Other units")]
+                        ("other", "Other items")]
     assert html.index("Source doc one") < html.index("Rule check one") < html.index("Odd unit")
 
 

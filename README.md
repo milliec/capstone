@@ -231,7 +231,7 @@ This is the path the automated green-path test follows (`tests/tier1/test_green_
 
 1. Sign in as the **General Partner**: the calendar says it is being prepared. **Sign out.**
 2. Sign in as the **Compliance specialist**. On **Filing rules**, tick **"Add the demo rule
-   (rule 7)"** and press **Start a new review**. The review page fills in unit by unit (each
+   (rule 7)"** and press **Start a new review**. The review page fills in item by item (each
    stand-in step waits about a second, so you can watch it work).
 3. **Step 2, check the rules** (7 rules). For each rule, choose **Approve** or **Reject**:
    - On **rule 7 (the demo rule)**, try **Approve**: the server refuses it, because its quote is
