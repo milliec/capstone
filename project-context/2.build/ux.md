@@ -409,7 +409,7 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
 
 ### Page 3 · Review status (`/specialist/runs/{run_id}`)
 
-**Purpose.** The only place the specialist waits. Shows where the review is, each unit, the cost,
+**Purpose.** The only place the specialist waits. Shows where the review is, each item the AI works on, the cost,
 and what to do next. **Who:** specialist. **No re-run of a whole review.** The one exception is
 **Retry** of the failed step (sad.md rule 10, DL-51; built in B13b, see "Failed review" below).
 
@@ -422,18 +422,23 @@ and what to do next. **Who:** specialist. **No re-run of a whole review.** The o
 5. **Next step** (only at a step that waits for the specialist, or when ended): one primary link
    (see states).
 6. **Refresh controls** (only while AI or code is working, see below).
-7. **Units**, as a real table per group: Unit · Status. Status words: **"Waiting"**,
-   **"Running"**, **"Done"**, **"Failed"**.
+7. **"What the AI is working on"**, as a real table per group: Item · Status (the column header is
+   visually hidden). Status words: **"Waiting"**, **"Running"**, **"Done"**, **"Failed"**.
+   "Unit" is the backend's word for one row (the `units` table, `STAND_IN_UNIT_PAUSE_S`). It is
+   never shown to the specialist: operator decision 2026-11-20, because "unit" is engineering
+   jargon (and means a fund unit in this domain). Each row is already named for what it is.
    - While step 1 runs, and in its record afterwards, two groups, each with its one-line
      intro. This is the **only** page that names the two AI roles (U3, H-015):
      - **"Drafting the rules"**: "The first AI reads each source and writes a rule, quoting the
-       exact words it relied on." One unit per source document, for example "CSSF Circular
+       exact words it relied on." One item per source document, for example "CSSF Circular
        15/627".
      - **"Checking the drafts"**: "A second, separate AI compares every draft with all the sources
-       and tells you where they disagree. It never changes a rule." One unit per rule, for example
+       and tells you where they disagree. It never changes a rule." One item per rule, for example
        "Audited annual report".
-   - Step 3: **"Checking what applies"**, one unit per approved rule.
-   - Step 4: **"Working out the dates"**, one unit ("Code, no AI model").
+   - Step 3: **"Checking what applies"**, with the intro "One line per approved rule."
+   - Step 4: **"Working out the dates"**, one item ("Code, no AI model").
+   - Any group the server sends that is not one of these four: **"Other items"**.
+   - Nothing has started yet: "Nothing has started yet."
 8. **Cost so far**: "Model cost so far: **US$0.00**." For stand-in reviews add: "(stand-in agents
    make no model calls)". For real reviews add: "The review stops at US$2.50."
 9. Review details: "Started Fri 13 Nov 2026, 14:00, by Compliance specialist (mock). Fund
@@ -454,12 +459,12 @@ the page reloads itself every 3 seconds (§3 Freshness). Next to the status line
 With refresh off: **"Automatic refresh is off."** Links: **"Refresh now"** · **"Turn automatic
 refresh back on"**. "Refresh now" keeps refresh off.
 
-**Stand-in agents finish one unit at a time (DL-54).** With stand-in agents, each unit takes about
-one second (`STAND_IN_UNIT_PAUSE_S`), so the units table fills in unit by unit across the 3-second
+**Stand-in agents finish one item at a time (DL-54).** With stand-in agents, each item takes about
+one second (`STAND_IN_UNIT_PAUSE_S`), so the table fills in item by item across the 3-second
 refreshes: "Waiting", then "Running", then "Done". At the default, step 1 takes about 12 seconds and step 3
 about 6 (sad.md §4). The dates step is code with no agent, so it has no pause. Real agents have
 no pause. This changes no wording and no
-control on the page; it only means the "Units finish one by one below" sentence is true on screen.
+control on the page; it only means the "The items below finish one by one" sentence is true on screen.
 
 At a step that waits for the specialist, or in an ended state, the page does not refresh and these
 controls are not shown.
@@ -468,7 +473,7 @@ controls are not shown.
 
 | State | H1 | Status line sentence | Next step link |
 |---|---|---|---|
-| `A_RUNNING` | **"Nothing for you to do yet"** | "AI is drafting the rules and checking each one against the sources. You check the rules when it finishes. Units finish one by one below." | — |
+| `A_RUNNING` | **"Nothing for you to do yet"** | "AI is drafting the rules and checking each one against the sources. You check the rules when it finishes. The items below finish one by one." | — |
 | `AT_G1` | **"The rules are ready for you to check"** | "AI drafted **{n} rules** and checked each one against the sources. Nothing reaches the calendar until you approve it." | **"Check the rules"** → page 4 |
 | `B_RUNNING` | **"Nothing for you to do yet"** | "You've finished checking the rules. AI is now checking whether each approved rule applies to the fund." | — |
 | `AT_G2` | **"Ready for you to confirm what applies"** | "AI checked **{n} rules** against the fund's facts. **{u} of them** need your decision because AI can't tell." | **"Confirm what applies"** → page 5 |
@@ -523,11 +528,11 @@ overall approval status was set to `approved` later the same day.
 
 1. H1 **"This review failed"**, with the status tag **"Failed"** (word, problem tone).
 2. Stepper: earlier steps "Done", the failed step **"Failed"**, later steps "Not started" (§1.4).
-3. Status line, in plain English. The reason sentence comes from the table above. The units
-   table marks that unit **"Failed"**.
-   - Without Retry: **"This review failed at step {k} ({step name}), at unit {unit}. {reason
+3. Status line, in plain English. The reason sentence comes from the table above. The table
+   marks that item **"Failed"**.
+   - Without Retry: **"This review failed at step {k} ({step name}), while working on {item}. {reason
      sentence}. Nothing moved forward. Decisions you already made stay in the audit log."**
-   - With Retry: **"This review failed at step {k} ({step name}), at unit {unit}. {reason
+   - With Retry: **"This review failed at step {k} ({step name}), while working on {item}. {reason
      sentence}. Nothing moved forward, and the decisions you already made are kept."**
 4. Automatic refresh stops (the review is no longer working).
 5. What to do next: one of the two versions below, depending on whether Retry (B13b) is built.
@@ -579,9 +584,9 @@ not need Retry** (DL-54): it is built in B13a, straight after the stand-in agent
 - **Start:** the specialist ticks **"Make step 1 fail (demo)"** on page 2 and starts the review.
   The audit log records the switch. The review shows the label **"Failure demo on"** next to the
   H1 on every page about it (§1.3).
-- **What happens:** step 1 starts as usual. Its first unit (the first source document) fails, on
-  the first attempt only, with the reason `demo failure`; the units after it stay "Waiting" (the
-  server starts unit 1 alone first, so the others never start). The review ends as **Failed** at
+- **What happens:** step 1 starts as usual. Its first item (the first source document) fails, on
+  the first attempt only, with the reason `demo failure`; the items after it stay "Waiting" (the
+  server starts item 1 alone first, so the others never start). The review ends as **Failed** at
   step 1. The switch exists only with stand-in agents: in real mode the checkbox is not on the
   form (§3 page 2).
 - **What the specialist sees:** the normal "Failed review" screen above, nothing special, with
@@ -604,7 +609,7 @@ A review is closed once it is **Published** (`COMPLETED`), **Closed without publ
 (B13b).
 
 - **Review status**: the state's H1 and sentence (states table above), the stepper (§1.4), the
-  units and cost as a record, and one link (next-step column). No refresh controls, no abandon
+  items and cost as a record, and one link (next-step column). No refresh controls, no abandon
   form.
 - **The step pages** (4, 5 and 6): reached steps show their read-only record (each page's "After"
   state: every decision, no forms, no finish button). A step the review never reached shows one
@@ -1187,7 +1192,7 @@ unstyled.
 ## 7. Accessibility (WCAG 2.2 AA, PRD §6)
 
 - Headings in order: one H1, H2 per section or card.
-- Real tables with `<th scope>` for the run list, units, coverage, rejected rows, calendar.
+- Real tables with `<th scope>` for the run list, items the AI worked on, coverage, rejected rows, calendar.
 - Every control has a `<label>`; radio groups in `<fieldset>` with a `<legend>`; hints linked with
   `aria-describedby`.
 - Status in words as well as colour, everywhere (§1.5).
@@ -1261,7 +1266,7 @@ words of §1.5.
 | **idle** | No `runs` row with `status = ACTIVE` for the fund (none yet, or the newest has ended) | Filing rules without the active-review notice; "Start a new review" is accepted |
 | **running** | `ACTIVE` · `A_RUNNING`, `B_RUNNING` or `C_RUNNING` (AI or code working), or `ACTIVE` · `AT_G1`, `AT_G2` or `AT_G3` (waiting for the specialist) | "AI is working" or "Your turn" (§1.5); review status refreshes only while working |
 | **done** | `COMPLETED` (the goal), or `DECLINED` or `ABANDONED` (ended without publishing) | "Published", "Closed without publishing" or "Abandoned"; a closed, read-only review (page 3) |
-| **failed** | `FAILED` | "Failed", with step, unit and reason (page 3, "Failed review") |
+| **failed** | `FAILED` | "Failed", with step, item and reason (page 3, "Failed review") |
 
 ### 10.2 Screens
 
