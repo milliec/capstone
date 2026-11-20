@@ -549,6 +549,17 @@ Lesson: match the transition to what is true. If the viewer is still on the same
 if they have moved somewhere new, dissolve. It's like prototyping: a smart-animate between two
 frames only looks real when both frames share the same layers.
 
+**A builder's word is not a user's word.** The review status page had a section headed "Units". "Unit"
+is what the code calls one piece of work the AI does (a database table, a setting, a test). It leaked
+onto the screen because it was the name already in the data. But a user reads it as something else
+(in a fund product, a "unit" is a share in the fund), and it hid what each row really was: a source
+document, a rule, the calendar. The fix was to drop the noun and use plain wording ("What the AI is
+working on", "while working on {document}"). To catch this kind of leak, list every word on a screen
+that came from the code and ask three questions. Would a user say it? Does it mean something else in
+this domain? Is the row already named for what it is? Change only what the user sees: the code keeps
+its own name, and the spec records that the code's word is never shown, so the next builder does not
+bring it back. Changing visible text also touches the tests that check it and the visual snapshots.
+
 ---
 
 ## Audit
@@ -609,3 +620,5 @@ frames only looks real when both frames share the same layers.
   branch right before committing)
 - 2026-11-20 · added two notes from the launch film (check the player before the work; two pictures
   side by side never make one page, so scroll one tall picture and dissolve between pages)
+- 2026-11-20 · added one note from the review status wording fix (a builder's word is not a user's
+  word; change only what the user sees, and record that the code's word is never shown)
