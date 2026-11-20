@@ -368,6 +368,15 @@ so. Lesson: a test that takes the fast route checks the pages, not the choices a
 them; walk the slow route by hand or by script before showing the work. It's like a prototype where
 only the happy-path hotspots are wired: the review looks fine until someone taps the other button.
 
+**When the work sounds wrong, check the player before the work.** The launch film's music kept
+playing after the film had ended. A first fix, a longer fade at the end of the film, did not cure
+it. The cause was the review tool: it had been told about the music file, so it played the
+whole raw track on top of the film's own edited soundtrack. Every judgement about the music had been
+made on two copies at once. Lesson: a review is only as true as the thing you review in. Before
+changing the work, confirm that the tool is showing exactly the file that will ship, and nothing
+extra. It's like critiquing colours on a screen with night mode switched on: the notes are honest,
+but they describe the screen, not the design.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -531,6 +540,15 @@ narrower rule (only IDs that head a table row), and the check that caught it was
 page's width with the screen's, which a look at the fixed page alone would have missed
 (ux-review H-015, `c84d181`).
 
+**Two pictures side by side never make one page.** The launch film was built from photographs of the
+real pages. To move from the top of a page to a rule lower down, the first version slid one
+photograph up and the next one in. It looked stitched, because two separate pictures never line up
+the way one page does. The fix was to photograph the page once, as a single tall picture, and move
+the camera down it; a soft dissolve is kept for the moments when the story really does change page.
+Lesson: match the transition to what is true. If the viewer is still on the same page, scroll it;
+if they have moved somewhere new, dissolve. It's like prototyping: a smart-animate between two
+frames only looks real when both frames share the same layers.
+
 ---
 
 ## Audit
@@ -589,3 +607,5 @@ page's width with the screen's, which a look at the fixed page alone would have 
   a date the agent wrote, allow one it copied)
 - 2026-11-19 · added one note from H-064 (two personas took the same handoff number; check every open
   branch right before committing)
+- 2026-11-20 · added two notes from the launch film (check the player before the work; two pictures
+  side by side never make one page, so scroll one tall picture and dissolve between pages)
