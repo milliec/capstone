@@ -50,6 +50,9 @@ def render_markdown(report: dict) -> str:
         lines += ["", f"### {c['id']}: {c['name']}", "", f"Threshold: {c['threshold']}", ""]
         lines += [f"- {_WORDS[k['status']]}: {k['label']}" + (f" ({k['note']})" if k["note"] else "")
                   for k in c["checks"]]
+        if c.get("notes"):
+            lines += ["", "Notes (information only, not a miss):", ""]
+            lines += [f"- {n}" for n in c["notes"]]
         if c["findings"]:
             lines += ["", "| Subject | What | Expected | Actual |", "|---|---|---|---|"]
             lines += [f"| {_cell(f['subject'])} | {_cell(f['what'])} | {_cell(f['expected'])} | "

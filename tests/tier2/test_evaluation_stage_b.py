@@ -113,6 +113,32 @@ def test_the_sad_asks_only_for_an_existing_fact_on_the_other_rows(key, paragraph
     assert ec004(out_a, out_b, key).status == grade.PASS
 
 
+def test_missing_key_facts_on_the_other_rows_are_a_note_that_never_fails(key, paragraphs):
+    """Operator, 2026-11-21 (qa.md question 4): the SAD is the pass mark; the key's other facts are
+    reported as a non-failing note."""
+    out_a = perfect(key, paragraphs)
+    out_b = perfect_b(out_a, key)
+    wanted = key.verdict("OBL-01").fact_ids
+    verdict_of(out_a, out_b, "OBL-01", key).cited_fact_ids = ["FACT-02"]
+    result = ec004(out_a, out_b, key)
+    assert result.status == grade.PASS and result.findings == []
+    [note] = [n for n in result.notes if n.startswith("OBL-01")]
+    assert all(f in note for f in wanted if f != "FACT-02") and "not a miss" in note
+
+
+def test_a_complete_set_of_citations_has_no_notes(key, paragraphs):
+    out_a = perfect(key, paragraphs)
+    assert ec004(out_a, perfect_b(out_a, key), key).notes == []
+
+
+def test_the_two_named_rows_miss_rather_than_note_when_a_named_fact_is_missing(key, paragraphs):
+    out_a = perfect(key, paragraphs)
+    out_b = perfect_b(out_a, key)
+    verdict_of(out_a, out_b, "OBL-04", key).cited_fact_ids = ["FACT-03"]
+    result = ec004(out_a, out_b, key)
+    assert result.status == grade.MISS and not any(n.startswith("OBL-04") for n in result.notes)
+
+
 def test_a_row_that_was_not_extracted_has_no_verdict_and_misses(key, paragraphs):
     out_a = perfect(key, paragraphs)
     out_b = perfect_b(out_a, key)
@@ -161,6 +187,25 @@ def test_ec_010_counts_late_calls_and_says_so():
     t = TraceSummary(calls=18, late_calls=1, copy_case_calls=2, duration_ms=10_000)
     assert "1 late" in grade_b.grade_ec010(t, stand_in=False).summary
     assert "2 copy-case" in grade_b.grade_ec010(t, stand_in=False).summary
+
+
+def test_late_calls_stay_in_the_time_and_the_cost_and_are_labelled():
+    """Operator, 2026-11-21 (qa.md question 5): the time is what a user waits, so late calls count."""
+    t = TraceSummary(calls=3, late_calls=1, duration_ms=299_000, late_duration_ms=120_000,
+                     cost_usd=1.99, late_cost_usd=0.40, run_cost_count=1.99)
+    ec010, ec012 = grade_b.grade_ec010(t, stand_in=False), grade_b.grade_ec012(t, stand_in=False)
+    assert ec010.status == grade.PASS and "299.0 s" in ec010.summary
+    assert "LATE calls: 1 calls, 120.0 s" in ec010.summary
+    assert "US$0.4000" in ec012.summary
+    # Without the late call the run would be 179 s; WITH it, one more second misses.
+    over = TraceSummary(calls=3, late_calls=1, duration_ms=300_000, late_duration_ms=120_000)
+    assert grade_b.grade_ec010(over, stand_in=False).status == grade.MISS
+
+
+def test_no_late_label_when_there_is_no_late_call():
+    t = TraceSummary(calls=3, duration_ms=1_000, cost_usd=0.1, run_cost_count=0.1)
+    assert "LATE" not in grade_b.grade_ec010(t, stand_in=False).summary
+    assert "LATE" not in grade_b.grade_ec012(t, stand_in=False).summary
 
 
 def test_ec_010_on_a_stand_in_run_is_not_tested_but_shows_the_numbers():

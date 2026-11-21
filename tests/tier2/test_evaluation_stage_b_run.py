@@ -106,6 +106,7 @@ def test_over_5_minutes_or_over_2_dollars_is_a_miss_with_the_numbers(conn, setti
     assert results["EC-010"]["status"] == grade.MISS
     assert results["EC-010"]["findings"][0]["actual"] == "300.0 s"       # exactly 5 minutes: a miss
     assert "1 late" in results["EC-010"]["summary"]
+    assert "LATE calls: 1 calls, 100.0 s, US$0.6000" in results["EC-010"]["summary"]   # labelled, still counted
     assert results["EC-012"]["status"] == grade.MISS
     assert results["EC-012"]["findings"][0]["actual"] == "US$2.1000"
 
@@ -203,3 +204,18 @@ def test_the_command_line_skips_stage_b_quietly_at_g1_but_not_when_asked_for_it(
     assert not list((tmp_path / run_id).glob("stage-b-*"))
     assert cli.main([run_id, "--stage", "b", "--out", str(tmp_path)]) == 2   # asked for: an error
     assert "Nothing to grade" in capsys.readouterr().err
+
+
+def test_the_markdown_shows_the_late_label_and_the_ec004_note(conn, settings):
+    """The operator's two answers (qa.md questions 4 and 5) reach the text a person reads."""
+    from backend.evaluation import report as report_module
+    run_id = flow.to_g3(conn, settings)
+    add_trace_line(conn, run_id, "REAL-1", ms=1_000, cost=0.1, late=1)
+    set_cost_count(conn, run_id, 0.1)
+    make_real(conn, run_id)
+    rep = stage_b.evaluate_stage_b(conn, run_id)
+    ec004 = by_id(rep)["EC-004"]
+    ec004["notes"] = ["OBL-01 sample note"]          # the stand-in run cites the key's facts in full
+    text = report_module.render_markdown(rep)
+    assert "LATE calls: 1 calls, 1.0 s, US$0.1000" in text
+    assert "Notes (information only, not a miss):" in text and "- OBL-01 sample note" in text

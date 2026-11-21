@@ -161,6 +161,9 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
   (they ran and were paid for, DL-43, DL-45). Time is the sum of the calls' durations (units run one after another).
   Both limits are strict ("under"). On a **stand-in** run they are `NOT TESTED`: the numbers are shown but a stand-in
   call is not a model call. The trace must also add up to the run's own cost count, or EC-012 misses.
+- **Decided by the operator, 2026-11-21 (open questions 4 and 5, closed):** EC-004 keeps the SAD rule as the pass mark and
+  reports the key's missing facts on the other four verdicts as a non-failing note; EC-010 keeps late calls in the time
+  and labels them as late (seconds and cost) in the report.
 - Stage B is "finished" when its units are all done (the app stores the verdicts only then, rule 9).
 
 ## Open Questions
@@ -168,10 +171,11 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 1. ~~F-1 / H-068~~ **Closed 2026-11-21:** the applicability sentence is judged by the operator with the name (EC-002). `US-013` c11 was updated too (H-069, `@product-mgr`, PR #146).
 2. **EC-R5:** the match rules for the name and for the applicability sentence are still to be written by the operator (EC-002 is shown "for the operator").
 3. Should the evaluation tests be promoted to Tier 1 once the run starter exists (SOQ-29)? (Left in Tier 2 for now, operator, 2026-11-21.)
-4. **EC-004 citations:** the key lists the facts for every verdict, the SAD requires named facts for two. The grader follows
-   the SAD. Say if it should enforce the key's facts for all six (stricter).
-5. **EC-010 and EC-012** count late and copy-case calls. Say if a late call should be left out of the time (it still counts
-   towards cost, DL-43).
+4. ~~EC-004 citations~~ **Closed (operator, 2026-11-21):** the SAD rule stays the pass mark (named facts required for OBL-04 and
+   OBL-05 only). For the other four verdicts, the key's facts that are not cited are listed as a **note** in the report
+   ("information only, not a miss"). The note never changes the result and never fails the run.
+5. ~~EC-010 late calls~~ **Closed (operator, 2026-11-21):** late calls stay in the time as well as the cost, so the time is what a
+   user actually waits. The report labels them: "of this, LATE calls: N calls, X s, US$Y".
 
 ## Audit
 
@@ -181,3 +185,4 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 - 2026-11-21 · persona `qa-eng` · action `update` (H-068, operator decision) · EC-001 no longer matches the applicability rule exactly; EC-002 lists it with the name for the operator; F-1 closed; counts updated (62 new tests). Tier placement unchanged (open question 3). `AAMAD_TARGET_RUNTIME=crewai` · no model call.
 - 2026-11-21 · persona `qa-eng` · action `update` (follow-up to the H-068 check on SAD EC-002) · Lines in the follow-up list: "model judge" and "judge model" changed to "model grader" where they mean the future calibrated grader for EC-002, so this file uses the SAD's word. Left as written: the dated H-068 decision lines and handoff H-068 (records of what was decided then), and the applicability `judge` agent (DL-40). No threshold, criterion or code changed. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-21 · persona `qa-eng` · action `qa` (B8 Stage B grader slice, operator decision; `test-unit`, `test-integration`) · EC-004, EC-010 and EC-012 graded from a finished run read from the database; 45 new tests; 382 passed, 0 failed; no model call, no real key, no paid call. `*verify-change` and the `@security.eng` recommendation are still **not** made: B8 is not finished. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-21 · persona `qa-eng` · action `update` (operator answers to open questions 4 and 5, closed) · EC-004: the key's uncited facts on OBL-01, 02, 03 and 06 are a non-failing note (`Criterion.notes`, shown in the report); EC-010 and EC-012: the late share of the time and cost is labelled. 4 new tests in `test_evaluation_stage_b.py` and 1 in `test_evaluation_stage_b_run.py`; 5 deliberate breaks, all caught. No threshold changed. No model call, no real key, no paid call. `AAMAD_TARGET_RUNTIME=crewai`.

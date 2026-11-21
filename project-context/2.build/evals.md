@@ -162,7 +162,7 @@ the `I-1` and injection cases, grading a failed run, the three-run comparison, E
 - **No gap-check questions were asked.** The six items in the run-evals skill's Step 2 are answered by the SAD §9
   table and run rules (accuracy thresholds, latency and cost targets, the cost of a wrong output through P-1,
   safety constraints, the golden data source = the answer key, no model grader). Recorded here instead of asked.
-- **EC-004:** only OBL-04 and OBL-05 must cite named facts (the SAD says so); the key lists facts for every row and the grader does not enforce the others. A row the specialist did not approve is not judged by stage B, so it is *not tested*, not a miss; a key row that was never extracted is a miss.
+- **EC-004:** only OBL-04 and OBL-05 must cite named facts (the SAD says so); the key lists facts for every row and the grader does not enforce the others, but it lists the key's uncited facts on the other four verdicts as a **non-failing note** (operator, 2026-11-21). A row the specialist did not approve is not judged by stage B, so it is *not tested*, not a miss; a key row that was never extracted is a miss.
 - **EC-010 and EC-012:** counted over every trace line of the run (late and copy-case calls included); strict limits; not tested on stand-in runs.
 - Operator decisions of 2026-11-21 (H-066): the slice starts before the spike; it grades a finished run; stand-in
   runs are stamped; code-only cases only; the key is read at grade time; EC-R5 later.

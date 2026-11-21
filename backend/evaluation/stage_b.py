@@ -54,10 +54,13 @@ def load_stage_b(conn: sqlite3.Connection, run: dict) -> grade_b.StageBOutput:
     t = conn.execute(
         """SELECT COUNT(*) AS calls, COALESCE(SUM(late), 0) AS late,
                   COALESCE(SUM(eval_case IS NOT NULL), 0) AS copies,
-                  COALESCE(SUM(duration_ms), 0) AS ms, COALESCE(SUM(cost_usd), 0) AS cost
+                  COALESCE(SUM(duration_ms), 0) AS ms, COALESCE(SUM(cost_usd), 0) AS cost,
+                  COALESCE(SUM(CASE WHEN late THEN duration_ms END), 0) AS late_ms,
+                  COALESCE(SUM(CASE WHEN late THEN cost_usd END), 0) AS late_cost
            FROM trace WHERE run_id = ?""", (run_id,)).fetchone()
     trace = grade_b.TraceSummary(calls=t["calls"], late_calls=t["late"], copy_case_calls=t["copies"],
                                  duration_ms=t["ms"], cost_usd=t["cost"],
+                                 late_duration_ms=t["late_ms"], late_cost_usd=t["late_cost"],
                                  run_cost_count=run["cost_so_far"])
     return grade_b.StageBOutput(verdicts=verdicts, approved_row_ids=approved,
                                 existing_fact_ids=existing, trace=trace)
@@ -89,5 +92,6 @@ def _plain(criterion) -> dict:
     return {"id": criterion.id, "name": criterion.name, "threshold": criterion.threshold,
             "status": criterion.status, "summary": criterion.summary,
             "checks": [vars(c) for c in criterion.checks],
-            "findings": [vars(f) for f in criterion.findings]}
+            "findings": [vars(f) for f in criterion.findings],
+            "notes": list(criterion.notes)}
 
