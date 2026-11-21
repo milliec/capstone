@@ -29,7 +29,7 @@ The SAD §9 table is the contract; nothing is re-derived. Stage A rows only:
 | ID | Dimension | Metric | Threshold | Grading Method | Source |
 |----|-----------|--------|-----------|-----------------|--------|
 | EC-001 | Accuracy | Extracted rows against KEY §1 (paragraph, quote under QN-1, anchor, offset, frequency, recipient, responsible role via the fixed lookup). **The free-text applicability rule is not matched here (H-068)** | 6 of 6 rows; 0 extra; 0 rows on a paragraph that must not be extracted; 3 of 3 runs | Code | SAD §9 EC-001, EC-R1, EC-R11; PRD §7; US-013 c1 |
-| EC-002 | Accuracy | Obligation **name** is the same obligation, and the **applicability rule** states the same condition (H-068) | 6 of 6 names and 6 of 6 sentences under the operator's written match rules | **Human (operator)**; a model judge only after calibration against the operator's marks | SAD §9 EC-002, EC-R5; DL-23; H-068 |
+| EC-002 | Accuracy | Obligation **name** is the same obligation, and the **applicability rule** states the same condition (H-068) | 6 of 6 names and 6 of 6 sentences under the operator's written match rules | **Human (operator)**; a model grader only after calibration against the operator's marks | SAD §9 EC-002, EC-R5; DL-23; H-068 |
 | EC-003 | Accuracy, safety | Business-day rule "not confirmed" on all rows; 0 computed dates | Exact | Code | SAD §9 EC-003 |
 | EC-005 | Accuracy | Verifier recall: C-1, C-2, I-1, altered quote | 4 of 4 | Code | SAD §9 EC-005, DL-45 |
 | EC-006 | Accuracy | False alarms on the 6 correct rows | Exactly 2 cross-source, 0 internal, none on OBL-01 | Code | SAD §9 EC-006 |
@@ -73,8 +73,8 @@ already), EC-010 (agent time under 5 minutes), EC-011 (review time under 30 minu
   report shows the text. Statuses are `pass`, `miss`, `incomplete`, `not_tested`, `for_operator`; "not
   tested" is never shown as "pass".
 - **LLM-as-judge: none yet.** Free text (the name and the applicability sentence, EC-002) is judged by the operator; everything
-  else is code. A model judge is planned for EC-002 only **after** it is calibrated against the operator's marks
-  (agreement rate reported; a judge model different from the model under test; constrained verdicts such as
+  else is code. A model grader is planned for EC-002 only **after** it is calibrated against the operator's marks
+  (agreement rate reported; a model grader different from the model under test; constrained verdicts such as
   "same" / "not the same"). Until then no judge exists, so there is nothing to calibrate (H-068).
 - **Human review:** EC-002 (the operator judges each name pair and each applicability sentence, key against output, under the EC-R5 rules, which are **not written yet**);
   EC-014 wording and EC-018 copy review are B10.
@@ -139,7 +139,7 @@ cycle. Handoff to `@devops.eng` for Deliver.
 ## 8. Future Work
 
 See `qa.md` "Future work". In order: the run starter (B8, after the spike), D4 export and T-D4-1, the void rule,
-the `I-1` and injection cases, stage B and runtime graders, the three-run comparison, EC-R5, and a calibrated model judge for EC-002.
+the `I-1` and injection cases, stage B and runtime graders, the three-run comparison, EC-R5, and a calibrated model grader for EC-002.
 
 ## Sources
 
@@ -151,7 +151,7 @@ the `I-1` and injection cases, stage B and runtime graders, the three-run compar
 
 - **No gap-check questions were asked.** The six items in the run-evals skill's Step 2 are answered by the SAD §9
   table and run rules (accuracy thresholds, latency and cost targets, the cost of a wrong output through P-1,
-  safety constraints, the golden data source = the answer key, no judge model). Recorded here instead of asked.
+  safety constraints, the golden data source = the answer key, no model grader). Recorded here instead of asked.
 - Operator decisions of 2026-11-21 (H-066): the slice starts before the spike; it grades a finished run; stand-in
   runs are stamped; code-only cases only; the key is read at grade time; EC-R5 later.
 - **H-068 (operator, 2026-11-21): the applicability sentence is judged by the operator, like the name.** Every structured field keeps its exact code check. Until a model judge is calibrated against the operator's marks, free text is listed for the operator, never matched by code.
@@ -168,3 +168,4 @@ the `I-1` and injection cases, stage B and runtime graders, the three-run compar
 - 2026-11-21 · persona `qa-eng` · action `run-evals` (partial: the Stage A grader slice of B8) ·
   `AAMAD_TARGET_RUNTIME=crewai` · no model call, no real key.
 - 2026-11-21 · persona `qa-eng` · action `run-evals` (update, H-068) · the applicability sentence moved from exact code match (EC-001) to operator judgement (EC-002); `sad.md` wording changed at the operator's instruction · `AAMAD_TARGET_RUNTIME=crewai` · no model call.
+- 2026-11-21 · persona `qa-eng` · action `update` (follow-up to the H-068 check on SAD EC-002) · Lines in the EC-002 row, the grader notes and the not-yet-built list: "model judge" and "judge model" changed to "model grader" where they mean the future calibrated grader for EC-002, so this file uses the SAD's word. Left as written: the dated H-068 decision lines and handoff H-068 (records of what was decided then), and the applicability `judge` agent (DL-40). No threshold, criterion or code changed. No model call. `AAMAD_TARGET_RUNTIME=crewai`.

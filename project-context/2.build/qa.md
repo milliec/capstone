@@ -114,7 +114,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
    `eval_case` in the trace (DL-45).
 4. Graders for stage B (EC-004) and a runtime grader for EC-010 and EC-012; the three-run
    comparison (EC-R1, EC-R1a) over saved reports.
-5. EC-R5, the match rules for EC-002 (the name **and** the applicability sentence), written by the operator before the first evaluation run. Later: a model judge for EC-002, with a judge model different from the model under test, **calibrated against the operator's marks** (agreement rate reported) before it replaces them.
+5. EC-R5, the match rules for EC-002 (the name **and** the applicability sentence), written by the operator before the first evaluation run. Later: a model grader for EC-002, different from the model under test, **calibrated against the operator's marks** (agreement rate reported) before it replaces them.
 6. `*verify-change` on the final branch, then the recommendation to `@security.eng` (SAD §9).
 
 ## Sources
@@ -144,3 +144,4 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
   `log-defects`, `future-work`) · `AAMAD_TARGET_RUNTIME=crewai` · no model call. `*verify-change` and the
   `@security.eng` recommendation are **not** made yet: B8 is not finished.
 - 2026-11-21 · persona `qa-eng` · action `update` (H-068, operator decision) · EC-001 no longer matches the applicability rule exactly; EC-002 lists it with the name for the operator; F-1 closed; counts updated (62 new tests). Tier placement unchanged (open question 3). `AAMAD_TARGET_RUNTIME=crewai` · no model call.
+- 2026-11-21 · persona `qa-eng` · action `update` (follow-up to the H-068 check on SAD EC-002) · Lines in the follow-up list: "model judge" and "judge model" changed to "model grader" where they mean the future calibrated grader for EC-002, so this file uses the SAD's word. Left as written: the dated H-068 decision lines and handoff H-068 (records of what was decided then), and the applicability `judge` agent (DL-40). No threshold, criterion or code changed. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
