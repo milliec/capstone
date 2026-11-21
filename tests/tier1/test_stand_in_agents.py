@@ -9,7 +9,7 @@ import pytest
 from backend.domain import sources
 from backend.domain.fund_facts import load_fund_facts
 from backend.domain.quote_check import check_quote
-from backend.runtime import agents
+from backend.runtime import agents, model_settings
 from backend.settings import load_settings
 
 STAND_IN_FILES = ["extractor.yaml", "verifier.yaml", "judge.yaml"]
@@ -126,11 +126,13 @@ def test_a_gap_in_the_stand_in_files_is_loud(settings):
                                    fund_facts=load_fund_facts())
 
 
-def test_real_mode_is_refused_by_all_three_functions():
+def test_real_mode_with_no_model_id_is_refused_by_all_three_functions():
+    """Real mode needs the operator's model IDs in .env (DL-40). With none set, each function is
+    refused BEFORE anything is built or sent (the B3 step 7b crews are tested in test_crews.py)."""
     real = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike"})
-    with pytest.raises(agents.RealAgentsNotBuilt):
+    with pytest.raises(model_settings.ModelNotSet):
         agents.extract_rows(real, document_id="SRC-VATLAW", paragraphs={}, recipient_codes=[])
-    with pytest.raises(agents.RealAgentsNotBuilt):
+    with pytest.raises(model_settings.ModelNotSet):
         agents.check_conflicts(real, row={}, quote_check=None, sources={})
-    with pytest.raises(agents.RealAgentsNotBuilt):
+    with pytest.raises(model_settings.ModelNotSet):
         agents.judge_applicability(real, row={}, fund_facts={})

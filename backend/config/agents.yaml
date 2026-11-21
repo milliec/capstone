@@ -1,7 +1,8 @@
 # The three CrewAI agents (sad.md §2 "Agent cards", DL-39). Role, goal and backstory are the
-# cards' words. Settings for all three (§2, D1 to D6): no delegation, no memory, no tools,
-# max_iter 2. The model for each role is NOT here: it comes from LLM_MODEL_EXTRACT / _VERIFY /
-# _JUDGE, which stay unset until the operator pins DL-40 (SOQ-25) after the first green path.
+# cards' words. Settings for all three (§2, D1 to D6, H-065): no delegation, no memory, no tools,
+# max_iter 1 (with no tools, a second loop turn could only be a second paid call). The retry
+# limit is set to 0 in code (backend/runtime/crews.py), not here. The model for each role is NOT
+# here: LLM_MODEL_EXTRACT / _VERIFY / _JUDGE come from the operator's own .env (DL-40).
 #
 # A change to this file is a release (sad.md "Swap-as-release rule"): its hash is the prompt
 # version recorded in every trace line (CR-018).
@@ -22,7 +23,7 @@ extractor:
   allow_delegation: false
   memory: false
   tools: []
-  max_iter: 2
+  max_iter: 1
 
 verifier:
   role: >
@@ -41,7 +42,7 @@ verifier:
   allow_delegation: false
   memory: false
   tools: []
-  max_iter: 2
+  max_iter: 1
 
 judge:
   role: >
@@ -61,4 +62,4 @@ judge:
   allow_delegation: false
   memory: false
   tools: []
-  max_iter: 2
+  max_iter: 1
