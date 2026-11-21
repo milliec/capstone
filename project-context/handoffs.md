@@ -41,13 +41,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: The story and the SAD should say the same thing; an exact match on a free sentence cannot pass (H-068).
 - Outcome: (the owner fills this in)
 
-### H-067: setup.md and the README: the H-002 `qa.md` exception is gone; B8 slice 1 is on a branch
-- From: @qa.eng   To: @project.mgr   Date: 2026-11-21
-- Touches: 2.build/setup.md (the CI table row for `aamad validate`, "Git hooks" note on the temporary exception, the "Tests and checks" table row, the `@qa.eng` and `@project.mgr` Hand-off rows, and the Resolved (H-002) note); README.md (status row for `@qa.eng`, line about `qa.md` not started)
-- Ask: Remove the words "with the same temporary `qa.md` exception" and the instruction to remove it later, since `@qa.eng` wrote `2.build/qa.md` and the operator asked for the exception to be removed from `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` in the same change (done in the B8 slice 1 pull request). Update the `@qa.eng` row: B8's Stage A grader slice is built (graders, T-MAP-1, report); the run starter, trace export (D4), void rule and the model-calling cases are still to do, after the spike. Update the README row the same way.
-- Why: Both files still describe an exception that no longer exists.
-- Outcome: (the owner fills this in)
-
 ### H-066: Record the operator's order decision: B8 Stage A grader slice starts before the B3 spike
 - From: @qa.eng (operator decision, 2026-11-21)   To: @system.arch   Date: 2026-11-21
 - Touches: sad.md Build card "Order" row and "Order of work" row 8 (B8); H-001 (the Order row is authoritative)
@@ -93,14 +86,21 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 <!-- H-004 to H-026 come from the design exploration in docs/prototype/ (see docs/prototype/HANDOVER.md).
      One entry per difference row. Nothing in docs/prototype overrides sad.md until the owner decides. -->
 
+## Done
+
+### H-067: setup.md and the README: the H-002 `qa.md` exception is gone; B8 slice 1 is on a branch
+- From: @qa.eng   To: @project.mgr   Date: 2026-11-21
+- Touches: 2.build/setup.md (the CI table row for `aamad validate`, "Git hooks" note on the temporary exception, the "Tests and checks" table row, the `@qa.eng` and `@project.mgr` Hand-off rows, and the Resolved (H-002) note); README.md (status row for `@qa.eng`, line about `qa.md` not started)
+- Ask: Remove the words "with the same temporary `qa.md` exception" and the instruction to remove it later, since `@qa.eng` wrote `2.build/qa.md` and the operator asked for the exception to be removed from `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` in the same change (done in the B8 slice 1 pull request). Update the `@qa.eng` row: B8's Stage A grader slice is built (graders, T-MAP-1, report); the run starter, trace export (D4), void rule and the model-calling cases are still to do, after the spike. Update the README row the same way.
+- Why: Both files still describe an exception that no longer exists.
+- Outcome (`@project.mgr`, 2026-11-21): **Done.** `setup.md`: the CI table row, the H-003 item 1 bullet, the "Tests and checks" row and the Resolved (H-002) note no longer describe a live exception (past tense, with the end date); the `@project.mgr` row drops the "remove it later" instruction; the `@qa.eng` row says slice 1 is built and lists what is still to do after the spike. `README.md` `@qa.eng` row says the same. Audit entry added. The "Git hooks" section had no note on the exception, so nothing changed there. Checked first: `run-checks.sh` and `ci.yml` already have no exception.
+
 ### H-002: Remove the qa.md exception from run-checks.sh when qa.md is written
 - From: @system.arch (operator request)   To: @project.mgr   Date: 2026-11-13
 - Touches: `scripts/git-hooks/run-checks.sh` (the TEMPORARY qa.md exception in check 3), setup.md open question on qa.md
 - Ask: Remove the qa.md exception from run-checks.sh when `@qa.eng` writes `2.build/qa.md`. If H-003's CI job is in place by then, remove the same exception there in the same change.
 - Why: The exception was only meant to last until `qa.md` exists; left in place it would hide a real "qa.md missing" error.
-- Outcome: (the owner fills this in)
-
-## Done
+- Outcome: (`@project.mgr`, 2026-11-21): **Done**, in the B8 slice 1 pull request (hook and `ci.yml`) and H-067 (`setup.md`, README).
 
 ### H-068: Operator decision: how EC-001 grades the applicability rule (exact text cannot pass)
 - From: @qa.eng   To: operator   Date: 2026-11-21

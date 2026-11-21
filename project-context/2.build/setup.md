@@ -161,11 +161,11 @@ it in step with the local `.venv`) and `ruff==0.17.3`.
 | `ruff check backend tests` (settings in `pyproject.toml`; formatting is not checked yet) | Yes |
 | Tier 1 tests: `pytest tests/tier1 tests/test_answer_key.py` | Yes |
 | Tier 2 tests: `pytest tests/tier2` | No (`continue-on-error` until promoted, `sad.md` §9) |
-| `aamad validate`, with the same temporary `qa.md` exception as the hook | Yes |
+| `aamad validate` (every validator error blocks, as in the hook) | Yes |
 
-- **H-003 item 1 (validator in CI): built.** The exception for the one finding `project-context/
-  2.build/qa.md: Build artifact missing` is in `ci.yml` and in `run-checks.sh`. **H-002 removes both
-  in the same change** when `@qa.eng` writes `qa.md`.
+- **H-003 item 1 (validator in CI): built.** Every validator error blocks, in `ci.yml` and in
+  `run-checks.sh`. (The temporary exception for the one finding `project-context/2.build/qa.md: Build
+  artifact missing` ended when `@qa.eng` wrote `qa.md`; H-002, H-067.)
 - **H-003 item 2 (no name scan in CI): built.** CI never runs the scan, and
   `reference/real-identifiers.txt` is never uploaded, copied into a secret or committed.
 - **H-003 item 3:** recorded above.
@@ -178,7 +178,7 @@ it in step with the local `.venv`) and `ruff==0.17.3`.
 |---|---|---|
 | All Python tests (stand-in agents, no model call) | `make test` | By hand; **CI runs them too** (Tier 1 blocks, Tier 2 does not) |
 | Lint (ruff) | `make lint` | **CI** (blocks) |
-| Framework validator | `.venv/bin/aamad validate` | The commit and push hooks, and **CI** (both with the temporary `qa.md` exception) |
+| Framework validator | `.venv/bin/aamad validate` | The commit and push hooks, and **CI** (every validator error blocks) |
 | Real-name scan | the command in `CLAUDE.md` | The commit and push hooks only. **Never CI** (H-003) |
 | Visual check (Playwright snapshots of the stubbed UI) | `cd tests/visual && npm run test:visual` | **No.** Not part of `make test`, the commit hook or CI |
 
@@ -274,10 +274,10 @@ B12, then B13b; never T-MAP-1. The live list of open requests is `project-contex
 | Operator | Say "go" for the rest of **B3 step 7b** (PRs 2 to 6; PR 1, the install, is merged) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
 | `@backend.eng` | **B3 step 7b**, PR 1 done (CrewAI 1.15.35 installed, #127); next the crews behind the same agent functions, using the H-065 settings: our own single retry, strict `response_format`, our guardrails, `max_iter: 1`, the `interceptor` that counts every request). Then the **spike** with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
 | `@frontend.eng` | Nothing open on snapshots: the mobile fix (H-062) and the 360 px baselines are done. H-061: move your finished entries (H-048, H-027) to Done (H-054 is already there). Later: **B6** light visual pass (dropped first) |
-| `@qa.eng` | Review `tests/tier1/test_green_path.py` (co-owned, H-056). Then **B8** the evaluation runner, with `T-MAP-1` passing before the first evaluation run; **B9** tuning and one evaluation cycle with the operator. Writes `2.build/qa.md` in **B10**, which ends the temporary validator exception (H-002) |
+| `@qa.eng` | Review `tests/tier1/test_green_path.py` (co-owned, H-056). Then **B8** the evaluation runner: **slice 1 is built** (the Stage A grader in `backend/evaluation/`: graders, `T-MAP-1`, the report; on a branch, H-066, H-067). Still to do, after the spike: the run starter, the trace export (D4), the void rule and the cases that call a model. `T-MAP-1` must pass before the first evaluation run. **B9** tuning and one evaluation cycle with the operator. `2.build/qa.md` exists (first pass) |
 | `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
 | `@system.arch` | Nothing blocking: H-064 and H-065 are done. H-061 (H-040) still needs the entry moved to Done. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
-| `@project.mgr` | This table and the README stay current as blocks merge (the README status note was last aligned in H-058). When `qa.md` exists, remove the temporary `qa.md` exception in `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` together (H-002) |
+| `@project.mgr` | This table and the README stay current as blocks merge (the README status note was last aligned in H-058). The temporary `qa.md` exception is gone from `scripts/git-hooks/run-checks.sh`, `.github/workflows/ci.yml` and this file (H-002, H-067) |
 | `@security.eng`, `@devops.eng`, `@integration.eng` | **B10** only (acceptance pass, security checklist, rehearsal, final run instructions). The README run instructions already exist (PR #107). Nothing before the evaluation cycle |
 
 ## Sources
@@ -311,8 +311,9 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
 - **Resolved (H-002).** Does the validator's hard requirement for `qa.md` once `2.build/` has
   content stay, or should the hook treat it differently? Decision: the hook ignores only the one
   finding `project-context/2.build/qa.md: Build artifact missing`. Every other validator error still
-  blocks. The exception in `scripts/git-hooks/run-checks.sh` is temporary and is removed when
-  `@qa.eng` writes `project-context/2.build/qa.md`.
+  blocks. The exception in `scripts/git-hooks/run-checks.sh` was temporary. **Ended 2026-11-21 (H-067):**
+  `@qa.eng` wrote `project-context/2.build/qa.md`, and the exception was removed from the hook and
+  from `ci.yml`.
 
 ## Audit
 
@@ -364,3 +365,9 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   recorded, visual check passes, four more refreshed in #140); `@frontend.eng` row no longer waits on
   the 360 px baseline. Checked `main` and `handoffs.md` first: no open PRs, 7b PRs 2 to 6 not started.
   No code. No model call.
+- 2026-11-21 · persona `project-mgr` · action `document-setup` (handoff H-067, operator request) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · removed the words about the temporary `qa.md` exception from the CI
+  table, the CI bullet, the "Tests and checks" table, the `@project.mgr` Hand-off row and the
+  Resolved (H-002) note, because the exception was already removed from `run-checks.sh` and `ci.yml`
+  (B8 slice 1 pull request). `@qa.eng` Hand-off row and the README row now say B8 slice 1 (the Stage A
+  grader) is built on a branch and what is still to do. No code. No model call.
