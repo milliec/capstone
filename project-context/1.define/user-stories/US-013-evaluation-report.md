@@ -58,7 +58,7 @@ can prove the system works and see exactly where it doesn't.
     name is then matched exactly. Text that does not map counts as a miss; the report shows the
     extracted text, "no match" and the expected value. No model and no judgement is used to stretch a
     match in the exact-match fields, and the table is fixed before the first evaluation run. **No model
-    grades the name or the applicability rule** until a model judge has been calibrated against the
+    grades the name or the applicability rule** until a model grader has been calibrated against the
     operator's marks; an exact match on a free sentence could never pass.
     (Decision log DL-23, DL-41, SAD EC-001, EC-002, EC-R5, EC-R11, test T-MAP-1.)
 12. **Given** a run ends `FAILED` only because of a model-service failure (a provider call timed out,
@@ -116,3 +116,4 @@ can prove the system works and see exactly where it doesn't.
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-23) · criterion 10 (model-dependent criteria must pass 3 of 3 consecutive runs on one commit) and criterion 11 (names graded by the specialist, date and routing fields by exact match); OQ-US013-1 resolved; operator decision. DL-23 and SAD EC-R1, EC-002 are on the architect's branch and not yet on main
 - 2026-11-12 · persona `product-mgr` · action `update` (DL-34, SAD SOQ-20 c) · criterion 10 reworded: measured on 3 runs, a pass means 3 of 3, a miss is reported and does not block a merge or the demo, all three runs shown; new criterion 12: void rule, tuning cap (half a focused day or 60 real calls) and the non-model checks that stay blocking; operator decision
 - 2026-11-12 · persona `product-mgr` · action `update` (SAD SOQ-27, DL-41) · criterion 11: responsible role is mapped to the profile's party name by a fixed lookup (fixed before the first evaluation run), then matched exactly; text that does not map is a miss, with no model or judgement; traceability adds DL-41
+- 2026-11-21 · persona `product-mgr` · action `update` (SAD EC-002, follow-up to the H-068 check) · criterion 11: "model judge" changed to "model grader" so the story uses the SAD's word (the SAD keeps "judge" for the applicability `judge` agent, DL-40). No other wording, threshold or criterion changed.
