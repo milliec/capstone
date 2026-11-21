@@ -48,17 +48,19 @@ can prove the system works and see exactly where it doesn't.
     it does not block a merge or the demo.** The report records which runs and which commit the three
     belong to, and shows all three runs, never the best of them. (Decision log DL-34, SAD EC-R1,
     EC-R1a.)
-11. **Given** an extracted obligation name, **then** it is graded by the specialist's judgement ("same
-    obligation" or not) and the verdict is recorded per row in the report. The fields that drive dates
-    and routing (paragraph ID, quote, frequency, anchor, offset, recipient, responsible role and
-    applicability rule) are graded by exact match against the answer key. **Responsible role is first
-    mapped, then matched:** the extracted text (for example "a local reporting agent") is looked up in
-    a fixed table that gives the fund profile's party name ("Local reporting agent (Spain)") or "not
-    stated in source", and that name is then matched exactly. Text that does not map counts as a miss;
-    the report shows the extracted text, "no match" and the expected value. No model and no judgement
-    is used to stretch a match, and the table is fixed before the first evaluation run. No model grades
-    the name.
-    (Decision log DL-23, DL-41, SAD EC-002, EC-R11, test T-MAP-1.)
+11. **Given** an extracted obligation name and an extracted applicability rule, **then** each is graded
+    by the specialist's judgement and the verdict is recorded per row in the report: the name as "same
+    obligation" or not, the applicability rule as "same condition" or not. The fields that drive dates
+    and routing (paragraph ID, quote, frequency, anchor, offset, recipient and responsible role) are
+    graded by exact match against the answer key. **Responsible role is first mapped, then matched:**
+    the extracted text (for example "a local reporting agent") is looked up in a fixed table that gives
+    the fund profile's party name ("Local reporting agent (Spain)") or "not stated in source", and that
+    name is then matched exactly. Text that does not map counts as a miss; the report shows the
+    extracted text, "no match" and the expected value. No model and no judgement is used to stretch a
+    match in the exact-match fields, and the table is fixed before the first evaluation run. **No model
+    grades the name or the applicability rule** until a model judge has been calibrated against the
+    operator's marks; an exact match on a free sentence could never pass.
+    (Decision log DL-23, DL-41, SAD EC-001, EC-002, EC-R5, EC-R11, test T-MAP-1.)
 12. **Given** a run ends `FAILED` only because of a model-service failure (a provider call timed out,
     was rate-limited or returned a server error after its one automatic retry, or a time limit passed
     while waiting for the provider), **then** it is **voided** and re-run once on the same commit. The
@@ -79,7 +81,7 @@ can prove the system works and see exactly where it doesn't.
 
 - **PRD Anchors**: F9 · §7 technical metrics
 - **System description**: FR-018, FR-027 · MP-001 to MP-004 · MC-001, MC-002, MC-003 · AC-027, AC-031
-- **Decision log**: DL-23 (criteria 10–11), DL-41 (criterion 11)
+- **Decision log**: DL-23 (criteria 10–11), DL-41 (criterion 11); criterion 11 applicability change: handoff H-069 (from H-068), SAD EC-002 and EC-R5
 - **Answer key**: §1 to §4
 - **Related SFS**: none yet
 
