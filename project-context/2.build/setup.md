@@ -196,6 +196,65 @@ the same nothing.
 reported; `@frontend.eng` proposes the new snapshots and the operator approves them (`CLAUDE.md`,
 check 3; `frontend.md` §11.1).
 
+### Grade a finished run (B8 slices 1 and 2, H-070)
+
+B8 has two slices so far, both merged: the **Stage A grader** (#142) and the **Stage B grader**
+(#151). Both only **read a finished run from the database** (`DATABASE_PATH`, the app's own file).
+They start nothing, call no model, need no key and spend nothing, so they work with
+`AGENTS_MODE=stand_in`. The code is in `backend/evaluation/`; the design notes and the tests are in
+`2.build/qa.md`.
+
+```bash
+.venv/bin/python -m backend.evaluation RUN-20261121-1            # Stage A, and Stage B if the run finished it
+.venv/bin/python -m backend.evaluation RUN-20261121-1 --stage b  # Stage B only (also --stage a)
+.venv/bin/python -m backend.evaluation RUN-20261121-1 --no-save  # print the report, save nothing
+```
+
+`RUN-20261121-1` is an example. The run ID is in the review page's address (`/specialist/runs/<run ID>`). `--out <folder>` changes
+where reports are saved.
+
+| What happens | Detail |
+|---|---|
+| Which stages | The default (`--stage all`) grades Stage A, then Stage B **if the run finished Stage B**. At G1 it prints "Stage B skipped" and still grades Stage A. With `--stage b` the same case stops with exit code 2 |
+| Stage B is "finished" | When all its units are done, which the app only records when every unit is done (rule 9). A run that stopped earlier, or a run made before the app stored Stage A's output, has nothing to grade: the command says "Nothing to grade", exit code 2 |
+| Exit code | **0 for any report, even with misses**: an evaluation reports, it never blocks (DL-34). 2 only when there is nothing to grade (no database, unknown run, not finished) |
+| Saved files | `project-context/2.build/logs/<run ID>/stage-<a or b>-report-<n>.json` and `.md`. Grading the same run again writes report 2, never an edit of report 1. **This folder is not git-ignored**: check `git status` before you commit, and use `--no-save` when you only want to look |
+| Does the run count? | A stand-in run is stamped "STAND-IN RUN: does not count towards the cycle": it checks the graders, it is not an evaluation of the agents. A real run counts only if it is labelled `evaluation` (`SPEND_ACTIVITY`) and the planted-row switch was off (EC-R6, EC-R7). The stamp only marks; it refuses nothing. The run starter that makes such runs is not built yet |
+
+**What the Stage B report shows** (the Stage A criteria are in the Stage A report):
+
+| ID | What it checks | Passes when | On a stand-in run |
+|---|---|---|---|
+| EC-004 | The six applicability verdicts against the answer key (KEY section 2) | 6 of 6: OBL-01, 02, 03 and 05 "applies", OBL-04 "unsure", OBL-06 "does not apply"; every verdict cites at least one existing fact ID; OBL-04 cites FACT-03 and FACT-04; OBL-05 cites FACT-06 and EVT-01 | Graded as normal. The stand-in's verdicts equal the key's, so it shows 6 of 6 |
+| EC-010 | Agent time, from the trace: every model step, retries included, not the time waiting for the specialist | **Strictly under 5 minutes** (exactly 300 s is a miss) | `NOT TESTED`: a stand-in call takes milliseconds, so a pass would say nothing. The measured seconds are still printed |
+| EC-012 | Model cost, from the trace (provider usage data, retries included) | **Strictly under US$2** (exactly US$2.00 is a miss), **and** the trace adds up to the run's own cost count | `INCOMPLETE`: the "trace adds up" check passes, the "under US$2" check is `NOT TESTED` because the cost is US$0. The measured cost is still printed |
+
+Reading the results:
+
+- **A verdict that is not graded.** A row the specialist did not approve at G1 is **not tested**
+  (Stage B never judged it), which is not a miss. A key row that was never extracted is a miss. A
+  missing verdict for an approved row is a miss. The reasoning text of a verdict is never graded.
+- **A confident error is named.** If the key says "unsure" and the agent said "applies", the finding
+  says so: that is the worst kind of EC-004 miss.
+- **Information-only notes (EC-004).** On OBL-01, 02, 03 and 06 the SAD does not name the facts to
+  cite, so the pass mark is only "at least one existing fact ID". If a verdict does not cite the
+  facts the key lists for its row, the report adds a line under "Notes (information only, not a
+  miss)", for example "OBL-02 …: the key's facts not cited: FACT-02". A note **never changes the
+  result and never fails the run** (operator decision, 2026-11-21).
+- **Late-call labels (EC-010 and EC-012).** A late call is one still running when the stage's time
+  limit stopped the stage: its output is thrown away (rule 9), but it ran and was paid for and a
+  user waited for it, so it **stays in** both the time and the cost. When there are any, the report adds a label to the result, in this form: "of this, LATE
+  calls: N calls, X s, US$Y (counted: a user waits for them)". Calls on copy cases are also counted
+  and named ("17 calls (1 late, 2 copy-case)").
+- **One run is not a pass.** A criterion passes the cycle only on 3 of 3 consecutive runs of one
+  commit (EC-R1). Every report says so.
+
+**Still to do in B8, after the B3 spike:** the run starter (the evaluation-run type, scripted gates
+and the EC-R7 refusal), the trace export (D4), the void rule (EC-R8), the `I-1` and injection cases
+(they need the agents), grading a failed run, and the three-run comparison. Until a real model run
+has been timed and priced, EC-010 and EC-012 are tested only on made-up traces, and EC-004 only on
+the stand-in's verdicts.
+
 ## Persona sessions: one worktree each
 
 **Rule: two Claude Code sessions never share one working folder.** (On 2026-11-17 a `git stash` in
@@ -260,7 +319,7 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 
 ## Hand-off: what is next for each downstream agent
 
-*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065); snapshot rows updated 2026-11-20 (H-055 closed, all 16 recorded). Merged on `main`: B1 with
+*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065); snapshot rows updated 2026-11-20 (H-055 closed, all 16 recorded); `@qa.eng` row updated 2026-11-21 (H-070). Merged on `main`: B1 with
 CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B5, B7, B12, and **the first green path** (H-056).
 **DL-40 is pinned** (H-064) and the four CrewAI settings changes are recorded in `sad.md` (H-065), so
 nothing blocks step 7b. **Sprint 3 is treated as done at the stand-in bar** (operator, 2026-11-19).
@@ -274,7 +333,7 @@ B12, then B13b; never T-MAP-1. The live list of open requests is `project-contex
 | Operator | Say "go" for the rest of **B3 step 7b** (PRs 2 to 6; PR 1, the install, is merged) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
 | `@backend.eng` | **B3 step 7b**, PR 1 done (CrewAI 1.15.35 installed, #127); next the crews behind the same agent functions, using the H-065 settings: our own single retry, strict `response_format`, our guardrails, `max_iter: 1`, the `interceptor` that counts every request). Then the **spike** with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
 | `@frontend.eng` | Nothing open on snapshots: the mobile fix (H-062) and the 360 px baselines are done. H-061: move your finished entries (H-048, H-027) to Done (H-054 is already there). Later: **B6** light visual pass (dropped first) |
-| `@qa.eng` | **B8** is started: the Stage A grader slice is built (graders, `T-MAP-1`, report; `backend/evaluation/`, #142), and `2.build/qa.md` is written. Still to do, after the spike: the run starter, trace export (D4), the void rule, and the cases that call a model. `T-MAP-1` must pass before the first evaluation run. **B9** tuning and one evaluation cycle with the operator |
+| `@qa.eng` | **B8** has two slices built and merged, both reading a finished run from the database with no model call: the Stage A grader (#142) and the Stage B grader (#151: EC-004 applicability verdicts, EC-010 agent time and EC-012 cost, from the trace). How to run them and what they report: "Grade a finished run" under "Tests and checks"; the details are in `2.build/qa.md`. Still to do, after the spike: the run starter (evaluation-run type, scripted gates, EC-R7 refusal), the trace export (D4), the void rule (EC-R8), the `I-1` and injection cases, grading a failed run, and the three-run comparison. `T-MAP-1` must pass before the first evaluation run. **B9** tuning and one evaluation cycle with the operator |
 | `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
 | `@system.arch` | Nothing blocking: H-064 and H-065 are done. H-061 (H-040) still needs the entry moved to Done. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
 | `@project.mgr` | This table and the README stay current as blocks merge (the README status note was last aligned in H-067). The temporary `qa.md` exception is gone from `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` (H-002, H-067); nothing left to remove |
@@ -370,3 +429,10 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   (CI row, H-003 note, "Tests and checks" row, Resolved H-002, `@qa.eng` and `@project.mgr` rows);
   `@qa.eng` row says B8 slice 1 is built (#142). README status row for `@qa.eng` aligned. Verified in
   `run-checks.sh` and `ci.yml` that the exception is gone. No code. No model call.
+- 2026-11-21 · persona `project-mgr` · action `document-setup` (handoff H-070) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · new subsection "Grade a finished run" under "Tests and checks"
+  (the command, its options, exit codes, where reports are saved, what EC-004, EC-010 and EC-012
+  report, the information-only notes and the late-call labels); `@qa.eng` Hand-off row now names both
+  B8 slices (#142, #151). Checked against `backend/evaluation/` and the rendered report; the
+  command was run read-only against `data/app.db`: every run there answers "Nothing to grade" (Stage A
+  has not stored its output), so the report text was checked on a throwaway test run instead. No code. No model call. No real key. No paid call.

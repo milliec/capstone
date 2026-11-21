@@ -174,7 +174,7 @@ the work and hand over through written documents in `project-context/`. Persona 
 | 2. Build | `@frontend.eng` | Specialist and GP web surfaces | 🟡 Pages and calendar views built; closing checks and the visual snapshot refresh wait for the operator |
 | 2. Build | `@backend.eng` | Agents, gates, date code, storage | 🟡 Stand-in path built and the first green path passes; CrewAI and real agents come after the model pin |
 | 2. Build | `@integration.eng` | Connecting frontend and backend | Not started (no separate step so far: the pages call the services directly) |
-| 2. Build | `@qa.eng` | Tests and evaluation against the answer key | 🟡 Answer-key tests and the green path co-owned; `qa.md` written; B8 Stage A grader built; run starter, trace export, void rule and the model-calling cases come after the spike |
+| 2. Build | `@qa.eng` | Tests and evaluation against the answer key | 🟡 Answer-key tests and the green path co-owned; `qa.md` written; B8 Stage A and Stage B graders built (read a finished run, no model call); run starter, trace export, void rule and the model-calling cases come after the spike |
 | 2. Build | `@security.eng` | Security review before delivery | Not started (the final acceptance block, B10) |
 | 3. Deliver | `@devops.eng` | Run instructions and user guide | 🟡 Run instructions are in [Getting started](#getting-started); the rest is not started |
 
@@ -285,6 +285,40 @@ CI is GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), o
 request. The visual check needs a one-off install: `cd tests/visual && npm install
 --ignore-scripts && npx playwright install chromium`.
 
+### Grade a finished review (evaluation)
+
+The graders in `backend/evaluation/` score a **finished** review against the answer key. They only
+read the database: they start nothing, call no model, need no key and cost nothing.
+
+```bash
+.venv/bin/python -m backend.evaluation RUN-20261121-1            # Stage A, and Stage B if the review finished it
+.venv/bin/python -m backend.evaluation RUN-20261121-1 --stage b  # Stage B only
+.venv/bin/python -m backend.evaluation RUN-20261121-1 --no-save  # print the report, save nothing
+```
+
+Use your own review ID (it is in the review page's address). Stage B can be graded once the review
+has reached its second approval step (G2). A review that stopped earlier, or an unknown ID, prints
+"Nothing to grade" and exits with 2. Any report, even one full of misses, exits with 0.
+
+| Criterion | What it reports | Passes when |
+|---|---|---|
+| EC-004 | The six applicability verdicts against the answer key | All six match, every verdict cites an existing fact, and the two named rows cite the named facts |
+| EC-010 | Agent time over every model step | Strictly under 5 minutes |
+| EC-012 | Model cost over every model step | Strictly under US$2, and the trace adds up to the review's own cost count |
+
+- **Stand-in reviews** are stamped "does not count towards the cycle". EC-010 and EC-012 show the
+  measured numbers but are marked "not tested", because a stand-in step takes milliseconds and costs
+  nothing, so a pass would say nothing.
+- **Information-only notes (EC-004):** if a verdict leaves out facts that the key lists for it, the
+  report adds a note. A note never changes the result.
+- **Late calls (EC-010, EC-012):** a call that finished after the step had already been stopped is
+  still counted, and the report says how many seconds and dollars were late.
+- **Saved reports** go to `project-context/2.build/logs/<review ID>/`, one new numbered file each
+  time. That folder is not git-ignored, so check `git status` before you commit.
+
+More detail: [`setup.md`](project-context/2.build/setup.md#grade-a-finished-run-b8-slices-1-and-2-h-070)
+and [`qa.md`](project-context/2.build/qa.md).
+
 ### Troubleshooting
 
 - **"Address already in use"**: another app holds port 8000. Stop it, or start this one on another
@@ -352,7 +386,7 @@ capstone/
 │   ├── 2.build/              # Build artifacts: setup, scaffold plan, UX note, backend notes
 │   └── 3.deliver/            # Empty until Deliver
 │
-├── backend/                  # The one FastAPI app: services, runtime, pages, stand-in agents
+├── backend/                  # The one FastAPI app: services, runtime, pages, stand-in agents, evaluation graders
 ├── config/                   # The fund profile, the regulation (sources, holidays), the demo row
 ├── tests/                    # tier1/ blocks merges; tier2/ if time allows
 ├── pyproject.toml            # App dependencies (pinned)
@@ -381,8 +415,9 @@ Two paths are **git-ignored** and never committed: `reference/` (private source 
 3. **Next: the operator picks the AI models** (the model pin). Nothing that costs money runs before
    that, and `AGENTS_MODE` stays `stand_in` until then.
 4. **Then the real agents.** Install CrewAI and build the three agents behind the same functions,
-   run one small spike with timings, build the evaluation runner against the answer key, tune the
-   prompts and run one evaluation cycle.
+   run one small spike with timings, build the rest of the evaluation runner (the graders for the
+   first two stages are done and read a finished run; the run starter is not), tune the prompts and
+   run one evaluation cycle.
 5. **Alongside:** refresh the visual snapshots (the operator approves them), then retry, the light
    visual pass if time allows, and the final acceptance, security and run-instruction pass.
 6. **Settle the open operator questions:** four-eyes review timing, programme submission
