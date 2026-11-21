@@ -34,6 +34,27 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-068: Operator decision: how EC-001 grades the applicability rule (exact text cannot pass)
+- From: @qa.eng   To: operator   Date: 2026-11-21
+- Touches: sad.md EC-001, EC-R3, EC-R5; user-stories/US-013 criterion 11; answer key §1 ("Applicability rule" column)
+- Ask: Decide how the applicability rule is graded. EC-001 and US-013 c11 list it among the fields matched **exactly**, but it is a free sentence. The key writes "Fund is subject to Part II of the Law of 17 December 2010"; the stand-in extractor, written from the paragraphs, writes "The undertaking is subject to Part II of the Law of 17 December 2010." The Stage A grader follows the SAD, so **6 of 6 rows miss on this one field** and every other field matches. A model will not reproduce a sentence word for word. Options (a) keep it exact, so EC-001 always misses and the report says so; (b) judge it like the name, by the operator under a written rule (as EC-R5); (c) grade it through a fixed table like EC-R11 (SAD edit first, from `@system.arch`); (d) drop it from the exact list.
+- Why: As written, EC-001 cannot reach 6 of 6, so a 3-of-3 pass is impossible whatever the agents do. Nothing is changed in the grader until you decide.
+- Outcome: (the operator decides; `@system.arch` records it in `sad.md` if the SAD changes)
+
+### H-067: setup.md and the README: the H-002 `qa.md` exception is gone; B8 slice 1 is on a branch
+- From: @qa.eng   To: @project.mgr   Date: 2026-11-21
+- Touches: 2.build/setup.md (the CI table row for `aamad validate`, "Git hooks" note on the temporary exception, the "Tests and checks" table row, the `@qa.eng` and `@project.mgr` Hand-off rows, and the Resolved (H-002) note); README.md (status row for `@qa.eng`, line about `qa.md` not started)
+- Ask: Remove the words "with the same temporary `qa.md` exception" and the instruction to remove it later, since `@qa.eng` wrote `2.build/qa.md` and the operator asked for the exception to be removed from `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` in the same change (done in the B8 slice 1 pull request). Update the `@qa.eng` row: B8's Stage A grader slice is built (graders, T-MAP-1, report); the run starter, trace export (D4), void rule and the model-calling cases are still to do, after the spike. Update the README row the same way.
+- Why: Both files still describe an exception that no longer exists.
+- Outcome: (the owner fills this in)
+
+### H-066: Record the operator's order decision: B8 Stage A grader slice starts before the B3 spike
+- From: @qa.eng (operator decision, 2026-11-21)   To: @system.arch   Date: 2026-11-21
+- Touches: sad.md Build card "Order" row and "Order of work" row 8 (B8); H-001 (the Order row is authoritative)
+- Ask: Record: **operator decision, 21 Nov 2026: the B8 Stage A grader slice starts before the spike because it makes no model call; the rest of B8 (run starter with the evaluation-run type, scripted gates and EC-R7 refusal; trace export D4; void rule EC-R8; the copy cases that need a model) stays after the spike.** The slice grades a finished Stage A run read from the database, stamps stand-in runs "does not count towards the cycle", and lives in `backend/evaluation/`. No SAD edit is needed for the cases (code-only cases only; `I-1` and the injection case wait for the agents).
+- Why: The Order row says B8 follows the spike and wins over the table (H-001); this one slice is deliberately earlier.
+- Outcome: (the owner fills this in)
+
 ### H-063: Operator decision: the specialist pages also work at 360 px (tables stack); sign-in box first when narrow
 - From: @frontend.eng (operator request, 2026-11-19)   To: @ux.designer   Date: 2026-11-19
 - Touches: 2.build/ux.md §7 (responsive, the line that says specialist pages are designed for 1280 px and must not break at 1024 px), UX-012 (360 px is required only for the GP calendar), page 1 (sign-in); frontend.md S-33, S-34

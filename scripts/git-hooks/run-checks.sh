@@ -44,17 +44,10 @@ else
   status=$?
   printf '%s\n' "$out"
   if [ "$status" -ne 0 ]; then
-    # TEMPORARY exception (operator decision, block B1): the validator hard-fails on a missing
-    # qa.md as soon as 2.build/ has any file, but @qa.eng writes it much later. Ignore ONLY that
-    # exact line; every other ERROR still blocks. REMOVE this exception once qa.md exists.
-    other_errors="$(printf '%s\n' "$out" | grep '^\[ERROR\]' \
-      | grep -v 'project-context/2.build/qa.md: Build artifact missing')"
-    if [ -n "$other_errors" ]; then
-      echo "BLOCKED: aamad validate reported issues."
-      fail=1
-    else
-      echo "NOTE: ignoring only the known 'qa.md missing' finding (temporary, see run-checks.sh)."
-    fi
+    # Every validator error blocks. (The temporary "qa.md missing" exception, H-002, ended when
+    # @qa.eng wrote project-context/2.build/qa.md.)
+    echo "BLOCKED: aamad validate reported issues."
+    fail=1
   fi
 fi
 
