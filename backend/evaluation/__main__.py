@@ -1,6 +1,7 @@
-"""Grade one finished stage A run from the command line:
+"""Grade one finished run from the command line:
 
-    .venv/bin/python -m backend.evaluation RUN-20261121-1            # print and save
+    .venv/bin/python -m backend.evaluation RUN-20261121-1            # stage A, and B if it finished
+    .venv/bin/python -m backend.evaluation RUN-20261121-1 --stage b  # stage B only
     .venv/bin/python -m backend.evaluation RUN-20261121-1 --no-save  # print only
 
 Reads the database in DATABASE_PATH (the app's own). Starts nothing, calls no model. A miss is a
@@ -13,13 +14,32 @@ import sys
 from backend.db.connection import connect
 from backend.evaluation.report import DEFAULT_OUT, render_markdown, save_report
 from backend.evaluation.stage_a import NotGradable, evaluate_stage_a
+from backend.evaluation.stage_b import evaluate_stage_b
 from backend.settings import load_settings
+
+
+def _grade(conn, args) -> list[dict]:
+    """The reports asked for. With --stage all, stage B is added only when the run finished it;
+    otherwise it is skipped with a note (stage A alone is a normal state at G1)."""
+    reports = []
+    if args.stage in ("a", "all"):
+        reports.append(evaluate_stage_a(conn, args.run_id))
+    if args.stage == "b":
+        reports.append(evaluate_stage_b(conn, args.run_id))
+    elif args.stage == "all":
+        try:
+            reports.append(evaluate_stage_b(conn, args.run_id))
+        except NotGradable as error:
+            print(f"Stage B skipped: {error}", file=sys.stderr)
+    return reports
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m backend.evaluation", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_id")
+    parser.add_argument("--stage", choices=("a", "b", "all"), default="all",
+                        help="all (default): stage A, then stage B if the run finished it")
     parser.add_argument("--no-save", action="store_true", help="print the report, save nothing")
     parser.add_argument("--out", default=str(DEFAULT_OUT), help="folder for saved reports")
     args = parser.parse_args(argv)
@@ -29,16 +49,17 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     conn = connect(database)
     try:
-        report = evaluate_stage_a(conn, args.run_id)
+        reports = _grade(conn, args)
     except NotGradable as error:
         print(f"Nothing to grade: {error}", file=sys.stderr)
         return 2
     finally:
         conn.close()
-    print(render_markdown(report))
-    if not args.no_save:
-        json_path, md_path = save_report(report, args.out)
-        print(f"Saved: {json_path}\n       {md_path}")
+    for report in reports:
+        print(render_markdown(report))
+        if not args.no_save:
+            json_path, md_path = save_report(report, args.out)
+            print(f"Saved: {json_path}\n       {md_path}")
     return 0
 
 
