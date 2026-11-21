@@ -72,6 +72,7 @@ class Criterion:
     summary: str
     checks: list[Check] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)   # information only: never changes the status
 
 
 def _status(checks: list[Check]) -> str:
@@ -85,8 +86,9 @@ def _status(checks: list[Check]) -> str:
     return PASS
 
 
-def _criterion(id_, name, threshold, summary, checks, findings=()) -> Criterion:
-    return Criterion(id_, name, threshold, _status(checks), summary, list(checks), list(findings))
+def _criterion(id_, name, threshold, summary, checks, findings=(), notes=()) -> Criterion:
+    return Criterion(id_, name, threshold, _status(checks), summary, list(checks), list(findings),
+                     list(notes))
 
 
 # --- Matching the run's rows to the key's rows -------------------------------------------------

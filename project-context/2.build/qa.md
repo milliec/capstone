@@ -1,14 +1,18 @@
-# QA: B8 Stage A grader slice (first QA pass)
+# QA: B8 grader slices (Stage A, then Stage B)
 
-Owner: `@qa.eng`. Branch `qa-eng/b8-stage-a-grader-slice`, 2026-11-21. Runtime `AAMAD_TARGET_RUNTIME=crewai`,
+Owner: `@qa.eng`. Stage A: branch `qa-eng/b8-stage-a-grader-slice` (PR #142, merged). Stage B: branch `qa-eng/b8-stage-b-grader-slice`. Both 2026-11-21. Runtime `AAMAD_TARGET_RUNTIME=crewai`,
 `AGENTS_MODE=stand_in` throughout: no model call, no real key, no paid call.
 
-**Scope.** Only what exists in the MVP build today. This pass covers the one thing `@qa.eng` built:
-the first slice of B8, the Stage A grader (`backend/evaluation/`), authorised by the operator on
+**Scope.** Only what exists in the MVP build today. This pass covers what `@qa.eng` built: two slices
+of B8. **Slice 1, the Stage A grader** (`backend/evaluation/`), authorised by the operator on
 2026-11-21 (handoff H-066: it starts before the B3 spike because it makes no model call). It grades
 a **finished Stage A run read from the database**. The run starter (evaluation-run type, scripted
 gates, EC-R7 refusal), the trace export (D4), the void rule (EC-R8) and the two copy cases that need
 a model (`I-1`, the injection case) are the rest of B8 and are **not built, so not tested**.
+
+**Slice 2, the Stage B grader** (operator, 2026-11-21, same approach): EC-004 (applicability verdicts
+against KEY §2) and EC-010 and EC-012 (agent time and cost from the trace). It reads a finished Stage B
+run (one that stored its verdicts) from the database; it starts no run and calls no model.
 
 Inputs read: `sad.md` (Build card, §9 evaluation criteria and run rules EC-R1 to EC-R11, DL-34,
 DL-41, DL-45, D4), `backend.md`, `scaffold-plan.md`, `setup.md`, `US-013`, the answer key
@@ -20,10 +24,12 @@ DL-41, DL-45, D4), `backend.md`, `scaffold-plan.md`, `setup.md`, `US-013`, the a
 | File | Tests | What it checks | Maps to |
 |---|---|---|---|
 | `tests/tier2/test_party_lookup.py` | 13 | **T-MAP-1** (a) the five mappings, (b) five texts that give "no match", (c) every target is a filing party in the profile or "not stated in source", (d) nothing under `backend/` outside `backend/evaluation/` names the lookup or imports the package (seen failing on a planted offender); the normal form does only what EC-R11 says | EC-R11, DL-41, US-013 c11 |
-| `tests/tier2/test_evaluation_golden.py` | 6 | The golden set read from the key: 6 rows and quotes in the app's vocabulary, C-1, C-2, clean OBL-01, I-1, the 7 uncited paragraphs **derived** (13 loaded minus 6 cited); a changed key stops the load with an error | EC-001, EC-005, EC-009; operator decision 2026-11-21 (no second copy) |
+| `tests/tier2/test_evaluation_golden.py` | 9 | The golden set read from the key: 6 rows and quotes in the app's vocabulary, C-1, C-2, clean OBL-01, I-1, the 7 uncited paragraphs **derived** (13 loaded minus 6 cited), and (slice 2) the 6 expected verdicts with their facts, every fact existing in the fund profile; a changed key stops the load with an error | EC-001, EC-004, EC-005, EC-009; operator decision 2026-11-21 (no second copy) |
 | `tests/tier2/test_evaluation_stage_a.py` | 37 | The graders on a "perfect" output built from the key and then spoiled one way at a time (missing row, extra row, row on a forbidden paragraph, a twin row, each wrong field, truncated quote, role text that does not map, a wrong-party role, a business-day rule set, a computed date, a missed C-1 or C-2, a flag on the wrong paragraph or with a made-up quote, a false alarm on OBL-01, an internal flag) and on 10 code-only copy cases. **Free text is never matched by code** (H-068): a different applicability sentence is not an EC-001 miss and is listed for the operator in EC-002 (key against output, 12 items: 6 names and 6 sentences); a wrong offset still misses | EC-001, EC-002, EC-003, EC-005, EC-006, EC-009, EC-021; US-013 c1, c2, c4, c6, c11 |
+| `tests/tier2/test_evaluation_stage_b.py` | 28 | The Stage B graders on fabricated verdicts and traces spoiled one way at a time: **unsure answered "applies" is named as the confident error**; every other wrong verdict; OBL-04 and OBL-05 missing a named fact; a made-up or missing fact ID; a different existing fact on the other rows is **not** a miss (the SAD names facts for two rows only); a row not extracted (miss); a row the specialist did not approve (**not tested**, not a miss); the boundaries **exactly 300 s and exactly US$2.00 are misses**; late and copy-case calls counted and named; a trace that does not add up to the run's cost count; zero calls is never a pass | EC-004, EC-010, EC-012; US-006 c2 to c5 |
+| `tests/tier2/test_evaluation_stage_b_run.py` | 14 | A finished stand-in run read from the database (graded as soon as Stage B stores, before G2 is done); a row rejected at G1; "real" runs made with extra trace lines (the trace is append-only): inside both limits, over 5 minutes, over US$2, copy cases counted, a trace that disagrees with the run; stage B not started or not finished is not gradable; grading writes nothing; the report text; stage A and B reports numbered separately and never overwritten; the command line | EC-004, EC-010, EC-012; US-013 c1, c5, c6 |
 
-**The graders were checked by breaking them.** Six deliberate breaks of `grade.py` (skip the quote
+**The graders were checked by breaking them.** Slice 2: nine deliberate breaks of `grade_b.py` (verdict not compared, named citations not required, unknown fact ID allowed, 5 minutes and US$2 not strict, cost consistency ignored, a not-approved row counted as a miss, the confident error unnamed, zero calls graded as a pass) and six of the loader `stage_b.py` (an unfinished stage graded, cost, time or copy cases not summed, a rejected row counted as approved, the consistency check made trivial) were each caught by at least one test; none survived. Slice 1: six deliberate breaks of `grade.py` (skip the quote
 comparison, ignore extra rows, switch the date scan off, switch the clean-row check off, drop the
 flag-paragraph check, grade the demo row) were each caught by at least one test. The first version of the
 flag-paragraph test did **not** catch its break (the quote check caught it by accident); a case
@@ -48,6 +54,9 @@ passes, because the paragraph itself ends with one); the case now uses a semicol
 | A real-mode run counts only when labelled `evaluation` (EC-R6); `rehearsal` does not | Pass |
 | Saved reports: JSON round-trips, report 2 never touches report 1, a taken number is skipped | Pass |
 | The grader imports no agent function and no CrewAI | Pass |
+| Stage B: a finished stand-in run read from the database: 6 verdicts, 6 rows approved, 17 trace calls, stamped as stand-in | Pass |
+| Stage B: EC-010 and EC-012 on a stand-in run are `NOT TESTED` / `INCOMPLETE` (it costs nothing and takes milliseconds), and on a run made to look real they pass, miss at the boundary, count late and copy-case calls and catch a trace that disagrees with the run | Pass |
+| Stage B grading writes nothing (row counts of 7 tables unchanged) | Pass |
 
 ## Smoke: the command line on a real stand-in run
 
@@ -58,11 +67,20 @@ instead of 2), EC-009 PASS (7 listed), EC-021 NOT TESTED. These misses are about
 were written from the paragraphs and not from the key (CR-016). They show the graders work; they are
 not an evaluation of the agents.
 
+**Stage B, a stand-in run at G3** (`--stage b`; the default `all` grades Stage A and also Stage B when the run
+finished it, and skips Stage B with a note at G1): EC-004 PASS (6 of 6; the stand-in verdicts equal the key's),
+EC-010 NOT TESTED (0.0 s over 17 calls: stand-in), EC-012 INCOMPLETE (US$0.0000 over 17 calls: stand-in; the
+trace adds up to the run's cost count). A PASS on EC-010 or EC-012 here would be true and say nothing, so the report
+never shows one for a stand-in run.
+
 ## Failure paths checked
 
 Unknown run ID → "no run"; a run whose Stage A never stored output → "nothing to grade"; no database
 file → "nothing to grade" and **no empty file is created**; a taken report number → the next is used;
-a changed answer key → a loud error naming the word. Exit code 2 for "nothing to grade".
+a changed answer key → a loud error naming the word. Stage B: a run at G1 ("Stage B never started"), a run whose
+stage B has a unit that did not finish ("did not finish") and an unknown run are all "nothing to grade"; with
+`--stage all` a not-yet-finished stage B is skipped with a note, with `--stage b` it is exit 2. Exit code 2 for
+"nothing to grade".
 
 ## Not tested (kept apart from passed)
 
@@ -70,8 +88,11 @@ a changed answer key → a loud error naming the word. Exit code 2 for "nothing 
   about stand-in answers or fabricated outputs.
 - `I-1` (EC-005) and the injection case (EC-021): model calls. Shown as `NOT TESTED` in every report;
   EC-005 reads `INCOMPLETE`, never `PASS`, while `I-1` is open.
-- EC-004, EC-007, EC-008 (stage B and C; EC-007 and EC-008 are already Tier 1 tests), EC-010 to EC-012 (whole-run time,
-  review time, cost).
+- **EC-010 and EC-012 on a real model run**: the graders exist and are tested on made-up traces, but no real call has
+  been timed or priced (the spike is not done). **EC-004 on a real model**: only the stand-in's verdicts have been graded.
+- A **failed** run (cost cap, time limit, model service): not graded; it belongs to the void rule (EC-R8) and the run starter.
+- EC-007, EC-008 (stage C; already Tier 1 tests) and EC-011 (review time, measured on the rehearsal run, B10).
+- The verdict **reasoning** is free text and is not graded (the key's reasoning column is not read).
 - The evaluation-run type, scripted gates, EC-R7 refusal, D4 trace export (T-D4-1), EC-R8 void rule.
 - Accessibility, responsive behaviour, interface quality, visual regression: **no UI changed**, so not in
   scope. No visual snapshot was touched.
@@ -81,15 +102,17 @@ a changed answer key → a loud error naming the word. Exit code 2 for "nothing 
 
 | Run | Result |
 |---|---|
-| `main` before this branch | 270 passed, 4 skipped, **1 failed** |
-| This branch | 336 passed, **1 failed** (the same one). The 4 skips run here because `docs/prototype` exists on this machine |
-| New tests | 62 (13 + 6 + 37 + 6 in `tests/tier2/`) |
+| `main` before slice 1 | 270 passed, 4 skipped, **1 failed** |
+| Slice 1 branch | 336 passed, **1 failed** (the same one) |
+| `main` before slice 2 (slice 1 merged, plus others' changes) | 333 passed, 4 skipped, 0 failed (in a clean checkout, where `docs/prototype` is absent) |
+| **Slice 2 branch** | **382 passed, 0 failed** (the 4 skips run here because `docs/prototype` exists on this machine); Tier 1 + answer key: 227 passed; Tier 2: 155 passed |
+| New tests in slice 2 | 45 (3 + 28 + 14); evaluation tests in total 107 |
 | Lint | `ruff 0.17.3` clean |
 
-The one failure is `tests/tier1/test_crewai_setup.py::test_loading_crewai_and_building_a_crew_opens_no_connection`:
-`ModuleNotFoundError: No module named 'crewai'`. It fails the same way on a clean `main` checkout, so
-it is **not caused by this change**. CrewAI is pinned in `pyproject.toml` and CI installs it; this
-machine's `.venv` does not have it. Not fixed here (setup, not QA).
+The one failure in slice 1 was `tests/tier1/test_crewai_setup.py::test_loading_crewai_and_building_a_crew_opens_no_connection`:
+`ModuleNotFoundError: No module named 'crewai'`. It failed the same way on a clean `main` checkout, so it was **not
+caused by that change**. `crewai` 1.15.35 was installed in this machine's `.venv` later the same day (not by `@qa.eng`),
+and the test now passes, so slice 2 shows 0 failed. CI always had it installed.
 
 The evaluation tests sit in `tests/tier2/` because the SAD places T-MAP-1 there and lists the other
 evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not block a merge. T-MAP-1
@@ -100,7 +123,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 | ID | What | Severity | Owner |
 |---|---|---|---|
 | F-1 | **Resolved 2026-11-21 (H-068, operator: "judge it like the name").** EC-001 matched the applicability rule exactly, but it is a free sentence, so it could never pass (a stand-in run missed it on 6 of 6 rows while every other field matched). Now every structured field keeps its exact code check, and the sentence goes to the operator under EC-002 until a model judge is calibrated against the operator's marks. `sad.md` EC-001, EC-002 and EC-R5 wording changed at the operator's instruction (`@system.arch` to check); `US-013` c11 was H-069 (done, PR #146) | Was high for the evaluation's usefulness | Closed |
-| F-2 | `crewai` missing from this machine's `.venv`: one Tier 1 test fails locally on `main` too | Low (environment) | Operator / `@project.mgr` |
+| F-2 | `crewai` was missing from this machine's `.venv`: one Tier 1 test failed locally on `main` too | Low (environment) | **Closed 2026-11-21:** installed; 0 failed |
 | F-3 | `ruff` was in `requirements-dev.txt` but not installed in `.venv` (the hooks do not run it; CI does). Installed locally at the pinned 0.17.3 to lint before committing | Low (environment) | — |
 
 ## Future work (deferred tests, in order)
@@ -112,8 +135,8 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
    cap, calendar generation or restart).
 3. The copy cases that need the agents: `I-1` (EC-005) and the injection case (EC-021), labelled
    `eval_case` in the trace (DL-45).
-4. Graders for stage B (EC-004) and a runtime grader for EC-010 and EC-012; the three-run
-   comparison (EC-R1, EC-R1a) over saved reports.
+4. ~~Graders for stage B (EC-004) and a runtime grader for EC-010 and EC-012~~ **Built (slice 2).** Still to do: grade
+   a **failed** run (with the void rule, EC-R8) and the three-run comparison (EC-R1, EC-R1a) over saved reports.
 5. EC-R5, the match rules for EC-002 (the name **and** the applicability sentence), written by the operator before the first evaluation run. Later: a model grader for EC-002, different from the model under test, **calibrated against the operator's marks** (agreement rate reported) before it replaces them.
 6. `*verify-change` on the final branch, then the recommendation to `@security.eng` (SAD §9).
 
@@ -131,12 +154,28 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 - The key's words ("Month-end", "+10 calendar days", …) are translated to the app's vocabulary by a small table in
   `golden.py`; an unknown word stops the load.
 - `counts_for_cycle` is a stamp, not a gate: it refuses nothing.
+- **EC-004 (slice 2).** A verdict is matched to a key row through its row's source paragraph. Only OBL-04 and OBL-05 must
+  cite named facts (as the SAD says); any other row needs at least one **existing** fact ID, and extra citations are
+  allowed. A key row with no extracted row is a miss; a row the specialist did not approve is **not tested**.
+- **EC-010 and EC-012 (slice 2).** Measured over **every** trace line of the run: late calls and copy-case calls included
+  (they ran and were paid for, DL-43, DL-45). Time is the sum of the calls' durations (units run one after another).
+  Both limits are strict ("under"). On a **stand-in** run they are `NOT TESTED`: the numbers are shown but a stand-in
+  call is not a model call. The trace must also add up to the run's own cost count, or EC-012 misses.
+- **Decided by the operator, 2026-11-21 (open questions 4 and 5, closed):** EC-004 keeps the SAD rule as the pass mark and
+  reports the key's missing facts on the other four verdicts as a non-failing note; EC-010 keeps late calls in the time
+  and labels them as late (seconds and cost) in the report.
+- Stage B is "finished" when its units are all done (the app stores the verdicts only then, rule 9).
 
 ## Open Questions
 
 1. ~~F-1 / H-068~~ **Closed 2026-11-21:** the applicability sentence is judged by the operator with the name (EC-002). `US-013` c11 was updated too (H-069, `@product-mgr`, PR #146).
 2. **EC-R5:** the match rules for the name and for the applicability sentence are still to be written by the operator (EC-002 is shown "for the operator").
-3. Should the evaluation tests be promoted to Tier 1 once the run starter exists (SOQ-29)?
+3. Should the evaluation tests be promoted to Tier 1 once the run starter exists (SOQ-29)? (Left in Tier 2 for now, operator, 2026-11-21.)
+4. ~~EC-004 citations~~ **Closed (operator, 2026-11-21):** the SAD rule stays the pass mark (named facts required for OBL-04 and
+   OBL-05 only). For the other four verdicts, the key's facts that are not cited are listed as a **note** in the report
+   ("information only, not a miss"). The note never changes the result and never fails the run.
+5. ~~EC-010 late calls~~ **Closed (operator, 2026-11-21):** late calls stay in the time as well as the cost, so the time is what a
+   user actually waits. The report labels them: "of this, LATE calls: N calls, X s, US$Y".
 
 ## Audit
 
@@ -145,3 +184,5 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
   `@security.eng` recommendation are **not** made yet: B8 is not finished.
 - 2026-11-21 · persona `qa-eng` · action `update` (H-068, operator decision) · EC-001 no longer matches the applicability rule exactly; EC-002 lists it with the name for the operator; F-1 closed; counts updated (62 new tests). Tier placement unchanged (open question 3). `AAMAD_TARGET_RUNTIME=crewai` · no model call.
 - 2026-11-21 · persona `qa-eng` · action `update` (follow-up to the H-068 check on SAD EC-002) · Lines in the follow-up list: "model judge" and "judge model" changed to "model grader" where they mean the future calibrated grader for EC-002, so this file uses the SAD's word. Left as written: the dated H-068 decision lines and handoff H-068 (records of what was decided then), and the applicability `judge` agent (DL-40). No threshold, criterion or code changed. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-21 · persona `qa-eng` · action `qa` (B8 Stage B grader slice, operator decision; `test-unit`, `test-integration`) · EC-004, EC-010 and EC-012 graded from a finished run read from the database; 45 new tests; 382 passed, 0 failed; no model call, no real key, no paid call. `*verify-change` and the `@security.eng` recommendation are still **not** made: B8 is not finished. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-21 · persona `qa-eng` · action `update` (operator answers to open questions 4 and 5, closed) · EC-004: the key's uncited facts on OBL-01, 02, 03 and 06 are a non-failing note (`Criterion.notes`, shown in the report); EC-010 and EC-012: the late share of the time and cost is labelled. 4 new tests in `test_evaluation_stage_b.py` and 1 in `test_evaluation_stage_b_run.py`; 5 deliberate breaks, all caught. No threshold changed. No model call, no real key, no paid call. `AAMAD_TARGET_RUNTIME=crewai`.

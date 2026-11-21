@@ -3,9 +3,10 @@
 
 What is read (answer key = expected-obligation-library.md):
   §1  the 6 expected rows and the 6 verbatim quotes  → EC-001, EC-003
+  §2  the expected applicability verdicts and the facts they use → EC-004 (stage B)
   §3  the expected verifier flags (C-1, C-2, the clean OBL-01, I-1) → EC-005, EC-006
   The 7 paragraphs no row may cite = the loaded paragraphs minus the 6 rows' paragraphs → EC-009
-Not read: §2 (stage B verdicts) and §4 (the 22 entries, stage C: EC-007 is already a Tier 1 test).
+Not read: §4 (the 22 entries, stage C: EC-007 is already a Tier 1 test).
 
 The key writes its values in words ("Month-end", "+10 calendar days"). The tables below translate
 those words into the app's own vocabulary (schemas.py). A word the tables do not know stops the
@@ -25,6 +26,7 @@ _FREQUENCY = {"Monthly": "monthly", "Quarterly": "quarterly", "Annually": "annua
 _ANCHOR = {"Month-end": "month_end", "Calendar quarter-end": "quarter_end",
            "Financial year-end": "financial_year_end",
            "Date the entity became aware of the event": "event_awareness"}
+_VERDICT = {"Applies": "applies", "Unsure": "unsure", "Does not apply": "does_not_apply"}
 _MONTHS = {name: n for n, name in enumerate(
     ["January", "February", "March", "April", "May", "June", "July", "August", "September",
      "October", "November", "December"], start=1)}
@@ -58,18 +60,29 @@ class GoldenFlag:
 
 
 @dataclass(frozen=True)
+class GoldenVerdict:
+    code: str                    # OBL-01 … OBL-06
+    verdict: str                 # applies | unsure | does_not_apply
+    fact_ids: tuple[str, ...]    # the facts and events the key says the verdict rests on
+
+
+@dataclass(frozen=True)
 class GoldenSet:
     rows: tuple[GoldenRow, ...]
     cross_source_flags: tuple[GoldenFlag, ...]
     clean_row_codes: tuple[str, ...]          # rows the verifier must not flag (OBL-01)
     internal_case: tuple[str, str, dict]      # I-1: row code, field, the changed offset
     uncited_paragraph_ids: tuple[str, ...]    # paragraphs no row may cite (7)
+    verdicts: tuple[GoldenVerdict, ...] = ()  # KEY §2, for EC-004
 
     def row_for_paragraph(self, paragraph_id: str) -> GoldenRow | None:
         return next((r for r in self.rows if r.source_paragraph_id == paragraph_id), None)
 
     def row(self, code: str) -> GoldenRow:
         return next(r for r in self.rows if r.code == code)
+
+    def verdict(self, code: str) -> GoldenVerdict:
+        return next(v for v in self.verdicts if v.code == code)
 
 
 # --- Reading the key's markdown tables --------------------------------------------------------
@@ -144,6 +157,23 @@ def _rows(section_1: str) -> list[GoldenRow]:
     return rows
 
 
+def _verdicts(section_2: str) -> tuple[GoldenVerdict, ...]:
+    """KEY §2: | Code | Verdict | Reasoning | Facts used |. The reasoning is free text and is not
+    read (free text is never matched by code, H-068)."""
+    found = []
+    for line in section_2.splitlines():
+        cells = _cells(line) if line.startswith("| `OBL-") else []
+        if len(cells) != 4:
+            continue
+        code, verdict, _reasoning, facts = cells
+        found.append(GoldenVerdict(
+            code=_bare(code), verdict=_lookup(_VERDICT, _bare(verdict), "verdict"),
+            fact_ids=tuple(re.findall(r"(?:FACT|EVT)-\d+", facts))))
+    if len(found) != 6 or not all(v.fact_ids for v in found):
+        raise GoldenSetError("Answer key section 2 does not hold 6 verdicts with their facts")
+    return tuple(found)
+
+
 def _flags(section_3: str, rows: list[GoldenRow]):
     """C-1 and C-2 (cross-source), the clean row, and I-1 (the injected internal case)."""
     by_code = {r.code: r for r in rows}
@@ -176,9 +206,10 @@ def load_golden_set() -> GoldenSet:
     copy of the key sees the change."""
     text = KEY_FILE.read_text(encoding="utf-8")
     rows = _rows(_section(text, "## 1.", "## 2."))
+    verdicts = _verdicts(_section(text, "## 2.", "## 3."))
     cross, clean, internal = _flags(_section(text, "## 3.", "## 4."), rows)
     cited = {r.source_paragraph_id for r in rows}
     uncited = tuple(p["paragraph_id"] for p in sources.load_paragraphs()
                     if p["paragraph_id"] not in cited)
     return GoldenSet(rows=tuple(rows), cross_source_flags=cross, clean_row_codes=clean,
-                     internal_case=internal, uncited_paragraph_ids=uncited)
+                     internal_case=internal, uncited_paragraph_ids=uncited, verdicts=verdicts)

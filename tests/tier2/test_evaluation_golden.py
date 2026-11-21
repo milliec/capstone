@@ -58,3 +58,30 @@ def test_a_changed_key_stops_the_load(tmp_path, monkeypatch):
     monkeypatch.setattr(golden, "KEY_FILE", broken)
     with pytest.raises(golden.GoldenSetError, match="Fortnightly"):
         golden.load_golden_set()
+
+
+def test_the_expected_verdicts_and_their_facts(key):
+    """KEY §2, read at grade time. OBL-04 is "unsure": a confident "applies" is the error to catch."""
+    assert [(v.code, v.verdict) for v in key.verdicts] == [
+        ("OBL-01", "applies"), ("OBL-02", "applies"), ("OBL-03", "applies"),
+        ("OBL-04", "unsure"), ("OBL-05", "applies"), ("OBL-06", "does_not_apply")]
+    assert key.verdict("OBL-04").fact_ids == ("FACT-03", "FACT-04")
+    assert key.verdict("OBL-05").fact_ids == ("FACT-06", "EVT-01")
+    assert key.verdict("OBL-06").fact_ids == ("FACT-05",)
+
+
+def test_every_fact_the_key_names_exists_in_the_fund_profile(key):
+    from backend.domain.fund_facts import load_fund_facts
+    facts = load_fund_facts()
+    existing = {f["fact_id"] for f in facts["facts"]} | {e["event_id"] for e in facts["events"]}
+    for v in key.verdicts:
+        assert set(v.fact_ids) <= existing, v.code
+
+
+def test_a_changed_verdict_word_stops_the_load(tmp_path, monkeypatch):
+    text = golden.KEY_FILE.read_text(encoding="utf-8")
+    broken = tmp_path / "key.md"
+    broken.write_text(text.replace("**Unsure**", "**Perhaps**"), encoding="utf-8")
+    monkeypatch.setattr(golden, "KEY_FILE", broken)
+    with pytest.raises(golden.GoldenSetError, match="Perhaps"):
+        golden.load_golden_set()

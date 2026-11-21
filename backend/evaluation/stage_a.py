@@ -98,4 +98,5 @@ def _plain(criterion: grade.Criterion) -> dict:
     return {"id": criterion.id, "name": criterion.name, "threshold": criterion.threshold,
             "status": criterion.status, "summary": criterion.summary,
             "checks": [vars(c) for c in criterion.checks],
-            "findings": [vars(f) for f in criterion.findings]}
+            "findings": [vars(f) for f in criterion.findings],
+            "notes": list(criterion.notes)}
