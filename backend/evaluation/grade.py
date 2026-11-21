@@ -137,8 +137,8 @@ def _row_findings(g, r: StoredRow) -> list[Finding]:
         shown = f"{r.responsible_role!r} → no match" if mapped is None else \
             f"{r.responsible_role!r} → {mapped}"
         differ("responsible role (after the fixed lookup)", g.responsible_role, shown)
-    if r.applicability_rule != g.applicability_rule:   # exact, as US-013 c11 says
-        differ("applicability rule (exact text)", g.applicability_rule, r.applicability_rule)
+    # The applicability rule is a free sentence, so it is NOT an exact-match field: the operator
+    # judges it beside the name (EC-002; H-068, operator decision 2026-11-21).
     return found
 
 
@@ -172,17 +172,25 @@ def grade_ec001(out: StageAOutput, key: GoldenSet) -> Criterion:
         f"{len(forbidden)} citing a paragraph that must not be extracted", checks, findings)
 
 
-# --- EC-002: the name, judged by the operator --------------------------------------------------
+# --- EC-002: the name and the applicability sentence, judged by the operator -------------------
 
 def grade_ec002(out: StageAOutput, key: GoldenSet) -> Criterion:
+    """Free text is never matched by code. Each row's name and applicability sentence are listed,
+    key against output, for the operator to mark (EC-R5). A model judge may take over only after
+    it has been calibrated against the operator's marks (not built)."""
     matched, _ = match_rows(out, key)
-    checks = [Check(f"{g.code}", FOR_OPERATOR,
-                    f"key: {g.obligation_name!r}; extracted: "
-                    f"{matched[g.code].obligation_name!r}" if g.code in matched
-                    else f"key: {g.obligation_name!r}; no row extracted")
-              for g in key.rows]
-    return _criterion("EC-002", "Obligation name names the same obligation",
-                      "6 of 6 under the written name-match rule, judged by the operator",
+    checks = []
+    for g in key.rows:
+        row = matched.get(g.code)
+        for what, expected, actual in (
+                ("name", g.obligation_name, row.obligation_name if row else None),
+                ("applicability rule", g.applicability_rule,
+                 row.applicability_rule if row else None)):
+            shown = f"extracted: {actual!r}" if row else "no row extracted"
+            checks.append(Check(f"{g.code} {what}", FOR_OPERATOR, f"key: {expected!r}; {shown}"))
+    return _criterion("EC-002", "Obligation name and applicability rule say the same as the key",
+                      "6 of 6 names and 6 of 6 applicability sentences under the operator's "
+                      "written match rules, judged by the operator",
                       "Not graded by code or a model. The operator judges each pair (EC-R5).",
                       checks)
 

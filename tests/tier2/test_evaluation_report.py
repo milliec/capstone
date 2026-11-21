@@ -28,10 +28,10 @@ def test_the_text_states_the_stamp_the_misses_and_what_was_not_tested(prepared):
     text = report_module.render_markdown(stage_a.evaluate_stage_a(conn, run_id))
     assert "STAND-IN RUN: does not count towards the cycle" in text
     assert "Counts towards the evaluation cycle: **no**" in text
-    assert "| EC-001 |" in text and "MISS" in text
-    # A miss shows expected and actual, never just a count (EC-R3):
-    assert "Fund is subject to Part II of the Law of 17 December 2010" in text
-    assert "The undertaking is subject to Part II of the Law of 17 December 2010." in text
+    assert "| EC-001 |" in text and "| EC-005 | Verifier recall | MISS" in text
+    # Free text is shown key against output for the operator, never matched by code (H-068):
+    assert "OBL-01 applicability rule (key: 'Fund is subject to Part II of the Law of 17 " in text
+    assert "extracted: 'The undertaking is subject to Part II of the Law of 17 December 2010.'" in text
     assert "NOT TESTED: I-1 flagged as internal on a copy of OBL-02" in text
     assert "FOR THE OPERATOR" in text
     assert "One run only" in text and "3 of 3" in text

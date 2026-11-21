@@ -115,7 +115,6 @@ def test_the_demo_row_is_not_the_extractors_and_is_never_graded(key, paragraphs)
     ("frequency", "monthly", "frequency"),
     ("anchor", "month_end", "anchor"),
     ("recipient_code", "CSSF", "recipient"),
-    ("applicability_rule", "Fund is established in Luxembourg.", "applicability rule (exact text)"),
 ])
 def test_a_wrong_field_is_a_miss_with_expected_and_actual(key, paragraphs, field, value, what):
     out = perfect(key, paragraphs)
@@ -123,6 +122,36 @@ def test_a_wrong_field_is_a_miss_with_expected_and_actual(key, paragraphs, field
     finding = grade_all(out, key)["EC-001"].findings[0]
     assert finding.what == what and finding.subject.startswith("OBL-02")
     assert finding.expected != finding.actual
+
+
+def test_the_applicability_sentence_is_never_matched_by_code_it_goes_to_the_operator(key, paragraphs):
+    """H-068 (operator, 2026-11-21): free text is listed key against output, not exact-matched."""
+    out = perfect(key, paragraphs)
+    row_of(out, "OBL-02", key).applicability_rule = "The undertaking is established in Luxembourg."
+    result = grade_all(out, key)
+    assert result["EC-001"].status == grade.PASS             # structured fields still all match
+    listed = [c for c in result["EC-002"].checks if c.label == "OBL-02 applicability rule"]
+    assert [c.status for c in listed] == [grade.FOR_OPERATOR]
+    assert "Fund is established in Luxembourg" in listed[0].note           # the key's sentence
+    assert "The undertaking is established in Luxembourg." in listed[0].note   # the output's
+
+
+def test_ec_002_lists_every_name_and_every_sentence_and_a_missing_row_too(key, paragraphs):
+    out = perfect(key, paragraphs)
+    out.rows = [r for r in out.rows if r.source_paragraph_id != "SRC-CNMV-P1"]
+    checks = grade_all(out, key)["EC-002"].checks
+    assert len(checks) == 12 and {c.status for c in checks} == {grade.FOR_OPERATOR}
+    assert next(c.note for c in checks if c.label.startswith("OBL-04")).endswith(
+        "no row extracted")
+
+
+def test_the_structured_fields_stay_exact_after_the_change(key, paragraphs):
+    """Only the sentence moved to the operator. A wrong offset or a missing row still misses."""
+    out = perfect(key, paragraphs)
+    row_of(out, "OBL-02", key).applicability_rule = "something else entirely"
+    row_of(out, "OBL-02", key).offset = {"unit": "calendar_days", "amount": 30}
+    findings = grade_all(out, key)["EC-001"].findings
+    assert [f.what for f in findings] == ["offset"]
 
 
 def test_the_quote_is_compared_under_qn_1(key, paragraphs):
@@ -269,9 +298,9 @@ def test_a_stand_in_run_is_graded_and_stamped(conn, settings):
     assert report["rows_drafted_by_the_extractor"] == 6 and report["demo_rows_not_graded"] == 0
     by_id = {c["id"]: c for c in report["criteria"]}
     # The stand-in answers were written from the paragraphs, not from the key (CR-016), so the
-    # misses are real findings, and they are the same every time:
-    assert by_id["EC-001"]["status"] == grade.MISS
-    assert {f["what"] for f in by_id["EC-001"]["findings"]} == {"applicability rule (exact text)"}
+    # result is a fixed, known one. Every structured field matches; the sentences go to the operator.
+    assert by_id["EC-001"]["status"] == grade.PASS and by_id["EC-001"]["findings"] == []
+    assert by_id["EC-002"]["status"] == grade.FOR_OPERATOR and len(by_id["EC-002"]["checks"]) == 12
     assert by_id["EC-003"]["status"] == grade.PASS
     assert by_id["EC-009"]["status"] == grade.PASS
     assert by_id["EC-005"]["status"] == grade.MISS        # the stand-in verifier makes 1 flag
