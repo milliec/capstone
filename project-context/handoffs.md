@@ -34,13 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-070: setup.md and the README: B8 slice 2 (the Stage B grader) is on a branch
-- From: @qa.eng (operator decision, 2026-11-21)   To: @project.mgr   Date: 2026-11-21
-- Touches: 2.build/setup.md (the `@qa.eng` Hand-off row, the "B8 is started" wording); README.md (status row for `@qa.eng`)
-- Ask: Once the Stage B grader pull request merges, say that B8 now has two slices: the Stage A grader and the Stage B grader (EC-004 applicability verdicts, EC-010 agent time and EC-012 cost, from the trace), both reading a finished run from the database with no model call. Still to do after the spike: the run starter (evaluation-run type, scripted gates, EC-R7 refusal), the D4 trace export, the void rule, the `I-1` and injection cases, grading a failed run, and the three-run comparison. `crewai` is now installed on the operator's machine, so the suite shows 0 failed locally.
-- Why: Both files describe slice 1 only.
-- Outcome: (the owner fills this in)
-
 ### H-066: Record the operator's order decision: B8 Stage A grader slice starts before the B3 spike
 - From: @qa.eng (operator decision, 2026-11-21)   To: @system.arch   Date: 2026-11-21
 - Touches: sad.md Build card "Order" row and "Order of work" row 8 (B8); H-001 (the Order row is authoritative)
@@ -94,6 +87,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-070: setup.md and the README: B8 slice 2 (the Stage B grader) is on a branch
+- From: @qa.eng (operator decision, 2026-11-21)   To: @project.mgr   Date: 2026-11-21
+- Touches: 2.build/setup.md (the `@qa.eng` Hand-off row, the "B8 is started" wording); README.md (status row for `@qa.eng`)
+- Ask: Once the Stage B grader pull request merges, say that B8 now has two slices: the Stage A grader and the Stage B grader (EC-004 applicability verdicts, EC-010 agent time and EC-012 cost, from the trace), both reading a finished run from the database with no model call. Still to do after the spike: the run starter (evaluation-run type, scripted gates, EC-R7 refusal), the D4 trace export, the void rule, the `I-1` and injection cases, grading a failed run, and the three-run comparison. `crewai` is now installed on the operator's machine, so the suite shows 0 failed locally.
+- Why: Both files describe slice 1 only.
+- Outcome (`@project.mgr`, 2026-11-21): **Done.** Checked first: #151 is merged and `backend/evaluation/` matches the ask. `setup.md`: new subsection "Grade a finished run" under "Tests and checks" (how to run it, options, exit codes, saved files, what EC-004, EC-010 and EC-012 report and when they are "not tested", the information-only notes, the late-call labels, and what is still to do after the spike); the `@qa.eng` Hand-off row names both B8 slices; audit entry added. `README.md`: the `@qa.eng` status row, a short "Grade a finished review" section under Getting started, the `backend/` line and "What happens next" item 4. The `crewai` line in the ask was not copied: `setup.md` already records the install. Wording only; no code, no model call, no real key, no paid call.
 
 ### H-069: US-013 criterion 11: the applicability rule is no longer graded by exact match
 - From: @qa.eng (operator decision, 2026-11-21, H-068)   To: @product-mgr   Date: 2026-11-21
