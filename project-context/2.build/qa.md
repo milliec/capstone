@@ -99,7 +99,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 
 | ID | What | Severity | Owner |
 |---|---|---|---|
-| F-1 | **Resolved 2026-11-21 (H-068, operator: "judge it like the name").** EC-001 matched the applicability rule exactly, but it is a free sentence, so it could never pass (a stand-in run missed it on 6 of 6 rows while every other field matched). Now every structured field keeps its exact code check, and the sentence goes to the operator under EC-002 until a model judge is calibrated against the operator's marks. `sad.md` EC-001, EC-002 and EC-R5 wording changed at the operator's instruction (`@system.arch` to check); `US-013` c11 is H-069 | Was high for the evaluation's usefulness | Closed |
+| F-1 | **Resolved 2026-11-21 (H-068, operator: "judge it like the name").** EC-001 matched the applicability rule exactly, but it is a free sentence, so it could never pass (a stand-in run missed it on 6 of 6 rows while every other field matched). Now every structured field keeps its exact code check, and the sentence goes to the operator under EC-002 until a model judge is calibrated against the operator's marks. `sad.md` EC-001, EC-002 and EC-R5 wording changed at the operator's instruction (`@system.arch` to check); `US-013` c11 was H-069 (done, PR #146) | Was high for the evaluation's usefulness | Closed |
 | F-2 | `crewai` missing from this machine's `.venv`: one Tier 1 test fails locally on `main` too | Low (environment) | Operator / `@project.mgr` |
 | F-3 | `ruff` was in `requirements-dev.txt` but not installed in `.venv` (the hooks do not run it; CI does). Installed locally at the pinned 0.17.3 to lint before committing | Low (environment) | — |
 
@@ -134,7 +134,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 
 ## Open Questions
 
-1. ~~F-1 / H-068~~ **Closed 2026-11-21:** the applicability sentence is judged by the operator with the name (EC-002). Still open on it: `US-013` c11 (H-069, `@product-mgr`).
+1. ~~F-1 / H-068~~ **Closed 2026-11-21:** the applicability sentence is judged by the operator with the name (EC-002). `US-013` c11 was updated too (H-069, `@product-mgr`, PR #146).
 2. **EC-R5:** the match rules for the name and for the applicability sentence are still to be written by the operator (EC-002 is shown "for the operator").
 3. Should the evaluation tests be promoted to Tier 1 once the run starter exists (SOQ-29)?
 
