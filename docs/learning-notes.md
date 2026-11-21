@@ -397,6 +397,18 @@ rule nobody can meet; decide how to grade it before the first real run. It's lik
 must read exactly like this mock-up": no writer ever hits it, so the review fails every time and tells you
 nothing about the writing.
 
+**Count what actually arrives, not what the settings say.** Before any real model was connected, the build
+got a pretend model server that runs on the same computer. Its main job is to count every request that reaches
+it. Every retry setting we knew of was switched off, and the plan said one failing call should send one
+request. At the library's defaults a failing call really did send three. With that fixed, a rate-limit
+error ("too many requests") still sent three. Inside the agent library sat a third retry that nobody had listed: it tries three times,
+waits between tries, and has no setting to turn it off. Left alone, it would have quietly tripled every
+rate-limited call, and doubled again once our own single retry was added around it, with the extra
+requests absent from the trace and the bill. Lesson: a setting tells you what you asked for; only a
+count of what arrives tells you what happens. The pretend server cost an afternoon and found the problem
+for free, before any money was spent. It's like a mail-merge with a "send once" box ticked: you only learn
+the box was ignored by counting the emails in a test inbox.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -643,3 +655,4 @@ bring it back. Changing visible text also touches the tests that check it and th
 - 2026-11-20 · added one note from the review status wording fix (a builder's word is not a user's
   word; change only what the user sees, and record that the code's word is never shown)
 - 2026-11-21 · added two notes from the B8 Stage A grader slice (break the code on purpose to see whether a test can fail; try the grader on pretend answers before paying for real ones)
+- 2026-11-21 · added one note from the fake OpenAI server (count what actually arrives; it caught a hidden rate-limit retry in the agent library)
