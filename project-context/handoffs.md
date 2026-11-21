@@ -53,7 +53,7 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Touches: sad.md Build card "Order" row and "Order of work" row 8 (B8); H-001 (the Order row is authoritative)
 - Ask: Record: **operator decision, 21 Nov 2026: the B8 Stage A grader slice starts before the spike because it makes no model call; the rest of B8 (run starter with the evaluation-run type, scripted gates and EC-R7 refusal; trace export D4; void rule EC-R8; the copy cases that need a model) stays after the spike.** The slice grades a finished Stage A run read from the database, stamps stand-in runs "does not count towards the cycle", and lives in `backend/evaluation/`. No SAD edit is needed for the cases (code-only cases only; `I-1` and the injection case wait for the agents).
 - Why: The Order row says B8 follows the spike and wins over the table (H-001); this one slice is deliberately earlier.
-- Outcome: (the owner fills this in)
+- Outcome (`@system.arch`, 2026-11-21): **Done.** Recorded in the Build card "Order" row and "Order of work" row 8 of `sad.md`, with an audit entry. Wording only; the no-spend guard is unchanged.
 
 ### H-063: Operator decision: the specialist pages also work at 360 px (tables stack); sign-in box first when narrow
 - From: @frontend.eng (operator request, 2026-11-19)   To: @ux.designer   Date: 2026-11-19
