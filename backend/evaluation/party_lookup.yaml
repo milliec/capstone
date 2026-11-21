@@ -1,0 +1,20 @@
+# The fixed responsible-role lookup (EC-R11, DL-41). GRADING ONLY: the agents, the stage functions
+# and the pages never read this file and it is never placed in a prompt (T-MAP-1 d).
+#
+# Left side: the extractor's free text after the normal form in lookup.py (lower case, trimmed,
+# runs of spaces collapsed, one leading "a", "an" or "the" removed, one trailing full stop removed).
+# Right side: the party name the answer key uses, or "not stated in source".
+#
+# The entries come only from the filing parties' names in mock-fund-profile.md and the mock
+# sources' own wording (SRC-CSSF15627-P3, SRC-CNMV-P2), never from a model's output.
+# FIXED before the first evaluation run. A change needs a recorded operator decision and applies
+# from the next cycle (EC-R11 point 4).
+
+fund administrator: Fund administrator
+local reporting agent: Local reporting agent (Spain)
+local reporting agent appointed by the undertaking: Local reporting agent (Spain)
+local reporting agent (spain): Local reporting agent (Spain)
+aifm: AIFM
+auditor: Auditor
+tax advisor: Tax advisor
+not stated in source: not stated in source

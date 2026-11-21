@@ -377,6 +377,26 @@ changing the work, confirm that the tool is showing exactly the file that will s
 extra. It's like critiquing colours on a screen with night mode switched on: the notes are honest,
 but they describe the screen, not the design.
 
+**A test that goes green first time has proved nothing yet; break the code on purpose.** The first
+grader tests all passed on their first run. So each grading rule was broken in turn (skip the quote
+comparison, ignore extra rows, switch off the date scan) to see whether a test noticed. Five breaks were
+caught. One was not: a test meant to check "the flag must cite the right paragraph" was also giving a wrong
+quote, so the quote check failed it first and the paragraph rule was never really tested. A new case
+that changes only the paragraph fixed it. Lesson: a check that cannot fail is decoration, and a test can fail
+for the wrong reason and still look like it guards something. It's like a usability test where the task
+fails because the button is hidden, not because the label is unclear: you saw a failure, but not the one you
+meant to study.
+
+**Run the grader on a pretend answer before any paid run, and read what it complains about.** The first
+grading of the stand-in agents' answers said 0 of 6 rows matched, although every field but one matched. The
+one field was a free sentence ("Fund is subject to Part II..." against "The undertaking is subject to Part
+II...") that the spec says must match exactly. No real model will ever write the key's sentence word for word,
+so that rule could never pass, whatever the agents did. It was found for free, before any money was spent,
+because the grader was tried on made-up answers first. Lesson: an exact-match rule on a free sentence is a
+rule nobody can meet; decide how to grade it before the first real run. It's like a spec that says "the headline
+must read exactly like this mock-up": no writer ever hits it, so the review fails every time and tells you
+nothing about the writing.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -622,3 +642,4 @@ bring it back. Changing visible text also touches the tests that check it and th
   side by side never make one page, so scroll one tall picture and dissolve between pages)
 - 2026-11-20 · added one note from the review status wording fix (a builder's word is not a user's
   word; change only what the user sees, and record that the code's word is never shown)
+- 2026-11-21 · added two notes from the B8 Stage A grader slice (break the code on purpose to see whether a test can fail; try the grader on pretend answers before paying for real ones)
