@@ -260,7 +260,7 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 
 ## Hand-off: what is next for each downstream agent
 
-*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065). Merged on `main`: B1 with
+*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065); snapshot rows updated 2026-11-20 (H-055 closed, all 16 recorded). Merged on `main`: B1 with
 CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B5, B7, B12, and **the first green path** (H-056).
 **DL-40 is pinned** (H-064) and the four CrewAI settings changes are recorded in `sad.md` (H-065), so
 nothing blocks step 7b. **Sprint 3 is treated as done at the stand-in bar** (operator, 2026-11-19).
@@ -271,9 +271,9 @@ B12, then B13b; never T-MAP-1. The live list of open requests is `project-contex
 
 | Agent | Next |
 |---|---|
-| Operator | Say "go" for the rest of **B3 step 7b** (PRs 2 to 6; PR 1, the install, is merged) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: 15 of 16 are approved and recorded; **`07-calendar-gp-published-360`** waits for the mobile layout fix (H-055). Re-check the B1 + B2 timing now that B7 is done |
+| Operator | Say "go" for the rest of **B3 step 7b** (PRs 2 to 6; PR 1, the install, is merged) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
 | `@backend.eng` | **B3 step 7b**, PR 1 done (CrewAI 1.15.35 installed, #127); next the crews behind the same agent functions, using the H-065 settings: our own single retry, strict `response_format`, our guardrails, `max_iter: 1`, the `interceptor` that counts every request). Then the **spike** with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
-| `@frontend.eng` | The mobile layout fix for `07-calendar-gp-published-360`, then its baseline can be re-recorded (the operator approves it). H-061: move your finished entries (H-048, H-027, H-054) to Done. Later: **B6** light visual pass (dropped first) |
+| `@frontend.eng` | Nothing open on snapshots: the mobile fix (H-062) and the 360 px baselines are done. H-061: move your finished entries (H-048, H-027) to Done (H-054 is already there). Later: **B6** light visual pass (dropped first) |
 | `@qa.eng` | Review `tests/tier1/test_green_path.py` (co-owned, H-056). Then **B8** the evaluation runner, with `T-MAP-1` passing before the first evaluation run; **B9** tuning and one evaluation cycle with the operator. Writes `2.build/qa.md` in **B10**, which ends the temporary validator exception (H-002) |
 | `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
 | `@system.arch` | Nothing blocking: H-064 and H-065 are done. H-061 (H-040) still needs the entry moved to Done. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
@@ -359,3 +359,8 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   · B3 step 7b PR 1: CrewAI 1.15.35 recorded as installed (Virtualenv note and "CrewAI settings"),
   pydantic 2.12.5 and the four forced switches noted; `output_pydantic` replaced by the strict
   `response_format` (H-065). No code. No model call.
+- 2026-11-20 · persona `project-mgr` · action `document-setup` (operator request) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · "Hand-off" table: snapshot rows brought in step with H-055 (all 16
+  recorded, visual check passes, four more refreshed in #140); `@frontend.eng` row no longer waits on
+  the 360 px baseline. Checked `main` and `handoffs.md` first: no open PRs, 7b PRs 2 to 6 not started.
+  No code. No model call.
