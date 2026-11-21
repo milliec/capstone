@@ -333,6 +333,37 @@ No real key and no paid call in any of them; the spike waits for the operator.
   (unrelated).
 - **Lint:** clean. **Visual check:** passes, no snapshot changed.
 
+## B3 step 7b, PR 2: model settings and per-call token limits (2026-11-21)
+
+Plain code and tests; no CrewAI call, no network, no model call, no model ID in any committed file.
+
+| What | Where |
+|---|---|
+| Per-role settings read from the environment: the model ID (`LLM_MODEL_*`, empty until the operator sets it in their own `.env`), the output limit of one call (`LLM_MAX_TOKENS_*`, defaults 2000 / 2000 / 4000) and each call's own timeout (`CALL_TIMEOUT_*`, 90 / 60 / 60). Names are the SAD §4 names. A bad number refuses to start; a missing model ID does **not** (it is checked where a call is made) | `backend/settings.py` |
+| `role_settings()`: one role's call settings (DL-40's reasoning effort and temperature, the limit, the call timeout, the HTTP timeout = call timeout minus 5 s), `sent_to_provider()` (what goes in the request; a temperature of `None` is left out) and `logged()` (the trace's `settings_json`). **No model ID means no call**: `ModelNotSet` | `backend/runtime/model_settings.py` |
+| `call_cost_usd()` from provider token counts at the operator's DL-40 prices, kept **per role** (not per model ID, so no ID is committed), and `worst_case_run_cost_usd()` | `backend/runtime/model_settings.py` |
+| **Tests (Tier 1):** the settings and their refusals; the sampling settings per role; the HTTP timeout below the call timeout; no ID, no call; **one call can never pass a tenth of the cap, and a generous run (12 rows, every call at its output limit, every call retried once) stays under US$2.50**. Another test shows that check fails when a limit is raised too far. Six deliberate breaks were all caught | `tests/tier1/test_model_settings.py` |
+| `.env.example`: the new names, and the old `CALL_TIMEOUT_*_S` / `HTTP_TIMEOUT_*_S` variables removed (they were not read by anything; the SAD names differ). Handoff H-071 tells `@project.mgr` | `.env.example` |
+
+**The worst case, so the limits are not a guess:** with the demo's largest real prompt of each role
+(at most 7,000 characters, which is a ceiling on tokens), the most one call can cost is about
+US$0.0015 (extractor), US$0.038 (verifier) and US$0.024 (judge). A whole run at the limits with
+every call retried once comes to about **US$1.49**, against the US$2.50 hard stop.
+
+**Choices where the SAD is silent (say if any should change):**
+
+- **The limits (2000 / 2000 / 4000) are starting values**, not measurements. The judge and the verifier
+  are reasoning models, whose hidden thinking counts inside `max_completion_tokens`, so a limit that
+  is too low would cut an answer off and fail the unit as invalid output. The spike shows the real
+  sizes. The provider's stop reason (a cut-off answer) is not a trace column yet; PR 5 should record it, or the spike will not show a limit that was too low.
+- **The verifier sends no temperature.** DL-40 gives one for the extractor (0) and says "no
+  temperature" for the judge, but names none for the verifier. A reasoning model may refuse one, so
+  none is sent.
+- **The prices are the operator's DL-40 prices from 2026-11-19**, written per role. Re-check them
+  against the provider's list before the spike.
+- **The agent file still says `max_iter: 2`**; H-065 says 1. Changing it changes every prompt
+  version, so it moves in PR 4, with the crews that read it.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -349,7 +380,8 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
   spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
   "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
-- **Step 7b in progress** (plan approved 2026-11-19; PR 1 done): CrewAI is installed with its
+- **Step 7b in progress** (plan approved 2026-11-19; PRs 1 and 2 done: PR 2 adds the per-role model
+  settings and token limits, no crew yet): CrewAI is installed with its
   outside connections off, but nothing builds a crew yet; the crews, the per-call timeout and its
   one retry come in PRs 2 to 6, and real mode stays refused until then. The role harness has its call
   caps; the runner that makes the spike's per-role calls comes with the spike (DL-40 is pinned).
@@ -552,3 +584,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   (scenario, tasks and agents, tools, process, kickoff), pointers only, no new decisions. The B3
   intro was already corrected on `main` (DL-40 pinned, step 7b plan approved); the one stale
   "(after DL-40)" in Known gaps now says DL-40 is pinned. Docs only. No model call.
+- 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 2: per-role model settings and per-call token limits) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". New `backend/runtime/model_settings.py`; settings read `LLM_MODEL_*`, `LLM_MAX_TOKENS_*`, `CALL_TIMEOUT_*` (SAD §4 names; `.env.example` changed, H-071 to `@project.mgr`). LLM, temperature and max-token controls: **resolved in code** (DL-40 sampling; limits 2000 / 2000 / 4000 as starting values; verifier sends no temperature, an assumption); worst case for a whole run US$1.49 against the US$2.50 cap, checked by a Tier 1 test. No model ID chosen or committed, no CrewAI call, no real key, no paid call.
