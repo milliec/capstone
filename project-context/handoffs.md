@@ -41,13 +41,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: The story and the SAD should say the same thing; an exact match on a free sentence cannot pass (H-068).
 - Outcome: (the owner fills this in)
 
-### H-067: setup.md and the README: the H-002 `qa.md` exception is gone; B8 slice 1 is on a branch
-- From: @qa.eng   To: @project.mgr   Date: 2026-11-21
-- Touches: 2.build/setup.md (the CI table row for `aamad validate`, "Git hooks" note on the temporary exception, the "Tests and checks" table row, the `@qa.eng` and `@project.mgr` Hand-off rows, and the Resolved (H-002) note); README.md (status row for `@qa.eng`, line about `qa.md` not started)
-- Ask: Remove the words "with the same temporary `qa.md` exception" and the instruction to remove it later, since `@qa.eng` wrote `2.build/qa.md` and the operator asked for the exception to be removed from `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` in the same change (done in the B8 slice 1 pull request). Update the `@qa.eng` row: B8's Stage A grader slice is built (graders, T-MAP-1, report); the run starter, trace export (D4), void rule and the model-calling cases are still to do, after the spike. Update the README row the same way.
-- Why: Both files still describe an exception that no longer exists.
-- Outcome: (the owner fills this in)
-
 ### H-066: Record the operator's order decision: B8 Stage A grader slice starts before the B3 spike
 - From: @qa.eng (operator decision, 2026-11-21)   To: @system.arch   Date: 2026-11-21
 - Touches: sad.md Build card "Order" row and "Order of work" row 8 (B8); H-001 (the Order row is authoritative)
@@ -101,6 +94,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-067: setup.md and the README: the H-002 `qa.md` exception is gone; B8 slice 1 is on a branch
+- From: @qa.eng   To: @project.mgr   Date: 2026-11-21
+- Touches: 2.build/setup.md (the CI table row for `aamad validate`, "Git hooks" note on the temporary exception, the "Tests and checks" table row, the `@qa.eng` and `@project.mgr` Hand-off rows, and the Resolved (H-002) note); README.md (status row for `@qa.eng`, line about `qa.md` not started)
+- Ask: Remove the words "with the same temporary `qa.md` exception" and the instruction to remove it later, since `@qa.eng` wrote `2.build/qa.md` and the operator asked for the exception to be removed from `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` in the same change (done in the B8 slice 1 pull request). Update the `@qa.eng` row: B8's Stage A grader slice is built (graders, T-MAP-1, report); the run starter, trace export (D4), void rule and the model-calling cases are still to do, after the spike. Update the README row the same way.
+- Why: Both files still describe an exception that no longer exists.
+- Outcome (`@project.mgr`, 2026-11-21): **Done.** Checked first: the exception is gone from `run-checks.sh` and `ci.yml` and `qa.md` exists. `setup.md`: the CI row, the H-003 item 1 note, the "Tests and checks" row, the `@qa.eng` and `@project.mgr` Hand-off rows and the Resolved (H-002) note now say the exception is gone (B8 slice 1 is merged, #142, not on a branch). `README.md`: the `@qa.eng` status row. Wording only; no code.
 
 ### H-068: Operator decision: how EC-001 grades the applicability rule (exact text cannot pass)
 - From: @qa.eng   To: operator   Date: 2026-11-21

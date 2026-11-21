@@ -174,7 +174,7 @@ the work and hand over through written documents in `project-context/`. Persona 
 | 2. Build | `@frontend.eng` | Specialist and GP web surfaces | 🟡 Pages and calendar views built; closing checks and the visual snapshot refresh wait for the operator |
 | 2. Build | `@backend.eng` | Agents, gates, date code, storage | 🟡 Stand-in path built and the first green path passes; CrewAI and real agents come after the model pin |
 | 2. Build | `@integration.eng` | Connecting frontend and backend | Not started (no separate step so far: the pages call the services directly) |
-| 2. Build | `@qa.eng` | Tests and evaluation against the answer key | 🟡 Answer-key tests and the green path co-owned; evaluation runner (B8) and `qa.md` not started |
+| 2. Build | `@qa.eng` | Tests and evaluation against the answer key | 🟡 Answer-key tests and the green path co-owned; `qa.md` written; B8 Stage A grader built; run starter, trace export, void rule and the model-calling cases come after the spike |
 | 2. Build | `@security.eng` | Security review before delivery | Not started (the final acceptance block, B10) |
 | 3. Deliver | `@devops.eng` | Run instructions and user guide | 🟡 Run instructions are in [Getting started](#getting-started); the rest is not started |
 
