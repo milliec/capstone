@@ -21,7 +21,7 @@ DL-41, DL-45, D4), `backend.md`, `scaffold-plan.md`, `setup.md`, `US-013`, the a
 |---|---|---|---|
 | `tests/tier2/test_party_lookup.py` | 13 | **T-MAP-1** (a) the five mappings, (b) five texts that give "no match", (c) every target is a filing party in the profile or "not stated in source", (d) nothing under `backend/` outside `backend/evaluation/` names the lookup or imports the package (seen failing on a planted offender); the normal form does only what EC-R11 says | EC-R11, DL-41, US-013 c11 |
 | `tests/tier2/test_evaluation_golden.py` | 6 | The golden set read from the key: 6 rows and quotes in the app's vocabulary, C-1, C-2, clean OBL-01, I-1, the 7 uncited paragraphs **derived** (13 loaded minus 6 cited); a changed key stops the load with an error | EC-001, EC-005, EC-009; operator decision 2026-11-21 (no second copy) |
-| `tests/tier2/test_evaluation_stage_a.py` | 35 | The graders on a "perfect" output built from the key and then spoiled one way at a time (missing row, extra row, row on a forbidden paragraph, a twin row, each wrong field, truncated quote, role text that does not map, a wrong-party role, a business-day rule set, a computed date, a missed C-1 or C-2, a flag on the wrong paragraph or with a made-up quote, a false alarm on OBL-01, an internal flag) and on 10 code-only copy cases | EC-001, EC-002, EC-003, EC-005, EC-006, EC-009, EC-021; US-013 c1, c2, c4, c6, c11 |
+| `tests/tier2/test_evaluation_stage_a.py` | 37 | The graders on a "perfect" output built from the key and then spoiled one way at a time (missing row, extra row, row on a forbidden paragraph, a twin row, each wrong field, truncated quote, role text that does not map, a wrong-party role, a business-day rule set, a computed date, a missed C-1 or C-2, a flag on the wrong paragraph or with a made-up quote, a false alarm on OBL-01, an internal flag) and on 10 code-only copy cases. **Free text is never matched by code** (H-068): a different applicability sentence is not an EC-001 miss and is listed for the operator in EC-002 (key against output, 12 items: 6 names and 6 sentences); a wrong offset still misses | EC-001, EC-002, EC-003, EC-005, EC-006, EC-009, EC-021; US-013 c1, c2, c4, c6, c11 |
 
 **The graders were checked by breaking them.** Six deliberate breaks of `grade.py` (skip the quote
 comparison, ignore extra rows, switch the date scan off, switch the clean-row check off, drop the
@@ -52,8 +52,8 @@ passes, because the paragraph itself ends with one); the case now uses a semicol
 ## Smoke: the command line on a real stand-in run
 
 `python -m backend.evaluation RUN-20261121-1` printed and saved the report; exit code 0 (a miss is a
-result, DL-34). Stand-in result, **the same every time**: EC-001 MISS (0 of 6, one field), EC-002
-for the operator, EC-003 PASS, EC-005 MISS (2 of 4 passed, `I-1` not tested), EC-006 MISS (1 cross-source flag
+result, DL-34). Stand-in result, **the same every time**: EC-001 PASS (every structured field matches on 6 of 6),
+EC-002 for the operator (6 names and 6 applicability sentences, key against output), EC-003 PASS, EC-005 MISS (2 of 4 passed, `I-1` not tested), EC-006 MISS (1 cross-source flag
 instead of 2), EC-009 PASS (7 listed), EC-021 NOT TESTED. These misses are about the stand-in answers, which
 were written from the paragraphs and not from the key (CR-016). They show the graders work; they are
 not an evaluation of the agents.
@@ -82,8 +82,8 @@ a changed answer key → a loud error naming the word. Exit code 2 for "nothing 
 | Run | Result |
 |---|---|
 | `main` before this branch | 270 passed, 4 skipped, **1 failed** |
-| This branch | 334 passed, **1 failed** (the same one). The 4 skips run here because `docs/prototype` exists on this machine |
-| New tests | 60 (13 + 6 + 35 + 6 in `tests/tier2/`) |
+| This branch | 336 passed, **1 failed** (the same one). The 4 skips run here because `docs/prototype` exists on this machine |
+| New tests | 62 (13 + 6 + 37 + 6 in `tests/tier2/`) |
 | Lint | `ruff 0.17.3` clean |
 
 The one failure is `tests/tier1/test_crewai_setup.py::test_loading_crewai_and_building_a_crew_opens_no_connection`:
@@ -99,7 +99,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 
 | ID | What | Severity | Owner |
 |---|---|---|---|
-| F-1 | **EC-001 cannot reach 6 of 6 as written.** It matches the applicability rule **exactly**, but that is a free sentence ("Fund is subject to Part II…" in the key, "The undertaking is subject to Part II…" from the stand-in). Every other field matches. A model will not reproduce the key's sentence word for word, so a 3-of-3 pass is impossible whatever the agents do | High for the evaluation's usefulness (not a code bug: the grader follows the SAD) | Operator, handoff **H-068** |
+| F-1 | **Resolved 2026-11-21 (H-068, operator: "judge it like the name").** EC-001 matched the applicability rule exactly, but it is a free sentence, so it could never pass (a stand-in run missed it on 6 of 6 rows while every other field matched). Now every structured field keeps its exact code check, and the sentence goes to the operator under EC-002 until a model judge is calibrated against the operator's marks. `sad.md` EC-001, EC-002 and EC-R5 wording changed at the operator's instruction (`@system.arch` to check); `US-013` c11 is H-069 | Was high for the evaluation's usefulness | Closed |
 | F-2 | `crewai` missing from this machine's `.venv`: one Tier 1 test fails locally on `main` too | Low (environment) | Operator / `@project.mgr` |
 | F-3 | `ruff` was in `requirements-dev.txt` but not installed in `.venv` (the hooks do not run it; CI does). Installed locally at the pinned 0.17.3 to lint before committing | Low (environment) | — |
 
@@ -114,7 +114,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
    `eval_case` in the trace (DL-45).
 4. Graders for stage B (EC-004) and a runtime grader for EC-010 and EC-012; the three-run
    comparison (EC-R1, EC-R1a) over saved reports.
-5. EC-R5, the name-match rule for EC-002, written by the operator before the first evaluation run.
+5. EC-R5, the match rules for EC-002 (the name **and** the applicability sentence), written by the operator before the first evaluation run. Later: a model judge for EC-002, with a judge model different from the model under test, **calibrated against the operator's marks** (agreement rate reported) before it replaces them.
 6. `*verify-change` on the final branch, then the recommendation to `@security.eng` (SAD §9).
 
 ## Sources
@@ -125,7 +125,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 ## Assumptions
 
 - The operator's decisions of 2026-11-21 stand: grade a finished run; code-only cases; `backend/evaluation/`;
-  the key is read at grade time; the 22 entries stay with Stage C; EC-R5 later.
+  the key is read at grade time; the 22 entries stay with Stage C; EC-R5 later. H-068 (same day): the applicability sentence is judged by the operator, not matched exactly.
 - A drafted row is matched to a key row by its **source paragraph** (each key paragraph belongs to one key
   row). A second row on that paragraph is an extra row.
 - The key's words ("Month-end", "+10 calendar days", …) are translated to the app's vocabulary by a small table in
@@ -134,8 +134,8 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 
 ## Open Questions
 
-1. **F-1 / H-068:** how should EC-001 grade the applicability rule?
-2. **EC-R5:** the name-match rule is still to be written by the operator (EC-002 is shown "for the operator").
+1. ~~F-1 / H-068~~ **Closed 2026-11-21:** the applicability sentence is judged by the operator with the name (EC-002). Still open on it: `US-013` c11 (H-069, `@product-mgr`).
+2. **EC-R5:** the match rules for the name and for the applicability sentence are still to be written by the operator (EC-002 is shown "for the operator").
 3. Should the evaluation tests be promoted to Tier 1 once the run starter exists (SOQ-29)?
 
 ## Audit
@@ -143,3 +143,4 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 - 2026-11-21 · persona `qa-eng` · action `qa` (B8 Stage A grader slice; `test-unit`, `test-integration`,
   `log-defects`, `future-work`) · `AAMAD_TARGET_RUNTIME=crewai` · no model call. `*verify-change` and the
   `@security.eng` recommendation are **not** made yet: B8 is not finished.
+- 2026-11-21 · persona `qa-eng` · action `update` (H-068, operator decision) · EC-001 no longer matches the applicability rule exactly; EC-002 lists it with the name for the operator; F-1 closed; counts updated (62 new tests). Tier placement unchanged (open question 3). `AAMAD_TARGET_RUNTIME=crewai` · no model call.

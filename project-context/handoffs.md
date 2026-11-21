@@ -34,12 +34,12 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-068: Operator decision: how EC-001 grades the applicability rule (exact text cannot pass)
-- From: @qa.eng   To: operator   Date: 2026-11-21
-- Touches: sad.md EC-001, EC-R3, EC-R5; user-stories/US-013 criterion 11; answer key §1 ("Applicability rule" column)
-- Ask: Decide how the applicability rule is graded. EC-001 and US-013 c11 list it among the fields matched **exactly**, but it is a free sentence. The key writes "Fund is subject to Part II of the Law of 17 December 2010"; the stand-in extractor, written from the paragraphs, writes "The undertaking is subject to Part II of the Law of 17 December 2010." The Stage A grader follows the SAD, so **6 of 6 rows miss on this one field** and every other field matches. A model will not reproduce a sentence word for word. Options (a) keep it exact, so EC-001 always misses and the report says so; (b) judge it like the name, by the operator under a written rule (as EC-R5); (c) grade it through a fixed table like EC-R11 (SAD edit first, from `@system.arch`); (d) drop it from the exact list.
-- Why: As written, EC-001 cannot reach 6 of 6, so a 3-of-3 pass is impossible whatever the agents do. Nothing is changed in the grader until you decide.
-- Outcome: (the operator decides; `@system.arch` records it in `sad.md` if the SAD changes)
+### H-069: US-013 criterion 11: the applicability rule is no longer graded by exact match
+- From: @qa.eng (operator decision, 2026-11-21, H-068)   To: @product-mgr   Date: 2026-11-21
+- Touches: user-stories/US-013-evaluation-report.md criterion 11 (and its Traceability line); sad.md EC-001, EC-002 (already changed)
+- Ask: Criterion 11 lists "applicability rule" among the fields graded by exact match. Move it to the sentence about the name: both are judged by the operator ("same obligation", "same condition"), recorded per row, with no model stretching a match until a judge is calibrated against the operator's marks. The exact-match list keeps paragraph ID, quote, frequency, anchor, offset, recipient and responsible role.
+- Why: The story and the SAD should say the same thing; an exact match on a free sentence cannot pass (H-068).
+- Outcome: (the owner fills this in)
 
 ### H-067: setup.md and the README: the H-002 `qa.md` exception is gone; B8 slice 1 is on a branch
 - From: @qa.eng   To: @project.mgr   Date: 2026-11-21
@@ -101,6 +101,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-068: Operator decision: how EC-001 grades the applicability rule (exact text cannot pass)
+- From: @qa.eng   To: operator   Date: 2026-11-21
+- Touches: sad.md EC-001, EC-R3, EC-R5; user-stories/US-013 criterion 11; answer key §1 ("Applicability rule" column)
+- Ask: Decide how the applicability rule is graded. EC-001 and US-013 c11 list it among the fields matched **exactly**, but it is a free sentence. The key writes "Fund is subject to Part II of the Law of 17 December 2010"; the stand-in extractor, written from the paragraphs, writes "The undertaking is subject to Part II of the Law of 17 December 2010." The Stage A grader follows the SAD, so **6 of 6 rows miss on this one field** and every other field matches. A model will not reproduce a sentence word for word. Options (a) keep it exact, so EC-001 always misses and the report says so; (b) judge it like the name, by the operator under a written rule (as EC-R5); (c) grade it through a fixed table like EC-R11 (SAD edit first, from `@system.arch`); (d) drop it from the exact list.
+- Why: As written, EC-001 cannot reach 6 of 6, so a 3-of-3 pass is impossible whatever the agents do. Nothing is changed in the grader until you decide.
+- Outcome (`@qa.eng`, 2026-11-21): **Done. Operator chose "judge it like the name".** The reason: the applicability rule is a free sentence, so an exact match could never pass whatever the agents did (a stand-in run matched every other field on 6 of 6 rows and missed this one on all 6). Every structured field keeps its exact code check; the sentence is listed for the operator, key against output, under EC-002, until a model judge has been calibrated against the operator's marks. Changed: `sad.md` EC-001, EC-002 and EC-R5 wording plus an audit entry (at the operator's instruction; `@system.arch` to check); `backend/evaluation/grade.py`; the Stage A tests; `evals.md`; `qa.md`. `US-013` criterion 11 still says "exact match" for the applicability rule: raised as H-069.
 
 ### H-055: B7 is in: the server sends "Approval blocked"; the demo rule has its real wording; the snapshot review can start
 - From: @backend.eng (B7)   To: @frontend.eng   Date: 2026-11-19
