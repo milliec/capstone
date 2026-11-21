@@ -34,13 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-069: US-013 criterion 11: the applicability rule is no longer graded by exact match
-- From: @qa.eng (operator decision, 2026-11-21, H-068)   To: @product-mgr   Date: 2026-11-21
-- Touches: user-stories/US-013-evaluation-report.md criterion 11 (and its Traceability line); sad.md EC-001, EC-002 (already changed)
-- Ask: Criterion 11 lists "applicability rule" among the fields graded by exact match. Move it to the sentence about the name: both are judged by the operator ("same obligation", "same condition"), recorded per row, with no model stretching a match until a judge is calibrated against the operator's marks. The exact-match list keeps paragraph ID, quote, frequency, anchor, offset, recipient and responsible role.
-- Why: The story and the SAD should say the same thing; an exact match on a free sentence cannot pass (H-068).
-- Outcome: (the owner fills this in)
-
 ### H-066: Record the operator's order decision: B8 Stage A grader slice starts before the B3 spike
 - From: @qa.eng (operator decision, 2026-11-21)   To: @system.arch   Date: 2026-11-21
 - Touches: sad.md Build card "Order" row and "Order of work" row 8 (B8); H-001 (the Order row is authoritative)
@@ -94,6 +87,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-069: US-013 criterion 11: the applicability rule is no longer graded by exact match
+- From: @qa.eng (operator decision, 2026-11-21, H-068)   To: @product-mgr   Date: 2026-11-21
+- Touches: user-stories/US-013-evaluation-report.md criterion 11 (and its Traceability line); sad.md EC-001, EC-002 (already changed)
+- Ask: Criterion 11 lists "applicability rule" among the fields graded by exact match. Move it to the sentence about the name: both are judged by the operator ("same obligation", "same condition"), recorded per row, with no model stretching a match until a judge is calibrated against the operator's marks. The exact-match list keeps paragraph ID, quote, frequency, anchor, offset, recipient and responsible role.
+- Why: The story and the SAD should say the same thing; an exact match on a free sentence cannot pass (H-068).
+- Outcome (`@product-mgr`, 2026-11-21): **Done.** US-013 criterion 11 now grades the name ("same obligation") and the applicability rule ("same condition") by the operator's judgement, recorded per row; the exact-match list is paragraph ID, quote, frequency, anchor, offset, recipient and responsible role (the role still mapped first, EC-R11). The sentence "No model grades the name" now also names the applicability rule and says why. The Traceability line points to H-069, EC-002 and EC-R5. No other story names the applicability rule as an exact match.
 
 ### H-067: setup.md and the README: the H-002 `qa.md` exception is gone; B8 slice 1 is on a branch
 - From: @qa.eng   To: @project.mgr   Date: 2026-11-21
