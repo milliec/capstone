@@ -158,7 +158,7 @@ the `I-1` and injection cases, stage B and runtime graders, the three-run compar
 
 ## Open Questions
 
-1. ~~H-068~~ **Closed 2026-11-21.** Still open on it: `US-013` c11 (H-069).
+1. ~~H-068~~ **Closed 2026-11-21.** `US-013` c11 was updated too (H-069, PR #146).
 2. **EC-R5:** the match rules for the name and the applicability sentence, to be written by the operator before the first evaluation run.
 3. Spike figures (time limits, first-pass success) are needed before EC-R8's limits are final and before the alert
    thresholds in §7 are numbers.
