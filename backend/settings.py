@@ -1,8 +1,11 @@
 """Settings, read from the environment (and the git-ignored .env file) once.
 
 Variable names follow SAD §4 "Sign-in and secrets". B3 step 6 adds the cost cap
-(RUN_COST_CAP_USD) and the stage time limits (STAGE_TIME_LIMIT_A, _B, _C). The per-call timeouts
-and model settings come with the real agents (B3 step 7 and the spike).
+(RUN_COST_CAP_USD) and the stage time limits (STAGE_TIME_LIMIT_A, _B, _C). B3 step 7b PR 2 adds
+the per-role model settings: the model IDs (LLM_MODEL_*), each call's output limit
+(LLM_MAX_TOKENS_*) and each call's own timeout (CALL_TIMEOUT_*). They are READ here and checked
+where a call is made (backend/runtime/model_settings.py), so a missing model ID never stops the
+app in stand-in mode.
 
 Two rules this file enforces (Build card, CR-030, DL-54):
 - AGENTS_MODE defaults to "stand_in" when it is not set (T-MODE-1).
@@ -18,6 +21,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 AGENTS_MODES = ("stand_in", "real")
 SPEND_ACTIVITIES = ("spike", "tuning", "evaluation", "rehearsal", "demo")
+
+# The three model roles (sad.md §2 "Model and Context Strategy"): the extractor, the verifier and
+# the applicability judge. The settings below are keyed by these names.
+ROLES = ("extract", "verify", "judge")
 
 
 class SettingsError(Exception):
@@ -51,9 +58,22 @@ class Settings:
     run_cost_cap_usd: float = 2.50                     # CR-017, DL-36
     # Seconds per stage on the backend's own timer (rule 6, DL-43); replaced after the spike.
     stage_time_limits: dict = None                     # {"A": 375.0, "B": 150.0, "C": 30.0}
+    # Per role (B3 step 7b PR 2). The model ID is "" until the operator sets it in .env (DL-40);
+    # no ID is written in any committed file.
+    llm_models: dict = None                            # {"extract": "", "verify": "", "judge": ""}
+    max_completion_tokens: dict = None                 # the output limit of one call, per role
+    call_timeouts: dict = None                         # seconds a call may take (D1, DL-43), per role
 
 
 STAGE_TIME_LIMIT_DEFAULTS = {"A": 375.0, "B": 150.0, "C": 30.0}
+
+# The output limit of one call. A reasoning model's hidden thinking counts inside it, so the two
+# reasoning roles get more room. These are starting values: the spike shows the real sizes, and
+# backend/runtime/model_settings.py checks that any values still keep a whole run under the cap.
+MAX_COMPLETION_TOKENS_DEFAULTS = {"extract": 2000, "verify": 2000, "judge": 4000}
+
+# Each call's own timeout in seconds (sad.md §2 stage table; DL-43).
+CALL_TIMEOUT_DEFAULTS = {"extract": 90.0, "verify": 60.0, "judge": 60.0}
 
 
 def _positive(env: dict, name: str, default: float) -> float:
@@ -63,6 +83,18 @@ def _positive(env: dict, name: str, default: float) -> float:
         value = float(raw) if raw else default
     except ValueError:
         raise SettingsError(f"{name} must be a number, not {raw!r}")
+    if value <= 0:
+        raise SettingsError(f"{name} must be above 0")
+    return value
+
+
+def _whole_number(env: dict, name: str, default: int) -> int:
+    """A whole-number setting that must be above 0; empty means the default."""
+    raw = env.get(name, "").strip()
+    try:
+        value = int(raw) if raw else default
+    except ValueError:
+        raise SettingsError(f"{name} must be a whole number, not {raw!r}")
     if value <= 0:
         raise SettingsError(f"{name} must be above 0")
     return value
@@ -115,4 +147,9 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         run_cost_cap_usd=_positive(env, "RUN_COST_CAP_USD", 2.50),
         stage_time_limits={stage: _positive(env, f"STAGE_TIME_LIMIT_{stage}", default)
                            for stage, default in STAGE_TIME_LIMIT_DEFAULTS.items()},
+        llm_models={role: env.get(f"LLM_MODEL_{role.upper()}", "").strip() for role in ROLES},
+        max_completion_tokens={role: _whole_number(env, f"LLM_MAX_TOKENS_{role.upper()}", default)
+                               for role, default in MAX_COMPLETION_TOKENS_DEFAULTS.items()},
+        call_timeouts={role: _positive(env, f"CALL_TIMEOUT_{role.upper()}", default)
+                       for role, default in CALL_TIMEOUT_DEFAULTS.items()},
     )

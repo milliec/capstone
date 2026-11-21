@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-071: setup.md: three environment variable names changed (B3 step 7b PR 2)
+- From: @backend.eng (operator request, 2026-11-21)   To: @project.mgr   Date: 2026-11-21
+- Touches: 2.build/setup.md (the environment-variable table, about line 105)
+- Ask: The table lists `CALL_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S`. The code now reads the SAD §4 names `CALL_TIMEOUT_EXTRACT`, `CALL_TIMEOUT_VERIFY`, `CALL_TIMEOUT_JUDGE` (`.env.example` is changed to match), and the HTTP client timeout is no longer a variable (it is the call timeout minus 5 seconds, in code, DL-43). Please change the row, and add `LLM_MODEL_EXTRACT` / `_VERIFY` / `_JUDGE` (the operator's own `.env` only, never committed) and `LLM_MAX_TOKENS_EXTRACT` / `_VERIFY` / `_JUDGE` (defaults 2000, 2000, 4000).
+- Why: `setup.md` would send a reader to variables the code no longer reads.
+- Outcome: (the owner fills this in: what changed, or why not)
+
 ### H-066: Record the operator's order decision: B8 Stage A grader slice starts before the B3 spike
 - From: @qa.eng (operator decision, 2026-11-21)   To: @system.arch   Date: 2026-11-21
 - Touches: sad.md Build card "Order" row and "Order of work" row 8 (B8); H-001 (the Order row is authoritative)
