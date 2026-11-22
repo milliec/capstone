@@ -215,6 +215,82 @@ def test_a_provider_failure_writes_no_trace_line_yet(real, fake_openai, paragrap
     assert lines == []        # no answer came; PR 5 writes one line per attempt
 
 
+# --- Which failures DL-43 lets us retry once (PR 5, step 1: the rule only, nothing retries yet) ---
+
+def _the_failure(settings, paragraphs):
+    """Run one extraction that is expected to fail, and hand back the `ModelServiceError`."""
+    with pytest.raises(crews.ModelServiceError) as caught:
+        _extract(settings, paragraphs)
+    return caught.value
+
+
+@pytest.mark.parametrize("failure, retriable", [
+    (Failure(500), True),                                            # a server error
+    (Failure(503, "Overloaded"), True),
+    (Failure(429, "Rate limit", "rate_limit_exceeded"), True),        # a rate limit
+    (Failure(400, "Bad request", "invalid_request_error"), False),    # sending it again cannot fix it
+    (Failure(401, "Bad key", "invalid_api_key"), False),
+    (Failure(404, "No such model", "model_not_found"), False),        # CrewAI turns this into a ValueError
+])
+def test_a_real_provider_failure_is_classified_and_still_sent_once(
+        real, fake_openai, paragraphs, failure, retriable):
+    fake_openai.script(failure)
+    error = _the_failure(real, paragraphs)
+    assert crews.is_retriable(error) is retriable
+    assert len(fake_openai.requests) == 1         # step 1 changes no behaviour: still ONE attempt
+
+
+def test_a_timeout_is_retriable(fake_openai, monkeypatch, paragraphs):
+    monkeypatch.setenv("OPENAI_BASE_URL", fake_openai.base_url)
+    settings = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike",
+                              "OPENAI_API_KEY": TEST_API_KEY, "LLM_MODEL_EXTRACT": "gpt-6-test-e",
+                              "CALL_TIMEOUT_EXTRACT": "6"})        # client timeout 1 s (DL-43)
+    fake_openai.script(Reply({"rows": []}, delay_s=2.0))
+    assert crews.is_retriable(_the_failure(settings, paragraphs)) is True
+
+
+def test_no_connection_is_retriable(monkeypatch, paragraphs):
+    import socket
+    with socket.socket() as s:                       # a port nothing listens on
+        s.bind(("127.0.0.1", 0))
+        closed_port = s.getsockname()[1]
+    monkeypatch.setenv("OPENAI_BASE_URL", f"http://127.0.0.1:{closed_port}/v1")
+    settings = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike",
+                              "OPENAI_API_KEY": TEST_API_KEY, "LLM_MODEL_EXTRACT": "gpt-6-test-e"})
+    assert crews.is_retriable(_the_failure(settings, paragraphs)) is True
+
+
+def test_what_is_not_a_provider_failure_is_not_retriable():
+    """An invalid answer is final (D5), and so is a bug of ours: never send the call again."""
+    assert crews.is_retriable(agents.InvalidOutput("the answer broke the schema")) is False
+    assert crews.is_retriable(ValueError("a bug")) is False
+    assert crews.is_retriable(crews.ModelServiceError("no cause was kept")) is False
+
+
+def test_a_plain_connection_or_timeout_error_is_retriable_when_no_openai_error_explains_it():
+    assert crews.is_retriable(ConnectionError("Failed to connect")) is True
+    assert crews.is_retriable(TimeoutError("timed out")) is True
+    wrapped = crews.ModelServiceError("ConnectionError: Failed to connect")
+    wrapped.__cause__ = ConnectionError("Failed to connect")
+    assert crews.is_retriable(wrapped) is True
+
+
+def test_the_first_openai_error_in_the_chain_decides():
+    """A 400 stays a 400 even if something around it looks like a connection error."""
+    import httpx
+    import openai
+    response = httpx.Response(400, request=httpx.Request("POST", "http://127.0.0.1/v1"))
+    outer = ConnectionError("wrapped")
+    outer.__cause__ = openai.BadRequestError("bad request", response=response, body=None)
+    assert crews.is_retriable(outer) is False
+
+
+def test_a_chain_that_loops_back_on_itself_cannot_hang():
+    first, second = ValueError("first"), ValueError("second")
+    first.__cause__, second.__cause__ = second, first
+    assert crews.is_retriable(first) is False
+
+
 # --- Refused before anything is sent ---------------------------------------------------------
 
 def test_no_model_id_means_nothing_is_built_or_sent(fake_openai, monkeypatch, paragraphs):

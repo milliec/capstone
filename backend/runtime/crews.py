@@ -46,6 +46,38 @@ class ModelServiceError(Exception):
     could not be reached. The unit fails with the reason "model service" (DL-43)."""
 
 
+def is_retriable(error: BaseException) -> bool:
+    """Is this provider failure one DL-43 allows ONE retry for? (PR 5, step 1: the rule only; nothing
+    calls it yet.)
+
+    Yes: the call's own timeout, no connection, a rate limit (429), a server error (5xx).
+    No: any other answer from the provider (400 bad request, 401 bad key, 404 no such model...:
+    sending the same request again cannot fix it and every attempt costs money), and anything
+    that is not a provider failure at all (an invalid answer, a bug of ours).
+
+    CrewAI wraps what the `openai` client raised (a timeout becomes a plain `ConnectionError`, a
+    404 a `ValueError`), and `run_step` wraps that again as `ModelServiceError`. So we walk the
+    chain of causes and let the FIRST `openai` error decide. Only when there is none do we trust a
+    plain `ConnectionError` or `TimeoutError`. The walk stops at an error it has already seen, so
+    a chain that loops back on itself cannot hang a run.
+    """
+    import openai  # only a real call gets here; stand-in never does
+
+    seen: set[int] = set()
+    looks_like_connection = False
+    current: BaseException | None = error
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, openai.APIStatusError):
+            return current.status_code == 429 or current.status_code >= 500
+        if isinstance(current, openai.APIConnectionError):      # includes the client's own timeout
+            return True
+        if isinstance(current, (ConnectionError, TimeoutError)):
+            looks_like_connection = True
+        current = current.__cause__ or current.__context__
+    return looks_like_connection
+
+
 @dataclass
 class StepResult:
     """What one real call gave back: the model's text and the token counts CrewAI reports."""
