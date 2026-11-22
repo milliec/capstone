@@ -21,10 +21,11 @@ rate limit or a server error is sent ONCE more, after a short wait; any other fa
 failure of the second attempt, is final. A bad ANSWER is never retried (D5: that happens after
 `run_step`, in agents.py, and sends nothing again).
 
-What is NOT here yet, and arrives in the next steps of PR 5: one trace line per HTTP attempt through
-CrewAI's `interceptor` (including CrewAI's silent repeat without `reasoning_effort`). Until then a
-failed attempt writes no trace line, and the numbers on a trace line come from CrewAI's own usage
-count, not from each request.
+Every HTTP request the crew makes goes through CrewAI's `interceptor` into an `AttemptLog`
+(backend/runtime/attempts.py), so agents.py can write ONE TRACE LINE PER REQUEST (PR 5, step 3):
+the model string the API returned, its stop reason, that request's own token counts, and for a
+request with no answer, why. What is NOT here yet (step 4): flagging CrewAI's silent repeat
+without `reasoning_effort`.
 
 CrewAI is loaded only here, only when a real call is made, and only through `load_crewai()` (which
 switches its telemetry, tracing and version check off first). A stand-in run never gets here
@@ -33,9 +34,11 @@ switches its telemetry, tracing and version check off first). A stand-in run nev
 
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 
 from backend.domain.schemas import ExtractionResult, Verdict, VerificationResult
 from backend.runtime import model_settings, prompts
+from backend.runtime.attempts import AttemptLog, HttpAttempt
 from backend.runtime.crewai_setup import load_crewai
 from backend.runtime.wire_schema import wire_schema
 from backend.settings import Settings
@@ -51,7 +54,12 @@ RETRY_WAIT_S = 1.0     # DL-43's "short wait" before the retry (tests set it to 
 
 class ModelServiceError(Exception):
     """The provider did not give an answer: it timed out, was rate-limited, returned an error, or
-    could not be reached. The unit fails with the reason "model service" (DL-43)."""
+    could not be reached. The unit fails with the reason "model service" (DL-43).
+    `attempts` is every HTTP request that was sent, so each can still get its trace line."""
+
+    def __init__(self, message: str, attempts: list[HttpAttempt] | None = None):
+        super().__init__(message)
+        self.attempts = attempts or []
 
 
 def is_retriable(error: BaseException) -> bool:
@@ -87,14 +95,52 @@ def is_retriable(error: BaseException) -> bool:
 
 @dataclass
 class StepResult:
-    """What one real call gave back: the model's text and the token counts CrewAI reports."""
+    """What one real call gave back: the model's text, the token counts CrewAI reports, and every
+    HTTP request that was made (the last one is the answer; earlier ones failed and were retried)."""
     text: str
     tokens_in: int
     tokens_out: int
+    attempts: list[HttpAttempt]
 
 
-def build_crew(settings: Settings, step: str, inputs: dict[str, str]):
-    """The one-agent, one-task crew for one unit. Builds only; sends nothing."""
+@lru_cache
+def _interceptor_class():
+    """The class CrewAI's `interceptor` hook wants, made on first use because it must subclass
+    CrewAI's `BaseInterceptor` and CrewAI may only be imported through `load_crewai()`."""
+    load_crewai()
+    import httpx
+    from crewai.llms.hooks.base import BaseInterceptor
+
+    class AttemptRecorder(BaseInterceptor[httpx.Request, httpx.Response]):
+        """Hands every HTTP request and response to an `AttemptLog`. It changes nothing: the request
+        and the response go on exactly as they were. It never raises, so recording can never be
+        the reason a call fails."""
+
+        def __init__(self, log: AttemptLog):
+            self.log = log
+
+        def on_outbound(self, message: httpx.Request) -> httpx.Request:
+            self.log.begin(message.read())
+            return message
+
+        def on_inbound(self, message: httpx.Response) -> httpx.Response:
+            self.log.finish(message.status_code, message.read())     # read() keeps the body for the client
+            return message
+
+        async def aon_outbound(self, message: httpx.Request) -> httpx.Request:
+            return self.on_outbound(message)
+
+        async def aon_inbound(self, message: httpx.Response) -> httpx.Response:
+            self.log.finish(message.status_code, await message.aread())
+            return message
+
+    return AttemptRecorder
+
+
+def build_crew(settings: Settings, step: str, inputs: dict[str, str],
+               attempt_log: AttemptLog | None = None):
+    """The one-agent, one-task crew for one unit. Builds only; sends nothing. With an
+    `attempt_log`, every HTTP request the crew makes is written into it (the interceptor)."""
     load_crewai()                                                    # switches first, then imports
     from crewai import LLM, Agent, Crew, Process, Task
 
@@ -112,6 +158,8 @@ def build_crew(settings: Settings, step: str, inputs: dict[str, str]):
                 "additional_params": {"response_format": wire_schema(STEP_RESULT[step])}}
     if call.temperature is not None:
         llm_args["temperature"] = call.temperature
+    if attempt_log is not None:
+        llm_args["interceptor"] = _interceptor_class()(attempt_log)
 
     agent = Agent(role=text["role"], goal=text["goal"], backstory=text["backstory"],
                   llm=LLM(**llm_args), tools=[], allow_delegation=card["allow_delegation"],
@@ -127,18 +175,22 @@ def run_step(settings: Settings, step: str, inputs: dict[str, str]) -> StepResul
     """Send one unit's prompt to the model and return its text. A failure `is_retriable` allows is
     sent ONCE more after `RETRY_WAIT_S` (DL-43); every other failure, and any failure of the second
     attempt, becomes `ModelServiceError` (the reason "model service"). At most `MAX_ATTEMPTS`
-    requests, whatever happens."""
+    requests of ours, whatever happens. Every HTTP request actually sent is in `.attempts` of the
+    result, or of the error, whether it got an answer or not."""
+    log = AttemptLog()
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        crew = build_crew(settings, step, inputs)     # a fresh crew each time; refusals come from here
+        crew = build_crew(settings, step, inputs, log)    # a fresh crew each time; refusals come from here
         try:
             output = crew.kickoff()
             break
         except Exception as error:              # CrewAI wraps some provider errors; all are one thing
+            log.fail(f"{type(error).__name__}: {error}")     # a request with no response at all
             if attempt < MAX_ATTEMPTS and is_retriable(error):
                 time.sleep(RETRY_WAIT_S)
                 continue
             raise ModelServiceError(
-                f"{type(error).__name__}: {error} (attempt {attempt} of {MAX_ATTEMPTS})") from error
+                f"{type(error).__name__}: {error} (attempt {attempt} of {MAX_ATTEMPTS})",
+                log.attempts) from error
     usage = output.token_usage
     return StepResult(text=output.raw or "", tokens_in=usage.prompt_tokens,
-                      tokens_out=usage.completion_tokens)
+                      tokens_out=usage.completion_tokens, attempts=log.attempts)

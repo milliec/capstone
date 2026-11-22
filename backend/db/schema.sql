@@ -242,6 +242,12 @@ CREATE TABLE IF NOT EXISTS trace (
     eval_case         TEXT CHECK (eval_case IS NULL OR eval_case IN
                         ('altered_quote', 'I-1', 'injection')),                   -- DL-45
     late              INTEGER NOT NULL DEFAULT 0 CHECK (late IN (0, 1)),          -- DL-43, rule 9
+    -- Added by B3 step 7b PR 5 (additive only: nothing above was renamed or dropped). The first
+    -- three columns' defaults are what a stand-in line holds, so stand-in lines look as before.
+    -- `attempt_n` now counts HTTP requests of one unit: 1, 2, ... (a retry, or CrewAI's own repeat).
+    stop_reason       TEXT NOT NULL DEFAULT '',          -- the API's finish reason ('stop', 'length'); empty if no answer
+    provider_error    TEXT,                              -- why this attempt got no answer (HTTP status, timeout); empty if it did
+    cost_estimated    INTEGER NOT NULL DEFAULT 0 CHECK (cost_estimated IN (0, 1)),  -- 1: no usage data came; worst case charged
     UNIQUE (run_id, step, stage_attempt, unit_id, attempt_n),                     -- the record key
     FOREIGN KEY (run_id, fund_id) REFERENCES runs (run_id, fund_id)
 );

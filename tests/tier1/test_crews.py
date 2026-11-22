@@ -263,14 +263,6 @@ def test_a_bad_answer_is_never_retried_even_after_a_retry(real, fake_openai, par
     assert len(fake_openai.requests) == 2 and fake_openai.unused() == 1
 
 
-def test_a_provider_failure_writes_no_trace_line_yet(real, fake_openai, paragraphs):
-    fake_openai.script(Failure(500), Failure(500))
-    lines = []
-    with pytest.raises(crews.ModelServiceError):
-        _extract(real, paragraphs, record=lines.append)
-    assert lines == []        # no answer came; PR 5 (steps 3 and 4) writes one line per attempt
-
-
 # --- Which failures DL-43 lets us retry once (PR 5, step 1: the rule; step 2 uses it) ------------
 
 def _the_failure(settings, paragraphs):

@@ -1,5 +1,8 @@
 """The trace: one append-only line per model call attempt (CR-018), and the run's cost count (CR-017).
 
+Since B3 step 7b PR 5 an "attempt" is one HTTP request: a retry (DL-43) is a second line, and a
+request that got no answer (a timeout, a 500) is a line too, so its cost counts towards the cap.
+
 `record_call` does four things in ONE transaction, so they always agree:
   1. decides whether the output is LATE: it arrived after its stage failed, the run ended, or a
      retry started (rule 9, DL-43). A late output is kept in the trace only; the stage stores
@@ -39,7 +42,11 @@ class CallRecord:
     tokens_in: int = 0
     tokens_out: int = 0
     cost_usd: float = 0.0
-    attempt_n: int = 1
+    attempt_n: int = 1              # which HTTP request of the unit this is: 1, 2, ... (PR 5)
+    # B3 step 7b PR 5. The defaults are what a stand-in call holds, so a stand-in line is unchanged.
+    stop_reason: str = ""           # the API's finish reason; empty when no answer came
+    provider_error: str | None = None   # why this attempt got no answer; None when it did
+    cost_estimated: bool = False    # True: no usage data came, so the worst case was charged
 
 
 def record_key(run_id: str, step: str, stage_attempt: int, unit_id: str, attempt_n: int) -> str:
@@ -67,17 +74,21 @@ def record_call(conn: sqlite3.Connection, *, run: dict, stage: str, unit_id: str
                                   prompt_version, model, model_returned, settings_json, max_tokens,
                                   input_hash, raw_output, parsed_output, validation_error,
                                   tokens_in, tokens_out, cost_usd, duration_ms, spend_activity,
-                                  late)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                  late, stop_reason, provider_error, cost_estimated)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (run["run_id"], run["fund_id"], call.step, run["stage_attempt"], unit_id,
              call.attempt_n, call.at, call.prompt_version, call.model, call.model_returned,
              call.settings_json, call.max_tokens, call.input_hash, call.raw_output,
              call.parsed_output, call.validation_error, call.tokens_in, call.tokens_out,
-             call.cost_usd, call.duration_ms, spend_activity or None, int(late)))
+             call.cost_usd, call.duration_ms, spend_activity or None, int(late),
+             call.stop_reason, call.provider_error, int(call.cost_estimated)))
         conn.execute("UPDATE runs SET cost_so_far = cost_so_far + ? WHERE run_id = ?",
                      (call.cost_usd, run["run_id"]))
         key = record_key(run["run_id"], call.step, run["stage_attempt"], unit_id, call.attempt_n)
-        outcome = "invalid output" if call.validation_error else "output"
+        if call.provider_error:
+            outcome = "no answer (provider error)"     # the attempt is traced; there is no output
+        else:
+            outcome = "invalid output" if call.validation_error else "output"
         write_audit(conn, fund_id=run["fund_id"], actor=f"stage {stage}", event_type="agent_output",
                     run_id=run["run_id"], subject_id=unit_id, trace_ref=key,
                     reason=f"{call.step} {outcome}" + (" (late: kept in the trace only)" if late

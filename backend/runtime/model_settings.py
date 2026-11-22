@@ -99,6 +99,32 @@ def call_cost_usd(role: str, tokens_in: int, tokens_out: int) -> float:
     return (tokens_in * price_in + tokens_out * price_out) / 1_000_000
 
 
+# One token is about four characters of text: the same rough rule CrewAI uses when a model ID is one
+# it has no token counter for. Used only to ESTIMATE the input of a request that got no usage data.
+CHARS_PER_TOKEN = 4
+
+
+def attempt_cost_usd(role: str, *, kind: str, tokens_in: int, tokens_out: int, request_bytes: int,
+                     max_completion_tokens: int) -> tuple[float, bool]:
+    """What one HTTP attempt counts towards the run's cost cap (CR-017), and whether that is an
+    ESTIMATE. `kind` is the attempt's (backend/runtime/attempts.py):
+
+      answered  the provider sent usage data: its token counts, priced. Not an estimate.
+      rejected  a 4xx: refused before any work was done. Cost 0. Not an estimate.
+      unknown   a 5xx, a timeout, no connection: no usage data, and the provider may have done the
+                work (a timeout is the usual case). The WORST case is charged: the request's input,
+                estimated from its size, and an answer that filled the output limit.
+
+    Charging the worst case is cheap and safe: the ceiling of one call is a few US cents (the
+    per-role limits are checked against the US$2.50 cap in tests/tier1/test_model_settings.py)."""
+    if kind == "answered":
+        return call_cost_usd(role, tokens_in, tokens_out), False
+    if kind == "rejected":
+        return 0.0, False
+    estimated_in = request_bytes // CHARS_PER_TOKEN + 1
+    return call_cost_usd(role, estimated_in, max_completion_tokens), True
+
+
 def worst_case_call_cost_usd(settings: Settings, role: str, input_tokens: int) -> float:
     """The most one call can cost: its whole input, and an answer that fills its output limit."""
     return call_cost_usd(role, input_tokens, settings.max_completion_tokens[role])
