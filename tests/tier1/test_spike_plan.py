@@ -125,9 +125,11 @@ def test_only_a_primary_document_can_be_planned(tmp_path, document):
     assert code == 2 and "not a primary source document" in text
 
 
-def test_go_is_refused_in_this_build(fake_openai, no_network, tmp_path):
+def test_go_with_nobody_to_confirm_sends_nothing(fake_openai, no_network, tmp_path):
+    # Since PR 2c `--go` asks for a typed confirmation. Here nothing can be typed (pytest has no
+    # keyboard), which must count as "not confirmed". The full command tests are in T-SPIKE-4.
     code, text = run_command(["--go"], spike_db=tmp_path / "spike.db")
-    assert code == 2 and "--go is not available" in text
+    assert code == 2 and "NOT CONFIRMED" in text and "nothing was sent" in text
     assert fake_openai.requests == []
 
 

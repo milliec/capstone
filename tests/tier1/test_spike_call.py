@@ -7,7 +7,7 @@ model, no real key, no outside connection. What they protect:
   * every HTTP request has a trace line, and its cost counts, even when it got no answer;
   * a bad answer is reported and NOT asked for again (D5); a failed request gets DL-43's one retry;
   * every refusal happens BEFORE a request is sent;
-  * the command's `--go` is still refused, and the key is never written anywhere.
+  * the key is never written anywhere. (The command's `--go` is tested in test_spike_command.py.)
 """
 
 import copy
@@ -193,18 +193,7 @@ def test_a_call_that_could_pass_the_cost_cap_refuses_before_any_request(real, fa
     assert fake_openai.requests == []
 
 
-# --- The command, and the key -------------------------------------------------------------------
-
-def test_the_command_go_is_still_refused_and_sends_nothing(fake_openai, monkeypatch, tmp_path):
-    monkeypatch.setenv("OPENAI_BASE_URL", fake_openai.base_url)
-    env = {"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike", "OPENAI_API_KEY": TEST_API_KEY,
-           "LLM_MODEL_EXTRACT": "gpt-6-test-e"}
-    printed: list[str] = []
-    db = tmp_path / "data" / "spike.db"
-    code = spike.main(["--go"], env=env, spike_db=db, out=printed.append)
-    assert code == 2 and "not available" in " ".join(printed)
-    assert fake_openai.requests == [] and not db.exists()
-
+# --- The key -------------------------------------------------------------------
 
 def test_the_key_is_not_in_the_result_or_the_database(real, fake_openai, tmp_path):
     fake_openai.script(Reply(good_answer()))

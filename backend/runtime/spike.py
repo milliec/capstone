@@ -12,8 +12,8 @@ What this file deliberately does NOT do (the safety design, kept for every later
   - Since spike PR 2b, ONE function can send: `run_first_call`. It imports the real-mode code only
     when it is called, and it is tested against the fake OpenAI only (T-SPIKE-3).
   - It never prints or logs the API key. It says only whether a key is set.
-  - The COMMAND's `--go` is still REFUSED. It is wired in PR 2c, together with a confirmation the
-    operator types, so that no paid call can start by accident in between.
+  - The command's `--go` (spike PR 2c) sends nothing until the operator TYPES the document ID.
+    Every refusal comes first; closed or piped input counts as "not confirmed".
 
 Why a separate spike database (data/spike.db, git-ignored):
   A real call writes a trace line, and `record_call` (backend/services/trace.py) needs a `runs` row
@@ -29,10 +29,12 @@ Run it (needs AGENTS_MODE=real, SPEND_ACTIVITY=spike, the key and LLM_MODEL_EXTR
 
 import argparse
 import json
+import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlparse
 
 # These imports are deliberately the "light" ones (they use only sqlite3 and datetime).
 # Do NOT import backend.services.runs here: it pulls in the stage code, and with it the code that
@@ -198,8 +200,8 @@ def run_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMENT
                    spike_db: Path = SPIKE_DB) -> SpikeResult:
     """Make the ONE real extractor call the dry-run described, and trace every request it sends.
 
-    ⚠ THIS IS THE FUNCTION THAT CAN SPEND MONEY. Nothing in the repository calls it except tests
-    (against the fake OpenAI). The command's `--go` is wired in PR 2c, behind a typed confirmation.
+    ⚠ THIS IS THE FUNCTION THAT CAN SPEND MONEY. Only two things call it: the command's `--go`
+    (`_go`, behind a typed confirmation) and the tests (against the fake OpenAI). Keep it so.
 
     Order, and why: (1) every dry-run check, so a wrong setting, a missing key or model ID, a
     non-primary document or the 70-call cap stops us before anything is created; (2) the spike run
@@ -261,10 +263,17 @@ def run_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMENT
         conn.close()
 
 
-def format_plan(plan: SpikePlan) -> str:
-    """The text the operator reads. It never contains the API key."""
-    return "\n".join([
-        "SPIKE DRY-RUN: nothing was sent, nothing was written, no model was called.",
+def format_plan(plan: SpikePlan, *, live: bool = False) -> str:
+    """The text the operator reads. It never contains the API key.
+
+    `live` is False for the dry-run (nothing will be sent) and True when `--go` is about to ask
+    for the typed confirmation (nothing has been sent YET)."""
+    heading = ("SPIKE PLAN: nothing has been sent yet."
+               if live else "SPIKE DRY-RUN: nothing was sent, nothing was written, no model was called.")
+    closing = ("" if live else
+               "To make this call, run it again with --go. You will be asked to type the document ID first.")
+    lines = [
+        heading,
         "",
         f"Step           : {STEP} (Stage A extractor, ONE call)",
         f"Document       : {plan.document_id} - {plan.document_title} ({plan.paragraph_count} paragraphs)",
@@ -276,9 +285,56 @@ def format_plan(plan: SpikePlan) -> str:
         (f"Worst case     : US${plan.worst_case_usd:.4f} for one request; "
          f"US${plan.worst_case_with_retry_usd:.4f} if the first request is billed and the one retry is too"),
         f"Spike calls    : {plan.calls_used} of {plan.call_cap} used (EC-R10)",
-        "",
-        "A real call is not available from the command yet (--go arrives in spike PR 2c).",
-    ])
+    ]
+    if live:
+        lines.append(f"Endpoint       : {endpoint_description()}")
+    return "\n".join(lines + ["", closing] if closing else lines)
+
+
+def endpoint_description() -> str:
+    """Where the request would go, so a stray OPENAI_BASE_URL in your shell cannot surprise you.
+
+    The OpenAI client reads OPENAI_BASE_URL from the process environment. Only the scheme, host and
+    port are shown: a URL can carry a password, and this text must never hold a secret."""
+    url = os.environ.get("OPENAI_BASE_URL", "").strip()
+    if not url:
+        return "OpenAI's default (api.openai.com)"
+    parts = urlparse(url)
+    port = f":{parts.port}" if parts.port else ""
+    return f"{parts.scheme}://{parts.hostname}{port} (set by OPENAI_BASE_URL)"
+
+
+def format_result(result: SpikeResult) -> str:
+    """What the call did, one block per HTTP request, in words. The answer itself is not printed:
+    it is in the trace (data/spike.db), where the spike report reads it."""
+    lines = ["", "SPIKE RESULT: a request WAS sent.", ""]
+    if result.ok:
+        lines.append(f"Answer         : VALID ({result.row_count} rows passed the guardrail)")
+    else:
+        lines.append(f"Answer         : NOT USABLE - {result.failure}")
+    lines.append(f"Unit           : {result.unit_id} (run {result.run_id})")
+    for call in result.lines:
+        got = "no answer" if call.provider_error else "answered"
+        lines += [
+            "",
+            f"Request {call.attempt_n}      : {got}",
+            f"  Tokens       : {call.tokens_in} in, {call.tokens_out} out",
+            f"  Cost         : US${call.cost_usd:.4f}"
+            + (" (ESTIMATED, no usage data came back; the worst case was charged)"
+               if call.cost_estimated else ""),
+            f"  Stop reason  : {call.stop_reason or '(none)'}",
+            f"  Model        : asked {call.model}, answered {call.model_returned or '(none)'}",
+            f"  Off pinned setting : {'YES - this request did not carry the pinned settings'
+                                      if call.off_pinned_setting else 'no'}",
+        ]
+        if call.provider_error:
+            lines.append(f"  Provider error: {call.provider_error}")
+        if call.validation_error:
+            lines.append(f"  Guardrail    : {call.validation_error}")
+    lines += ["", f"Run cost so far: US${result.run_cost_usd:.4f} (cap US$2.50)"]
+    if not result.ok:
+        lines.append("Stopped. Nothing was repeated except the built-in retry (DL-43).")
+    return "\n".join(lines)
 
 
 # What a normal, expected refusal looks like. Anything else is a bug and is allowed to crash loudly.
@@ -286,21 +342,52 @@ REFUSALS = (SpikeRefused, SettingsError, model_settings.ModelNotSet, model_setti
             harness.CallCapReached)
 
 
+def _go(env, document_id: str, spike_db: Path, out, read_line) -> int:
+    """`--go`: every refusal first, then the plan, then a typed confirmation, then the one call.
+
+    Returns 0 for a usable answer, 1 when the call was made but the answer was not usable, 2 when
+    nothing was sent (a refusal, or the confirmation was not given)."""
+    try:
+        settings = load_settings(env)
+        plan = plan_first_call(settings, document_id=document_id, spike_db=spike_db)
+    except REFUSALS as refusal:
+        out(f"REFUSED: {refusal}")                  # before the prompt: never ask to confirm a refusal
+        return 2
+    out(format_plan(plan, live=True))
+    out("")
+    out("THIS WILL SEND ONE REAL REQUEST TO THE ENDPOINT ABOVE AND MAY COST MONEY.")
+    try:
+        typed = read_line(f"To send it, type the document ID ({plan.document_id}) and press Enter; "
+                          "anything else cancels: ")
+    except (EOFError, OSError):                     # no one to ask (piped input, a script): no
+        typed = ""
+    if typed.strip() != plan.document_id:
+        out("NOT CONFIRMED: nothing was sent.")
+        return 2
+    out("Sending one request now...")
+    try:
+        result = run_first_call(settings, document_id=document_id, spike_db=spike_db)
+    except REFUSALS as refusal:                     # the cost cap is checked inside the call
+        out(f"REFUSED: {refusal}")
+        return 2
+    out(format_result(result))
+    return 0 if result.ok else 1
+
+
 def main(argv: list[str] | None = None, *, env: dict[str, str] | None = None,
-         spike_db: Path = SPIKE_DB, out=print) -> int:
-    """The command. Returns 0 when it printed a plan, 2 when it refused. `env`, `spike_db` and
-    `out` exist so tests can supply their own values; the real command uses the defaults."""
+         spike_db: Path = SPIKE_DB, out=print, read_line=input) -> int:
+    """The command. Returns 0 for a plan or a usable answer, 1 for a call whose answer was not
+    usable, 2 when it refused or was not confirmed. `env`, `spike_db`, `out` and `read_line` exist
+    so tests can supply their own values; the real command uses the defaults."""
     parser = argparse.ArgumentParser(prog="python -m backend.runtime.spike", description=__doc__.split("\n")[0])
     parser.add_argument("--document", default=FIRST_CALL_DOCUMENT,
                         help=f"a primary document ID (default {FIRST_CALL_DOCUMENT})")
     parser.add_argument("--go", action="store_true",
-                        help="make the real call (NOT available in this build)")
+                        help="make the real call, after you type the document ID to confirm")
     args = parser.parse_args(argv)
 
     if args.go:
-        out("REFUSED: --go is not available in this build. The command plans the first call only; "
-            "--go is wired in spike PR 2c, with a confirmation you type, after you have read the plan.")
-        return 2
+        return _go(env, args.document, spike_db, out, read_line)
     try:
         plan = plan_first_call(load_settings(env), document_id=args.document, spike_db=spike_db)
     except REFUSALS as refusal:
