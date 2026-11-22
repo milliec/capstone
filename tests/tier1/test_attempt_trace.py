@@ -117,6 +117,21 @@ def test_an_attempt_with_no_usage_data_is_charged_its_worst_case_and_marked_as_a
     assert cost < 0.05          # the ceiling of ONE call is a few US cents, far below the US$2.50 cap
 
 
+def test_every_4xx_attempt_costs_nothing():
+    """The rule the cost cap's safety rests on (H-073): a request the provider REFUSES (any 4xx) did
+    no work and is not billed. CrewAI repeats a call only after such a refusal, so its repeat is
+    the one billed request of that attempt."""
+    for status in range(400, 500):
+        log = AttemptLog()
+        log.begin(b"{}" * 5000)                                      # a big request makes no difference
+        log.finish(status, b'{"error": {"message": "refused", "type": "invalid_request_error"}}')
+        [attempt] = log.attempts
+        assert attempt.kind == "rejected", status
+        assert model_settings.attempt_cost_usd(
+            "judge", kind=attempt.kind, tokens_in=0, tokens_out=0,
+            request_bytes=attempt.request_bytes, max_completion_tokens=4000) == (0.0, False), status
+
+
 # --- One CallRecord per HTTP request ----------------------------------------------------------
 
 def test_one_request_gives_one_line_with_what_the_api_returned(real, fake_openai, stand_in, paragraphs):
@@ -270,6 +285,45 @@ def test_our_retry_plus_crewais_repeat_is_at_most_four_requests_and_four_lines(
     assert [line.attempt_n for line in lines] == [1, 2, 3, 4]
     assert [line.off_pinned_setting for line in lines] == [False, True, False, True]
     assert [bool(line.provider_error) for line in lines] == [True, True, True, False]
+
+
+@pytest.mark.parametrize("script", [
+    pytest.param([Failure(500), Reply({"rows": []})], id="500 then an answer"),
+    pytest.param([Failure(500), Failure(500)], id="500 twice, final failure"),
+    pytest.param([Reply({"rows": []}, delay_s=2.0), Reply({"rows": []})], id="timeout then an answer"),
+])
+def test_four_requests_bill_at_most_two(refuses_reasoning_effort, monkeypatch, paragraphs, script):
+    """The worst case: CrewAI's repeat inside BOTH of our attempts. Four requests reach the model
+    (refused, repeated, refused, repeated), but every refusal costs 0, so at most the bound of
+    billed requests per unit (2) is charged, and the stage's cost count is exactly the sum of them."""
+    monkeypatch.setenv("OPENAI_BASE_URL", refuses_reasoning_effort.base_url)
+    settings = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike",
+                              "OPENAI_API_KEY": TEST_API_KEY, "LLM_MODEL_EXTRACT": "gpt-6-test-e",
+                              "CALL_TIMEOUT_EXTRACT": "6"})            # client timeout 1 s (DL-43)
+    refuses_reasoning_effort.script(*script)
+    lines, _ = _lines(settings, paragraphs)
+
+    assert len(refuses_reasoning_effort.requests) == crews.MAX_REQUESTS_PER_UNIT == len(lines) == 4
+    refused, billed = lines[0::2], lines[1::2]                      # each refusal, then CrewAI's repeat
+    assert all(line.provider_error.startswith("HTTP 400") and line.cost_usd == 0 for line in refused)
+    assert all(line.off_pinned_setting for line in billed)
+    assert [line for line in lines if line.cost_usd > 0] == billed
+    assert len(billed) <= crews.MAX_BILLED_REQUESTS_PER_UNIT
+
+
+def test_the_cost_count_of_a_four_request_unit_is_the_two_billed_requests(real_db, refuses_reasoning_effort):
+    settings, conn = real_db
+    settings = settings.__class__(**{**settings.__dict__, "run_cost_cap_usd": 2.50})
+    refuses_reasoning_effort.script(Failure(500), Reply({"rows": []}, tokens_in=1000, tokens_out=100),
+                                    *[Reply({"rows": []})] * 4)
+    run_id = flow.start_to_g1(conn, settings)
+    first_unit = [t for t in trace.list_trace(conn, run_id) if t["unit_id"] == "SRC-CSSF15627"]
+    assert [t["attempt_n"] for t in first_unit] == [1, 2, 3, 4]
+    assert [t["cost_usd"] > 0 for t in first_unit] == [False, True, False, True]
+    assert sum(t["cost_usd"] for t in first_unit) == pytest.approx(
+        first_unit[1]["cost_usd"] + first_unit[3]["cost_usd"])
+    assert runs.get_run(conn, run_id)["cost_so_far"] == pytest.approx(
+        sum(t["cost_usd"] for t in trace.list_trace(conn, run_id)))
 
 
 def test_a_call_that_stays_on_its_pinned_settings_is_never_flagged(real, fake_openai, paragraphs):

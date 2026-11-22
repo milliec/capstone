@@ -55,6 +55,13 @@ MAX_RPM = 30           # sad.md §2: limits bursts from the parallel units
 MAX_ATTEMPTS = 2       # DL-43: the call, and ONE retry. Never more.
 RETRY_WAIT_S = 1.0     # DL-43's "short wait" before the retry (tests set it to 0)
 
+# How many requests one unit can send, and how many of those can be BILLED (H-073). Each of our
+# attempts can carry CrewAI's own repeat without `reasoning_effort`, so up to four requests. But
+# CrewAI repeats only after a 400, which costs nothing (attempts.py: "rejected"), so only the
+# request that follows can be billed. The cost cap's safety rests on that, and tests pin it.
+MAX_REQUESTS_PER_UNIT = 2 * MAX_ATTEMPTS
+MAX_BILLED_REQUESTS_PER_UNIT = MAX_ATTEMPTS
+
 
 class ModelServiceError(Exception):
     """The provider did not give an answer: it timed out, was rate-limited, returned an error, or
