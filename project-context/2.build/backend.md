@@ -25,8 +25,9 @@ A reading aid only. Nothing here is a new decision; each line points to where it
   compliance" below.
 - **Process:** not CrewAI's `Process`. The backend runs stages A, B and C in plain Python ("the
   backend owns the steps"; `backend/runtime/stages.py`). Recorded in `sad.md` §2 "Runtime shape".
-- **Kickoff:** one kickoff per unit, inside each agent function, arriving in step 7b PR 4. Until
-  then `start_run` runs with the stand-in answers. Recorded in "B3 step 7b, PR 1" below.
+- **Kickoff:** one kickoff per unit, inside each agent function, in real mode only (step 7b PR 4;
+  with DL-43's one retry since PR 5). In stand-in mode, the default, `start_run` runs with the
+  stand-in answers and CrewAI is never loaded. See "B3 step 7b, PR 4" and "PR 5" below.
 
 ## How to run
 
@@ -470,8 +471,11 @@ above the cap. **The cap's safety rests on "a 4xx costs 0", not on the request c
 
 ## Pattern Decision compliance
 
-No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
-`AGENTS_MODE=real` refuses at each agent function. The stand-in answers (`backend/stand_in/`) are
+No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
+builds no model client and never loads CrewAI** (T-MODE-1). **Real mode builds one one-agent crew
+per unit** behind the same three functions: no tools, no delegation, no memory, `max_iter` 1, one
+task, and a model is never asked again about a bad answer (D5). Real mode refuses to start with no
+model ID or no key, and has not been run: it is tested against the fake OpenAI only. The stand-in answers (`backend/stand_in/`) are
 hand-written from the mock paragraphs, carry no answer-key IDs (`OBL-`, `C-1`, `I-1`, `AMD-`) or
 notes, are never placed in a prompt, and pass the same guardrails as a model's output. The loaders
 never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half).
@@ -480,19 +484,19 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 
 - An evaluation run with the demo-row switch on is not refused yet: there is no evaluation run
   before the evaluation runner (**B8**, EC-R7).
-- `retry_run` is a stub (**B13b**). CrewAI wiring and the role harness are **B3 step 7**. The
-  per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
-  spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
-  "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
-- **Step 7b in progress** (plan approved 2026-11-19; PR 1 merged; PRs 2, 3 and 4 open as pull
-  requests on 2026-11-21, see their sections): CrewAI is installed with its outside connections off;
-  PR 2 adds the per-role model settings and token limits, PR 3 a fake OpenAI for tests, PR 4 the crews
-  behind the three agent functions, tested only against the fake. **Still to come: PR 5** (DL-43's one
-  retry around a call, one trace line per attempt through `interceptor`, the returned model string,
-  the stop reason, CrewAI's silent repeat) **and PR 6** (docs). **Real mode must not be run until PR 5
-  and the operator's spike**: until then a failed call is one attempt and writes no trace line. The
-  role harness has its call caps; the runner that makes the spike's per-role calls comes with the
-  spike (DL-40 is pinned).
+- `retry_run` is a stub (**B13b**). The per-call timeout and its one automatic retry (D1, DL-43,
+  T-RUN-2) are built (step 7b PR 5) and tested against the fake OpenAI; a stand-in call cannot
+  time out. The run status page shows the cost but not yet the "over US$2" warning (CR-017); the
+  warning's wording and place are `@ux.designer`'s.
+- **Step 7b is built; no real call has been made** (plan approved 2026-11-19; PRs 1 to 5 merged,
+  this documentation is PR 6): CrewAI is installed with its outside connections off (PR 1), per-role
+  model settings and token limits (PR 2), a fake OpenAI for tests (PR 3), the crews behind the three
+  agent functions (PR 4), and DL-43's one retry with one trace line per HTTP request (PR 5). **Real
+  mode must not be run before the operator's spike.** What the spike still needs: the runner that
+  makes its per-role calls (it comes with the spike; DL-40 is pinned and the role harness has its
+  call caps), and the reports that show `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
+  Open for after the spike: "treat a call off the pinned reasoning setting as a failure?" (SAD
+  Production Shape, "Decisions to take once the spike has shown the result").
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
   rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
   the fund's event log; it does not read the log's "Obligation" column (that column names the
