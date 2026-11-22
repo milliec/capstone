@@ -51,4 +51,16 @@ else
   fi
 fi
 
+# 4. Lint (ruff). Same command as CI (.github/workflows/ci.yml, "Lint (ruff)"), so a lint error is
+#    caught here instead of after the push. Fails closed if ruff is not installed in the venv.
+if [ ! -x .venv/bin/ruff ]; then
+  echo "BLOCKED: .venv/bin/ruff not found, so the lint check cannot run."
+  fail=1
+else
+  if ! .venv/bin/ruff check backend tests; then
+    echo "BLOCKED: ruff check reported issues (same command as CI)."
+    fail=1
+  fi
+fi
+
 exit "$fail"
