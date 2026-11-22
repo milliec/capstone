@@ -172,7 +172,7 @@ the work and hand over through written documents in `project-context/`. Persona 
 | 1. Define | `@ux.designer` | Interaction design and visual direction (`ux.md`) | ✅ Done (`ux.md` and the style note; edits on request) |
 | 2. Build | `@project.mgr` | Project scaffold and environment | ✅ Done (setup, git hooks, CI recorded in `setup.md`); keeps the plan and README current |
 | 2. Build | `@frontend.eng` | Specialist and GP web surfaces | 🟡 Pages and calendar views built; closing checks and the visual snapshot refresh wait for the operator |
-| 2. Build | `@backend.eng` | Agents, gates, date code, storage | 🟡 Stand-in path built and the first green path passes; CrewAI and real agents come after the model pin |
+| 2. Build | `@backend.eng` | Agents, gates, date code, storage | 🟡 Stand-in path built and the first green path passes; real agents (CrewAI, one retry, a trace line per request) are built and tested against a fake model service only, not run for real until the spike |
 | 2. Build | `@integration.eng` | Connecting frontend and backend | Not started (no separate step so far: the pages call the services directly) |
 | 2. Build | `@qa.eng` | Tests and evaluation against the answer key | 🟡 Answer-key tests and the green path co-owned; `qa.md` written; B8 Stage A and Stage B graders built (read a finished run, no model call); run starter, trace export, void rule and the model-calling cases come after the spike |
 | 2. Build | `@security.eng` | Security review before delivery | Not started (the final acceptance block, B10) |
@@ -412,12 +412,15 @@ Two paths are **git-ignored** and never committed: `reference/` (private source 
    agents and the two stages they feed, the date code, the planted demo row, the failure demo, the
    seven pages and the calendar views. **The first end-to-end green path passes** (start, three
    steps, publish, the General Partner's view, the audit log), with no model call.
-3. **Next: the operator picks the AI models** (the model pin). Nothing that costs money runs before
-   that, and `AGENTS_MODE` stays `stand_in` until then.
-4. **Then the real agents.** Install CrewAI and build the three agents behind the same functions,
-   run one small spike with timings, build the rest of the evaluation runner (the graders for the
-   first two stages are done and read a finished run; the run starter is not), tune the prompts and
-   run one evaluation cycle.
+3. ✅ **The AI models are picked and the real agents are built.** CrewAI is installed and the three
+   agents sit behind the same functions, with one retry after a timeout or a server error and a
+   trace line for every request. They are tested against a fake model service only: no real key, no
+   paid call, and `AGENTS_MODE` stays `stand_in` until the spike.
+4. **Next: the spike.** One small run of real model calls with timings (the operator says "go"),
+   then the rest of the evaluation runner (the graders for the first two stages are done and read a
+   finished run; the run starter and the reports on cost are not), tuning the prompts and one
+   evaluation cycle. After the spike the operator decides whether a call that drifts from the pinned
+   reasoning setting counts as a failure.
 5. **Alongside:** refresh the visual snapshots (the operator approves them), then retry, the light
    visual pass if time allows, and the final acceptance, security and run-instruction pass.
 6. **Settle the open operator questions:** four-eyes review timing, programme submission
