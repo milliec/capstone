@@ -174,7 +174,9 @@ def _record_attempt(record: Recorder | None, attempt, *, step: str, role: str,
         # CrewAI repeats a call WITHOUT `reasoning_effort` when a 400 says the model refuses it, and
         # then remembers that for the rest of the process (H-064 condition c). That is a different
         # request from the one DL-40 pinned, so it is flagged on the line, not hidden.
-        off_pinned_setting=attempt.sent_settings != call.sent_to_provider()))
+        # A request that was refused never carried anything, so it is not "off" the pin (step D).
+        off_pinned_setting=(not attempt.refused) and attempt.sent_settings != call.sent_to_provider(),
+        request_path=attempt.path))
 
 
 def _sha256(text: str) -> str:

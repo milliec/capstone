@@ -114,12 +114,14 @@ def attempt_cost_usd(role: str, *, kind: str, tokens_in: int, tokens_out: int, r
       unknown   a 5xx, a timeout, no connection: no usage data, and the provider may have done the
                 work (a timeout is the usual case). The WORST case is charged: the request's input,
                 estimated from its size, and an answer that filled the output limit.
+      refused   a request that is not a chat completion, stopped BEFORE it was sent (step D). It
+                never reached the provider, so it cost nothing. Cost 0. Not an estimate.
 
     Charging the worst case is cheap and safe: the ceiling of one call is a few US cents (the
     per-role limits are checked against the US$2.50 cap in tests/tier1/test_model_settings.py)."""
     if kind == "answered":
         return call_cost_usd(role, tokens_in, tokens_out), False
-    if kind == "rejected":
+    if kind in ("rejected", "refused"):
         return 0.0, False
     estimated_in = request_bytes // CHARS_PER_TOKEN + 1
     return call_cost_usd(role, estimated_in, max_completion_tokens), True

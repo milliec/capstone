@@ -251,6 +251,7 @@ CREATE TABLE IF NOT EXISTS trace (
     -- Step 4: 1 when the request did NOT carry the pinned settings (DL-40), e.g. CrewAI's silent repeat
     -- without `reasoning_effort` (H-064 condition c). A flag only: it does not fail the call.
     off_pinned_setting INTEGER NOT NULL DEFAULT 0 CHECK (off_pinned_setting IN (0, 1)),
+    request_path      TEXT NOT NULL DEFAULT '',          -- the request's URL path, e.g. /v1/chat/completions (spike fix, step D); empty for a stand-in line
     UNIQUE (run_id, step, stage_attempt, unit_id, attempt_n),                     -- the record key
     FOREIGN KEY (run_id, fund_id) REFERENCES runs (run_id, fund_id)
 );

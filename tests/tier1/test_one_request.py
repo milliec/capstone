@@ -63,10 +63,12 @@ def test_one_unit_is_one_request_even_when_crewai_thinks_it_is_openai(real, as_o
     assert (line.tokens_in, line.tokens_out, line.stop_reason) == (1500, 360, "stop")
 
 
-def test_the_fixture_is_not_an_empty_shell_the_preflight_appears_when_switched_back_on(
+def test_the_fixture_is_not_an_empty_shell_crewai_still_tries_the_preflight_and_the_guard_stops_it(
         real, as_openai, monkeypatch):
-    """Proof that the test above can fail: put the pre-flight back and the fake sees it, in front of
-    the real call, and the trace gets the extra line the first real call had."""
+    """Proof that the test above can fail. Put the pre-flight back and CrewAI DOES try it (so the
+    fixture is real). Since spike fix step D that request is stopped before it is sent: the fake
+    never sees it, CrewAI falls back to its own estimate and makes the real call, and the trace has
+    a line for what was stopped (T-REQ-2 tests the guard in detail)."""
     build = crews.build_crew
 
     def with_the_preflight_back(*args, **kwargs):
@@ -78,9 +80,10 @@ def test_the_fixture_is_not_an_empty_shell_the_preflight_appears_when_switched_b
     as_openai.script(Reply(good_answer()))
     lines = []
     extract(real, record=lines.append)
-    assert paths(as_openai) == [COUNT, CHAT]
-    first, second = lines
-    assert first.cost_estimated and first.off_pinned_setting and not second.off_pinned_setting
+    assert paths(as_openai) == [CHAT]                       # the count request never left
+    stopped, answered = lines
+    assert stopped.request_path == COUNT and "refused before sending" in stopped.provider_error
+    assert answered.request_path == CHAT and answered.provider_error is None
 
 
 def test_the_spike_call_is_one_request_one_trace_line_and_one_slot_of_the_70(real, as_openai,

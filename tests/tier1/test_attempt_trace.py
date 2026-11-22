@@ -445,10 +445,11 @@ def _columns(conn):
     return [row["name"] for row in conn.execute("PRAGMA table_info(trace)")]
 
 
-ADDED_TRACE_COLUMNS = ["stop_reason", "provider_error", "cost_estimated", "off_pinned_setting"]
+ADDED_TRACE_COLUMNS = ["stop_reason", "provider_error", "cost_estimated", "off_pinned_setting",
+                       "request_path"]
 
 
-def test_the_trace_table_kept_every_column_in_place_and_added_four_at_the_end(settings):
+def test_the_trace_table_kept_every_column_in_place_and_added_five_at_the_end(settings):
     init_db(settings.database_path)
     conn = connect(settings.database_path)
     assert _columns(conn) == ORIGINAL_TRACE_COLUMNS + ADDED_TRACE_COLUMNS
@@ -472,8 +473,8 @@ def test_a_database_made_before_this_step_gets_the_columns_and_keeps_its_lines(s
     after = [dict(t) for t in trace.list_trace(conn, run_id)]
     assert [{k: v for k, v in t.items() if k not in TRACE_ADDED_COLUMNS} for t in after] == [
         {k: v for k, v in t.items() if k not in TRACE_ADDED_COLUMNS} for t in before]
-    assert all((t["stop_reason"], t["provider_error"], t["cost_estimated"], t["off_pinned_setting"])
-               == ("", None, 0, 0) for t in after)
+    assert all((t["stop_reason"], t["provider_error"], t["cost_estimated"], t["off_pinned_setting"],
+                t["request_path"]) == ("", None, 0, 0, "") for t in after)
     init_db(settings.database_path)                      # and doing it twice is harmless
 
 
