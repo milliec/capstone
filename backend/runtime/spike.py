@@ -135,10 +135,10 @@ def format_plan(plan: SpikePlan) -> str:
         f"Model          : {plan.model}",
         f"Settings sent  : {json.dumps(plan.sent_settings, sort_keys=True)}",
         "API key        : set (never shown)",
-        f"Input estimate : about {plan.input_tokens_estimate} tokens (4 characters a token, "
-        "an upper bound)",
-        f"Worst case     : US${plan.worst_case_usd:.4f} for one request; "
-        f"US${plan.worst_case_with_retry_usd:.4f} if the first request is billed and the one retry is too",
+        (f"Input estimate : about {plan.input_tokens_estimate} tokens (4 characters a token, "
+         "an upper bound)"),
+        (f"Worst case     : US${plan.worst_case_usd:.4f} for one request; "
+         f"US${plan.worst_case_with_retry_usd:.4f} if the first request is billed and the one retry is too"),
         f"Spike calls    : {plan.calls_used} of {plan.call_cap} used (EC-R10)",
         "",
         "A real call is not available in this build (--go arrives in spike PR 2).",
