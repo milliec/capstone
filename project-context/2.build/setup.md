@@ -107,15 +107,16 @@ against a fake OpenAI in the tests, never against the real one.
 | `OPENAI_API_KEY` | placeholder | Only read when mode is not `stand_in`. Never commit a real key |
 | `RUN_COST_CAP_USD` | `2.50` | Hard stop per run |
 | `SPEND_ACTIVITY` | empty | Which of the five paid activities (spike, tuning, evaluation, rehearsal, demo) |
-| `CALL_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 90 / 60 / 60 | Per-call timeouts (Build card) |
-| `HTTP_TIMEOUT_EXTRACT_S` / `_VERIFY_S` / `_JUDGE_S` | 85 / 55 / 55 | HTTP client, a few seconds below the call timeout |
+| `CALL_TIMEOUT_EXTRACT` / `CALL_TIMEOUT_VERIFY` / `CALL_TIMEOUT_JUDGE` | 90 / 60 / 60 | Each call's own timeout, in seconds (SAD §4). The HTTP client timeout is **not a variable**: the code sets it to the call timeout minus 5 seconds (DL-43) |
+| `LLM_MODEL_EXTRACT` / `LLM_MODEL_VERIFY` / `LLM_MODEL_JUDGE` | empty | The model ID for each role (DL-40). **Only in your own `.env`, never committed.** Empty in stand-in mode; a real call for a role with no ID is refused |
+| `LLM_MAX_TOKENS_EXTRACT` / `LLM_MAX_TOKENS_VERIFY` / `LLM_MAX_TOKENS_JUDGE` | 2000 / 2000 / 4000 | Output limit of one call, in tokens (a reasoning model's hidden thinking counts inside it). A test checks these keep a whole run under `RUN_COST_CAP_USD` |
 | `STAGE_TIME_LIMIT_A` / `_B` / `_C` | 375 / 150 / 30 | Stage limits, on the backend's timer, not `max_execution_time` |
 | `STAND_IN_UNIT_PAUSE_S` | `1` | Seconds each stand-in agent function waits per unit, so units finish one by one. Read **only** when `AGENTS_MODE=stand_in`; never in real mode; `0` in tests (sad.md §4, DL-54, T-PAUSE-1). Added to `.env.example` by `@backend.eng` in the app shell (2026-11-16), with the code that reads it |
 
 **Open points to confirm against `sad.md` §4** (this block was told to read only the Implementation
 Guidance section, so these were not checked):
 
-- The exact variable names for the timeouts and `SPEND_ACTIVITY`. The names above are chosen here.
+- The exact variable name for `SPEND_ACTIVITY`. The name above is chosen here. (The timeout names now match SAD §4: H-071.)
 - The exact HTTP timeout values (the Build card says only "a few seconds lower").
 - The accepted values of `SPEND_ACTIVITY`.
 
@@ -375,6 +376,10 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   `SESSION_SECRET` and `DATABASE_PATH`. Waiting on the operator's decision before renaming.
   *Update 2026-11-18:* the stage limits were renamed to `STAGE_TIME_LIMIT_A`, `_B`, `_C` in B3
   step 6 (operator kept the rename); the rest still waits.
+  *Update 2026-11-22 (H-071):* `CALL_TIMEOUT_EXTRACT`, `_VERIFY`, `_JUDGE`, `LLM_MODEL_*` and
+  `LLM_MAX_TOKENS_*` are now in `.env.example` and in the table above, and the code reads them; the
+  `HTTP_TIMEOUT_*` variables are gone (the HTTP timeout is set in code). `SESSION_SECRET` and
+  `DATABASE_PATH` were not checked here.
 - **Resolved (H-002).** Does the validator's hard requirement for `qa.md` once `2.build/` has
   content stay, or should the hook treat it differently? Decision: the hook ignores only the one
   finding `project-context/2.build/qa.md: Build artifact missing`. Every other validator error still
@@ -453,3 +458,8 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   Checked against `backend.md` (PR 5 section and "Known gaps"), `handoffs.md` and `git log`
   (`pyproject.toml` history). README status row and "What happens next" aligned. No code. No model
   call. No real key. No paid call.
+- 2026-11-22 · persona `project-mgr` · action `document-setup` (handoff H-071) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · environment-variable table: the three timeout rows renamed to the
+  SAD §4 names, the `HTTP_TIMEOUT_*` row removed (set in code, DL-43), rows added for `LLM_MODEL_*`
+  and `LLM_MAX_TOKENS_*`; "Open points" and the Open Question about variable names updated. Checked
+  against `.env.example` (lines 31 to 46) and `handoffs.md`. No code. No model call. No real key. No paid call.
