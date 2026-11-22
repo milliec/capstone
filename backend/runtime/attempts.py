@@ -15,6 +15,11 @@ Three kinds of attempt, because the cost cap needs to know which can have cost m
   rejected   a 4xx (a 429, 400, 401, 404...)  the provider refused before doing any work: cost 0
   unknown    a 5xx, a timeout, no connection  no usage data and the provider may have done the work:
                                               the worst case is charged and marked as an estimate
+  refused    not a chat completion            BLOCKED before it was sent (spike fix, step D): cost 0
+
+Only `POST .../chat/completions` is ever allowed out. The first real spike call sent CrewAI's own
+pre-flight (`POST /v1/responses/input_tokens`) that no test had seen, because a fake server on this
+machine never triggers it. Now any other request is refused before it leaves, and says so in the trace.
 """
 
 import json
@@ -30,6 +35,21 @@ LOGGED_SETTINGS = ("max_completion_tokens", "reasoning_effort", "temperature")
 ERROR_TEXT_LIMIT = 300         # a provider's error message can be long; the trace keeps the start
 
 
+class RequestRefused(Exception):
+    """A request that is not a chat completion was about to be sent, and was stopped (step D). Raised
+    by the interceptor BEFORE the request leaves the machine, so nothing was sent and nothing costs."""
+
+
+CHAT_COMPLETIONS = "/chat/completions"
+
+
+def is_chat_completion(method: str, path: str) -> bool:
+    """The one kind of request a unit may send: `POST <anything>/chat/completions` (the prefix is
+    `/v1` for OpenAI itself and can differ behind a proxy). A GET, another endpoint, or a path that
+    only STARTS with it (`.../chat/completions/extra`) is not."""
+    return method.upper() == "POST" and path.rstrip("/").endswith(CHAT_COMPLETIONS)
+
+
 @dataclass
 class HttpAttempt:
     """One HTTP request to the provider, and what came back (nothing, until it is finished)."""
@@ -37,6 +57,9 @@ class HttpAttempt:
     at: str                             # when it was sent, ISO 8601 UTC
     started: float                      # time.monotonic() when it was sent
     request_bytes: int                  # size of the request body (for an estimate of its input)
+    method: str = ""                    # POST, GET ...
+    path: str = ""                      # the URL path, for example /v1/chat/completions (step D)
+    refused: bool = False               # True: stopped before it was sent (step D); never reached the provider
     sent_model: str = ""
     sent_settings: dict = field(default_factory=dict)       # the LOGGED_SETTINGS the request carried
     sent_keys: frozenset = frozenset()  # every top-level key of the request body
@@ -57,7 +80,9 @@ class HttpAttempt:
 
     @property
     def kind(self) -> str:
-        """answered, rejected or unknown: see the module docstring."""
+        """answered, rejected, unknown or refused: see the module docstring."""
+        if self.refused:
+            return "refused"
         if self.answered and self.usage_known:
             return "answered"
         if self.status_code is not None and 400 <= self.status_code < 500:
@@ -75,8 +100,8 @@ class AttemptLog:
 
     # --- Called from the interceptor, once per request ----------------------------------------
 
-    def begin(self, body: bytes) -> HttpAttempt:
-        """A request is about to be sent."""
+    def begin(self, body: bytes, *, method: str = "POST", path: str = "") -> HttpAttempt:
+        """A request is about to be sent. `method` and `path` say WHICH request (step D)."""
         try:
             sent = json.loads(body or b"{}")
             if not isinstance(sent, dict):
@@ -86,7 +111,8 @@ class AttemptLog:
         with self._lock:
             attempt = HttpAttempt(
                 n=len(self.attempts) + 1, at=now_utc(), started=time.monotonic(),
-                request_bytes=len(body or b""), sent_model=str(sent.get("model", "")),
+                request_bytes=len(body or b""), method=method, path=path,
+                sent_model=str(sent.get("model", "")),
                 sent_settings={k: sent[k] for k in LOGGED_SETTINGS if k in sent},
                 sent_keys=frozenset(sent))
             self.attempts.append(attempt)
@@ -101,6 +127,17 @@ class AttemptLog:
             attempt.status_code = status_code
             _read_response(attempt, body)
             _close(attempt)
+
+    def refuse(self, attempt: HttpAttempt) -> str:
+        """Mark a request that is NOT a chat completion as stopped before it was sent. It is closed
+        at once (it will get no response), and the reason is returned for the exception."""
+        with self._lock:
+            attempt.refused = True
+            attempt.error = _short(
+                f"refused before sending: {attempt.method} {attempt.path or '(no path)'} is not a "
+                "chat completion; only POST .../chat/completions may be sent")
+            _close(attempt)
+            return attempt.error
 
     def fail(self, reason: str) -> None:
         """The latest request, if still open, got no response at all (a timeout, no connection):

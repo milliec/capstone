@@ -5,7 +5,8 @@ from pathlib import Path
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 
-# Columns added to `trace` after the first release of the table (B3 step 7b PR 5). `CREATE TABLE
+# Columns added to `trace` after the first release of the table (B3 step 7b PR 5; `request_path`,
+# spike fix step D). `CREATE TABLE
 # IF NOT EXISTS` leaves an existing table alone, so a database made before the change gets them
 # here. ADDITIVE ONLY: a column is added with a default, never renamed or dropped.
 TRACE_ADDED_COLUMNS = {
@@ -13,6 +14,7 @@ TRACE_ADDED_COLUMNS = {
     "provider_error": "TEXT",
     "cost_estimated": "INTEGER NOT NULL DEFAULT 0 CHECK (cost_estimated IN (0, 1))",
     "off_pinned_setting": "INTEGER NOT NULL DEFAULT 0 CHECK (off_pinned_setting IN (0, 1))",
+    "request_path": "TEXT NOT NULL DEFAULT ''",      # spike fix, step D
 }
 
 

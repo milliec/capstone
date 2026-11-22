@@ -60,3 +60,25 @@ def fake_openai():
     fake = FakeOpenAI().start()
     yield fake
     fake.stop()
+
+
+@pytest.fixture
+def as_openai(fake_openai, monkeypatch):
+    """Make CrewAI behave as if it were talking to api.openai.com, while every request still goes
+    to the fake on this machine.
+
+    Why: CrewAI does extra things only when it believes the server is OpenAI itself, for example a
+    pre-flight request that counts the prompt's tokens (`POST /v1/responses/input_tokens`). Against
+    any other host it skips them, so a plain fake never shows them, and the first real spike call
+    sent a request no test had ever seen (RUN-20261122-1). With this fixture the fake answers that
+    endpoint like OpenAI does, and the request shows in `fake_openai.requests`.
+
+    It patches CrewAI's own test for "is this a compatible server?". If a CrewAI upgrade renames it,
+    this fails loudly (monkeypatch refuses a name that does not exist) instead of testing nothing.
+    """
+    from backend.runtime import crews
+    crews.load_crewai()                      # CrewAI is only imported through here (switches first)
+    from crewai.llms.providers.openai.completion import OpenAICompletion
+    monkeypatch.setattr(OpenAICompletion, "_on_compatible_server", lambda self: False)
+    monkeypatch.setenv("OPENAI_BASE_URL", fake_openai.base_url)
+    return fake_openai

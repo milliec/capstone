@@ -130,3 +130,19 @@ def test_it_listens_on_this_machine_only_and_sees_only_the_placeholder_key(fake_
     fake_openai.script(Reply("ok"))
     ask(client(fake_openai))
     assert fake_openai.requests[0].api_key == TEST_API_KEY
+
+
+def test_the_count_endpoint_is_answered_written_down_and_takes_no_scripted_answer(fake_openai):
+    """CrewAI's pre-flight (POST /v1/responses/input_tokens, only when it believes the server is
+    OpenAI): the fake answers like OpenAI, records the request, and leaves the script alone."""
+    import json
+    import urllib.request
+    fake_openai.script(Reply("an answer for the chat call"))
+    request = urllib.request.Request(
+        fake_openai.base_url + "/responses/input_tokens", data=json.dumps({"model": "m"}).encode(),
+        headers={"content-type": "application/json"}, method="POST")
+    with urllib.request.urlopen(request) as response:           # the fake, on 127.0.0.1 only
+        assert json.loads(response.read()) == {"object": "response.input_tokens",
+                                               "input_tokens": 1500}
+    assert [r.path for r in fake_openai.requests] == ["/v1/responses/input_tokens"]
+    assert fake_openai.unused() == 1 and fake_openai.unscripted == []      # the script is untouched

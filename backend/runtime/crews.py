@@ -42,7 +42,7 @@ from functools import lru_cache
 
 from backend.domain.schemas import ExtractionResult, Verdict, VerificationResult
 from backend.runtime import model_settings, prompts
-from backend.runtime.attempts import AttemptLog, HttpAttempt
+from backend.runtime.attempts import AttemptLog, HttpAttempt, RequestRefused, is_chat_completion
 from backend.runtime.crewai_setup import load_crewai
 from backend.runtime.wire_schema import wire_schema
 from backend.settings import Settings
@@ -123,15 +123,21 @@ def _interceptor_class():
     from crewai.llms.hooks.base import BaseInterceptor
 
     class AttemptRecorder(BaseInterceptor[httpx.Request, httpx.Response]):
-        """Hands every HTTP request and response to an `AttemptLog`. It changes nothing: the request
-        and the response go on exactly as they were. It never raises, so recording can never be
-        the reason a call fails."""
+        """Hands every HTTP request and response to an `AttemptLog`. It changes nothing about a chat
+        completion: the request and the response go on exactly as they were.
+
+        ONE thing it does stop (spike fix, step D): a request that is not `POST .../chat/completions`.
+        CrewAI calls `on_outbound` just before the request goes to the network, with nothing around
+        it, so raising here means the request is never sent (T-REQ-2). It is written to the log
+        first, so the trace shows what was stopped. Recording itself never raises."""
 
         def __init__(self, log: AttemptLog):
             self.log = log
 
         def on_outbound(self, message: httpx.Request) -> httpx.Request:
-            self.log.begin(message.read())
+            attempt = self.log.begin(message.read(), method=message.method, path=message.url.path)
+            if not is_chat_completion(attempt.method, attempt.path):
+                raise RequestRefused(self.log.refuse(attempt))      # stopped here: never sent
             return message
 
         def on_inbound(self, message: httpx.Response) -> httpx.Response:
@@ -175,6 +181,13 @@ def build_crew(settings: Settings, step: str, inputs: dict[str, str],
     agent = Agent(role=text["role"], goal=text["goal"], backstory=text["backstory"],
                   llm=LLM(**llm_args), tools=[], allow_delegation=card["allow_delegation"],
                   memory=card["memory"], max_iter=card["max_iter"], max_retry_limit=0,
+                  # NO context-window pre-flight. By default CrewAI first sends a SEPARATE request
+                  # to OpenAI ("POST /v1/responses/input_tokens", to count the prompt's tokens) and
+                  # may then summarise the prompt on its own if it thinks it is too long. We send
+                  # one bounded message, so it has no use here, and it broke "one unit = one
+                  # request" in the first real spike call (RUN-20261122-1, spike PR 2). It does not
+                  # happen on a non-OpenAI host, which is why the fake never showed it.
+                  respect_context_window=False,
                   verbose=False)
     task = Task(description=text["description"], expected_output=text["expected_output"],
                 agent=agent, guardrail_max_retries=0)
@@ -195,6 +208,12 @@ def run_step(settings: Settings, step: str, inputs: dict[str, str]) -> StepResul
             output = crew.kickoff()
             break
         except Exception as error:              # CrewAI wraps some provider errors; all are one thing
+            refused = next((a for a in log.attempts if a.refused), None)
+            if refused is not None:
+                # Step D: a request that is not a chat completion was stopped before it was sent.
+                # Not a provider failure, so NO retry (it would only be stopped again), and the
+                # reason is ours, not CrewAI's generic "connection error".
+                raise ModelServiceError(refused.error, log.attempts) from error
             log.fail(f"{type(error).__name__}: {error}")     # a request with no response at all
             if attempt < MAX_ATTEMPTS and is_retriable(error):
                 time.sleep(RETRY_WAIT_S)

@@ -318,6 +318,7 @@ def format_result(result: SpikeResult) -> str:
         lines += [
             "",
             f"Request {call.attempt_n}      : {got}",
+            f"  Path         : {call.request_path or '(not recorded)'}",
             f"  Tokens       : {call.tokens_in} in, {call.tokens_out} out",
             f"  Cost         : US${call.cost_usd:.4f}"
             + (" (ESTIMATED, no usage data came back; the worst case was charged)"
