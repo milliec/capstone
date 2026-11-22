@@ -44,6 +44,17 @@ class ModelNotSet(Exception):
     """A real call was about to be made for a role whose model ID is not set in .env."""
 
 
+class KeyNotSet(Exception):
+    """A real call was about to be made with no usable OPENAI_API_KEY."""
+
+
+def require_api_key(settings: Settings) -> None:
+    """Refuse a real call when the key is missing or still the placeholder from .env.example."""
+    key = settings.openai_api_key
+    if not key or "REPLACE-ME" in key:
+        raise KeyNotSet("OPENAI_API_KEY is not set in .env, so no real call can be made (CR-021).")
+
+
 @dataclass(frozen=True)
 class RoleSettings:
     role: str

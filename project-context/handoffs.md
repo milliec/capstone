@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-072: CrewAI has a retry the SAD does not list; and how the strict response format is sent (B3 step 7b PR 4)
+- From: @backend.eng (operator request, 2026-11-21)   To: @system.arch   Date: 2026-11-21
+- Touches: sad.md §2 "CrewAI settings" table and D1; the "Counting every request" bullet; H-064's list of crewai retries; H-065
+- Ask: Record two facts found while building the crews (crewai 1.15.35, tested against a fake OpenAI, no real call). (1) **A third retry layer.** CrewAI wraps every model call in its own retry for rate limits (HTTP 429): three attempts with a wait between, no setting for it (`crewai/llms/retry.py`). H-064 and H-065 list the HTTP client's retries, the agent's `max_retry_limit` and the converter's re-ask, but not this one. Left alone, a 429 would be 3 requests inside CrewAI and 6 with DL-43's retry around it. PR 4 sets its attempt count to 1 in `load_crewai()` (one door, tested; `load_crewai()` stops the call if a CrewAI upgrade renames it). No SAD rule changes: DL-43 and D1 already say the only retry is ours. The table just needs the setting named. (2) **How the strict schema is sent.** CrewAI's own `response_format` takes only `json_object` or a Pydantic class, and its schema builder removes `null` from every type, so an optional field (the verifier's `field`) could never be null. PR 4 sends our own strict JSON schema through the LLM's `additional_params`, built by `backend/runtime/wire_schema.py` from the existing Pydantic classes, with the keywords OpenAI's strict mode does not accept dropped (`minLength`, `maxLength`, `discriminator`, `oneOf` as `anyOf`). Our Pydantic check still enforces every constraint. H-065 says "a strict `response_format`" and that stays true; only the route is recorded.
+- Why: The SAD's retry and re-ask list is the thing the project rule protects, and it was incomplete by one entry.
+- Outcome: (the owner fills this in: what changed, or why not)
+
 ### H-071: setup.md: three environment variable names changed (B3 step 7b PR 2)
 - From: @backend.eng (operator request, 2026-11-21)   To: @project.mgr   Date: 2026-11-21
 - Touches: 2.build/setup.md (the environment-variable table, about line 105)

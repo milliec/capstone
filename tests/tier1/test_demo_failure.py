@@ -87,9 +87,11 @@ def test_demofail_1_real_mode_refuses_the_field_and_starts_nothing(settings):
 
 
 def test_demofail_1_the_extractor_hook_refuses_real_mode():
-    """The hook lives in the stand-in extractor; real mode is refused before it is reached."""
-    real = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike"})
-    with pytest.raises(agents.RealAgentsNotBuilt):
+    """The failure demo is stand-in only (DL-52, CR-033): asking for it in real mode is refused,
+    before any call, even when a model ID and a key are set."""
+    real = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike",
+                          "LLM_MODEL_EXTRACT": "model-e", "OPENAI_API_KEY": "sk-test"})
+    with pytest.raises(agents.DemoFailureRefused):
         agents.extract_rows(real, document_id="SRC-CSSF15627", paragraphs={}, recipient_codes=[],
                             demo_fail=True)
 

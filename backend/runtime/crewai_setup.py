@@ -12,6 +12,13 @@ outside on its own (checked in its source, 2026-11-19):
   CrewAI platform. Separate from telemetry. Our trace (CR-018) is the only trace.
 - CREWAI_DISABLE_VERSION_CHECK=true: a check that asks the package index for a newer version.
 
+Second job (PR 4): CrewAI wraps every model call in its OWN retry for rate limits (HTTP 429): three
+attempts with a wait between them, and no setting for it (`crewai/llms/retry.py`). That would make
+a rate-limited call three requests inside CrewAI, and six once our own DL-43 retry is added around
+it. The SAD allows ONE retry, ours, with one trace line per attempt (H-065). So `load_crewai()`
+sets that module's attempt count to 1. It is a library internal, so it is pinned with the version
+and tests/tier1/test_crews.py fails if a CrewAI upgrade moves or renames it.
+
 The values are FORCED, not defaults: a line in .env or the shell saying otherwise cannot turn
 them back on. The only outside call the application makes is the model call itself (SD MN-002).
 """
@@ -36,5 +43,12 @@ def load_crewai() -> ModuleType:
     """
     os.environ.update(CREWAI_ENV)
     import crewai  # imported here on purpose: only real mode may load it
+    from crewai.llms import retry
+
+    # CrewAI's own 3-attempt rate-limit retry off: one attempt, then the error comes back to us.
+    # `assert` is not used: a renamed constant must stop the real call, not be skipped.
+    if not hasattr(retry, "_LLM_RATE_LIMIT_MAX_ATTEMPTS"):
+        raise RuntimeError("CrewAI changed its rate-limit retry; check it before any real call")
+    retry._LLM_RATE_LIMIT_MAX_ATTEMPTS = 1
 
     return crewai

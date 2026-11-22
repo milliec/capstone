@@ -380,6 +380,53 @@ fake can refuse the setting (`reject_params`); whether CrewAI then repeats the c
 interceptor sees it, is what PR 5 shows against this fake. If CrewAI behaves differently from what
 the H-064 check found, PR 5 says so.
 
+## B3 step 7b, PR 4: the crews behind the three agent functions (2026-11-21)
+
+Real mode (`AGENTS_MODE=real`) now sends a unit to a CrewAI crew and puts the answer through the
+same guardrail as a stand-in answer. **Tested only against the fake OpenAI (PR 3): no real key, no
+real model, no paid call.** Stand-in mode is unchanged and never loads CrewAI (T-MODE-1).
+
+| What | Where |
+|---|---|
+| **One crew per unit**: one agent, one task, one `kickoff`, built from the step's rendered prompt and the role's settings. Agent: no delegation, no memory, no tools, `max_iter` 1, `max_retry_limit` 0. Task: no `output_pydantic`, no `Task.guardrail`, `guardrail_max_retries` 0. Crew: sequential, `max_rpm` 30, no memory. OpenAI client: its own retries off, timeout = the call's minus 5 s, `max_completion_tokens`, `reasoning_effort`, temperature only where DL-40 sets one. `ModelServiceError` for any provider failure | `backend/runtime/crews.py` |
+| **The strict `response_format`**: our own JSON schema, built from the existing Pydantic result classes, sent through the LLM's `additional_params` (CrewAI's own route strips `null`, so an optional field could never be null). Keywords strict mode does not accept are dropped; our Pydantic check still enforces them | `backend/runtime/wire_schema.py` |
+| **Real-mode path in the three agent functions**: refuse with no model ID or no key *before* any input is built; render the prompt; call the crew once; parse the text as JSON; the same guardrail; one trace record with the model, the settings sent, `max_tokens`, token counts and cost, and the real prompt version. Not valid JSON, a broken schema and a broken guardrail all fail the unit as `invalid output` after ONE request: the model is never asked again (D5). `DemoFailureRefused`: the failure demo is stand-in only (DL-52, CR-033), also now refused with a clear error in real mode | `backend/runtime/agents.py` |
+| **The stage**: a provider failure fails the unit with the run's reason `model service` (one attempt for now) | `backend/runtime/stages.py` |
+| **The key** is read from `.env` into the settings and never shows when they are printed (CR-021) | `backend/settings.py`, `backend/runtime/model_settings.py` |
+| **`max_iter` 1** on all three agent cards (H-065). This changes every prompt version in the trace, as `agents.yaml` is hashed | `backend/config/agents.yaml` |
+| **Tests (Tier 1, against the fake):** each role sends ONE request with its model, limit, reasoning effort and (extractor only) temperature, and the strict schema; the prompt is the rendered one with no answer-key text; the trace line; bad JSON, a broken schema and a broken guardrail are each one request, no re-ask; **500, 503, 429 and 400 are each one request, and a timeout is one request**; no ID, the placeholder key or no key sends nothing; the crew has exactly the SAD's settings; the stage's `model service`; wire-schema rules on all three result classes. Nine deliberate breaks of the crew code were caught (one more was equivalent: sending `temperature=None` changes nothing) | `tests/tier1/test_crews.py`, `tests/tier1/test_wire_schema.py` |
+| The old "real mode is refused" tests now check what is true: no model ID is refused first (`ModelNotSet`), and the failure demo is refused in real mode even with an ID and a key | `tests/tier1/test_stand_in_agents.py`, `test_demo_failure.py` |
+
+**What the fake showed (these are findings; H-072 asks `@system.arch` to record them):**
+
+- **CrewAI's default agent retry limit is 2**: left alone, ONE failing call is THREE requests. Set to 0.
+- **CrewAI has a third retry layer nobody listed**: every model call is wrapped in a rate-limit retry
+  (HTTP 429, three attempts, waits of 1 and 2 s, no setting). With the HTTP client's and the agent's
+  retries off, a 429 was still three requests. `load_crewai()` now sets that attempt count to 1; it is
+  a library internal, so it is pinned with CrewAI 1.15.35, `load_crewai()` stops the call if the name
+  disappears, and a test fails on a 429 that is not exactly one request.
+- **A timeout comes back from CrewAI as a plain `ConnectionError`** ("Failed to connect to OpenAI API:
+  Request timed out"), not as the OpenAI client's timeout error. PR 4 treats every provider failure the
+  same (`ModelServiceError`); PR 5 needs to tell a retriable failure (timeout, 429, 5xx, no
+  connection) from one that is not (a 400, a 401).
+- CrewAI warns that it assumes an 8,192-token context window for a model ID it does not know. The three
+  DL-40 IDs are in its catalogue (H-064), so this shows only with the fake's made-up IDs.
+
+**Not done here, on purpose (PR 5):** the one DL-43 retry around the call, one trace line per HTTP
+attempt through CrewAI's `interceptor`, the model string the API returns (`model_returned`), the
+provider's stop reason, and CrewAI's silent repeat without `reasoning_effort`. Until then a failed
+call is one attempt, a failed call writes no trace line, and the token counts come from CrewAI's
+own usage count. **Do not run real mode before PR 5 and the operator's spike.**
+
+**Choices where the SAD is silent (say if any should change):**
+
+- Any exception from `kickoff` is a `ModelServiceError`, including one that is really a CrewAI bug. PR 5
+  narrows it when the retry needs to tell them apart.
+- The strict schema is only known to follow OpenAI's documented rules. A 400 "invalid schema" on the
+  first real call means one more keyword has to be dropped (`wire_schema.py` says so).
+- `openai.lib._pydantic.to_strict_json_schema` is a private path of the `openai` library. A test fails if
+  a CrewAI upgrade (which pins `openai`) moves it.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -396,11 +443,15 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
   spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
   "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
-- **Step 7b in progress** (plan approved 2026-11-19; PRs 1 and 2 done: PR 2 adds the per-role model
-  settings and token limits, no crew yet): CrewAI is installed with its
-  outside connections off, but nothing builds a crew yet; the crews, the per-call timeout and its
-  one retry come in PRs 2 to 6, and real mode stays refused until then. The role harness has its call
-  caps; the runner that makes the spike's per-role calls comes with the spike (DL-40 is pinned).
+- **Step 7b in progress** (plan approved 2026-11-19; PR 1 merged; PRs 2, 3 and 4 open as pull
+  requests on 2026-11-21, see their sections): CrewAI is installed with its outside connections off;
+  PR 2 adds the per-role model settings and token limits, PR 3 a fake OpenAI for tests, PR 4 the crews
+  behind the three agent functions, tested only against the fake. **Still to come: PR 5** (DL-43's one
+  retry around a call, one trace line per attempt through `interceptor`, the returned model string,
+  the stop reason, CrewAI's silent repeat) **and PR 6** (docs). **Real mode must not be run until PR 5
+  and the operator's spike**: until then a failed call is one attempt and writes no trace line. The
+  role harness has its call caps; the runner that makes the spike's per-role calls comes with the
+  spike (DL-40 is pinned).
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
   rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
   the fund's event log; it does not read the log's "Obligation" column (that column names the
@@ -602,3 +653,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   "(after DL-40)" in Known gaps now says DL-40 is pinned. Docs only. No model call.
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 2: per-role model settings and per-call token limits) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". New `backend/runtime/model_settings.py`; settings read `LLM_MODEL_*`, `LLM_MAX_TOKENS_*`, `CALL_TIMEOUT_*` (SAD §4 names; `.env.example` changed, H-071 to `@project.mgr`). LLM, temperature and max-token controls: **resolved in code** (DL-40 sampling; limits 2000 / 2000 / 4000 as starting values; verifier sends no temperature, an assumption); worst case for a whole run US$1.49 against the US$2.50 cap, checked by a Tier 1 test. No model ID chosen or committed, no CrewAI call, no real key, no paid call.
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 3: a fake OpenAI for tests) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". Test code only (`tests/fake_openai.py`, the `fake_openai` fixture, `tests/tier1/test_fake_openai.py`, 15 tests); nothing in `backend/` changed. LLM, temperature and max-token controls: none resolved here (PR 2). No model call, no real key, no paid call, no outside connection (127.0.0.1 only).
+- 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 4: the crews behind the three agent functions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instruction "move on to 7b PRs 2 to 4". New `crews.py`, `wire_schema.py`; real-mode path in `agents.py`; `ModelServiceError` to the stage; `max_iter` 1; key in settings; `load_crewai()` also sets CrewAI's own 429 retry to one attempt. LLM, temperature and max-token controls: **built and tested against the fake** (DL-40 sampling per role, limits from PR 2); never sent to a real provider. H-072 to `@system.arch` (the hidden retry; the schema route). Real mode is not to be run before PR 5 and the spike. No real key, no paid call, no model ID committed.

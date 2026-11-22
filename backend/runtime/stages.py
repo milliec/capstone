@@ -121,6 +121,11 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
         # The failure demo (B13a, rule 11): the stand-in extractor failed on purpose.
         stage_store.fail_stage(conn, run, stage, unit_id, "demo failure")
         raise _StageStopped
+    except agents.ModelServiceError:
+        # The provider gave no answer (timeout, rate limit, error). One attempt until B3 step 7b
+        # PR 5 adds DL-43's single retry around the call. Nothing was traced: no answer came.
+        stage_store.fail_stage(conn, run, stage, unit_id, "model service")
+        raise _StageStopped
     except _UNIT_FAILURES:
         if late and late[0]:
             raise _StageStopped          # late AND invalid: the trace has it; nothing else to do

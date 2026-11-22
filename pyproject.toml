@@ -37,6 +37,9 @@ include = ["backend*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# CrewAI 1.15.35 raises DeprecationWarnings from its OWN code each time a crew is built (about 200
+# per test run). Hidden here, for CrewAI's modules only, so a warning from our code still shows.
+filterwarnings = ["ignore::DeprecationWarning:crewai.*"]
 
 # Lint (B1 follow-up CI; sad.md §5 "CI"): ruff's default rules, pinned with ruff itself in
 # requirements-dev.txt so the rule set cannot change under us. Formatting is NOT checked yet

@@ -14,7 +14,7 @@ Two rules this file enforces (Build card, CR-030, DL-54):
 """
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -63,6 +63,8 @@ class Settings:
     llm_models: dict = None                            # {"extract": "", "verify": "", "judge": ""}
     max_completion_tokens: dict = None                 # the output limit of one call, per role
     call_timeouts: dict = None                         # seconds a call may take (D1, DL-43), per role
+    # The provider key (CR-021). Never shown when the settings are printed. "" when not set.
+    openai_api_key: str = field(default="", repr=False)
 
 
 STAGE_TIME_LIMIT_DEFAULTS = {"A": 375.0, "B": 150.0, "C": 30.0}
@@ -147,6 +149,7 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         run_cost_cap_usd=_positive(env, "RUN_COST_CAP_USD", 2.50),
         stage_time_limits={stage: _positive(env, f"STAGE_TIME_LIMIT_{stage}", default)
                            for stage, default in STAGE_TIME_LIMIT_DEFAULTS.items()},
+        openai_api_key=env.get("OPENAI_API_KEY", "").strip(),
         llm_models={role: env.get(f"LLM_MODEL_{role.upper()}", "").strip() for role in ROLES},
         max_completion_tokens={role: _whole_number(env, f"LLM_MAX_TOKENS_{role.upper()}", default)
                                for role, default in MAX_COMPLETION_TOKENS_DEFAULTS.items()},
