@@ -16,16 +16,22 @@ setting below is one the SAD fixes (sad.md §2 "CrewAI settings", D1 to D6, H-06
            the call's (DL-43), `max_completion_tokens` and the sampling settings from DL-40.
            The answer's shape goes as a strict `response_format` (backend/runtime/wire_schema.py).
 
-What is NOT here, and arrives in PR 5: the one DL-43 retry around a call, and one trace line per
-HTTP attempt through CrewAI's `interceptor` (including CrewAI's silent repeat without
-`reasoning_effort`). Until then a call that fails is ONE attempt, and the numbers on a trace line
-come from CrewAI's own usage count, not from each request.
+The one DL-43 retry is here (PR 5, step 2): a call that fails with a timeout, no connection, a
+rate limit or a server error is sent ONCE more, after a short wait; any other failure, and any
+failure of the second attempt, is final. A bad ANSWER is never retried (D5: that happens after
+`run_step`, in agents.py, and sends nothing again).
+
+What is NOT here yet, and arrives in the next steps of PR 5: one trace line per HTTP attempt through
+CrewAI's `interceptor` (including CrewAI's silent repeat without `reasoning_effort`). Until then a
+failed attempt writes no trace line, and the numbers on a trace line come from CrewAI's own usage
+count, not from each request.
 
 CrewAI is loaded only here, only when a real call is made, and only through `load_crewai()` (which
 switches its telemetry, tracing and version check off first). A stand-in run never gets here
 (T-MODE-1).
 """
 
+import time
 from dataclasses import dataclass
 
 from backend.domain.schemas import ExtractionResult, Verdict, VerificationResult
@@ -39,6 +45,8 @@ STEP_RESULT = {"extract_rows": ExtractionResult, "check_conflicts": Verification
                "judge_applicability": Verdict}
 
 MAX_RPM = 30           # sad.md §2: limits bursts from the parallel units
+MAX_ATTEMPTS = 2       # DL-43: the call, and ONE retry. Never more.
+RETRY_WAIT_S = 1.0     # DL-43's "short wait" before the retry (tests set it to 0)
 
 
 class ModelServiceError(Exception):
@@ -47,8 +55,7 @@ class ModelServiceError(Exception):
 
 
 def is_retriable(error: BaseException) -> bool:
-    """Is this provider failure one DL-43 allows ONE retry for? (PR 5, step 1: the rule only; nothing
-    calls it yet.)
+    """Is this provider failure one DL-43 allows ONE retry for? (PR 5, step 1; `run_step` uses it.)
 
     Yes: the call's own timeout, no connection, a rate limit (429), a server error (5xx).
     No: any other answer from the provider (400 bad request, 401 bad key, 404 no such model...:
@@ -117,13 +124,21 @@ def build_crew(settings: Settings, step: str, inputs: dict[str, str]):
 
 
 def run_step(settings: Settings, step: str, inputs: dict[str, str]) -> StepResult:
-    """Send one unit's prompt to the model once and return its text. Provider failures (a timeout,
-    a rate limit, a server or client error, no connection) become `ModelServiceError`."""
-    crew = build_crew(settings, step, inputs)
-    try:
-        output = crew.kickoff()
-    except Exception as error:                  # CrewAI wraps some provider errors; all are one thing
-        raise ModelServiceError(f"{type(error).__name__}: {error}") from error
+    """Send one unit's prompt to the model and return its text. A failure `is_retriable` allows is
+    sent ONCE more after `RETRY_WAIT_S` (DL-43); every other failure, and any failure of the second
+    attempt, becomes `ModelServiceError` (the reason "model service"). At most `MAX_ATTEMPTS`
+    requests, whatever happens."""
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        crew = build_crew(settings, step, inputs)     # a fresh crew each time; refusals come from here
+        try:
+            output = crew.kickoff()
+            break
+        except Exception as error:              # CrewAI wraps some provider errors; all are one thing
+            if attempt < MAX_ATTEMPTS and is_retriable(error):
+                time.sleep(RETRY_WAIT_S)
+                continue
+            raise ModelServiceError(
+                f"{type(error).__name__}: {error} (attempt {attempt} of {MAX_ATTEMPTS})") from error
     usage = output.token_usage
     return StepResult(text=output.raw or "", tokens_in=usage.prompt_tokens,
                       tokens_out=usage.completion_tokens)
