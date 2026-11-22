@@ -427,6 +427,47 @@ own usage count. **Do not run real mode before PR 5 and the operator's spike.**
 - `openai.lib._pydantic.to_strict_json_schema` is a private path of the `openai` library. A test fails if
   a CrewAI upgrade (which pins `openai`) moves it.
 
+## B3 step 7b, PR 5: the one retry, one trace line per HTTP request, the silent-repeat flag (2026-11-22)
+
+Real mode (`AGENTS_MODE=real`) now has DL-43's one retry and writes one trace line for every HTTP
+request. **Tested only against the fake OpenAI (PR 3): no real key, no real model, no paid call.**
+Stand-in mode is unchanged and never builds an attempt log. The SAD side is recorded: H-073 (§4 "The
+`trace` columns", "What a line costs", "How many requests one unit can send"), merged in #159.
+
+| What | Where |
+|---|---|
+| **Which failures get the one retry**: the call's own timeout, no connection, a rate limit (429) and a server error (5xx). **Not retried**: a 400, 401 or 404 (the same request cannot succeed and each try costs money), 408 and 409, a bad *answer* (D5: the model is never asked again about a bad answer), and anything that is not a provider failure. CrewAI wraps what the `openai` client raised, so the check walks the chain of causes and lets the first `openai` error decide | `backend/runtime/crews.py` (`is_retriable`) |
+| **The retry itself**: `MAX_ATTEMPTS` 2 (the call, and one more), `RETRY_WAIT_S` 1.0 s between them (tests set it to 0). A second failure is final: `model service` (T-RUN-2) | `backend/runtime/crews.py` (`run_step`) |
+| **One trace line per HTTP request**, through CrewAI's `interceptor`: the model string the API returned, the stop reason, that request's own token counts, and for a request with no answer, why. Failed requests are traced *before* the error is raised, so their cost counts. Only the request that answered carries the output and the guardrail's verdict | `backend/runtime/attempts.py`, `agents.py`, `services/trace.py` |
+| **Four new `trace` columns**, added at the end with defaults (`stop_reason`, `provider_error`, `cost_estimated`, `off_pinned_setting`). `init_db` adds them to an older database, so no file has to be deleted. Nothing renamed or dropped | `backend/db/schema.sql`, `db/connection.py` |
+| **`attempt_n` counts HTTP requests** of a unit (1, 2, ...), not only our attempts | `backend/services/trace.py` |
+| **What a request costs towards the US$2.50 cap**: usage data when the provider sent it; **0 for a 4xx**; for a 5xx, a timeout, no connection or an answer with no usage data, the **worst case** (input estimated from the request's size, plus an answer that fills the output limit), marked `cost_estimated` = 1 | `backend/runtime/model_settings.py` (`attempt_cost_usd`) |
+| **Lateness is judged by the unit's last trace line** (it was the first). With one line per request, the first can be a failed attempt that was not late while the answering retry was | `backend/runtime/stages.py` |
+| **The silent repeat is flagged**: a request whose settings differ from the pinned ones gets `off_pinned_setting` = 1. It does not fail the call or stop the run | `backend/runtime/agents.py` |
+| **Audit**: every trace line still gets its `agent_output` entry, one to one. A request with no answer reads "no answer (provider error)" | `backend/services/trace.py` |
+| **Tests**: `tests/tier1/test_attempt_trace.py` (the attempt log; each cost case; one line per request; retry and timeout lines; the verdict only on the last line; the silent repeat and its flag; at most four requests and two billed; the cost count; lateness by the last line; the table keeps its columns, an older database migrates, the trace stays append-only, a stand-in trace looks as before) and updates to `test_crews.py` and `test_model_settings.py`. At the end of PR 5: Tier 1 341 passed, Tier 2 161 passed | `tests/tier1/` |
+
+**How many requests one unit can send.** Our bound is two attempts, but CrewAI can add one repeat inside
+each, so **up to four requests** and four trace lines for one unit. **At most two can be billed**, because
+CrewAI repeats only after a 4xx and a 4xx costs 0. The worst-case run (12 rows, 5 extractions, every call
+at its output limit) is US$1.49 with two billed requests per unit; with four billed it would be US$2.98,
+above the cap. **The cap's safety rests on "a 4xx costs 0", not on the request count** (SAD §4).
+
+**What the fake showed (findings):**
+
+- **CrewAI's silent repeat is sticky.** When a 400 says the model refuses `reasoning_effort`, CrewAI sends
+  the call again without it, reports success, and then leaves it out of **every later call in the same
+  process**, with no setting to turn that off (`completion.py`, crewai 1.15.35). After the first one there
+  is no rejection to see, so each later request is flagged instead. The SAD now lists "treat a call off
+  the pinned reasoning setting as a failure?" among the decisions to take after the spike.
+- A 429 is retried by us (once) and costs 0 both times, so a rate-limited unit adds no spend.
+
+**Not done here, on purpose:**
+
+- Showing `off_pinned_setting` and estimated cost in the spike and evaluation reports (`@qa.eng`, with B8).
+- Stopping a retry when the cap is reached in the middle of a unit. Calls in flight finish (CR-017).
+- Any real call. **Do not run real mode before the operator's spike.**
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
