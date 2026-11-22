@@ -25,8 +25,9 @@ A reading aid only. Nothing here is a new decision; each line points to where it
   compliance" below.
 - **Process:** not CrewAI's `Process`. The backend runs stages A, B and C in plain Python ("the
   backend owns the steps"; `backend/runtime/stages.py`). Recorded in `sad.md` §2 "Runtime shape".
-- **Kickoff:** one kickoff per unit, inside each agent function, arriving in step 7b PR 4. Until
-  then `start_run` runs with the stand-in answers. Recorded in "B3 step 7b, PR 1" below.
+- **Kickoff:** one kickoff per unit, inside each agent function, in real mode only (step 7b PR 4;
+  with DL-43's one retry since PR 5). In stand-in mode, the default, `start_run` runs with the
+  stand-in answers and CrewAI is never loaded. See "B3 step 7b, PR 4" and "PR 5" below.
 
 ## How to run
 
@@ -427,10 +428,54 @@ own usage count. **Do not run real mode before PR 5 and the operator's spike.**
 - `openai.lib._pydantic.to_strict_json_schema` is a private path of the `openai` library. A test fails if
   a CrewAI upgrade (which pins `openai`) moves it.
 
+## B3 step 7b, PR 5: the one retry, one trace line per HTTP request, the silent-repeat flag (2026-11-22)
+
+Real mode (`AGENTS_MODE=real`) now has DL-43's one retry and writes one trace line for every HTTP
+request. **Tested only against the fake OpenAI (PR 3): no real key, no real model, no paid call.**
+Stand-in mode is unchanged and never builds an attempt log. The SAD side is recorded: H-073 (§4 "The
+`trace` columns", "What a line costs", "How many requests one unit can send"), merged in #159.
+
+| What | Where |
+|---|---|
+| **Which failures get the one retry**: the call's own timeout, no connection, a rate limit (429) and a server error (5xx). **Not retried**: a 400, 401 or 404 (the same request cannot succeed and each try costs money), 408 and 409, a bad *answer* (D5: the model is never asked again about a bad answer), and anything that is not a provider failure. CrewAI wraps what the `openai` client raised, so the check walks the chain of causes and lets the first `openai` error decide | `backend/runtime/crews.py` (`is_retriable`) |
+| **The retry itself**: `MAX_ATTEMPTS` 2 (the call, and one more), `RETRY_WAIT_S` 1.0 s between them (tests set it to 0). A second failure is final: `model service` (T-RUN-2) | `backend/runtime/crews.py` (`run_step`) |
+| **One trace line per HTTP request**, through CrewAI's `interceptor`: the model string the API returned, the stop reason, that request's own token counts, and for a request with no answer, why. Failed requests are traced *before* the error is raised, so their cost counts. Only the request that answered carries the output and the guardrail's verdict | `backend/runtime/attempts.py`, `agents.py`, `services/trace.py` |
+| **Four new `trace` columns**, added at the end with defaults (`stop_reason`, `provider_error`, `cost_estimated`, `off_pinned_setting`). `init_db` adds them to an older database, so no file has to be deleted. Nothing renamed or dropped | `backend/db/schema.sql`, `db/connection.py` |
+| **`attempt_n` counts HTTP requests** of a unit (1, 2, ...), not only our attempts | `backend/services/trace.py` |
+| **What a request costs towards the US$2.50 cap**: usage data when the provider sent it; **0 for a 4xx**; for a 5xx, a timeout, no connection or an answer with no usage data, the **worst case** (input estimated from the request's size, plus an answer that fills the output limit), marked `cost_estimated` = 1 | `backend/runtime/model_settings.py` (`attempt_cost_usd`) |
+| **Lateness is judged by the unit's last trace line** (it was the first). With one line per request, the first can be a failed attempt that was not late while the answering retry was | `backend/runtime/stages.py` |
+| **The silent repeat is flagged**: a request whose settings differ from the pinned ones gets `off_pinned_setting` = 1. It does not fail the call or stop the run | `backend/runtime/agents.py` |
+| **Audit**: every trace line still gets its `agent_output` entry, one to one. A request with no answer reads "no answer (provider error)" | `backend/services/trace.py` |
+| **Tests**: `tests/tier1/test_attempt_trace.py` (the attempt log; each cost case; one line per request; retry and timeout lines; the verdict only on the last line; the silent repeat and its flag; at most four requests and two billed; the cost count; lateness by the last line; the table keeps its columns, an older database migrates, the trace stays append-only, a stand-in trace looks as before) and updates to `test_crews.py` and `test_model_settings.py`. At the end of PR 5 (#158's final CI): Tier 1 344 passed, 4 skipped; Tier 2 161 passed | `tests/tier1/` |
+
+**How many requests one unit can send.** Our bound is two attempts, but CrewAI can add one repeat inside
+each, so **up to four requests** and four trace lines for one unit. **At most two can be billed**, because
+CrewAI repeats only after a 4xx and a 4xx costs 0. The worst-case run (12 rows, 5 extractions, every call
+at its output limit) is US$1.49 with two billed requests per unit; with four billed it would be US$2.98,
+above the cap. **The cap's safety rests on "a 4xx costs 0", not on the request count** (SAD §4).
+
+**What the fake showed (findings):**
+
+- **CrewAI's silent repeat is sticky.** When a 400 says the model refuses `reasoning_effort`, CrewAI sends
+  the call again without it, reports success, and then leaves it out of **every later call in the same
+  process**, with no setting to turn that off (`completion.py`, crewai 1.15.35). After the first one there
+  is no rejection to see, so each later request is flagged instead. The SAD now lists "treat a call off
+  the pinned reasoning setting as a failure?" among the decisions to take after the spike.
+- A 429 is retried by us (once) and costs 0 both times, so a rate-limited unit adds no spend.
+
+**Not done here, on purpose:**
+
+- Showing `off_pinned_setting` and estimated cost in the spike and evaluation reports (`@qa.eng`, with B8).
+- Stopping a retry when the cap is reached in the middle of a unit. Calls in flight finish (CR-017).
+- Any real call. **Do not run real mode before the operator's spike.**
+
 ## Pattern Decision compliance
 
-No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
-`AGENTS_MODE=real` refuses at each agent function. The stand-in answers (`backend/stand_in/`) are
+No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
+builds no model client and never loads CrewAI** (T-MODE-1). **Real mode builds one one-agent crew
+per unit** behind the same three functions: no tools, no delegation, no memory, `max_iter` 1, one
+task, and a model is never asked again about a bad answer (D5). Real mode refuses to start with no
+model ID or no key, and has not been run: it is tested against the fake OpenAI only. The stand-in answers (`backend/stand_in/`) are
 hand-written from the mock paragraphs, carry no answer-key IDs (`OBL-`, `C-1`, `I-1`, `AMD-`) or
 notes, are never placed in a prompt, and pass the same guardrails as a model's output. The loaders
 never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half).
@@ -439,19 +484,19 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 
 - An evaluation run with the demo-row switch on is not refused yet: there is no evaluation run
   before the evaluation runner (**B8**, EC-R7).
-- `retry_run` is a stub (**B13b**). CrewAI wiring and the role harness are **B3 step 7**. The
-  per-call timeout and its one automatic retry (D1, DL-43, T-RUN-2) come with the real calls (B3
-  spike): a stand-in call cannot time out. The run status page shows the cost but not yet the
-  "over US$2" warning (CR-017); the warning's wording and place are `@ux.designer`'s.
-- **Step 7b in progress** (plan approved 2026-11-19; PR 1 merged; PRs 2, 3 and 4 open as pull
-  requests on 2026-11-21, see their sections): CrewAI is installed with its outside connections off;
-  PR 2 adds the per-role model settings and token limits, PR 3 a fake OpenAI for tests, PR 4 the crews
-  behind the three agent functions, tested only against the fake. **Still to come: PR 5** (DL-43's one
-  retry around a call, one trace line per attempt through `interceptor`, the returned model string,
-  the stop reason, CrewAI's silent repeat) **and PR 6** (docs). **Real mode must not be run until PR 5
-  and the operator's spike**: until then a failed call is one attempt and writes no trace line. The
-  role harness has its call caps; the runner that makes the spike's per-role calls comes with the
-  spike (DL-40 is pinned).
+- `retry_run` is a stub (**B13b**). The per-call timeout and its one automatic retry (D1, DL-43,
+  T-RUN-2) are built (step 7b PR 5) and tested against the fake OpenAI; a stand-in call cannot
+  time out. The run status page shows the cost but not yet the "over US$2" warning (CR-017); the
+  warning's wording and place are `@ux.designer`'s.
+- **Step 7b is built; no real call has been made** (plan approved 2026-11-19; PRs 1 to 5 merged,
+  this documentation is PR 6): CrewAI is installed with its outside connections off (PR 1), per-role
+  model settings and token limits (PR 2), a fake OpenAI for tests (PR 3), the crews behind the three
+  agent functions (PR 4), and DL-43's one retry with one trace line per HTTP request (PR 5). **Real
+  mode must not be run before the operator's spike.** What the spike still needs: the runner that
+  makes its per-role calls (it comes with the spike; DL-40 is pinned and the role harness has its
+  call caps), and the reports that show `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
+  Open for after the spike: "treat a call off the pinned reasoning setting as a failure?" (SAD
+  Production Shape, "Decisions to take once the spike has shown the result").
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
   rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
   the fund's event log; it does not read the log's "Obligation" column (that column names the
@@ -654,3 +699,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 2: per-role model settings and per-call token limits) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". New `backend/runtime/model_settings.py`; settings read `LLM_MODEL_*`, `LLM_MAX_TOKENS_*`, `CALL_TIMEOUT_*` (SAD §4 names; `.env.example` changed, H-071 to `@project.mgr`). LLM, temperature and max-token controls: **resolved in code** (DL-40 sampling; limits 2000 / 2000 / 4000 as starting values; verifier sends no temperature, an assumption); worst case for a whole run US$1.49 against the US$2.50 cap, checked by a Tier 1 test. No model ID chosen or committed, no CrewAI call, no real key, no paid call.
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 3: a fake OpenAI for tests) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". Test code only (`tests/fake_openai.py`, the `fake_openai` fixture, `tests/tier1/test_fake_openai.py`, 15 tests); nothing in `backend/` changed. LLM, temperature and max-token controls: none resolved here (PR 2). No model call, no real key, no paid call, no outside connection (127.0.0.1 only).
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 4: the crews behind the three agent functions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instruction "move on to 7b PRs 2 to 4". New `crews.py`, `wire_schema.py`; real-mode path in `agents.py`; `ModelServiceError` to the stage; `max_iter` 1; key in settings; `load_crewai()` also sets CrewAI's own 429 retry to one attempt. LLM, temperature and max-token controls: **built and tested against the fake** (DL-40 sampling per role, limits from PR 2); never sent to a real provider. H-072 to `@system.arch` (the hidden retry; the schema route). Real mode is not to be run before PR 5 and the spike. No real key, no paid call, no model ID committed.
+- 2026-11-22 · persona `backend-eng` · `sync-docs` (B3 step 7b, PR 6: documentation) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to PR 6 (docs)". Docs only: new section "B3 step 7b, PR 5" (which failures are retried, one trace line per HTTP request, the four new columns, the cost rule, the four-request and two-billed bound, the sticky silent repeat); "Kickoff", "Pattern Decision compliance" and "Known gaps" brought in line with real mode and PR 5. Raised H-074 to `@project.mgr` for `setup.md` and the README (not mine to edit). Read against the merged code (`crews.py`, `attempts.py`, `model_settings.py`, `agents.py`, `schema.sql`) and the PR 5 description; no code changed. No model call.

@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-074: setup.md and the README: B3 step 7b is built through PR 5 (PR 6 docs)
+- From: @backend.eng (operator request, 2026-11-22)   To: @project.mgr   Date: 2026-11-22
+- Touches: 2.build/setup.md (the "Next" table rows for the operator and `@backend.eng`, the status note that says PR 1 is the latest 7b step and PRs 2 to 6 are for "next week", and "CrewAI settings"); README.md (the `@backend.eng` status row and any line that says real model calls are not built)
+- Ask: Bring both up to date with `2.build/backend.md` ("B3 step 7b, PR 2" to "PR 5", and "Known gaps"). In short: **7b PRs 1 to 5 are merged** (#127, #153, #154, #155, #158) and the SAD records the PR 5 trace changes (H-073, #159). Real mode now sends one one-agent crew per unit, with DL-43's one retry (a timeout, no connection, a 429 or a 5xx; never a 400, 401 or 404; never a bad answer), **one trace line per HTTP request** (up to four requests per unit, at most two billed), four new `trace` columns, and a flag when CrewAI repeats a call without `reasoning_effort`. All of it is tested against the fake OpenAI only. **No real key, no paid call, and real mode must not be run before the operator's spike.** What is left before the spike: the runner that makes its per-role calls, and the reports that show `off_pinned_setting` and estimated cost (`@qa.eng`, B8). New for the Next table: after the spike the operator decides whether a call off the pinned reasoning setting is a failure (SAD Production Shape).
+- Why: setup.md and the README still describe 7b as "PR 1 done, the rest next week".
+- Outcome: (the owner fills this in: what changed, or why not)
+
 ### H-073: The trace gets four columns, a request can be one of up to four, and CrewAI's silent repeat is flagged (B3 step 7b PR 5)
 - From: @backend.eng (operator request, 2026-11-22)   To: @system.arch   Date: 2026-11-22
 - Touches: sad.md §4 "The `trace` columns" table; CR-017 and CR-018 (what a trace line is, and cost); DL-43 (the retry); H-064 condition c; the list of post-spike decisions
