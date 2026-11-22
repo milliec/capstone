@@ -364,6 +364,22 @@ every call retried once comes to about **US$1.49**, against the US$2.50 hard sto
 - **The agent file still says `max_iter: 2`**; H-065 says 1. Changing it changes every prompt
   version, so it moves in PR 4, with the crews that read it.
 
+## B3 step 7b, PR 3: a fake OpenAI for tests (2026-11-21)
+
+Test code only: nothing in `backend/` changed. No model, no real key, no outside connection.
+
+| What | Where |
+|---|---|
+| **The fake**: a small server on `127.0.0.1` (this machine only), in a background thread of the test, that speaks the part of OpenAI's chat completions API the `openai` client (the one CrewAI uses) needs. A test **scripts** what the "model" does, in order: `Reply` (text or JSON, token counts, the model string returned, a stop reason, an optional delay) or `Failure` (429, 5xx, 401 and so on). It can also **refuse a setting** (`reject_params`, as OpenAI does for a model that does not accept it) | `tests/fake_openai.py` |
+| **It counts every request that reaches it**, including ones that fail, time out or are refused, and keeps each request's whole body (so a test can check `max_completion_tokens`, `response_format`, `reasoning_effort`). A request nobody scripted gets a 500 and is written down in `unscripted`; `unused()` says how many scripted answers were never asked for. This is the test rule of H-065: **one unit sends exactly one request**, except our one DL-43 retry and CrewAI's silent repeat | `tests/fake_openai.py` |
+| The `fake_openai` fixture | `tests/conftest.py` |
+| **Tests (Tier 1), using the real `openai` client:** answers and token counts parse; the returned model string can differ; a cut-off answer; the body is kept; 429, 5xx and 401 raise the matching errors; a slow answer times out in the client and is still counted; a refused setting is refused, counted and leaves the scripted answer unused; the count is exact; an unscripted request is written down; a client that retries on its own shows two requests (why H-065 turns that off) and with its retries off exactly one; only the placeholder key is ever seen. Five deliberate breaks of the fake were all caught | `tests/tier1/test_fake_openai.py` |
+
+**What it does not know:** CrewAI's own silent repeat without `reasoning_effort` (H-064 condition c). The
+fake can refuse the setting (`reject_params`); whether CrewAI then repeats the call, and how our
+interceptor sees it, is what PR 5 shows against this fake. If CrewAI behaves differently from what
+the H-064 check found, PR 5 says so.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool, no model client anywhere.
@@ -585,3 +601,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   intro was already corrected on `main` (DL-40 pinned, step 7b plan approved); the one stale
   "(after DL-40)" in Known gaps now says DL-40 is pinned. Docs only. No model call.
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 2: per-role model settings and per-call token limits) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". New `backend/runtime/model_settings.py`; settings read `LLM_MODEL_*`, `LLM_MAX_TOKENS_*`, `CALL_TIMEOUT_*` (SAD §4 names; `.env.example` changed, H-071 to `@project.mgr`). LLM, temperature and max-token controls: **resolved in code** (DL-40 sampling; limits 2000 / 2000 / 4000 as starting values; verifier sends no temperature, an assumption); worst case for a whole run US$1.49 against the US$2.50 cap, checked by a Tier 1 test. No model ID chosen or committed, no CrewAI call, no real key, no paid call.
+- 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 3: a fake OpenAI for tests) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". Test code only (`tests/fake_openai.py`, the `fake_openai` fixture, `tests/tier1/test_fake_openai.py`, 15 tests); nothing in `backend/` changed. LLM, temperature and max-token controls: none resolved here (PR 2). No model call, no real key, no paid call, no outside connection (127.0.0.1 only).

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from backend.db.connection import connect
 from backend.main import create_app
 from backend.settings import load_settings
+from tests.fake_openai import FakeOpenAI
 
 
 @pytest.fixture
@@ -50,3 +51,12 @@ def db(settings):
     conn = connect(settings.database_path)
     yield conn
     conn.close()
+
+
+@pytest.fixture
+def fake_openai():
+    """A fake OpenAI server on this machine only (tests/fake_openai.py). No real model, no real
+    key. It is stopped when the test ends."""
+    fake = FakeOpenAI().start()
+    yield fake
+    fake.stop()
