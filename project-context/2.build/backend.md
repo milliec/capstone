@@ -41,6 +41,9 @@ make test               # all tests, stand-in agents, no model
 Sign in as **Compliance specialist** (`specialist-1`) or **General Partner / Fund Manager**
 (`gp-1`). Delete `data/app.db` to start from nothing.
 
+The spike's real call is a separate command with its own database (`data/spike.db`): see "B3 spike
+runner" below. `make run` and `make test` never make a real call.
+
 ## What was built
 
 | Area | Files | Real or stub |
@@ -469,6 +472,70 @@ above the cap. **The cap's safety rests on "a 4xx costs 0", not on the request c
 - Stopping a retry when the cap is reached in the middle of a unit. Calls in flight finish (CR-017).
 - Any real call. **Do not run real mode before the operator's spike.**
 
+## B3 spike runner: the dry-run (PR 1) and the first real call (PR 2a to 2c) (2026-11-22)
+
+The spike runner is one command, `python -m backend.runtime.spike`. It makes **one** real Stage A
+extractor call (document `SRC-UCILAW`, the largest primary document) and records it. **Built and tested
+against the fake OpenAI only (T-SPIKE-1 to 4): no real key was used and no real call has been made.** The
+operator runs the first real call from their own terminal. Per CLAUDE.md, no real model call before the
+stand-in happy path passed: it passed (#105).
+
+| What | Where |
+|---|---|
+| **Dry-run (PR 1, #164).** The command without `--go`. Checks, in order: `AGENTS_MODE=real`, `SPEND_ACTIVITY=spike`, an extractor model ID, a usable key, a *primary* document, and fewer than 70 spike calls (EC-R10, counted from the trace). Then prints the model, the settings it would send, the input size, and the worst-case cost of one request and of one request plus its retry. Sends nothing, creates nothing, never prints the key. T-SPIKE-1 | `backend/runtime/spike.py` (`plan_first_call`) |
+| **The spike's own run (2a).** A trace line must belong to a run, so the spike has its own git-ignored database, `data/spike.db`, and **one** run row (ACTIVE, `A_RUNNING`, real, `spike`). Asking again returns the same run, so `cost_so_far` adds up the whole spike. It never touches the app's database. T-SPIKE-2 | `spike.py` (`open_spike_run`) |
+| **The call (2b).** `run_first_call` re-runs every dry-run check, then refuses if the money spent plus this call's worst case with its retry would pass the US$2.50 cap (CR-017), then calls the **same real-mode path the app uses** (`agents.extract_rows`: DL-43's one retry, one trace line per HTTP request, the guardrail). A bad answer is reported and not asked for again (D5). Each call is its own trace unit (`SRC-UCILAW#1`, `#2`, ...) because the trace refuses two lines with the same key. Importing `spike.py` loads no CrewAI; the real-mode code is imported inside the function. T-SPIKE-2 and 3 | `spike.py` (`run_first_call`) |
+| **`--go` (2c).** Prints the plan and an **Endpoint** line, then asks the operator to **type the document ID**. Only an exact match sends. A wrong word, an empty line, closed or piped input all mean "not confirmed". Every refusal comes *before* the prompt. Then it prints, for each HTTP request: answered or not, tokens, cost (marked when estimated), stop reason, model asked and answered, `off_pinned_setting`, the provider error or guardrail text; then the run cost so far. The answer itself stays in the trace. T-SPIKE-4 | `spike.py` (`main`, `_go`, `format_result`) |
+
+### How to run the first real call (operator, from your own terminal)
+
+1. **`.env`** holds the real `OPENAI_API_KEY` and `LLM_MODEL_EXTRACT` (the DL-40 extractor ID; it lives
+   only there, never in a committed file). **Leave `AGENTS_MODE=stand_in` in `.env`** and give real mode on
+   the command line, as below, so that `make run` can never go real by accident.
+2. **Dry-run first** (sends nothing):
+
+   ```bash
+   AGENTS_MODE=real SPEND_ACTIVITY=spike .venv/bin/python -m backend.runtime.spike
+   ```
+
+   Read `Model`, `Settings sent` (extractor: `reasoning_effort` none, `temperature` 0.0,
+   `max_completion_tokens` 2000), `Worst case` and `Spike calls` (0 of 70). On 2026-11-22 the
+   worst case was about **US$0.0012** for one request and **US$0.0024** with the retry (a quarter of a
+   cent; about 1,750 input tokens); a Tier 1 test fails if it ever passes US$0.01. Accept the number your
+   run prints before going on.
+3. **Go**: the same command with `--go` at the end.
+4. **Check the Endpoint line.** It must say **`OpenAI's default (api.openai.com)`**. If it shows anything
+   else (a proxy, or `127.0.0.1`), **do not type the ID**: press Enter to cancel, and find the cause with
+   `env | grep OPENAI`. The Endpoint line shows only the *shell's* `OPENAI_BASE_URL`; a value in `.env` is
+   not read by the OpenAI client, so it neither changes the endpoint nor shows here.
+5. **Type `SRC-UCILAW` and press Enter.** That is the one thing that sends a request.
+6. **Read the result.** Exit code 0: a usable answer. 1: the call was made but the answer was not usable.
+   2: nothing was sent. Copy the printout back to `@backend.eng` (it never contains the key). The trace line,
+   with the full answer, is in `data/spike.db`.
+
+**What you may see instead of a result**
+
+| You see | It means | What to do |
+|---|---|---|
+| `REFUSED: ...` | A condition failed (mode, spend label, key, model ID, document, 70-call cap, cost cap). **Nothing was sent.** The text says which | Fix that one thing |
+| `NOT CONFIRMED: nothing was sent.` | What you typed was not exactly the document ID | Run it again if you meant to go |
+| **`ImportError: Unable to initialize LLM with model 'openai/...'`**, "did not match any supported native provider", "the LiteLLM fallback package is not installed" | **CrewAI does not recognise the model ID in `LLM_MODEL_EXTRACT` as an OpenAI model**, and its fallback (LiteLLM) is not installed on purpose. It is raised while the model client is *built*, before any request exists, so **nothing was sent and nothing was billed**. The dry-run cannot see it (it never builds the client). It shows as a Python traceback, not as `REFUSED:`, because it is not one of the expected refusals | Check the ID in `.env` for a typo, a space or a wrong name against DL-40. If it is exactly right, **stop and tell `@backend.eng`**. Do **not** `pip install litellm`: a new dependency is a SAD edit first (CLAUDE.md) |
+| `Answer : NOT USABLE - invalid output` | The request was made and **billed**; the answer failed the guardrail. It is not asked for again (D5) | Send the printout; the raw answer is in the trace |
+| `Answer : NOT USABLE - model service` | Both requests (the call and DL-43's one retry) got no answer. Each is traced and counted, with the worst case when no usage data came back (`ESTIMATED`) | Send the printout |
+| `Off pinned setting : YES` | CrewAI repeated the call without `reasoning_effort` after a 400 (H-064 c). The call is *not* a clean run of the pinned settings | Report it; this is what the spike is meant to find out |
+
+**Do not delete `data/spike.db` to "start over".** It also resets the count of 70 calls, and EC-R10 says a
+further call needs a recorded operator decision.
+
+**Not done here, on purpose:**
+
+- Only the **first extractor call** is in the runner. The verifier and judge calls, the call plan up to 70,
+  and the spike report (`@qa.eng`, with B8) come later and are not built.
+- The dry-run cannot tell an unrecognised model ID from a good one (see the `ImportError` row).
+- If the database cannot be written *after* a request was sent, the command stops with that error: the
+  request may have been billed without a trace line. The 70-call and cost caps would then undercount.
+- Handoff H-075 asks `@project.mgr` to put these steps in `setup.md` (not mine to edit).
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -492,9 +559,11 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   this documentation is PR 6): CrewAI is installed with its outside connections off (PR 1), per-role
   model settings and token limits (PR 2), a fake OpenAI for tests (PR 3), the crews behind the three
   agent functions (PR 4), and DL-43's one retry with one trace line per HTTP request (PR 5). **Real
-  mode must not be run before the operator's spike.** What the spike still needs: the runner that
-  makes its per-role calls (it comes with the spike; DL-40 is pinned and the role harness has its
-  call caps), and the reports that show `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
+  mode must not be run before the operator's spike.** The spike runner for the **first extractor
+  call** is built (PR 1 and 2a to 2c, see "B3 spike runner") and tested against the fake only; the
+  operator makes the first real call. Still to build: the runner's verifier and judge calls and the
+  call plan up to 70 (DL-40 is pinned and the role harness has its call caps), and the reports that
+  show `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
   Open for after the spike: "treat a call off the pinned reasoning setting as a failure?" (SAD
   Production Shape, "Decisions to take once the spike has shown the result").
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
@@ -700,3 +769,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 3: a fake OpenAI for tests) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to 7b PRs 2 to 4". Test code only (`tests/fake_openai.py`, the `fake_openai` fixture, `tests/tier1/test_fake_openai.py`, 15 tests); nothing in `backend/` changed. LLM, temperature and max-token controls: none resolved here (PR 2). No model call, no real key, no paid call, no outside connection (127.0.0.1 only).
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 4: the crews behind the three agent functions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instruction "move on to 7b PRs 2 to 4". New `crews.py`, `wire_schema.py`; real-mode path in `agents.py`; `ModelServiceError` to the stage; `max_iter` 1; key in settings; `load_crewai()` also sets CrewAI's own 429 retry to one attempt. LLM, temperature and max-token controls: **built and tested against the fake** (DL-40 sampling per role, limits from PR 2); never sent to a real provider. H-072 to `@system.arch` (the hidden retry; the schema route). Real mode is not to be run before PR 5 and the spike. No real key, no paid call, no model ID committed.
 - 2026-11-22 · persona `backend-eng` · `sync-docs` (B3 step 7b, PR 6: documentation) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to PR 6 (docs)". Docs only: new section "B3 step 7b, PR 5" (which failures are retried, one trace line per HTTP request, the four new columns, the cost rule, the four-request and two-billed bound, the sticky silent repeat); "Kickoff", "Pattern Decision compliance" and "Known gaps" brought in line with real mode and PR 5. Raised H-074 to `@project.mgr` for `setup.md` and the README (not mine to edit). Read against the merged code (`crews.py`, `attempts.py`, `model_settings.py`, `agents.py`, `schema.sql`) and the PR 5 description; no code changed. No model call.
+- 2026-11-22 · persona `backend-eng` · `develop-be` (B3 spike runner, PR 1 and PR 2a to 2d) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instructions "continue with B3 spike", "Start 2a", "Go 2b", "Go 2c", "Go 2d". New `backend/runtime/spike.py` (dry-run `plan_first_call`; `open_spike_run`; `run_first_call`; `--go` with a typed document-ID confirmation and a printed result) and Tier 1 T-SPIKE-1 to 4. The pull request that carries 2a to 2d is from branch `backend-eng/spike-runner-2`; PR 1 is #164 (merged). 2d is docs only: new section "B3 spike runner" with how to run the first real call and what each outcome means, "How to run" and "Known gaps" brought in line. The worst-case figure in the run steps was computed on 2026-11-22 with the dry-run planner and made-up settings (no network). Raised H-075 to `@project.mgr` for `setup.md` and the README (not mine to edit). LLM, temperature and max-token controls: unchanged (DL-40 per role, limits from PR 2); the first call sends the extractor's pinned settings. **No real key was used, no model call was made, no paid call, no model ID committed, no snapshot changed.** The operator makes the first real call.
