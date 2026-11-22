@@ -6,7 +6,7 @@ description: Use when designing or reviewing an agent product's delegation bound
 
 ## Purpose and provenance
 
-Design who may decide and act, when a person must approve, and what evidence that person needs. This is a reusable, paraphrased application of Valeria Donati / Truly UX's **Agentic Approval Design**:
+Design who may decide and act, when a person must approve, and what evidence that person needs. This is a reusable, paraphrased application of Truly UX's **Agentic Approval Design**:
 - **Agentic Approval Design starter kit**, PDF: handover p. 6; action questions p. 7; Alone / Ask / Never p. 8; approval cards p. 9; trust growth p. 10; recovery p. 11; worked example p. 12; blank approval map p. 13. Page numbers count the cover as p. 1.
 - **Agentic Approval Design — My framework for governing human and agent decision making**, article: III (six-stage loop), IV (handover), V (Agent Approval Map), VI (approval, trust and recovery).
 
