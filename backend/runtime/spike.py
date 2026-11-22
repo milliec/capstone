@@ -16,7 +16,9 @@ Why a separate spike database (data/spike.db, git-ignored):
   A real call writes a trace line, and `record_call` (backend/services/trace.py) needs a `runs` row
   for that line to belong to. Spike calls get their own database so they never mix with the demo
   data, and so the 70-call cap (backend/runtime/harness.py) counts spike calls and nothing else.
-  PR 1 only READS that file (read-only, and it does not create it). PR 2 will create the run row.
+  The dry-run (PR 1) only READS that file (read-only, and it does not create it). Spike PR 2a adds
+  `open_spike_run`, which creates the file and the ONE run row that every spike call belongs to.
+  Nothing calls it yet: `--go` stays refused until PR 2b.
 
 Run it (needs AGENTS_MODE=real, SPEND_ACTIVITY=spike, the key and LLM_MODEL_EXTRACT in .env):
     .venv/bin/python -m backend.runtime.spike
@@ -26,12 +28,20 @@ import argparse
 import json
 import sqlite3
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
+# These four imports are deliberately the "light" ones (they use only sqlite3 and datetime).
+# Do NOT import backend.services.runs here: it pulls in the stage code, and with it the code that
+# can make a real call. A test (T-SPIKE-2) checks that importing this file loads no CrewAI.
+from backend.db.connection import connect, init_db
 from backend.domain import sources
+from backend.domain.ids import new_run_id
 from backend.domain.schemas import ExtractionResult
 from backend.runtime import harness, model_settings, prompts
 from backend.runtime.wire_schema import wire_schema
+from backend.services import FUND_ID
+from backend.services.audit import now_utc, write_audit
 from backend.settings import ROOT, Settings, SettingsError, load_settings
 
 SPIKE_DB = ROOT / "data" / "spike.db"          # `data/` is git-ignored, so this is never committed
@@ -72,6 +82,49 @@ def _calls_used(spike_db: Path) -> int:
         if "no such table" in str(error):      # a file with no trace table has made no calls
             return 0
         raise
+    finally:
+        conn.close()
+
+
+SPIKE_ACTOR = "spike-runner"       # who the audit log names for what this file does
+
+
+def open_spike_run(settings: Settings, spike_db: Path = SPIKE_DB) -> str:
+    """Create the spike database if needed and return the ID of THE spike run. Sends nothing.
+
+    A trace line must belong to a run (trace.record_call), so every spike call needs a run row.
+    There is ONE spike run: the first call creates it, later calls find it again. That way
+    `runs.cost_so_far` adds up the whole spike's spend in one place.
+
+    The run is ACTIVE in phase A_RUNNING, which is how the trace knows a call is not "late"
+    (trace._is_late). No unit rows and no stage are started: this is not a review.
+    """
+    # Same two conditions as the dry-run. Checked FIRST, so a wrong setting never creates a file.
+    if settings.agents_mode != "real" or settings.spend_activity != "spike":
+        raise SpikeRefused("A spike run needs AGENTS_MODE=real and SPEND_ACTIVITY=spike.")
+    init_db(spike_db)                     # makes the folder and tables; safe to repeat
+    conn = connect(spike_db)
+    try:
+        # BEGIN IMMEDIATE takes the write lock BEFORE looking, so two commands started together
+        # cannot both find "no run" and both create one: the second waits, then finds the first.
+        conn.execute("BEGIN IMMEDIATE")
+        found = conn.execute(
+            "SELECT run_id FROM runs WHERE agents_mode = 'real' AND spend_activity = 'spike' "
+            "AND status = 'ACTIVE' ORDER BY rowid LIMIT 1").fetchone()
+        if found:
+            conn.rollback()
+            return found["run_id"]
+        run_id = new_run_id(conn, date.today())
+        conn.execute(
+            """INSERT INTO runs (run_id, fund_id, status, phase, run_version, demo_planted_row,
+                                 agents_mode, cost_so_far, started_by, started_at,
+                                 demo_fail_step1, stage_attempt, spend_activity)
+               VALUES (?, ?, 'ACTIVE', 'A_RUNNING', 1, 0, 'real', 0, ?, ?, 0, 1, 'spike')""",
+            (run_id, FUND_ID, SPIKE_ACTOR, now_utc()))
+        write_audit(conn, fund_id=FUND_ID, actor=SPIKE_ACTOR, event_type="system", run_id=run_id,
+                    subject_id=run_id, reason="Spike run created (B3 spike, EC-R10)")
+        conn.commit()
+        return run_id
     finally:
         conn.close()
 
