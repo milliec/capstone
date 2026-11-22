@@ -80,8 +80,11 @@ architect before anyone cites a single D-number.
 - **No tools** on any agent.
 - **No memory.**
 - **No delegation** (`allow_delegation` off).
-- **`guardrail_max_retries: 0`.** No automatic retry or re-ask. The only retry is the one allowed
-  per model call by the Timeouts row (a second timeout becomes `model service`).
+- **`guardrail_max_retries: 0`.** No re-ask of a bad answer. The only retry is DL-43's one: after a
+  timeout, no connection, a 429 or a 5xx, our code tries once more (1 s later); a second failure
+  becomes `model service`. A 400, 401 or 404 is never retried. Because CrewAI can repeat a call
+  itself, one unit can send up to four HTTP requests (at most two billed), each with its own trace
+  line (SAD §4, H-073).
 
 The app shell (`@backend.eng`, 2026-11-16) installed the web stack, pinned in `pyproject.toml`:
 fastapi 0.163.1, uvicorn 0.54.0, jinja2 3.1.6, python-multipart 0.0.34, itsdangerous 2.2.0,
@@ -89,7 +92,9 @@ pyyaml 6.0.3; for tests, pytest 9.2.0 and httpx 0.28.1. **CrewAI 1.15.35** was a
 PR 1 (2026-11-19). It needs `pydantic<2.13`, so pydantic is 2.12.5 (was 2.14.3). It is loaded only
 in real mode, through `backend/runtime/crewai_setup.py`, which first forces four switches off:
 `CREWAI_DISABLE_TELEMETRY=true`, `OTEL_SDK_DISABLED=true`, `CREWAI_TRACING_ENABLED=false` (CrewAI's
-own tracing) and `CREWAI_DISABLE_VERSION_CHECK=true`. Stand-in mode never loads it (T-MODE-1).
+own tracing) and `CREWAI_DISABLE_VERSION_CHECK=true`. Stand-in mode never loads it (T-MODE-1). Steps 2 to 5 of 7b (2026-11-21 and 2026-11-22) added no package. PR 4 added one
+pytest setting in `pyproject.toml` that hides CrewAI's own deprecation warnings. Real mode has run
+against a fake OpenAI in the tests, never against the real one.
 
 ## Environment variables
 
@@ -319,21 +324,24 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 
 ## Hand-off: what is next for each downstream agent
 
-*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065); snapshot rows updated 2026-11-20 (H-055 closed, all 16 recorded); `@qa.eng` row updated 2026-11-21 (H-070). Merged on `main`: B1 with
+*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065); snapshot rows updated 2026-11-20 (H-055 closed, all 16 recorded); `@qa.eng` row updated 2026-11-21 (H-070); `@backend.eng` and Operator rows and the status note updated 2026-11-22 (H-074). Merged on `main`: B1 with
 CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B5, B7, B12, and **the first green path** (H-056).
-**DL-40 is pinned** (H-064) and the four CrewAI settings changes are recorded in `sad.md` (H-065), so
-nothing blocks step 7b. **Sprint 3 is treated as done at the stand-in bar** (operator, 2026-11-19).
-`@backend.eng` has merged **7b PR 1** (CrewAI installed, PR #127). **The rest of step 7b, the spike, B8
-and B9 start next week** (week of 2026-11-23). Order from there, per the
-Build card: B3 step 7b and the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then
+**DL-40 is pinned** (H-064) and the four CrewAI settings changes are recorded in `sad.md` (H-065).
+**Sprint 3 is treated as done at the stand-in bar** (operator, 2026-11-19).
+**B3 step 7b is built: PRs 1 to 5 are merged** (#127, #153, #154, #155, #158; the SAD side of PR 5 is
+H-073, #159) and PR 6, the documentation (#160), is merged too. Real mode builds one one-agent crew
+per unit with DL-43's one retry, but it is **tested only against a fake OpenAI: no real key, no paid
+call, and real mode must not be run before the operator's spike.** **The spike, B8 and B9 start next
+week** (week of 2026-11-23). Order from there, per the
+Build card: the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then
 B12, then B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs.md`.*
 
 | Agent | Next |
 |---|---|
-| Operator | Say "go" for the rest of **B3 step 7b** (PRs 2 to 6; PR 1, the install, is merged) next week. The spike makes the first paid model calls: it needs `.env` to hold the pinned model IDs (never committed). Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
-| `@backend.eng` | **B3 step 7b**, PR 1 done (CrewAI 1.15.35 installed, #127); next the crews behind the same agent functions, using the H-065 settings: our own single retry, strict `response_format`, our guardrails, `max_iter: 1`, the `interceptor` that counts every request). Then the **spike** with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
+| Operator | Say "go" for the **spike** next week. Step 7b is built and merged (PRs 1 to 6) but has only run against a fake OpenAI; the spike makes the first paid model calls, so it needs `.env` to hold the real key and the pinned model IDs (never committed). **After the spike, decide whether a call off the pinned reasoning setting counts as a failure** (SAD Production Shape, "Decisions to take once the spike has shown the result"). Real mode must not be run before then. Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
+| `@backend.eng` | **B3 step 7b** is built, PRs 1 to 5 merged (#127, #153, #154, #155, #158) plus the PR 6 docs (#160): CrewAI 1.15.35 installed with its outside connections off; real mode sends one one-agent crew per unit, with DL-43's one retry (a timeout, no connection, a 429 or a 5xx; never a 400, 401 or 404; never a bad answer), **one trace line per HTTP request** (up to four per unit, at most two billed), four new `trace` columns, and a flag when CrewAI repeats a call without `reasoning_effort`. All tested against the fake OpenAI only: no real key, no paid call. Next: the **spike** with timings (they replace the starting limits in `.env.example`), starting with the runner that makes its per-role calls. Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
 | `@frontend.eng` | Nothing open on snapshots: the mobile fix (H-062) and the 360 px baselines are done. H-061: move your finished entries (H-048, H-027) to Done (H-054 is already there). Later: **B6** light visual pass (dropped first) |
-| `@qa.eng` | **B8** has two slices built and merged, both reading a finished run from the database with no model call: the Stage A grader (#142) and the Stage B grader (#151: EC-004 applicability verdicts, EC-010 agent time and EC-012 cost, from the trace). How to run them and what they report: "Grade a finished run" under "Tests and checks"; the details are in `2.build/qa.md`. Still to do, after the spike: the run starter (evaluation-run type, scripted gates, EC-R7 refusal), the trace export (D4), the void rule (EC-R8), the `I-1` and injection cases, grading a failed run, and the three-run comparison. `T-MAP-1` must pass before the first evaluation run. **B9** tuning and one evaluation cycle with the operator |
+| `@qa.eng` | **B8** has two slices built and merged, both reading a finished run from the database with no model call: the Stage A grader (#142) and the Stage B grader (#151: EC-004 applicability verdicts, EC-010 agent time and EC-012 cost, from the trace). How to run them and what they report: "Grade a finished run" under "Tests and checks"; the details are in `2.build/qa.md`. Still to do, after the spike: the run starter (evaluation-run type, scripted gates, EC-R7 refusal), the trace export (D4), the void rule (EC-R8), the `I-1` and injection cases, grading a failed run, and the three-run comparison, and the spike and evaluation reports that show `off_pinned_setting` and estimated cost (the `trace` columns exist since 7b PR 5; nothing reads them yet). `T-MAP-1` must pass before the first evaluation run. **B9** tuning and one evaluation cycle with the operator |
 | `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
 | `@system.arch` | Nothing blocking: H-064 and H-065 are done. H-061 (H-040) still needs the entry moved to Done. Records Build-week decisions in `sad.md` and `decision-log.md` when a handoff asks. Checks the drop order if the clock forces a drop |
 | `@project.mgr` | This table and the README stay current as blocks merge (the README status note was last aligned in H-067). The temporary `qa.md` exception is gone from `scripts/git-hooks/run-checks.sh` and `.github/workflows/ci.yml` (H-002, H-067); nothing left to remove |
@@ -436,3 +444,12 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   B8 slices (#142, #151). Checked against `backend/evaluation/` and the rendered report; the
   command was run read-only against `data/app.db`: every run there answers "Nothing to grade" (Stage A
   has not stored its output), so the report text was checked on a throwaway test run instead. No code. No model call. No real key. No paid call.
+- 2026-11-22 · persona `project-mgr` · action `document-setup` (handoff H-074) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · "Hand-off" status note and the Operator, `@backend.eng` and
+  `@qa.eng` rows now say 7b PRs 1 to 6 are merged (#127, #153, #154, #155, #158, #160) and real mode
+  is tested against the fake OpenAI only; new Operator item: after the spike, decide whether a call
+  off the pinned reasoning setting is a failure. "CrewAI settings": the retry bullet now describes
+  DL-43's one retry and the four-request bound; the install note says PRs 2 to 5 added no package.
+  Checked against `backend.md` (PR 5 section and "Known gaps"), `handoffs.md` and `git log`
+  (`pyproject.toml` history). README status row and "What happens next" aligned. No code. No model
+  call. No real key. No paid call.
