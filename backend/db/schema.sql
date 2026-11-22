@@ -248,6 +248,9 @@ CREATE TABLE IF NOT EXISTS trace (
     stop_reason       TEXT NOT NULL DEFAULT '',          -- the API's finish reason ('stop', 'length'); empty if no answer
     provider_error    TEXT,                              -- why this attempt got no answer (HTTP status, timeout); empty if it did
     cost_estimated    INTEGER NOT NULL DEFAULT 0 CHECK (cost_estimated IN (0, 1)),  -- 1: no usage data came; worst case charged
+    -- Step 4: 1 when the request did NOT carry the pinned settings (DL-40), e.g. CrewAI's silent repeat
+    -- without `reasoning_effort` (H-064 condition c). A flag only: it does not fail the call.
+    off_pinned_setting INTEGER NOT NULL DEFAULT 0 CHECK (off_pinned_setting IN (0, 1)),
     UNIQUE (run_id, step, stage_attempt, unit_id, attempt_n),                     -- the record key
     FOREIGN KEY (run_id, fund_id) REFERENCES runs (run_id, fund_id)
 );

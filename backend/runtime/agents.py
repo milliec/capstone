@@ -170,7 +170,11 @@ def _record_attempt(record: Recorder | None, attempt, *, step: str, role: str,
         max_tokens=call.max_completion_tokens, tokens_in=attempt.tokens_in,
         tokens_out=attempt.tokens_out, cost_usd=cost, attempt_n=attempt.n,
         stop_reason=attempt.stop_reason, provider_error=None if attempt.answered else
-        (attempt.error or "no answer"), cost_estimated=estimated))
+        (attempt.error or "no answer"), cost_estimated=estimated,
+        # CrewAI repeats a call WITHOUT `reasoning_effort` when a 400 says the model refuses it, and
+        # then remembers that for the rest of the process (H-064 condition c). That is a different
+        # request from the one DL-40 pinned, so it is flagged on the line, not hidden.
+        off_pinned_setting=attempt.sent_settings != call.sent_to_provider()))
 
 
 def _sha256(text: str) -> str:

@@ -24,8 +24,12 @@ failure of the second attempt, is final. A bad ANSWER is never retried (D5: that
 Every HTTP request the crew makes goes through CrewAI's `interceptor` into an `AttemptLog`
 (backend/runtime/attempts.py), so agents.py can write ONE TRACE LINE PER REQUEST (PR 5, step 3):
 the model string the API returned, its stop reason, that request's own token counts, and for a
-request with no answer, why. What is NOT here yet (step 4): flagging CrewAI's silent repeat
-without `reasoning_effort`.
+request with no answer, why. The lines also show CrewAI's own silent repeat: when a 400 says the
+model refuses `reasoning_effort`, CrewAI sends the call again WITHOUT it and then leaves it out of
+every later call of the process (H-064 condition c). Such a request is flagged `off_pinned_setting`
+on its trace line (PR 5, step 4); it is not stopped, so a run that goes off the pinned setting can
+be seen and judged afterwards. Our own bound is still two attempts, but each of them can carry
+CrewAI's repeat, so up to FOUR requests are possible, every one with its own line.
 
 CrewAI is loaded only here, only when a real call is made, and only through `load_crewai()` (which
 switches its telemetry, tracing and version check off first). A stand-in run never gets here

@@ -12,6 +12,7 @@ TRACE_ADDED_COLUMNS = {
     "stop_reason": "TEXT NOT NULL DEFAULT ''",
     "provider_error": "TEXT",
     "cost_estimated": "INTEGER NOT NULL DEFAULT 0 CHECK (cost_estimated IN (0, 1))",
+    "off_pinned_setting": "INTEGER NOT NULL DEFAULT 0 CHECK (off_pinned_setting IN (0, 1))",
 }
 
 

@@ -47,6 +47,7 @@ class CallRecord:
     stop_reason: str = ""           # the API's finish reason; empty when no answer came
     provider_error: str | None = None   # why this attempt got no answer; None when it did
     cost_estimated: bool = False    # True: no usage data came, so the worst case was charged
+    off_pinned_setting: bool = False    # True: the request did not carry the pinned settings (DL-40)
 
 
 def record_key(run_id: str, step: str, stage_attempt: int, unit_id: str, attempt_n: int) -> str:
@@ -74,14 +75,16 @@ def record_call(conn: sqlite3.Connection, *, run: dict, stage: str, unit_id: str
                                   prompt_version, model, model_returned, settings_json, max_tokens,
                                   input_hash, raw_output, parsed_output, validation_error,
                                   tokens_in, tokens_out, cost_usd, duration_ms, spend_activity,
-                                  late, stop_reason, provider_error, cost_estimated)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                  late, stop_reason, provider_error, cost_estimated,
+                                  off_pinned_setting)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (run["run_id"], run["fund_id"], call.step, run["stage_attempt"], unit_id,
              call.attempt_n, call.at, call.prompt_version, call.model, call.model_returned,
              call.settings_json, call.max_tokens, call.input_hash, call.raw_output,
              call.parsed_output, call.validation_error, call.tokens_in, call.tokens_out,
              call.cost_usd, call.duration_ms, spend_activity or None, int(late),
-             call.stop_reason, call.provider_error, int(call.cost_estimated)))
+             call.stop_reason, call.provider_error, int(call.cost_estimated),
+             int(call.off_pinned_setting)))
         conn.execute("UPDATE runs SET cost_so_far = cost_so_far + ? WHERE run_id = ?",
                      (call.cost_usd, run["run_id"]))
         key = record_key(run["run_id"], call.step, run["stage_attempt"], unit_id, call.attempt_n)

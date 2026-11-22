@@ -129,6 +129,7 @@ def test_one_request_gives_one_line_with_what_the_api_returned(real, fake_openai
     assert (line.tokens_in, line.tokens_out) == (1200, 300)         # this request's own usage data
     assert line.cost_usd == pytest.approx(model_settings.call_cost_usd("extract", 1200, 300))
     assert line.cost_estimated is False and line.provider_error is None
+    assert line.off_pinned_setting is False                         # it carried the pinned settings
     assert json.loads(line.settings_json) == {"max_completion_tokens": 2000,
                                               "reasoning_effort": "none", "temperature": 0.0}
     assert line.parsed_output and line.raw_output and line.validation_error is None
@@ -200,6 +201,98 @@ def test_a_bad_answer_after_a_retry_puts_the_verdict_on_the_last_line_only(
     assert isinstance(error, agents.InvalidOutput)
     assert failed.validation_error is None and failed.provider_error
     assert answered.validation_error and answered.provider_error is None and answered.raw_output
+
+
+# --- CrewAI's silent repeat without `reasoning_effort` (H-064 condition c), PR 5 step 4 ---------
+
+def _forget_what_crewai_learned():
+    crews.load_crewai()
+    from crewai.llms.providers.openai import completion
+    completion._LEARNED_NO_REASONING_EFFORT_MODELS.clear()
+
+
+@pytest.fixture
+def refuses_reasoning_effort(fake_openai):
+    """A model that answers 400 "Unsupported parameter" to a request carrying `reasoning_effort`,
+    as OpenAI does for a model that does not take it. Such a request is NOT taken from the script."""
+    fake_openai.reject_params = frozenset({"reasoning_effort"})
+    # CrewAI remembers a refusal for the rest of the process, keyed by the fake's URL. A later fake
+    # could be given the same port by the operating system, so forget it before and after.
+    forget = _forget_what_crewai_learned
+    forget()
+    yield fake_openai
+    forget()
+
+
+def test_crewai_repeats_a_refused_call_without_reasoning_effort_and_the_trace_shows_it(
+        real, refuses_reasoning_effort, paragraphs):
+    fake = refuses_reasoning_effort
+    fake.script(Reply({"rows": []}))
+    [refused, repeated], error = _lines(real, paragraphs)
+
+    # CrewAI did it on its own: our code saw ONE call that worked, and the fake saw TWO requests.
+    assert error is None and len(fake.requests) == 2
+    assert "reasoning_effort" in fake.requests[0].body and "reasoning_effort" not in fake.requests[1].body
+
+    # Line 1: what was refused. It carried the pinned settings, so it is not flagged; it cost nothing.
+    assert refused.attempt_n == 1 and refused.provider_error.startswith("HTTP 400")
+    assert "reasoning_effort" in refused.provider_error and refused.cost_usd == 0
+    assert json.loads(refused.settings_json)["reasoning_effort"] == "none"
+    assert refused.off_pinned_setting is False
+    # Line 2: the repeat. It answered, WITHOUT the pinned reasoning effort, and the line says so.
+    assert repeated.attempt_n == 2 and repeated.provider_error is None and repeated.parsed_output
+    assert "reasoning_effort" not in json.loads(repeated.settings_json)
+    assert repeated.off_pinned_setting is True
+
+
+def test_crewai_then_leaves_reasoning_effort_out_of_every_later_call_and_each_is_flagged(
+        real, refuses_reasoning_effort, paragraphs):
+    """The quiet part: CrewAI remembers the refusal for the rest of the process. The next call is ONE
+    request with no rejection to see, yet it is still off the pinned setting, and still flagged."""
+    fake = refuses_reasoning_effort
+    fake.script(Reply({"rows": []}), Reply({"rows": []}), Reply({"rows": []}))
+    _lines(real, paragraphs)
+    before = len(fake.requests)
+    [later], error = _lines(real, paragraphs)
+    assert error is None and len(fake.requests) - before == 1
+    assert "reasoning_effort" not in fake.requests[-1].body
+    assert later.attempt_n == 1 and later.provider_error is None and later.off_pinned_setting is True
+
+
+def test_our_retry_plus_crewais_repeat_is_at_most_four_requests_and_four_lines(
+        real, refuses_reasoning_effort, paragraphs):
+    """Our bound is two attempts. Each can carry CrewAI's repeat, so four requests are possible. Here:
+    refused, repeated and failed (500), then our retry: refused, repeated, answered."""
+    fake = refuses_reasoning_effort
+    fake.script(Failure(500), Reply({"rows": []}))
+    lines, error = _lines(real, paragraphs)
+    assert error is None and len(fake.requests) == 4 and fake.unscripted == []
+    assert [line.attempt_n for line in lines] == [1, 2, 3, 4]
+    assert [line.off_pinned_setting for line in lines] == [False, True, False, True]
+    assert [bool(line.provider_error) for line in lines] == [True, True, True, False]
+
+
+def test_a_call_that_stays_on_its_pinned_settings_is_never_flagged(real, fake_openai, paragraphs):
+    fake_openai.script(Failure(500), Reply({"rows": []}))
+    lines, error = _lines(real, paragraphs)
+    assert error is None and [line.off_pinned_setting for line in lines] == [False, False]
+
+
+def test_the_flag_reaches_the_trace_table_and_does_not_stop_the_run(real_db, refuses_reasoning_effort):
+    """Stage A over five documents on a model that refuses `reasoning_effort`: the run is NOT failed
+    by it. The first unit has the refused request and the repeat; the other four go straight to the
+    repeat. Six lines, five flagged, and the cost count equals the trace."""
+    settings, conn = real_db
+    settings = settings.__class__(**{**settings.__dict__, "run_cost_cap_usd": 2.50})
+    refuses_reasoning_effort.script(*[Reply({"rows": []}, tokens_in=1000, tokens_out=100)] * 5)
+    run_id = flow.start_to_g1(conn, settings)
+
+    lines = trace.list_trace(conn, run_id)
+    assert runs.get_run(conn, run_id)["status"] == "ACTIVE"                 # at G1, not failed
+    assert [(t["unit_id"] == lines[0]["unit_id"], t["attempt_n"], t["off_pinned_setting"])
+            for t in lines][:2] == [(True, 1, 0), (True, 2, 1)]
+    assert len(lines) == 6 and sum(t["off_pinned_setting"] for t in lines) == 5
+    assert runs.get_run(conn, run_id)["cost_so_far"] == pytest.approx(sum(t["cost_usd"] for t in lines))
 
 
 # --- The trace table and the cost cap ---------------------------------------------------------
@@ -298,11 +391,14 @@ def _columns(conn):
     return [row["name"] for row in conn.execute("PRAGMA table_info(trace)")]
 
 
-def test_the_trace_table_kept_every_column_in_place_and_added_three_at_the_end(settings):
+ADDED_TRACE_COLUMNS = ["stop_reason", "provider_error", "cost_estimated", "off_pinned_setting"]
+
+
+def test_the_trace_table_kept_every_column_in_place_and_added_four_at_the_end(settings):
     init_db(settings.database_path)
     conn = connect(settings.database_path)
-    assert _columns(conn) == ORIGINAL_TRACE_COLUMNS + ["stop_reason", "provider_error", "cost_estimated"]
-    assert list(TRACE_ADDED_COLUMNS) == ["stop_reason", "provider_error", "cost_estimated"]
+    assert _columns(conn) == ORIGINAL_TRACE_COLUMNS + ADDED_TRACE_COLUMNS
+    assert list(TRACE_ADDED_COLUMNS) == ADDED_TRACE_COLUMNS
 
 
 def test_a_database_made_before_this_step_gets_the_columns_and_keeps_its_lines(settings):
@@ -322,8 +418,8 @@ def test_a_database_made_before_this_step_gets_the_columns_and_keeps_its_lines(s
     after = [dict(t) for t in trace.list_trace(conn, run_id)]
     assert [{k: v for k, v in t.items() if k not in TRACE_ADDED_COLUMNS} for t in after] == [
         {k: v for k, v in t.items() if k not in TRACE_ADDED_COLUMNS} for t in before]
-    assert all((t["stop_reason"], t["provider_error"], t["cost_estimated"]) == ("", None, 0)
-               for t in after)
+    assert all((t["stop_reason"], t["provider_error"], t["cost_estimated"], t["off_pinned_setting"])
+               == ("", None, 0, 0) for t in after)
     init_db(settings.database_path)                      # and doing it twice is harmless
 
 
@@ -356,7 +452,8 @@ def test_a_stand_in_runs_trace_looks_the_same_as_before(settings):
         assert re.fullmatch(r"[0-9a-f]{16}\+stand-in:[0-9a-f]{8}", t["prompt_version"])
         assert re.fullmatch(r"[0-9a-f]{64}", t["input_hash"]) and t["at"]
         # The three new columns: what a line that is not a real request holds.
-        assert (t["stop_reason"], t["provider_error"], t["cost_estimated"]) == ("", None, 0)
+        assert (t["stop_reason"], t["provider_error"], t["cost_estimated"],
+                t["off_pinned_setting"]) == ("", None, 0, 0)
 
     audit = [(r["trace_ref"], r["reason"]) for r in conn.execute(
         "SELECT trace_ref, reason FROM audit_log WHERE run_id = ? AND event_type = 'agent_output' "
@@ -371,4 +468,5 @@ def test_a_stand_in_call_sends_nothing_and_never_builds_an_attempt_log(fake_open
     _extract(stand_in, paragraphs, record=lines.append)
     [line] = lines
     assert fake_openai.requests == []
-    assert (line.attempt_n, line.stop_reason, line.provider_error, line.cost_estimated) == (1, "", None, False)
+    assert (line.attempt_n, line.stop_reason, line.provider_error, line.cost_estimated,
+            line.off_pinned_setting) == (1, "", None, False, False)
