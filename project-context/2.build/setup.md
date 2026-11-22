@@ -103,10 +103,11 @@ against a fake OpenAI in the tests, never against the real one.
 | Variable | Default | Purpose |
 |---|---|---|
 | `AAMAD_TARGET_RUNTIME` | `crewai` | Framework runtime target |
-| `AGENTS_MODE` | `stand_in` | `stand_in` = fixed outputs, no model call, no cost |
+| `AGENTS_MODE` | `stand_in` | `stand_in` = fixed outputs, no model call, no cost. **Keep `stand_in` in `.env`.** `real` is for the spike command only: give it on the command line, together with `SPEND_ACTIVITY=spike` (see "Run the spike's first real call"), so `make run` can never go real |
 | `OPENAI_API_KEY` | placeholder | Only read when mode is not `stand_in`. Never commit a real key |
+| `OPENAI_BASE_URL` | not set | **A shell variable, not a `.env` setting.** The OpenAI client reads it only from the shell, never from `.env`. If it is set it changes where a real call goes; the spike prints an `Endpoint` line so you can see it. Leave it unset |
 | `RUN_COST_CAP_USD` | `2.50` | Hard stop per run |
-| `SPEND_ACTIVITY` | empty | Which of the five paid activities (spike, tuning, evaluation, rehearsal, demo) |
+| `SPEND_ACTIVITY` | empty | Which of the five paid activities (spike, tuning, evaluation, rehearsal, demo). The spike command needs `spike`; give it on the command line, not in `.env` |
 | `CALL_TIMEOUT_EXTRACT` / `CALL_TIMEOUT_VERIFY` / `CALL_TIMEOUT_JUDGE` | 90 / 60 / 60 | Each call's own timeout, in seconds (SAD §4). The HTTP client timeout is **not a variable**: the code sets it to the call timeout minus 5 seconds (DL-43) |
 | `LLM_MODEL_EXTRACT` / `LLM_MODEL_VERIFY` / `LLM_MODEL_JUDGE` | empty | The model ID for each role (DL-40). **Only in your own `.env`, never committed.** Empty in stand-in mode; a real call for a role with no ID is refused |
 | `LLM_MAX_TOKENS_EXTRACT` / `LLM_MAX_TOKENS_VERIFY` / `LLM_MAX_TOKENS_JUDGE` | 2000 / 2000 / 4000 | Output limit of one call, in tokens (a reasoning model's hidden thinking counts inside it). A test checks these keep a whole run under `RUN_COST_CAP_USD` |
@@ -261,6 +262,62 @@ and the EC-R7 refusal), the trace export (D4), the void rule (EC-R8), the `I-1` 
 has been timed and priced, EC-010 and EC-012 are tested only on made-up traces, and EC-004 only on
 the stand-in's verdicts.
 
+### Run the spike's first real call (operator)
+
+*Source: `2.build/backend.md`, section "B3 spike runner" (the exact steps and the table of outcomes
+are there). Added for H-075.*
+
+**Status.** The runner for the first extractor call is built and merged (#164, #166). It is tested
+against the fake OpenAI only. **No real key has been used and no paid call has been made. You make the
+first real call, from your own terminal, and send the printout back to `@backend.eng`.** It sends one
+request for one document (`SRC-UCILAW`). The worst case is about US$0.0012 for one request and US$0.0024
+with the retry (a quarter of a cent); the dry-run prints the number for your run.
+
+**Before you start**
+
+- `.env` holds the real `OPENAI_API_KEY` and `LLM_MODEL_EXTRACT` (the DL-40 extractor ID). Neither is ever
+  committed.
+- **Leave `AGENTS_MODE=stand_in` in `.env`.** The command below gives `real` on the command line, so
+  `make run` can never go real by accident.
+
+**Steps**
+
+1. **Dry-run first.** It sends nothing:
+
+   ```bash
+   AGENTS_MODE=real SPEND_ACTIVITY=spike .venv/bin/python -m backend.runtime.spike
+   ```
+
+   Read the plan: the model, the settings it would send, the input size, the worst case and
+   `Spike calls (0 of 70)`. Accept the cost before you go on.
+2. **Go.** Run the same command with `--go` at the end.
+3. **Check the `Endpoint` line.** It must say **`OpenAI's default (api.openai.com)`**. If it says
+   anything else (a proxy, or `127.0.0.1`), **do not type the ID**: press Enter to cancel and look at
+   `env | grep OPENAI`. The line reads only the shell's `OPENAI_BASE_URL`, not `.env`.
+4. **Type `SRC-UCILAW` and press Enter.** That is the one thing that sends a request. Anything else
+   (a wrong word, an empty line) means "not confirmed": nothing is sent.
+5. **Read the result and send it back.** The printout never contains the key. The full answer stays in
+   `data/spike.db`.
+
+| Exit code | Meaning |
+|---|---|
+| 0 | The call was made and the answer was usable |
+| 1 | The call was made (and billed) but the answer was not usable |
+| 2 | Nothing was sent (a refusal, or not confirmed) |
+
+**"Unable to initialize LLM" means CrewAI does not recognise the model ID in `LLM_MODEL_EXTRACT` as an
+OpenAI model.** (Its fallback, LiteLLM, is deliberately not installed.) It appears as a Python traceback,
+not as `REFUSED:`. It is raised while the model client is built, before any request exists, so **nothing
+was sent and nothing was billed**, and the dry-run cannot see it. Check the ID in `.env` against DL-40
+for a typo or a space. If it is exact, **stop and tell `@backend.eng`. Never run `pip install litellm`**: a
+new dependency is a SAD edit first.
+
+**Do not delete `data/spike.db` to start over.** It also resets the count of 70 spike calls, and EC-R10
+says a further call needs a recorded operator decision.
+
+**Not built yet:** the verifier and judge calls, the call plan up to 70, and the spike report
+(`@qa.eng`, B8). `backend.md` also lists what else you may see instead of a result.
+
 ## Persona sessions: one worktree each
 
 **Rule: two Claude Code sessions never share one working folder.** (On 2026-11-17 a `git stash` in
@@ -325,22 +382,22 @@ repo's `CLAUDE.md` but not your auto-memory for the main folder.
 
 ## Hand-off: what is next for each downstream agent
 
-*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065); snapshot rows updated 2026-11-20 (H-055 closed, all 16 recorded); `@qa.eng` row updated 2026-11-21 (H-070); `@backend.eng` and Operator rows and the status note updated 2026-11-22 (H-074). Merged on `main`: B1 with
+*Refreshed 2026-11-19 (H-060, H-061, and again after H-059, H-062 to H-065); snapshot rows updated 2026-11-20 (H-055 closed, all 16 recorded); `@qa.eng` row updated 2026-11-21 (H-070); `@backend.eng` and Operator rows and the status note updated 2026-11-22 (H-074), and again 2026-11-22 (H-075: the spike runner is built). Merged on `main`: B1 with
 CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B5, B7, B12, and **the first green path** (H-056).
 **DL-40 is pinned** (H-064) and the four CrewAI settings changes are recorded in `sad.md` (H-065).
 **Sprint 3 is treated as done at the stand-in bar** (operator, 2026-11-19).
 **B3 step 7b is built: PRs 1 to 5 are merged** (#127, #153, #154, #155, #158; the SAD side of PR 5 is
 H-073, #159) and PR 6, the documentation (#160), is merged too. Real mode builds one one-agent crew
 per unit with DL-43's one retry, but it is **tested only against a fake OpenAI: no real key, no paid
-call, and real mode must not be run before the operator's spike.** **The spike, B8 and B9 start next
+call, and real mode must not be run before the operator's spike.** **The spike runner for the first extractor call is built and merged** (#164, #166), tested against the fake OpenAI only; the operator makes the first real call (see "Run the spike's first real call"). **The spike, B8 and B9 start next
 week** (week of 2026-11-23). Order from there, per the
 Build card: the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then
 B12, then B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs.md`.*
 
 | Agent | Next |
 |---|---|
-| Operator | Say "go" for the **spike** next week. Step 7b is built and merged (PRs 1 to 6) but has only run against a fake OpenAI; the spike makes the first paid model calls, so it needs `.env` to hold the real key and the pinned model IDs (never committed). **After the spike, decide whether a call off the pinned reasoning setting counts as a failure** (SAD Production Shape, "Decisions to take once the spike has shown the result"). Real mode must not be run before then. Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
-| `@backend.eng` | **B3 step 7b** is built, PRs 1 to 5 merged (#127, #153, #154, #155, #158) plus the PR 6 docs (#160): CrewAI 1.15.35 installed with its outside connections off; real mode sends one one-agent crew per unit, with DL-43's one retry (a timeout, no connection, a 429 or a 5xx; never a 400, 401 or 404; never a bad answer), **one trace line per HTTP request** (up to four per unit, at most two billed), four new `trace` columns, and a flag when CrewAI repeats a call without `reasoning_effort`. All tested against the fake OpenAI only: no real key, no paid call. Next: the **spike** with timings (they replace the starting limits in `.env.example`), starting with the runner that makes its per-role calls. Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
+| Operator | Make the **spike's first real call** from your own terminal: dry-run, then `--go`, check the Endpoint line, type `SRC-UCILAW`, and send the printout to `@backend.eng`. The steps are under "Run the spike's first real call" in "Tests and checks". Step 7b and the runner are built and merged but have only run against a fake OpenAI; this makes the first paid call (about a quarter of a cent), so `.env` must hold the real key and the pinned extractor model ID (never committed), with `AGENTS_MODE=stand_in` left in place. **After the spike, decide whether a call off the pinned reasoning setting counts as a failure** (SAD Production Shape, "Decisions to take once the spike has shown the result"). Real mode must not be run before then. Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
+| `@backend.eng` | **B3 step 7b** is built, PRs 1 to 5 merged (#127, #153, #154, #155, #158) plus the PR 6 docs (#160): CrewAI 1.15.35 installed with its outside connections off; real mode sends one one-agent crew per unit, with DL-43's one retry (a timeout, no connection, a 429 or a 5xx; never a 400, 401 or 404; never a bad answer), **one trace line per HTTP request** (up to four per unit, at most two billed), four new `trace` columns, and a flag when CrewAI repeats a call without `reasoning_effort`. All tested against the fake OpenAI only: no real key, no paid call. **The spike runner for the first extractor call is built** (#164, #166; `python -m backend.runtime.spike`, a dry-run and a `--go` with a typed confirmation, its own `data/spike.db`; tested against the fake OpenAI only). Next, once the operator has sent the first result: the verifier and judge calls and the call plan up to 70, with timings (they replace the starting limits in `.env.example`). Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
 | `@frontend.eng` | Nothing open on snapshots: the mobile fix (H-062) and the 360 px baselines are done. H-061: move your finished entries (H-048, H-027) to Done (H-054 is already there). Later: **B6** light visual pass (dropped first) |
 | `@qa.eng` | **B8** has two slices built and merged, both reading a finished run from the database with no model call: the Stage A grader (#142) and the Stage B grader (#151: EC-004 applicability verdicts, EC-010 agent time and EC-012 cost, from the trace). How to run them and what they report: "Grade a finished run" under "Tests and checks"; the details are in `2.build/qa.md`. Still to do, after the spike: the run starter (evaluation-run type, scripted gates, EC-R7 refusal), the trace export (D4), the void rule (EC-R8), the `I-1` and injection cases, grading a failed run, and the three-run comparison, and the spike and evaluation reports that show `off_pinned_setting` and estimated cost (the `trace` columns exist since 7b PR 5; nothing reads them yet). `T-MAP-1` must pass before the first evaluation run. **B9** tuning and one evaluation cycle with the operator |
 | `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
@@ -463,3 +520,11 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   SAD §4 names, the `HTTP_TIMEOUT_*` row removed (set in code, DL-43), rows added for `LLM_MODEL_*`
   and `LLM_MAX_TOKENS_*`; "Open points" and the Open Question about variable names updated. Checked
   against `.env.example` (lines 31 to 46) and `handoffs.md`. No code. No model call. No real key. No paid call.
+- 2026-11-22 · persona `project-mgr` · action `document-setup` (handoff H-075) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · new subsection "Run the spike's first real call" under "Tests and
+  checks" (dry-run, `--go`, the Endpoint check, typing `SRC-UCILAW`, exit codes 0, 1 and 2, the "Unable to
+  initialize LLM" case, do not delete `data/spike.db`); environment table: `AGENTS_MODE` and
+  `SPEND_ACTIVITY` notes, new `OPENAI_BASE_URL` row (a shell variable); Hand-off status note, Operator
+  and `@backend.eng` rows. Copied from `backend.md` "B3 spike runner" and checked against
+  `backend/runtime/spike.py` (Endpoint wording, `--go`, exit codes, `data/spike.db`). The command was
+  not run. No code. No model call. No real key. No paid call.
