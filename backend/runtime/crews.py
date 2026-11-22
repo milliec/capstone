@@ -175,6 +175,13 @@ def build_crew(settings: Settings, step: str, inputs: dict[str, str],
     agent = Agent(role=text["role"], goal=text["goal"], backstory=text["backstory"],
                   llm=LLM(**llm_args), tools=[], allow_delegation=card["allow_delegation"],
                   memory=card["memory"], max_iter=card["max_iter"], max_retry_limit=0,
+                  # NO context-window pre-flight. By default CrewAI first sends a SEPARATE request
+                  # to OpenAI ("POST /v1/responses/input_tokens", to count the prompt's tokens) and
+                  # may then summarise the prompt on its own if it thinks it is too long. We send
+                  # one bounded message, so it has no use here, and it broke "one unit = one
+                  # request" in the first real spike call (RUN-20261122-1, spike PR 2). It does not
+                  # happen on a non-OpenAI host, which is why the fake never showed it.
+                  respect_context_window=False,
                   verbose=False)
     task = Task(description=text["description"], expected_output=text["expected_output"],
                 agent=agent, guardrail_max_retries=0)
