@@ -6,11 +6,14 @@ on ONE document (SRC-UCILAW by default). It prints what would be sent and what i
 most, and it refuses, with a plain reason, whenever a safety condition is not met.
 
 What this file deliberately does NOT do (the safety design, kept for every later spike PR):
-  - It never sends a request. It imports no CrewAI, no `crews.py`, no `agents.py`: there is no code
-    path from here to the network. A test (T-SPIKE-1) also blocks every socket while it runs.
+  - Importing this file loads no CrewAI, no `crews.py`, no `agents.py` (T-SPIKE-2 checks it in a
+    fresh process). The dry-run (`plan_first_call`) has no path to the network; T-SPIKE-1 blocks
+    every socket while it runs.
+  - Since spike PR 2b, ONE function can send: `run_first_call`. It imports the real-mode code only
+    when it is called, and it is tested against the fake OpenAI only (T-SPIKE-3).
   - It never prints or logs the API key. It says only whether a key is set.
-  - `--go` is REFUSED in this build. The flag exists so that asking for it fails safely; the live
-    call arrives in PR 2, after the operator has read this plan and said "go".
+  - The COMMAND's `--go` is still REFUSED. It is wired in PR 2c, together with a confirmation the
+    operator types, so that no paid call can start by accident in between.
 
 Why a separate spike database (data/spike.db, git-ignored):
   A real call writes a trace line, and `record_call` (backend/services/trace.py) needs a `runs` row
@@ -31,7 +34,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-# These four imports are deliberately the "light" ones (they use only sqlite3 and datetime).
+# These imports are deliberately the "light" ones (they use only sqlite3 and datetime).
 # Do NOT import backend.services.runs here: it pulls in the stage code, and with it the code that
 # can make a real call. A test (T-SPIKE-2) checks that importing this file loads no CrewAI.
 from backend.db.connection import connect, init_db
@@ -40,7 +43,7 @@ from backend.domain.ids import new_run_id
 from backend.domain.schemas import ExtractionResult
 from backend.runtime import harness, model_settings, prompts
 from backend.runtime.wire_schema import wire_schema
-from backend.services import FUND_ID
+from backend.services import FUND_ID, trace
 from backend.services.audit import now_utc, write_audit
 from backend.settings import ROOT, Settings, SettingsError, load_settings
 
@@ -178,6 +181,86 @@ def plan_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMEN
         calls_used=used, call_cap=cap)
 
 
+@dataclass(frozen=True)
+class SpikeResult:
+    """What one live call did. Plain data, so the command (PR 2c) can print it and a test can read it."""
+    run_id: str
+    document_id: str
+    unit_id: str                   # the trace's name for this call: the document ID, "#", the call number
+    ok: bool                       # True: the answer passed the guardrail
+    row_count: int                 # rows the extractor returned (0 when not ok)
+    failure: str | None            # the reason, in words, when not ok
+    lines: tuple                   # one CallRecord per HTTP request sent, in the order sent
+    run_cost_usd: float            # the spike run's cost so far, including this call
+
+
+def run_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMENT,
+                   spike_db: Path = SPIKE_DB) -> SpikeResult:
+    """Make the ONE real extractor call the dry-run described, and trace every request it sends.
+
+    ⚠ THIS IS THE FUNCTION THAT CAN SPEND MONEY. Nothing in the repository calls it except tests
+    (against the fake OpenAI). The command's `--go` is wired in PR 2c, behind a typed confirmation.
+
+    Order, and why: (1) every dry-run check, so a wrong setting, a missing key or model ID, a
+    non-primary document or the 70-call cap stops us before anything is created; (2) the spike run
+    row; (3) the cost cap, counted from the run's own cost so far PLUS this call's worst case with
+    its one retry; (4) the call, through the same real-mode path the app uses (DL-43: once, and
+    once more if the first request failed in a way a retry can fix). A bad ANSWER is never asked
+    for again (D5). On a failure we report it and stop; nothing here repeats a call.
+    """
+    plan = plan_first_call(settings, document_id=document_id, spike_db=spike_db)   # (1)
+    run_id = open_spike_run(settings, spike_db)                                    # (2)
+
+    # The real-mode code is imported only now, never when this file is imported (T-SPIKE-2).
+    from backend.runtime import agents
+
+    conn = connect(spike_db)
+    try:
+        run = dict(conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone())
+        spent = trace.cost_so_far(conn, run_id)
+        if spent + plan.worst_case_with_retry_usd > settings.run_cost_cap_usd:      # (3)
+            raise SpikeRefused(
+                f"US${spent:.4f} is spent and this call could cost up to "
+                f"US${plan.worst_case_with_retry_usd:.4f} more: that passes the "
+                f"US${settings.run_cost_cap_usd:.2f} cap (CR-017).")
+
+        # The trace refuses two lines with the same (run, step, stage attempt, unit, attempt_n). A
+        # review has one unit per document, but the spike calls the same document again and again
+        # (after a failure, with a changed prompt). So each CALL is its own unit: SRC-X#1, SRC-X#2.
+        (earlier,) = conn.execute(
+            "SELECT COUNT(DISTINCT unit_id) FROM trace WHERE run_id = ? AND unit_id LIKE ?",
+            (run_id, f"{document_id}#%")).fetchone()
+        unit_id = f"{document_id}#{earlier + 1}"
+
+        lines: list = []
+
+        def record(call) -> None:
+            """Called by the agent once per HTTP request; writes the trace line at once, so the
+            cost is counted even when the request got no answer."""
+            lines.append(call)
+            trace.record_call(conn, run=run, stage="A", unit_id=unit_id, call=call,
+                              spend_activity="spike")
+
+        own = {p["paragraph_id"]: p["text"] for p in sources.load_paragraphs()
+               if p["document_id"] == document_id}
+        row_count, failure = 0, None
+        try:                                                                       # (4)
+            rows = agents.extract_rows(settings, document_id=document_id, paragraphs=own,
+                                       recipient_codes=list(sources.list_recipients()),
+                                       record=record)
+            row_count = len(rows)
+        except agents.InvalidOutput as error:
+            failure = f"invalid output: {error}"
+        except agents.ModelServiceError as error:
+            failure = f"model service: {error}"
+        return SpikeResult(run_id=run_id, document_id=document_id, unit_id=unit_id,
+                           ok=failure is None,
+                           row_count=row_count, failure=failure, lines=tuple(lines),
+                           run_cost_usd=trace.cost_so_far(conn, run_id))
+    finally:
+        conn.close()
+
+
 def format_plan(plan: SpikePlan) -> str:
     """The text the operator reads. It never contains the API key."""
     return "\n".join([
@@ -194,7 +277,7 @@ def format_plan(plan: SpikePlan) -> str:
          f"US${plan.worst_case_with_retry_usd:.4f} if the first request is billed and the one retry is too"),
         f"Spike calls    : {plan.calls_used} of {plan.call_cap} used (EC-R10)",
         "",
-        "A real call is not available in this build (--go arrives in spike PR 2).",
+        "A real call is not available from the command yet (--go arrives in spike PR 2c).",
     ])
 
 
@@ -215,8 +298,8 @@ def main(argv: list[str] | None = None, *, env: dict[str, str] | None = None,
     args = parser.parse_args(argv)
 
     if args.go:
-        out("REFUSED: --go is not available in this build. This PR plans the first call only; "
-            "the live call is spike PR 2, after the operator has read the plan and said go.")
+        out("REFUSED: --go is not available in this build. The command plans the first call only; "
+            "--go is wired in spike PR 2c, with a confirmation you type, after you have read the plan.")
         return 2
     try:
         plan = plan_first_call(load_settings(env), document_id=args.document, spike_db=spike_db)
