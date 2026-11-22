@@ -53,6 +53,8 @@ This repository is **public**. Anything committed should be treated as published
    that changed the page: report it; `@frontend.eng` proposes the new snapshots and the operator
    approves them.
 
+4. **Lint** (same command as CI; also run by the pre-commit hook): `.venv/bin/ruff check backend tests`
+
 - Never commit or push with `--no-verify`. If a hook blocks you, stop and report it to the operator
   instead of bypassing it. An agent that used `--no-verify` must say so at once.
 - The `qa.md` exception in `scripts/git-hooks/run-checks.sh` is temporary. It ends when `@qa.eng`
