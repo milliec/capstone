@@ -522,7 +522,7 @@ stand-in happy path passed: it passed (#105).
 | **`ImportError: Unable to initialize LLM with model 'openai/...'`**, "did not match any supported native provider", "the LiteLLM fallback package is not installed" | **CrewAI does not recognise the model ID in `LLM_MODEL_EXTRACT` as an OpenAI model**, and its fallback (LiteLLM) is not installed on purpose. It is raised while the model client is *built*, before any request exists, so **nothing was sent and nothing was billed**. The dry-run cannot see it (it never builds the client). It shows as a Python traceback, not as `REFUSED:`, because it is not one of the expected refusals | Check the ID in `.env` for a typo, a space or a wrong name against DL-40. If it is exactly right, **stop and tell `@backend.eng`**. Do **not** `pip install litellm`: a new dependency is a SAD edit first (CLAUDE.md) |
 | `Answer : NOT USABLE - invalid output` | The request was made and **billed**; the answer failed the guardrail. It is not asked for again (D5) | Send the printout; the raw answer is in the trace |
 | `Answer : NOT USABLE - model service` | Both requests (the call and DL-43's one retry) got no answer. Each is traced and counted, with the worst case when no usage data came back (`ESTIMATED`) | Send the printout |
-| `Off pinned setting : YES` | CrewAI repeated the call without `reasoning_effort` after a 400 (H-064 c). The call is *not* a clean run of the pinned settings | Report it; this is what the spike is meant to find out |
+| `Off pinned setting : YES` | CrewAI repeated the call without `reasoning_effort` after a 400 (H-064 c). The call is *not* a clean run of the pinned settings. **Check the request first:** a YES on a request with 0 tokens, no model and no stop reason is not a model call (on the first real call it was CrewAI's pre-flight; see "B3 spike finding"). That cannot happen after step A of the fix | Report it; this is what the spike is meant to find out |
 
 **Do not delete `data/spike.db` to "start over".** It also resets the count of 70 calls, and EC-R10 says a
 further call needs a recorded operator decision.
@@ -535,6 +535,87 @@ further call needs a recorded operator decision.
 - If the database cannot be written *after* a request was sent, the command stops with that error: the
   request may have been billed without a trace line. The 70-call and cost caps would then undercount.
 - Handoff H-075 asks `@project.mgr` to put these steps in `setup.md` (not mine to edit).
+
+## B3 spike finding: the first real call sent two requests (RUN-20261122-1, 2026-11-22)
+
+**Summary.** The operator's first real call (`SRC-UCILAW#1`, `gpt-6-luna`) gave a valid answer (3 rows)
+for US$0.0003, but the trace holds **two** lines. Line 1 was **not a model call**. It was CrewAI's own
+pre-flight request, `POST /v1/responses/input_tokens`, which asks OpenAI to count the prompt's tokens. Our
+attempt log recorded it as if it were an answer. Fixed on branch `backend-eng/spike-preflight-fix`.
+
+**What `data/spike.db` holds** (the trace is append-only, so these lines stay as they are):
+
+| | Line 1 (`attempt_n` 1) | Line 2 (`attempt_n` 2) |
+|---|---|---|
+| What it really was | CrewAI's pre-flight token count | the model call |
+| Tokens in / out | 0 / 0 (a count request has no usage data) | 1500 / 360 |
+| Model returned, stop reason | none, none | `gpt-6-luna`, `stop` |
+| Settings recorded | `{}` (the body carried none) | `reasoning_effort` none, `temperature` 0.0, `max_completion_tokens` 2000 |
+| Duration | 1543 ms | 4437 ms |
+| `cost_usd` | **0.0011342, estimated** (a false alarm, see below) | 0.00033 (from usage data) |
+| `off_pinned_setting` | **1** (a false alarm, see below) | 0 |
+
+The run's `cost_so_far` is US$0.0014642. The model call alone cost US$0.00033.
+
+**How it was identified, and how sure we are.** Read-only, with no second real call. (1) The stored line
+has exactly the shape of a non-model request that got a 200: no settings, no model, no stop reason, no
+usage. (2) CrewAI 1.15.35 sends that request: `Agent.respect_context_window` is true by default, and
+before each call it counts the prompt's tokens (`completion.py`, `get_input_tokens_count`). It skips the
+request when the server is not `api.openai.com` (`_on_compatible_server`), which is why no test saw it.
+(3) A local reproduction against the fake, with CrewAI made to believe it was on OpenAI, produced the same
+line: cost 0.0011343 against 0.0011342, `estimated`, `off_pinned_setting` 1, no model, no stop reason. **The
+real request's body is not stored**, so this is inference plus reproduction, not a recording. The
+confirmation call after the fix should show one line.
+
+**What did not go wrong.**
+
+- **The pinned settings were accepted.** Line 2 carried `reasoning_effort` none, `temperature` 0.0 and
+  `max_completion_tokens` 2000 and got a 200. No 400, so **no silent repeat**, and nothing was dropped for
+  later calls. This is the first real evidence that `gpt-6-luna` accepts them.
+- The answer was valid, and the model string returned was `gpt-6-luna` (the alias; no dated snapshot).
+
+**What went wrong, and what it means.**
+
+- **A false cost.** A 200 with no usage data is treated as "unknown", so the worst case of a model call was
+  charged for a request that is not one. Too high, never too low, so the cap was never at risk.
+- **A false flag.** `off_pinned_setting` is "the request did not carry the pinned settings". A count
+  request never does, so it was marked YES. It is **not** a silent repeat.
+- **Two of the 70 call slots used for one model call.** The cap counts trace lines (`real_calls_made`).
+- **A broken rule.** SAD §2 "Counting every request" says one unit sends exactly one request, except our one
+  retry and CrewAI's silent repeat. The interceptor saw the extra request, as designed, but nothing stopped
+  it. H-076 tells `@system.arch`.
+- **Billing of the count request is not verified.** The operator should look at the OpenAI usage page: one
+  chat request of 1500 in and 360 out is what the trace says.
+
+**Why no test saw it.** Every test talked to a fake on `127.0.0.1`. CrewAI does some things only when it
+believes the server is OpenAI itself, and a fake on another host cannot show them. The first real call was
+the first run on `api.openai.com`. There may be other behaviour like this; step D (below) refuses any
+request that is not a chat completion, so the next one is stopped instead of discovered.
+
+**The fix, in steps (branch `backend-eng/spike-preflight-fix`).**
+
+| Step | What | Where |
+|---|---|---|
+| A (`bc0b320`) | `respect_context_window=False` on the agent: no pre-flight request, and no chance that CrewAI summarises our prompt on its own | `backend/runtime/crews.py` (`build_crew`) |
+| B (`fcd2a69`) | **T-REQ-1**: the `as_openai` fixture makes CrewAI behave as if the fake were `api.openai.com`; the fake answers the count endpoint; four tests (one unit is one request; the fixture is not an empty shell; the spike call is one trace line and one slot; a retry adds a chat request and no count request). With A reverted, 3 of the 4 fail | `tests/conftest.py`, `tests/fake_openai.py`, `tests/tier1/test_one_request.py` |
+| C | This section, H-076, and the note below | `backend.md`, `handoffs.md` |
+| D | Record each request's URL path and **refuse** any request that is not `/chat/completions`, with a test. **Not built yet** | `attempts.py`, `crews.py` |
+
+**For the spike report (note for whoever writes it; `@qa.eng`, with B8).**
+
+- **`SRC-UCILAW#1` stays as it is, as the honest record.** Do not edit or delete the two lines (the trace
+  is append-only, and the operator decided on 2026-11-22 to leave them). Explain it in one sentence:
+  **"One model call plus one pre-flight token-count request sent by CrewAI; 2 of the 70 call slots were used."**
+  The 70-call count shows 2 of 70 used and stays that way. Calls made after the fix use one slot each.
+- **Its cost and its `off_pinned_setting` flag on line 1 are false alarms.** Report the model call's
+  figures from line 2: US$0.00033, 1500 in, 360 out, stop reason `stop`, not off the pinned setting. The
+  run's US$0.0015 overstates the model call's cost by about US$0.0011.
+- **Do not count line 1 as an off-pinned call** when counting how often CrewAI repeated a call without
+  `reasoning_effort` (SAD, "Decisions to take once the spike has shown the result"). On this run it
+  happened zero times. Judge a line by its request, not only by its flag: no model returned, no tokens and
+  no stop reason means it was not a model call.
+- Report that the first real call found a request the fake could not show, and what stops it now (steps A,
+  B and D). That is a spike result in its own right.
 
 ## Pattern Decision compliance
 
@@ -770,3 +851,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-21 · persona `backend-eng` · `develop-be` (B3 step 7b, PR 4: the crews behind the three agent functions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instruction "move on to 7b PRs 2 to 4". New `crews.py`, `wire_schema.py`; real-mode path in `agents.py`; `ModelServiceError` to the stage; `max_iter` 1; key in settings; `load_crewai()` also sets CrewAI's own 429 retry to one attempt. LLM, temperature and max-token controls: **built and tested against the fake** (DL-40 sampling per role, limits from PR 2); never sent to a real provider. H-072 to `@system.arch` (the hidden retry; the schema route). Real mode is not to be run before PR 5 and the spike. No real key, no paid call, no model ID committed.
 - 2026-11-22 · persona `backend-eng` · `sync-docs` (B3 step 7b, PR 6: documentation) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "move on to PR 6 (docs)". Docs only: new section "B3 step 7b, PR 5" (which failures are retried, one trace line per HTTP request, the four new columns, the cost rule, the four-request and two-billed bound, the sticky silent repeat); "Kickoff", "Pattern Decision compliance" and "Known gaps" brought in line with real mode and PR 5. Raised H-074 to `@project.mgr` for `setup.md` and the README (not mine to edit). Read against the merged code (`crews.py`, `attempts.py`, `model_settings.py`, `agents.py`, `schema.sql`) and the PR 5 description; no code changed. No model call.
 - 2026-11-22 · persona `backend-eng` · `develop-be` (B3 spike runner, PR 1 and PR 2a to 2d) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instructions "continue with B3 spike", "Start 2a", "Go 2b", "Go 2c", "Go 2d". New `backend/runtime/spike.py` (dry-run `plan_first_call`; `open_spike_run`; `run_first_call`; `--go` with a typed document-ID confirmation and a printed result) and Tier 1 T-SPIKE-1 to 4. The pull request that carries 2a to 2d is from branch `backend-eng/spike-runner-2`; PR 1 is #164 (merged). 2d is docs only: new section "B3 spike runner" with how to run the first real call and what each outcome means, "How to run" and "Known gaps" brought in line. The worst-case figure in the run steps was computed on 2026-11-22 with the dry-run planner and made-up settings (no network). Raised H-075 to `@project.mgr` for `setup.md` and the README (not mine to edit). LLM, temperature and max-token controls: unchanged (DL-40 per role, limits from PR 2); the first call sends the extractor's pinned settings. **No real key was used, no model call was made, no paid call, no model ID committed, no snapshot changed.** The operator makes the first real call.
+- 2026-11-22 · persona `backend-eng` · `document-backend` (B3 spike fix, step C: documentation) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "Go C" after the first real spike call (RUN-20261122-1, run by the operator). Docs only: new section "B3 spike finding" (what the two trace lines were, how it was identified and how sure we are, what did and did not go wrong, why no test saw it, the fix in steps A to D, and a note for the spike report: `SRC-UCILAW#1` stays as the honest record, 1 model call plus 1 pre-flight request, 2 of 70 slots used, its cost and `off_pinned_setting` are false alarms); one pointer added to the run instructions' "Off pinned setting" row. Read from `data/spike.db` opened read-only, and from the installed CrewAI 1.15.35; reproduced locally against the fake OpenAI with CrewAI made to believe it was on OpenAI (127.0.0.1 only). Raised H-076 to `@system.arch` (sad.md is not mine to edit). Steps A (`bc0b320`) and B (`fcd2a69`) are code; D is not built yet. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator will make one confirmation call after the fix merges.
