@@ -5,8 +5,8 @@ from backend/stand_in/, checked by the real guardrails. Since B3 step 5 the stag
 them (backend/runtime/stages.py). Since B3 step 7b PR 4, real mode (AGENTS_MODE=real) sends the
 unit to a CrewAI crew (backend/runtime/crews.py) and puts the model's answer through the SAME
 guardrail. A real call needs a model ID and the key in .env: with either missing it is refused
-before any request. Real mode is not meant to run until PR 5 (the one retry, one trace line per
-attempt) and the operator's spike.
+before any request. Since PR 5 a real call has DL-43's one retry and one trace line per HTTP
+request; real mode is still not meant to run until the operator's spike.
 
 The stand-in pause (DL-54, B13a): each stand-in unit waits STAND_IN_UNIT_PAUSE_S seconds before
 returning, so the units table fills in one row at a time. Real mode NEVER pauses (T-PAUSE-1).
@@ -103,32 +103,78 @@ def _ready(settings: Settings, step: str) -> None:
 
 def _real_call(settings: Settings, *, step: str, inputs: dict[str, str], hash_inputs: dict,
                check: Callable[[object], guardrails.GuardrailResult], record: Recorder | None):
-    """One real call (AGENTS_MODE=real): send the unit to its crew once, put the answer through the
-    SAME guardrail as a stand-in answer, report the call for the trace, then return the parsed
-    output or raise InvalidOutput. A provider failure raises ModelServiceError (no trace line:
-    PR 5 writes one per attempt). The model is never asked again (D5)."""
+    """One real call (AGENTS_MODE=real): send the unit to its crew (DL-43: once, and once more if
+    the first request failed in a way a retry can fix), put the answer through the SAME guardrail as
+    a stand-in answer, then return the parsed output or raise InvalidOutput. A provider failure
+    raises ModelServiceError. The model is never asked again about a bad ANSWER (D5).
+
+    TRACE (PR 5, step 3): ONE LINE PER HTTP REQUEST, in the order sent, `attempt_n` 1, 2, ... A
+    request that got no answer (a timeout, a 500) is a line too, written BEFORE the error is raised,
+    so its cost counts towards the cap. Only the request that answered carries the output and the
+    guardrail's verdict."""
     role = model_settings.STEP_ROLE[step]
     call = model_settings.role_settings(settings, role)     # no model ID: refused, nothing sent
     at, started = now_utc(), time.monotonic()
-    result = crews.run_step(settings, step, inputs)         # may raise ModelServiceError
+    input_hash = _sha256(json.dumps(hash_inputs, sort_keys=True, ensure_ascii=False, default=str))
+    try:
+        result = crews.run_step(settings, step, inputs)     # may raise ModelServiceError
+    except crews.ModelServiceError as failure:
+        for attempt in failure.attempts:                    # every request sent, none of them answered
+            _record_attempt(record, attempt, step=step, role=role, call=call, input_hash=input_hash)
+        raise
     try:
         answer = json.loads(result.text)
         checked = check(answer)
     except json.JSONDecodeError as error:
         checked = guardrails.GuardrailResult(ok=False, error=f"The answer is not valid JSON: {error}")
     if record is not None:
-        record(CallRecord(
-            step=step, at=at, prompt_version=prompts.prompt_version(step),
-            input_hash=_sha256(json.dumps(hash_inputs, sort_keys=True, ensure_ascii=False,
-                                          default=str)),
-            raw_output=result.text, parsed_output=guardrails.to_json(checked),
-            validation_error=checked.error, duration_ms=int((time.monotonic() - started) * 1000),
-            model=call.model, settings_json=call.logged(), max_tokens=call.max_completion_tokens,
-            tokens_in=result.tokens_in, tokens_out=result.tokens_out,
-            cost_usd=model_settings.call_cost_usd(role, result.tokens_in, result.tokens_out)))
+        if result.attempts:
+            *failed, answering = result.attempts
+            for attempt in failed:                          # a request that failed and was retried
+                _record_attempt(record, attempt, step=step, role=role, call=call, input_hash=input_hash)
+            _record_attempt(record, answering, step=step, role=role, call=call, input_hash=input_hash,
+                            raw_output=result.text, checked=checked)
+        else:
+            # The interceptor saw nothing (it should always). The call still gets its one line, from
+            # CrewAI's own numbers, so it can never go untraced; an empty `model_returned` shows it.
+            record(CallRecord(
+                step=step, at=at, prompt_version=prompts.prompt_version(step), input_hash=input_hash,
+                raw_output=result.text, parsed_output=guardrails.to_json(checked),
+                validation_error=checked.error,
+                duration_ms=int((time.monotonic() - started) * 1000), model=call.model,
+                settings_json=call.logged(), max_tokens=call.max_completion_tokens,
+                tokens_in=result.tokens_in, tokens_out=result.tokens_out,
+                cost_usd=model_settings.call_cost_usd(role, result.tokens_in, result.tokens_out)))
     if not checked.ok:
         raise InvalidOutput(checked.error)
     return checked.parsed
+
+
+def _record_attempt(record: Recorder | None, attempt, *, step: str, role: str,
+                    call: model_settings.RoleSettings, input_hash: str,
+                    raw_output: str | None = None, checked=None) -> None:
+    """The trace line of ONE HTTP request. `checked` (the guardrail's verdict) is given only for
+    the request whose answer was used; every other line has no output and no verdict."""
+    cost, estimated = model_settings.attempt_cost_usd(
+        role, kind=attempt.kind, tokens_in=attempt.tokens_in, tokens_out=attempt.tokens_out,
+        request_bytes=attempt.request_bytes, max_completion_tokens=call.max_completion_tokens)
+    if record is None:
+        return
+    record(CallRecord(
+        step=step, at=attempt.at, prompt_version=prompts.prompt_version(step), input_hash=input_hash,
+        raw_output=raw_output, validation_error=checked.error if checked else None,
+        parsed_output=guardrails.to_json(checked) if checked else None,
+        duration_ms=attempt.duration_ms, model=call.model, model_returned=attempt.model_returned,
+        # What THIS request carried (a repeat without `reasoning_effort` shows here), as JSON.
+        settings_json=json.dumps(attempt.sent_settings, sort_keys=True),
+        max_tokens=call.max_completion_tokens, tokens_in=attempt.tokens_in,
+        tokens_out=attempt.tokens_out, cost_usd=cost, attempt_n=attempt.n,
+        stop_reason=attempt.stop_reason, provider_error=None if attempt.answered else
+        (attempt.error or "no answer"), cost_estimated=estimated,
+        # CrewAI repeats a call WITHOUT `reasoning_effort` when a 400 says the model refuses it, and
+        # then remembers that for the rest of the process (H-064 condition c). That is a different
+        # request from the one DL-40 pinned, so it is flagged on the line, not hidden.
+        off_pinned_setting=attempt.sent_settings != call.sent_to_provider()))
 
 
 def _sha256(text: str) -> str:

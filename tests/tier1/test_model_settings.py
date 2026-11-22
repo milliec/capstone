@@ -10,6 +10,7 @@ import json
 
 import pytest
 
+from backend.runtime import crews
 from backend.runtime import model_settings as ms
 from backend.settings import ROLES, SettingsError, load_settings
 from tests.tier1.test_prompt_leak import _rendered_prompts
@@ -132,6 +133,34 @@ def test_a_generous_run_at_every_limit_and_retried_stays_under_the_cap():
     calls = {"extract": 5 * 2, "verify": rows * 2, "judge": rows * 2}
     worst = ms.worst_case_run_cost_usd(s, input_tokens=_biggest_input_tokens(), calls=calls)
     assert worst < s.run_cost_cap_usd, f"worst case US${worst:.2f} could pass the US$2.50 hard stop"
+
+
+def _run_worst_case(requests_per_unit):
+    """The most a generous run (12 rows, 5 extractions, every request at its output limit and at the
+    longest prompt of its role) could spend if each unit sent `requests_per_unit` BILLED requests."""
+    rows = 12
+    calls = {"extract": 5 * requests_per_unit, "verify": rows * requests_per_unit,
+             "judge": rows * requests_per_unit}
+    return ms.worst_case_run_cost_usd(settings_with(), input_tokens=_biggest_input_tokens(),
+                                      calls=calls)
+
+
+def test_four_requests_per_unit_still_bill_at_most_two_and_stay_under_the_cap():
+    """PR 5 (H-073): a unit can send up to FOUR requests (our two attempts, each with CrewAI's own
+    repeat without `reasoning_effort`). Only the billed ones count towards the worst case, and
+    CrewAI repeats only after a 400, which costs 0 (tests/tier1/test_attempt_trace.py). So the
+    worst case is the TWO-billed-request figure (US$1.49 when this was written), not the four."""
+    cap = settings_with().run_cost_cap_usd
+    assert crews.MAX_REQUESTS_PER_UNIT == 4 and crews.MAX_BILLED_REQUESTS_PER_UNIT == 2
+    worst = _run_worst_case(crews.MAX_BILLED_REQUESTS_PER_UNIT)
+    assert worst == pytest.approx(_run_worst_case(2))           # the same figure DL-43 alone gave
+    assert worst < cap, f"worst case US${worst:.2f} could pass the US${cap:.2f} hard stop"
+
+
+def test_the_four_request_bound_is_safe_only_because_a_refused_request_costs_nothing():
+    """Proof the test above can fail: if all four requests were billed, the worst case would pass
+    the cap. The cap's safety rests on the 4xx rule, not on the number of requests."""
+    assert _run_worst_case(crews.MAX_REQUESTS_PER_UNIT) > settings_with().run_cost_cap_usd
 
 
 def test_the_check_really_fails_when_a_limit_is_raised_too_far():

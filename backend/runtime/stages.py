@@ -108,6 +108,8 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
         raise _StageStopped
     stage_store.mark_unit(conn, run, stage, unit_id, "running")
 
+    # One entry per trace line this unit wrote. A real call writes one per HTTP request (PR 5), so
+    # the LAST entry is the request that answered: it alone says whether the output came too late.
     late = []
 
     def record(call_record):
@@ -122,12 +124,13 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
         stage_store.fail_stage(conn, run, stage, unit_id, "demo failure")
         raise _StageStopped
     except agents.ModelServiceError:
-        # The provider gave no answer (timeout, rate limit, error). One attempt until B3 step 7b
-        # PR 5 adds DL-43's single retry around the call. Nothing was traced: no answer came.
+        # The provider gave no answer, even after DL-43's one retry where a retry was allowed
+        # (a timeout, a rate limit, a server error). Each request is already in the trace, and its
+        # cost counted, before this error reached us (agents._real_call).
         stage_store.fail_stage(conn, run, stage, unit_id, "model service")
         raise _StageStopped
     except _UNIT_FAILURES:
-        if late and late[0]:
+        if late and late[-1]:
             raise _StageStopped          # late AND invalid: the trace has it; nothing else to do
         stage_store.fail_stage(conn, run, stage, unit_id, "invalid output")
         raise _StageStopped
@@ -135,7 +138,7 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
         # CR-018: the trace line could not be written, so the call counts as failed.
         stage_store.fail_stage(conn, run, stage, unit_id, "invalid output")
         raise _StageStopped
-    if late and late[0]:
+    if late and late[-1]:
         raise _StageStopped              # rule 9: arrived after the stage failed or the run ended
     stage_store.mark_unit(conn, run, stage, unit_id, "done")
     return result

@@ -3,9 +3,10 @@ OpenAI (tests/fake_openai.py). Tier 1.
 
 No real model, no real key, no outside connection: the fake runs on this machine and every key in
 this file is a placeholder. The question every test asks is the one H-065 set: **how many requests
-reached the provider, and what did each one say?** One unit sends exactly one request, whatever
-the answer is (a good one, an invalid one, an error or a timeout): there is no re-ask and no hidden
-retry in this PR. (The one retry DL-43 allows, and one trace line per attempt, are PR 5.)
+reached the provider, and what did each one say?** One unit sends exactly one request when the
+provider answers, whatever the answer is (a good one or an invalid one): there is no re-ask. The
+only second request is DL-43's one retry of a call that FAILED (timeout, no connection, rate limit,
+server error), and never a third. (One trace line per attempt is PR 5, steps 3 and 4.)
 """
 
 import copy
@@ -25,6 +26,12 @@ from backend.settings import load_settings
 from tests.fake_openai import TEST_API_KEY, Failure, Reply
 
 DOC = "SRC-CSSF15627"
+
+
+@pytest.fixture(autouse=True)
+def no_retry_wait(monkeypatch):
+    """DL-43's short wait before the retry would only slow the tests down."""
+    monkeypatch.setattr(crews, "RETRY_WAIT_S", 0)
 
 
 @pytest.fixture
@@ -182,37 +189,148 @@ def test_an_answer_that_breaks_a_guardrail_fails_the_unit_after_one_request(
     assert len(fake_openai.requests) == 1 and fake_openai.unused() == 1
 
 
-# --- A provider failure is one attempt and one error (PR 5 adds the DL-43 retry) --------------
+# --- A provider failure: DL-43's ONE retry, never more (PR 5, step 2) ----------------------------
 
 @pytest.mark.parametrize("failure", [Failure(500), Failure(503, "Overloaded"),
-                                     Failure(429, "Rate limit", "rate_limit_exceeded"),
-                                     Failure(400, "Bad request", "invalid_request_error")])
-def test_a_provider_error_is_one_request_not_three(real, fake_openai, paragraphs, failure):
-    """Left at CrewAI's defaults (agent `max_retry_limit` 2), a failing call is THREE requests."""
+                                     Failure(429, "Rate limit", "rate_limit_exceeded")])
+def test_a_server_error_or_rate_limit_is_sent_twice_not_three_times(real, fake_openai, paragraphs, failure):
+    """Left at CrewAI's defaults (agent `max_retry_limit` 2), a failing call is THREE requests; ours
+    is exactly two: the call and DL-43's one retry. Four failures are scripted: two stay unused."""
     fake_openai.script(failure, failure, failure, failure)
+    with pytest.raises(crews.ModelServiceError, match=r"attempt 2 of 2"):
+        _extract(real, paragraphs)
+    assert len(fake_openai.requests) == 2 and fake_openai.unused() == 2
+
+
+@pytest.mark.parametrize("failure", [Failure(400, "Bad request", "invalid_request_error"),
+                                     Failure(401, "Bad key", "invalid_api_key"),
+                                     Failure(404, "No such model", "model_not_found")])
+def test_a_client_error_is_sent_once_and_never_retried(real, fake_openai, paragraphs, failure):
+    fake_openai.script(failure, failure)
+    with pytest.raises(crews.ModelServiceError, match=r"attempt 1 of 2"):
+        _extract(real, paragraphs)
+    assert len(fake_openai.requests) == 1 and fake_openai.unused() == 1
+
+
+def test_the_retry_can_succeed_and_then_the_answer_is_used(real, fake_openai, stand_in, paragraphs):
+    fake_openai.script(Failure(503, "Overloaded"), Reply(_good_answer(stand_in, paragraphs)))
+    rows = _extract(real, paragraphs)
+    assert len(fake_openai.requests) == 2 and fake_openai.unscripted == []
+    assert [r.model_dump() for r in rows] == [r.model_dump() for r in _extract(stand_in, paragraphs)]
+    # Both attempts carried the same prompt and the same settings: a retry is a repeat, not a re-ask.
+    assert fake_openai.requests[0].body == fake_openai.requests[1].body
+
+
+def test_the_retry_waits_the_short_wait_first(real, fake_openai, paragraphs, monkeypatch):
+    monkeypatch.setattr(crews, "RETRY_WAIT_S", 1.5)
+    waits = []
+    monkeypatch.setattr(crews.time, "sleep", waits.append)
+    fake_openai.script(Failure(500), Failure(500))
     with pytest.raises(crews.ModelServiceError):
         _extract(real, paragraphs)
-    assert len(fake_openai.requests) == 1
+    assert waits == [1.5]                       # once, between the two attempts, not after the second
 
 
-def test_a_timeout_is_one_request_and_a_model_service_error(fake_openai, monkeypatch, paragraphs):
+def _timeout_settings(fake_openai, monkeypatch):
     monkeypatch.setenv("OPENAI_BASE_URL", fake_openai.base_url)
     # A 6 s call timeout puts the client's own timeout at 1 s (the call's minus 5 s, DL-43).
-    settings = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike",
-                              "OPENAI_API_KEY": TEST_API_KEY, "LLM_MODEL_EXTRACT": "gpt-6-test-e",
-                              "CALL_TIMEOUT_EXTRACT": "6"})
-    fake_openai.script(Reply({"rows": []}, delay_s=2.0), Reply({"rows": []}, delay_s=2.0))
-    with pytest.raises(crews.ModelServiceError, match="timed out"):
+    return load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike",
+                          "OPENAI_API_KEY": TEST_API_KEY, "LLM_MODEL_EXTRACT": "gpt-6-test-e",
+                          "CALL_TIMEOUT_EXTRACT": "6"})
+
+
+def test_a_timeout_is_retried_once_and_a_second_timeout_is_final(fake_openai, monkeypatch, paragraphs):
+    settings = _timeout_settings(fake_openai, monkeypatch)
+    fake_openai.script(Reply({"rows": []}, delay_s=2.0), Reply({"rows": []}, delay_s=2.0),
+                       Reply({"rows": []}))
+    with pytest.raises(crews.ModelServiceError, match=r"timed out.*attempt 2 of 2"):
         _extract(settings, paragraphs)
-    assert len(fake_openai.requests) == 1
+    assert len(fake_openai.requests) == 2 and fake_openai.unused() == 1     # never a third
 
 
-def test_a_provider_failure_writes_no_trace_line_yet(real, fake_openai, paragraphs):
-    fake_openai.script(Failure(500))
-    lines = []
-    with pytest.raises(crews.ModelServiceError):
-        _extract(real, paragraphs, record=lines.append)
-    assert lines == []        # no answer came; PR 5 writes one line per attempt
+def test_a_timeout_then_an_answer_is_a_success(fake_openai, monkeypatch, stand_in, paragraphs):
+    settings = _timeout_settings(fake_openai, monkeypatch)
+    fake_openai.script(Reply({"rows": []}, delay_s=2.0), Reply(_good_answer(stand_in, paragraphs)))
+    rows = _extract(settings, paragraphs)
+    assert len(fake_openai.requests) == 2 and rows
+
+
+def test_a_bad_answer_is_never_retried_even_after_a_retry(real, fake_openai, paragraphs):
+    """A failed call, retried, then an answer that breaks the schema: that is final (D5)."""
+    fake_openai.script(Failure(500), Reply({"rows": [{"obligation_name": "Due 2027-01-10"}]}), Reply({"rows": []}))
+    with pytest.raises(agents.InvalidOutput, match="schema"):
+        _extract(real, paragraphs)
+    assert len(fake_openai.requests) == 2 and fake_openai.unused() == 1
+
+
+# --- Which failures DL-43 lets us retry once (PR 5, step 1: the rule; step 2 uses it) ------------
+
+def _the_failure(settings, paragraphs):
+    """Run one extraction that is expected to fail, and hand back the `ModelServiceError`."""
+    with pytest.raises(crews.ModelServiceError) as caught:
+        _extract(settings, paragraphs)
+    return caught.value
+
+
+@pytest.mark.parametrize("failure, retriable", [
+    (Failure(500), True),                                            # a server error
+    (Failure(503, "Overloaded"), True),
+    (Failure(429, "Rate limit", "rate_limit_exceeded"), True),        # a rate limit
+    (Failure(400, "Bad request", "invalid_request_error"), False),    # sending it again cannot fix it
+    (Failure(401, "Bad key", "invalid_api_key"), False),
+    (Failure(404, "No such model", "model_not_found"), False),        # CrewAI turns this into a ValueError
+])
+def test_a_real_provider_failure_is_classified(real, fake_openai, paragraphs, failure, retriable):
+    fake_openai.script(failure, failure)
+    assert crews.is_retriable(_the_failure(real, paragraphs)) is retriable
+
+
+def test_a_timeout_is_retriable(fake_openai, monkeypatch, paragraphs):
+    settings = _timeout_settings(fake_openai, monkeypatch)
+    fake_openai.script(Reply({"rows": []}, delay_s=2.0), Reply({"rows": []}, delay_s=2.0))
+    assert crews.is_retriable(_the_failure(settings, paragraphs)) is True
+
+
+def test_no_connection_is_retriable(monkeypatch, paragraphs):
+    import socket
+    with socket.socket() as s:                       # a port nothing listens on
+        s.bind(("127.0.0.1", 0))
+        closed_port = s.getsockname()[1]
+    monkeypatch.setenv("OPENAI_BASE_URL", f"http://127.0.0.1:{closed_port}/v1")
+    settings = load_settings({"AGENTS_MODE": "real", "SPEND_ACTIVITY": "spike",
+                              "OPENAI_API_KEY": TEST_API_KEY, "LLM_MODEL_EXTRACT": "gpt-6-test-e"})
+    assert crews.is_retriable(_the_failure(settings, paragraphs)) is True
+
+
+def test_what_is_not_a_provider_failure_is_not_retriable():
+    """An invalid answer is final (D5), and so is a bug of ours: never send the call again."""
+    assert crews.is_retriable(agents.InvalidOutput("the answer broke the schema")) is False
+    assert crews.is_retriable(ValueError("a bug")) is False
+    assert crews.is_retriable(crews.ModelServiceError("no cause was kept")) is False
+
+
+def test_a_plain_connection_or_timeout_error_is_retriable_when_no_openai_error_explains_it():
+    assert crews.is_retriable(ConnectionError("Failed to connect")) is True
+    assert crews.is_retriable(TimeoutError("timed out")) is True
+    wrapped = crews.ModelServiceError("ConnectionError: Failed to connect")
+    wrapped.__cause__ = ConnectionError("Failed to connect")
+    assert crews.is_retriable(wrapped) is True
+
+
+def test_the_first_openai_error_in_the_chain_decides():
+    """A 400 stays a 400 even if something around it looks like a connection error."""
+    import httpx
+    import openai
+    response = httpx.Response(400, request=httpx.Request("POST", "http://127.0.0.1/v1"))
+    outer = ConnectionError("wrapped")
+    outer.__cause__ = openai.BadRequestError("bad request", response=response, body=None)
+    assert crews.is_retriable(outer) is False
+
+
+def test_a_chain_that_loops_back_on_itself_cannot_hang():
+    first, second = ValueError("first"), ValueError("second")
+    first.__cause__, second.__cause__ = second, first
+    assert crews.is_retriable(first) is False
 
 
 # --- Refused before anything is sent ---------------------------------------------------------
