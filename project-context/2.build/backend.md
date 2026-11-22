@@ -522,6 +522,7 @@ stand-in happy path passed: it passed (#105).
 | **`ImportError: Unable to initialize LLM with model 'openai/...'`**, "did not match any supported native provider", "the LiteLLM fallback package is not installed" | **CrewAI does not recognise the model ID in `LLM_MODEL_EXTRACT` as an OpenAI model**, and its fallback (LiteLLM) is not installed on purpose. It is raised while the model client is *built*, before any request exists, so **nothing was sent and nothing was billed**. The dry-run cannot see it (it never builds the client). It shows as a Python traceback, not as `REFUSED:`, because it is not one of the expected refusals | Check the ID in `.env` for a typo, a space or a wrong name against DL-40. If it is exactly right, **stop and tell `@backend.eng`**. Do **not** `pip install litellm`: a new dependency is a SAD edit first (CLAUDE.md) |
 | `Answer : NOT USABLE - invalid output` | The request was made and **billed**; the answer failed the guardrail. It is not asked for again (D5) | Send the printout; the raw answer is in the trace |
 | `Answer : NOT USABLE - model service` | Both requests (the call and DL-43's one retry) got no answer. Each is traced and counted, with the worst case when no usage data came back (`ESTIMATED`) | Send the printout |
+| `NOT USABLE - model service: ... HTTP 400 ... invalid_request_error` (about the schema) | OpenAI refused the `response_format` we sent (for the verifier, the two flag shapes). **A refused request costs nothing**, and nothing is repeated. **This is the stop rule: do not run it again** | Send the printout; the schema needs a change, not a retry |
 | `NOT USABLE - model service: refused before sending: ...` | Our own guard stopped a request that was not a chat completion **before it was sent**. Nothing reached OpenAI and nothing was charged. It is a spike finding in its own right | Send the printout: the `Path` line says which request it was |
 | `Off pinned setting : YES` | CrewAI repeated the call without `reasoning_effort` after a 400 (H-064 c). The call is *not* a clean run of the pinned settings. **Check the request first:** a YES on a request with 0 tokens, no model and no stop reason is not a model call (on the first real call it was CrewAI's pre-flight; see "B3 spike finding"). That cannot happen after step A of the fix | Report it; this is what the spike is meant to find out |
 
@@ -634,6 +635,77 @@ request that is not a chat completion, so the next one is stopped instead of dis
   no stop reason means it was not a model call.
 - Report that the first real call found a request the fake could not show, and what stops it now (steps A,
   B and D). That is a spike result in its own right.
+
+## B3 spike finding 2: the first real verifier call caught the conflict but failed the schema (2026-11-22)
+
+**Summary.** The operator's first real verifier call (`gpt-5.6-terra`, row `SRC-UCILAW-P3`, unit
+`SRC-UCILAW-P3#1`, trace line 4) **accepted the pinned settings and caught the planted conflict C-1 in
+substance**, but our validator refused the answer: **schema-pass on the first attempt: 0 of 1.** The
+spike's stop rule fired (an invalid answer); no further call was made. Fixed by sending the verifier's
+flag as two shapes (branch `backend-eng/spike-flag-shapes`, T-WIRE-1).
+
+**What the trace holds** (append-only, so it stays as it is):
+
+| | |
+|---|---|
+| Request | one, `POST /v1/chat/completions`; no 400, no retry; `off_pinned_setting` 0 |
+| Settings | `reasoning_effort` low accepted; no temperature sent; `max_completion_tokens` 2000 |
+| Size, cost, time | 1723 in, 351 out (hidden reasoning is inside the 351); **US$0.0077**; 5.1 s; stop reason `stop` |
+| Model returned | `gpt-5.6-terra` |
+| Count | **4 of 70** call slots used; run cost US$0.0095 |
+
+**What the model sent.** One cross-source flag: it cited `SRC-PRACT-P1` with a quote copied word for word
+("within four months of financial year-end") and explained the four-versus-six-month difference. It also
+wrote `field` = `offset` and `row_value` = `6 months`, which belong to an **internal** flag only. Our `Flag`
+check says a cross-source flag has `other_paragraph_id` and `other_quote` and **no** `field`, `row_value`
+or `quote_says`, so the answer was refused as invalid output.
+
+**Why it happened (three things together, none visible against the fake).**
+
+1. **Strict mode requires every key on every object.** The schema we sent listed all seven flag keys as
+   required, with `null` allowed on the five optional ones. A JSON schema cannot say "an internal flag has
+   no `other_quote`", so the model had to choose a value for keys that did not apply.
+2. **The prompt never says "leave the others null".** The card's expected output says a cross-source flag
+   "also has" its two keys; its worked example shows a flag with only its own keys, which is not what the
+   strict format asks for.
+3. **The validator is right to refuse it.** The fake answered with our own stand-in flags, which carry
+   only their own keys, so no test could have shown this.
+
+**The fix (operator's choice: option 1 of 3, 2026-11-22).** `backend/runtime/wire_schema.py` sends the flag
+as `anyOf` two shapes, built from `Flag` itself so the value sets cannot drift:
+
+- **InternalFlag**: `flag_type` (`internal`), `explanation`, `field` (`frequency`, `anchor` or `offset`),
+  `row_value`, `quote_says`;
+- **CrossSourceFlag**: `flag_type` (`cross_source`), `explanation`, `other_paragraph_id`, `other_quote`.
+
+Each shape lists exactly its own keys, all required, none nullable, so the model cannot mix them. **Not
+changed:** the validator, the card text and worked example, the stored flags, and the extractor's and the
+judge's schemas (checked byte for byte against their schemas from before the change). The two options not
+taken: wording the prompt "set the others to null" (relies on the model obeying, and the card is
+`@system.arch`'s), and a validator that strips the extra keys (loosens CR-003 and D5, and would hide the
+very thing the spike measures).
+
+**Tests (T-WIRE-1, fake only).** The shapes; the schema and the validator agree, checked with a real
+JSON-Schema checker (what the schema allows the validator accepts; the first call's mixed flag is refused
+by both); the validator still refuses and records a mixed flag that gets through anyway; our own stand-in
+answers pass the schema; a verifier request carries the two shapes. With the fix switched off 9 tests
+fail; with one shape damaged 4 fail.
+
+**Not proved, and what a real re-run will show.** Whether OpenAI accepts a nested `anyOf` in strict mode.
+Only a real call can say. The operator re-runs the verifier call after the fix merges (it will be
+`SRC-UCILAW-P3#2`, count 5 of 70, about US$0.008). **A 400 "invalid schema" costs US$0 and fires the stop
+rule: stop and report; do not retry by hand.**
+
+**For the spike report (note for whoever writes it; `@qa.eng`, with B8).**
+
+- **Record the verifier's first call honestly:** accepted `reasoning_effort` low; **caught C-1 in
+  substance but failed the schema check; first-attempt schema-pass 0 of 1**; US$0.0077; 4 of 70 slots. Do
+  not describe it as a miss: the answer cited the right paragraph with a verbatim quote.
+- **The DL-26 bake-off is not decided by this call.** "Missed" applies to answers that pass the schema,
+  and none had yet. Count the first call in "share of calls whose output passes its schema on the first
+  attempt" and say why it failed.
+- Say what changed afterwards (two flag shapes) and that later verifier lines were sent a different
+  `response_format` from this one. The prompt version did not change; the schema did.
 
 ## Pattern Decision compliance
 
@@ -871,3 +943,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-22 · persona `backend-eng` · `develop-be` (B3 spike runner, PR 1 and PR 2a to 2d) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instructions "continue with B3 spike", "Start 2a", "Go 2b", "Go 2c", "Go 2d". New `backend/runtime/spike.py` (dry-run `plan_first_call`; `open_spike_run`; `run_first_call`; `--go` with a typed document-ID confirmation and a printed result) and Tier 1 T-SPIKE-1 to 4. The pull request that carries 2a to 2d is from branch `backend-eng/spike-runner-2`; PR 1 is #164 (merged). 2d is docs only: new section "B3 spike runner" with how to run the first real call and what each outcome means, "How to run" and "Known gaps" brought in line. The worst-case figure in the run steps was computed on 2026-11-22 with the dry-run planner and made-up settings (no network). Raised H-075 to `@project.mgr` for `setup.md` and the README (not mine to edit). LLM, temperature and max-token controls: unchanged (DL-40 per role, limits from PR 2); the first call sends the extractor's pinned settings. **No real key was used, no model call was made, no paid call, no model ID committed, no snapshot changed.** The operator makes the first real call.
 - 2026-11-22 · persona `backend-eng` · `document-backend` (B3 spike fix, step C: documentation) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "Go C" after the first real spike call (RUN-20261122-1, run by the operator). Docs only: new section "B3 spike finding" (what the two trace lines were, how it was identified and how sure we are, what did and did not go wrong, why no test saw it, the fix in steps A to D, and a note for the spike report: `SRC-UCILAW#1` stays as the honest record, 1 model call plus 1 pre-flight request, 2 of 70 slots used, its cost and `off_pinned_setting` are false alarms); one pointer added to the run instructions' "Off pinned setting" row. Read from `data/spike.db` opened read-only, and from the installed CrewAI 1.15.35; reproduced locally against the fake OpenAI with CrewAI made to believe it was on OpenAI (127.0.0.1 only). Raised H-076 to `@system.arch` (sad.md is not mine to edit). Steps A (`bc0b320`) and B (`fcd2a69`) are code; D is not built yet. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator will make one confirmation call after the fix merges.
 - 2026-11-22 · persona `backend-eng` · `develop-be` + `document-backend` (B3 spike fix, step D: the request guard) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only, with CrewAI made to behave as if on OpenAI) · operator instruction "Go D". Code in `9479f23`: the interceptor refuses any request that is not `POST .../chat/completions` before it is sent; new `trace` column `request_path` (additive, default empty); a refused request costs 0 and is never retried; the spike prints each request's path; T-REQ-2 (17 tests) and two older tests updated. Rehearsed the column migration on a copy of the real `data/spike.db` (all values unchanged, still append-only; the original file untouched). The docs of step D are in this entry's commit: "B3 spike finding" (row D, "What D does"), one row added to the run instructions, H-076 updated (D's commit and the new column for sad.md §4), and H-077 to `@qa.eng` (a pointer to the spike report note). LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator will make one confirmation call after this merges.
+- 2026-11-22 · persona `backend-eng` · `develop-be` + `document-backend` (B3 spike fix: the verifier's flag as two shapes) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instruction after the first real verifier call (run by the operator): "Option 1, two flag shapes, as its own PR with tests against the fake". Code in `666b27c`: `backend/runtime/wire_schema.py` sends the verifier's flag as `anyOf` two shapes built from `Flag`; T-WIRE-1 (20 new tests); one older test changed (it pinned the old nullable keys). The extractor's and judge's schemas checked byte for byte against their schemas from before the change. Read `data/spike.db` opened read-only; nothing in it was changed. This entry's docs: new section "B3 spike finding 2" (what the trace holds, the cause, the fix, what is not proved, a note for the spike report), one row added to the run instructions (a 400 on the schema), and H-078 to `@system.arch` (sad.md is not mine to edit). LLM, temperature and max-token controls: unchanged (verifier: reasoning effort low, no temperature, 2000 tokens). **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator re-runs the verifier call after the fix merges.
