@@ -133,6 +133,13 @@ class FakeOpenAI:
     def _answer(self, path: str, body: dict, api_key: str):
         """(status, JSON payload, extra headers). The request is written down FIRST, so a request
         that is refused or times out is still counted."""
+        if path.endswith("/input_tokens"):
+            # OpenAI's "count this prompt's tokens" endpoint. CrewAI calls it as a pre-flight when
+            # it believes it is talking to OpenAI itself (see the `as_openai` fixture). It is written
+            # down like any request, so a test can see it, but it takes no scripted answer.
+            with self._lock:
+                self.requests.append(SeenRequest(path, body, api_key))
+            return 200, {"object": "response.input_tokens", "input_tokens": 1500}, {}
         with self._lock:
             self.requests.append(SeenRequest(path, body, api_key))
             refused = sorted(p for p in self.reject_params if p in body)
