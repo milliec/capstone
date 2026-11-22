@@ -55,11 +55,16 @@ def test_no_keyword_strict_mode_does_not_accept_is_left(model):
 
 
 def test_an_optional_field_can_still_be_null():
-    """The verifier's `field` is only for internal flags. CrewAI's own builder would remove `null`
-    from it and force the model to invent a value; ours keeps it."""
-    flag = wire_schema(VerificationResult)["json_schema"]["schema"]["$defs"]["Flag"]
-    for name in ("field", "row_value", "quote_says", "other_paragraph_id", "other_quote"):
-        assert {"type": "null"} in flag["properties"][name]["anyOf"], name
+    """An optional field is still written "this type or null". CrewAI's own builder would remove
+    `null` from it and force the model to invent a value; ours keeps it. (The verifier used to be
+    the example; since the two-flag-shapes fix it has no optional fields, see test_flag_shapes.py.)"""
+    from pydantic import BaseModel
+
+    class WithAnOptionalField(BaseModel):
+        note: str | None = None
+
+    prop = wire_schema(WithAnOptionalField)["json_schema"]["schema"]["properties"]["note"]
+    assert {"type": "null"} in prop["anyOf"]
 
 
 def test_the_offsets_two_shapes_survive_as_an_anyof():
