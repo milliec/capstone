@@ -18,6 +18,9 @@ What this file deliberately does NOT do (the safety design, kept for every later
     row of SRC-UCILAW-P3, where the planted conflict C-1 sits (SRC-PRACT-P1 says four months, the
     row says six). Same safety design; the operator types `verify SRC-UCILAW-P3`. The result says
     CAUGHT or MISSED, and counts any internal flag as a false alarm.
+  - Spike PR 3, step 2: `--step judge` plans or makes ONE Stage B judge call on the same answer-key
+    row. The operator types `judge SRC-UCILAW-P3`. The result says whether the verdict matches the
+    answer key (applies, citing FACT-01).
 
 Why a separate spike database (data/spike.db, git-ignored):
   A real call writes a trace line, and `record_call` (backend/services/trace.py) needs a `runs` row
@@ -30,6 +33,7 @@ Why a separate spike database (data/spike.db, git-ignored):
 Run it (needs AGENTS_MODE=real, SPEND_ACTIVITY=spike, the key and the role's model ID in .env):
     .venv/bin/python -m backend.runtime.spike                   # the extractor, dry-run
     .venv/bin/python -m backend.runtime.spike --step verify     # the verifier, dry-run
+    .venv/bin/python -m backend.runtime.spike --step judge      # the judge, dry-run
 """
 
 import argparse
@@ -47,10 +51,10 @@ import yaml
 # Do NOT import backend.services.runs here: it pulls in the stage code, and with it the code that
 # can make a real call. A test (T-SPIKE-2) checks that importing this file loads no CrewAI.
 from backend.db.connection import connect, init_db
-from backend.domain import sources
+from backend.domain import fund_facts, sources
 from backend.domain.ids import new_run_id
 from backend.domain.quote_check import check_quote
-from backend.domain.schemas import ExtractionResult, Row, VerificationResult
+from backend.domain.schemas import ExtractionResult, Row, Verdict, VerificationResult
 from backend.runtime import harness, model_settings, prompts
 from backend.runtime.wire_schema import wire_schema
 from backend.services import FUND_ID, trace
@@ -61,13 +65,18 @@ SPIKE_DB = ROOT / "data" / "spike.db"          # `data/` is git-ignored, so this
 FIRST_CALL_DOCUMENT = "SRC-UCILAW"             # operator's choice (the largest primary document)
 STEP, ROLE = "extract_rows", "extract"         # the first live step is ONE Stage A extractor call
 VERIFY_STEP, VERIFY_ROLE = "check_conflicts", "verify"   # spike PR 3: ONE Stage B verifier call
-KINDS = ("extract", "verify")
+JUDGE_STEP, JUDGE_ROLE = "judge_applicability", "judge"   # spike PR 3, step 2: ONE Stage B judge call
+KINDS = ("extract", "verify", "judge")
+FIRST_JUDGE_ROW = "SRC-UCILAW-P3"
 FIRST_VERIFY_ROW = "SRC-UCILAW-P3"             # the answer-key row that carries the planted conflict C-1
 
 # The planted conflicts the verifier is measured on (expected-obligation-library.md, "planted
 # conflicts"). Row's source paragraph -> (conflict ID, the OTHER paragraph a good flag must cite).
 # Step 1 plans only C-1; C-2 and I-1 come with the bake-off.
 PLANTED_CONFLICTS = {"SRC-UCILAW-P3": ("C-1", "SRC-PRACT-P1")}
+# What the answer key says the judge should decide for a row: (verdict, the fact it must cite). The row
+# the fund is subject to: "subject to Part II of the Law" is FACT-01, and the fund is subject to it.
+EXPECTED_VERDICTS = {"SRC-UCILAW-P3": ("applies", "FACT-01")}
 ANSWER_KEY_ROWS = ROOT / "backend" / "stand_in" / "extractor.yaml"    # the answer key's rows, by document
 
 
@@ -215,14 +224,17 @@ def plan_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMEN
         sends="this document's paragraphs and the allowed recipient codes")
 
 
-def answer_key_row(row_id: str) -> dict:
+def answer_key_row(row_id: str, kind: str = "verify") -> dict:
     """The answer key's row for one source paragraph, as the code would hold it (a `Row` as a dict).
 
-    The verifier is measured on a FIXED input, so every run and both candidate models see the same
-    row (spike plan, 2026-11-22). Step 1 allows only the rows that carry a planted conflict."""
-    if row_id not in PLANTED_CONFLICTS:
-        raise SpikeRefused(f"{row_id!r} is not a row this step plans a verifier call for; "
-                           f"choose one of {sorted(PLANTED_CONFLICTS)}.")
+    The verifier and the judge are measured on a FIXED input, so every run and both candidate
+    models see the same row (spike plan, 2026-11-22). Each step allows only the rows it plans: the
+    verifier those that carry a planted conflict, the judge those the answer key has a verdict for."""
+    planned = PLANTED_CONFLICTS if kind == "verify" else EXPECTED_VERDICTS
+    label = "verifier" if kind == "verify" else "judge"
+    if row_id not in planned:
+        raise SpikeRefused(f"{row_id!r} is not a row this step plans a {label} call for; "
+                           f"choose one of {sorted(planned)}.")
     by_document = yaml.safe_load(ANSWER_KEY_ROWS.read_text(encoding="utf-8"))
     for rows in by_document.values():
         for row in rows:
@@ -284,6 +296,65 @@ class SpikeResult:
     assessment: tuple = ()         # for a verifier call: CAUGHT / MISSED, false alarms (text lines)
 
 
+def _judge_inputs(row_id: str):
+    """Everything the judge call carries, built the way Stage B builds it: the row as approved and the
+    fund's facts (ID, fact, value) and events (ID, description). Never the "Decides" column, flags,
+    G1 reasons or other verdicts (`prompts.judge_inputs`)."""
+    row = answer_key_row(row_id, "judge")
+    facts = fund_facts.load_fund_facts()
+    return row, facts, prompts.judge_inputs(row=row, fund_facts=facts)
+
+
+def plan_judge_call(settings: Settings, *, row_id: str = FIRST_JUDGE_ROW,
+                    spike_db: Path = SPIKE_DB) -> SpikePlan:
+    """The same checks as the other plans (for the JUDGE's model), then describe the one judge call
+    on one answer-key row. Sends nothing."""
+    call = _check_ready(settings, JUDGE_ROLE)                # checks 1 to 4, for the judge role
+    row, facts, inputs = _judge_inputs(row_id)               # check 5: a planned row
+    used, cap = _check_cap(spike_db)                         # check 6
+
+    rendered = prompts.render(JUDGE_STEP, inputs)
+    request_text = "".join(rendered.values()) + json.dumps(wire_schema(Verdict))
+    tokens = len(request_text) // model_settings.CHARS_PER_TOKEN + 1
+    one_request = model_settings.worst_case_call_cost_usd(settings, JUDGE_ROLE, tokens)
+    verdict, fact = EXPECTED_VERDICTS[row_id]
+    return SpikePlan(
+        document_id=row_id, document_title=row["obligation_name"],
+        paragraph_count=len(facts["facts"]), model=call.model, sent_settings=call.sent_to_provider(),
+        input_tokens_estimate=tokens, worst_case_usd=one_request,
+        worst_case_with_retry_usd=2 * one_request, calls_used=used, call_cap=cap, kind="judge",
+        confirm_text=f"judge {row_id}",
+        sends=(f"the approved row, {len(facts['facts'])} fund facts (ID, fact, value) and "
+               f"{len(facts['events'])} event(s) (ID, description). Not the 'Decides' column, flags "
+               f"or other verdicts. The answer key says: {verdict}, citing {fact}"))
+
+
+def _plan_for(settings: Settings, kind: str, target: str, spike_db: Path) -> SpikePlan:
+    """The dry-run plan for one kind of call. Every refusal comes from here, before anything is sent."""
+    if kind == "verify":
+        return plan_verifier_call(settings, row_id=target, spike_db=spike_db)
+    if kind == "judge":
+        return plan_judge_call(settings, row_id=target, spike_db=spike_db)
+    return plan_first_call(settings, document_id=target, spike_db=spike_db)
+
+
+def assess_judgement(row_id: str, verdict) -> tuple[str, ...]:
+    """What a judge's verdict says against the answer key, in words (plan, "Pass or fail").
+
+    CORRECT: the verdict is the answer key's AND it cites the fact the key names. WRONG: anything else
+    that passed the guardrail. A wrong verdict is a finding about the judge, not a mechanical failure."""
+    expected, fact = EXPECTED_VERDICTS[row_id]
+    cited = list(verdict.cited_fact_ids)
+    right = verdict.verdict == expected and fact in cited
+    lines = [f"Answer key       : {expected}, citing {fact}",
+             f"Judge's verdict  : {verdict.verdict}, citing {', '.join(cited)} - "
+             + ("CORRECT" if right else f"WRONG (the answer key says {expected}, citing {fact})")]
+    if verdict.missing_information.strip():
+        lines.append(f"Missing info     : {' '.join(verdict.missing_information.split())[:240]}")
+    lines.append(f"Judge said       : {' '.join(verdict.reasoning.split())[:240]}")
+    return tuple(lines)
+
+
 def assess_verification(row_id: str, flags) -> tuple[str, ...]:
     """What a verifier's flags say about the row's planted conflict, in words (plan, "Pass or fail").
 
@@ -323,8 +394,8 @@ def run_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMENT
 def run_call(settings: Settings, *, kind: str, target: str,
              spike_db: Path = SPIKE_DB) -> SpikeResult:
     """Make the ONE real call the dry-run described, and trace every request it sends.
-    `kind` is "extract" (target: a primary document ID) or "verify" (target: an answer-key row's
-    source paragraph ID).
+    `kind` is "extract" (target: a primary document ID), "verify" or "judge" (target: an answer-key
+    row's source paragraph ID).
 
     ⚠ THIS IS THE FUNCTION THAT CAN SPEND MONEY. Only two things call it: the command's `--go`
     (`_go`, behind a typed confirmation) and the tests (against the fake OpenAI). Keep it so.
@@ -339,8 +410,7 @@ def run_call(settings: Settings, *, kind: str, target: str,
     if kind not in KINDS:
         raise ValueError(f"kind must be one of {KINDS}, not {kind!r}")
     document_id = target
-    plan = (plan_verifier_call(settings, row_id=target, spike_db=spike_db) if kind == "verify"
-            else plan_first_call(settings, document_id=target, spike_db=spike_db))   # (1)
+    plan = _plan_for(settings, kind, target, spike_db)                              # (1)
     run_id = open_spike_run(settings, spike_db)                                    # (2)
 
     # The real-mode code is imported only now, never when this file is imported (T-SPIKE-2).
@@ -359,7 +429,7 @@ def run_call(settings: Settings, *, kind: str, target: str,
         # The trace refuses two lines with the same (run, step, stage attempt, unit, attempt_n). A
         # review has one unit per document, but the spike calls the same document again and again
         # (after a failure, with a changed prompt). So each CALL is its own unit: SRC-X#1, SRC-X#2.
-        step = VERIFY_STEP if kind == "verify" else STEP
+        step = {"extract": STEP, "verify": VERIFY_STEP, "judge": JUDGE_STEP}[kind]
         (earlier,) = conn.execute(
             "SELECT COUNT(DISTINCT unit_id) FROM trace WHERE run_id = ? AND step = ? "
             "AND unit_id LIKE ?", (run_id, step, f"{document_id}#%")).fetchone()
@@ -384,6 +454,12 @@ def run_call(settings: Settings, *, kind: str, target: str,
                                                sources=paragraphs, record=record)
                 row_count = len(flags)
                 assessment = assess_verification(document_id, flags)
+            elif kind == "judge":
+                row, facts, _inputs = _judge_inputs(document_id)
+                verdict = agents.judge_applicability(settings, row=row, fund_facts=facts,
+                                                     record=record)
+                row_count = 1
+                assessment = assess_judgement(document_id, verdict)
             else:
                 own = {p["paragraph_id"]: p["text"] for p in sources.load_paragraphs()
                        if p["document_id"] == document_id}
@@ -410,13 +486,16 @@ def format_plan(plan: SpikePlan, *, live: bool = False) -> str:
     for the typed confirmation (nothing has been sent YET)."""
     heading = ("SPIKE PLAN: nothing has been sent yet."
                if live else "SPIKE DRY-RUN: nothing was sent, nothing was written, no model was called.")
-    verify = plan.kind == "verify"
+    verify = plan.kind in ("verify", "judge")       # both are measured on a fixed answer-key row
     confirm = plan.confirm_text or plan.document_id
     closing = ("" if live else
-               "To make this call, run it again with --go. You will be asked to type "
-               + (f"exactly: {confirm}" if verify else "the document ID first."))
+               (f"To make this call, run it again with --step {plan.kind} --go. You will be asked "
+                f"to type exactly: {confirm}") if verify else
+               "To make this call, run it again with --go. You will be asked to type the document ID first.")
     if verify:
-        what = [f"Step           : {VERIFY_STEP} (Stage B verifier, ONE call)",
+        label = (f"{VERIFY_STEP} (Stage B verifier, ONE call)" if plan.kind == "verify"
+                 else f"{JUDGE_STEP} (Stage B judge, ONE call)")
+        what = [f"Step           : {label}",
                 (f"Row            : {plan.document_id} - {plan.document_title} "
                  f"(the answer-key row; the SAME input every run)")]
     else:
@@ -430,7 +509,9 @@ def format_plan(plan: SpikePlan, *, live: bool = False) -> str:
         *([f"Sends          : {plan.sends}"] if verify else []),
         f"Model          : {plan.model}",
         f"Settings sent  : {json.dumps(plan.sent_settings, sort_keys=True)}",
-        *(["Temperature    : NOT sent (DL-40 names none for the verifier; operator decision, 2026-11-22)"]
+        *([("Temperature    : NOT sent (DL-40 names none for the verifier; operator decision, 2026-11-22)"
+            if plan.kind == "verify" else
+            "Temperature    : NOT sent (DL-40: the judge runs with no temperature)")]
           if "temperature" not in plan.sent_settings else []),
         "API key        : set (never shown)",
         (f"Input estimate : about {plan.input_tokens_estimate} tokens (4 characters a token, "
@@ -461,7 +542,7 @@ def format_result(result: SpikeResult) -> str:
     """What the call did, one block per HTTP request, in words. The answer itself is not printed:
     it is in the trace (data/spike.db), where the spike report reads it."""
     lines = ["", "SPIKE RESULT: a request WAS sent.", ""]
-    noun = "flag(s)" if result.kind == "verify" else "rows"
+    noun = {"extract": "rows", "verify": "flag(s)", "judge": "verdict(s)"}[result.kind]
     if result.ok:
         lines.append(f"Answer         : VALID ({result.row_count} {noun} passed the guardrail)")
     else:
@@ -505,8 +586,7 @@ def _go(env, kind: str, target: str, spike_db: Path, out, read_line) -> int:
     nothing was sent (a refusal, or the confirmation was not given)."""
     try:
         settings = load_settings(env)
-        plan = (plan_verifier_call(settings, row_id=target, spike_db=spike_db) if kind == "verify"
-                else plan_first_call(settings, document_id=target, spike_db=spike_db))
+        plan = _plan_for(settings, kind, target, spike_db)
     except REFUSALS as refusal:
         out(f"REFUSED: {refusal}")                  # before the prompt: never ask to confirm a refusal
         return 2
@@ -515,7 +595,7 @@ def _go(env, kind: str, target: str, spike_db: Path, out, read_line) -> int:
     out("THIS WILL SEND ONE REAL REQUEST TO THE ENDPOINT ABOVE AND MAY COST MONEY.")
     confirm = plan.confirm_text or plan.document_id
     ask = (f"To send it, type exactly '{confirm}' and press Enter; anything else cancels: "
-           if kind == "verify" else
+           if kind != "extract" else
            f"To send it, type the document ID ({plan.document_id}) and press Enter; "
            "anything else cancels: ")
     try:
@@ -542,24 +622,23 @@ def main(argv: list[str] | None = None, *, env: dict[str, str] | None = None,
     so tests can supply their own values; the real command uses the defaults."""
     parser = argparse.ArgumentParser(prog="python -m backend.runtime.spike", description=__doc__.split("\n")[0])
     parser.add_argument("--step", choices=KINDS, default="extract",
-                        help="which call: the Stage A extractor (default) or the Stage B verifier")
+                        help="which call: the Stage A extractor (default), the Stage B verifier "
+                             "or the Stage B judge")
     parser.add_argument("--document", default=FIRST_CALL_DOCUMENT,
                         help=f"extract only: a primary document ID (default {FIRST_CALL_DOCUMENT})")
     parser.add_argument("--row", default=FIRST_VERIFY_ROW,
-                        help=f"verify only: the answer-key row's source paragraph (default "
+                        help=f"verify and judge: the answer-key row's source paragraph (default "
                              f"{FIRST_VERIFY_ROW})")
     parser.add_argument("--go", action="store_true",
                         help="make the real call, after you type the confirmation shown")
     args = parser.parse_args(argv)
 
-    target = args.row if args.step == "verify" else args.document
+    target = args.document if args.step == "extract" else args.row
     if args.go:
         return _go(env, args.step, target, spike_db, out, read_line)
     try:
         settings = load_settings(env)
-        plan = (plan_verifier_call(settings, row_id=target, spike_db=spike_db)
-                if args.step == "verify"
-                else plan_first_call(settings, document_id=target, spike_db=spike_db))
+        plan = _plan_for(settings, args.step, target, spike_db)
     except REFUSALS as refusal:
         out(f"REFUSED: {refusal}")
         return 2
