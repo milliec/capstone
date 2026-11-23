@@ -12,6 +12,18 @@ from backend.settings import load_settings
 from tests.fake_openai import FakeOpenAI
 
 
+@pytest.fixture(autouse=True)
+def never_the_real_database(tmp_path_factory, monkeypatch):
+    """No test may read or write the developer's real data/app.db.
+
+    Settings built without a DATABASE_PATH default to it. Since the 70-call count reads the app's
+    database as well as the spike's, a test that reached the real file would see the operator's real
+    calls ("0 of 70 used" would read 18 after a real run). Every test gets a throwaway default path."""
+    import backend.settings
+    monkeypatch.setattr(backend.settings, "DEFAULT_DATABASE_PATH",
+                        str(tmp_path_factory.mktemp("default-db") / "app.db"))
+
+
 @pytest.fixture
 def settings(tmp_path):
     """Stand-in mode, pause 0 (tests stay fast), a temporary database file."""
