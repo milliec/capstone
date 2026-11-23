@@ -47,7 +47,6 @@ Run it (needs AGENTS_MODE=real, SPEND_ACTIVITY=spike, the key and the role's mod
 import argparse
 import json
 import os
-import sqlite3
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -144,24 +143,18 @@ class SpikePlan:
     sends: str = ""                # one line saying what the request carries (shown by `format_plan`)
     case_id: str = ""              # a verifier bake-off case (C-1, C-2, I-1, OK-1); "" for a plain step
     row_note: str = ""             # what to say about the row ("" = the answer-key row, unchanged)
+    calls_breakdown: str = ""      # where the counted calls are, for example "data/spike.db 6, data/app.db 18"
 
 
-def _calls_used(spike_db: Path) -> int:
-    """Real spike calls in the spike database. 0 if the file does not exist (it is NOT created).
+def counted_databases(settings: Settings, spike_db: Path) -> list[Path]:
+    """Every database file that can hold real spike calls: the spike runner's own, and the web app's.
 
-    Opened read-only (`mode=ro`), so a dry-run cannot change or create anything.
-    """
-    if not spike_db.exists():
-        return 0
-    conn = sqlite3.connect(f"file:{spike_db}?mode=ro", uri=True)
-    try:
-        return harness.real_calls_made(conn, "spike")
-    except sqlite3.OperationalError as error:
-        if "no such table" in str(error):      # a file with no trace table has made no calls
-            return 0
-        raise
-    finally:
-        conn.close()
+    The 70-call cap (EC-R10) is about real calls, whichever file they landed in (operator, 2026-11-23).
+    A relative DATABASE_PATH is read from the project root, as the app itself runs from there."""
+    app_db = Path(settings.database_path)
+    if not app_db.is_absolute():
+        app_db = ROOT / app_db
+    return [spike_db, app_db]
 
 
 SPIKE_ACTOR = "spike-runner"       # who the audit log names for what this file does
@@ -223,14 +216,16 @@ def _check_ready(settings: Settings, role: str):
     return call
 
 
-def _check_cap(spike_db: Path) -> tuple[int, int]:
-    """The call cap, counted from the trace (EC-R10). At the cap, no further call is planned."""
-    used = _calls_used(spike_db)
-    cap = harness.CALL_CAPS["spike"]
+def _check_cap(spike_db: Path, settings: Settings) -> tuple[int, int, str]:
+    """The call cap, counted from the trace across BOTH databases (EC-R10). At the cap, no further call
+    is planned. Returns (calls used, the cap, where they are)."""
+    count = harness.count_real_calls("spike", counted_databases(settings, spike_db))
+    used, cap = count.total, harness.CALL_CAPS["spike"]
     if used >= cap:
         raise harness.CallCapReached(f"spike: {used} of {cap} real calls used (EC-R10). "
+                                     f"Counted in {count.breakdown()}. "
                                      "A further call needs a recorded operator decision.")
-    return used, cap
+    return used, cap, count.breakdown()
 
 
 def plan_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMENT,
@@ -247,7 +242,7 @@ def plan_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMEN
         raise SpikeRefused(f"{document_id!r} is not a primary source document; "
                            f"choose one of {[i for i, d in documents.items() if d['type'] == 'primary']}.")
 
-    used, cap = _check_cap(spike_db)                         # check 6
+    used, cap, counted = _check_cap(spike_db, settings)      # check 6
 
     # What the call would carry: this document's paragraphs only, as stages.py passes them.
     own = {p["paragraph_id"]: p["text"] for p in sources.load_paragraphs()
@@ -264,7 +259,7 @@ def plan_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMEN
         document_id=document_id, document_title=document["title"], paragraph_count=len(own),
         model=call.model, sent_settings=call.sent_to_provider(), input_tokens_estimate=tokens,
         worst_case_usd=one_request, worst_case_with_retry_usd=2 * one_request,
-        calls_used=used, call_cap=cap, kind="extract", confirm_text=document_id,
+        calls_used=used, call_cap=cap, calls_breakdown=counted, kind="extract", confirm_text=document_id,
         sends="this document's paragraphs and the allowed recipient codes")
 
 
@@ -338,7 +333,7 @@ def plan_verifier_call(settings: Settings, *, row_id: str = FIRST_VERIFY_ROW,
     if case:
         row_id = case.row_id
     row, _quote_check, paragraphs, inputs = _verifier_inputs(row_id, case)   # check 5: a planned row
-    used, cap = _check_cap(spike_db)                         # check 6
+    used, cap, counted = _check_cap(spike_db, settings)      # check 6
 
     rendered = prompts.render(VERIFY_STEP, inputs)
     request_text = "".join(rendered.values()) + json.dumps(wire_schema(VerificationResult))
@@ -351,7 +346,7 @@ def plan_verifier_call(settings: Settings, *, row_id: str = FIRST_VERIFY_ROW,
             document_id=row_id, document_title=row["obligation_name"],
             paragraph_count=len(paragraphs), model=call.model, sent_settings=call.sent_to_provider(),
             input_tokens_estimate=tokens, worst_case_usd=one_request,
-            worst_case_with_retry_usd=2 * one_request, calls_used=used, call_cap=cap, kind="verify",
+            worst_case_with_retry_usd=2 * one_request, calls_used=used, call_cap=cap, calls_breakdown=counted, kind="verify",
             confirm_text=f"verify {case.case_id} {call.model}",
             sends=_case_sends(case, len(paragraphs)), case_id=case.case_id, row_note=case.row_note)
     conflict, other = PLANTED_CONFLICTS[row_id]
@@ -359,7 +354,7 @@ def plan_verifier_call(settings: Settings, *, row_id: str = FIRST_VERIFY_ROW,
         document_id=row_id, document_title=row["obligation_name"], paragraph_count=len(paragraphs),
         model=call.model, sent_settings=call.sent_to_provider(), input_tokens_estimate=tokens,
         worst_case_usd=one_request, worst_case_with_retry_usd=2 * one_request,
-        calls_used=used, call_cap=cap, kind="verify", confirm_text=f"verify {row_id}",
+        calls_used=used, call_cap=cap, calls_breakdown=counted, kind="verify", confirm_text=f"verify {row_id}",
         sends=(f"the row and its quote, the code's quote check (passed), the cited paragraph, and "
                f"all {len(paragraphs)} loaded paragraphs (primary and secondary). Planted conflict "
                f"{conflict}: {other} disagrees with {row_id}"))
@@ -396,7 +391,7 @@ def plan_judge_call(settings: Settings, *, row_id: str = FIRST_JUDGE_ROW,
     on one answer-key row. Sends nothing."""
     call = _check_ready(settings, JUDGE_ROLE)                # checks 1 to 4, for the judge role
     row, facts, inputs = _judge_inputs(row_id)               # check 5: a planned row
-    used, cap = _check_cap(spike_db)                         # check 6
+    used, cap, counted = _check_cap(spike_db, settings)      # check 6
 
     rendered = prompts.render(JUDGE_STEP, inputs)
     request_text = "".join(rendered.values()) + json.dumps(wire_schema(Verdict))
@@ -407,7 +402,7 @@ def plan_judge_call(settings: Settings, *, row_id: str = FIRST_JUDGE_ROW,
         document_id=row_id, document_title=row["obligation_name"],
         paragraph_count=len(facts["facts"]), model=call.model, sent_settings=call.sent_to_provider(),
         input_tokens_estimate=tokens, worst_case_usd=one_request,
-        worst_case_with_retry_usd=2 * one_request, calls_used=used, call_cap=cap, kind="judge",
+        worst_case_with_retry_usd=2 * one_request, calls_used=used, call_cap=cap, calls_breakdown=counted, kind="judge",
         confirm_text=f"judge {row_id}",
         sends=(f"the approved row, {len(facts['facts'])} fund facts (ID, fact, value) and "
                f"{len(facts['events'])} event(s) (ID, description). Not the 'Decides' column, flags "
@@ -656,6 +651,7 @@ def format_plan(plan: SpikePlan, *, live: bool = False) -> str:
         (f"Worst case     : US${plan.worst_case_usd:.4f} for one request; "
          f"US${plan.worst_case_with_retry_usd:.4f} if the first request is billed and the one retry is too"),
         f"Spike calls    : {plan.calls_used} of {plan.call_cap} used (EC-R10)",
+        *([f"Counted in     : {plan.calls_breakdown}"] if plan.calls_breakdown else []),
     ]
     if live:
         lines.append(f"Endpoint       : {endpoint_description()}")
@@ -757,13 +753,16 @@ def _go(env, kind: str, target: str, spike_db: Path, out, read_line, case_id: st
 def _tally(env, spike_db: Path, out, exclude_text: str) -> int:
     """`--tally`: read the spike database and print the summary. Sends nothing, writes nothing."""
     from backend.runtime import spike_tally  # only `--tally` needs it
-    role_models, note = {}, ""
+    role_models, note, settings_app_db = {}, "", ""
     try:
-        role_models = dict(load_settings(env).llm_models)
+        settings = load_settings(env)
+        role_models = dict(settings.llm_models)
+        settings_app_db = counted_databases(settings, spike_db)[1]
     except SettingsError as error:                   # a read-only summary should still work
         note = f"the role models in .env could not be read ({error}); no line was priced for another model"
     exclude = {unit.strip() for unit in exclude_text.split(",") if unit.strip()}
-    tally = spike_tally.collect(spike_db, role_models, exclude)
+    others = [Path(settings_app_db)] if settings_app_db else []
+    tally = spike_tally.collect(spike_db, role_models, exclude, others)
     tally.note = note
     out(spike_tally.format_tally(tally))
     return 0

@@ -105,9 +105,10 @@ def test_the_tally_leaves_the_database_byte_for_byte_the_same_and_adds_no_file(d
     assert sorted(p.name for p in db.path.parent.iterdir()) == listing      # no -journal, no -wal
 
 
-def test_our_code_opens_the_database_read_only(db, monkeypatch):
-    """Watch how the tally itself opens the file: the guarantee is the connection mode, so a change that
-    opened it for writing would fail here even if no write happened to be made."""
+def test_our_code_opens_every_database_read_only(db, monkeypatch):
+    """Watch how the tally itself opens files: the guarantee is the connection mode, so a change that
+    opened ANY file for writing would fail here even if no write happened to be made. (It opens each
+    database more than once: to count the real calls, and to read the lines.)"""
     import sqlite3
     db.judge(1, GOOD_JUDGE)                      # set up first: this helper opens its own (writing) connection
     opened = []
@@ -117,10 +118,11 @@ def test_our_code_opens_the_database_read_only(db, monkeypatch):
         opened.append((args, kwargs))
         return real_connect(*args, **kwargs)
     monkeypatch.setattr(spike_tally.sqlite3, "connect", spy)
+    monkeypatch.setattr(harness.sqlite3, "connect", spy)
     run_tally(db.path)                           # from here on, only the tally opens anything
-    assert len(opened) == 1
-    (uri,), kwargs = opened[0]
-    assert uri.startswith("file:") and uri.endswith("?mode=ro") and kwargs.get("uri") is True
+    assert opened, "the tally opened nothing?"
+    for (uri,), kwargs in opened:
+        assert uri.startswith("file:") and uri.endswith("?mode=ro") and kwargs.get("uri") is True, uri
     # ...and what that mode means, shown directly: a write through such a connection is refused.
     conn = real_connect(uri, uri=True)
     with pytest.raises(sqlite3.OperationalError, match="readonly"):
