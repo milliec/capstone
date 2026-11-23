@@ -277,8 +277,12 @@ def format_tally(tally: Tally) -> str:
             *([f"Counted in     : {tally.count.breakdown_with_cost()}"] if tally.count else []),
             f"The lines are  : {kinds}",
             f"Calls          : {len(tally.units)} (a call is one or more requests)",
-            (f"Run cost       : {_money(tally.recorded_total)} recorded; {_money(tally.repriced_total)} "
-             "when each line is priced for the model that ran")]
+            # All databases first (the same count as "Slots used" and "Counted in"), then this file alone:
+            # the per-model tables below read this one file only, so their cost is this file's cost.
+            *([f"Run cost       : {_money(tally.count.cost_usd)} recorded, every database counted above"]
+              if tally.count else []),
+            (f"This file only : {_money(tally.recorded_total)} recorded; {_money(tally.repriced_total)} "
+             "when each line is priced for the model that ran (the tables below read this file only)")]
     if tally.note:
         out.append(f"Note           : {tally.note}")
     for step in ("extract_rows", "check_conflicts", "judge_applicability"):

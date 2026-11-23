@@ -230,3 +230,28 @@ def test_the_tally_alone_still_works_with_one_database(dbs):
     make_db(spike_db, spike=3)
     tally = spike_tally.collect(spike_db)                                    # as before: no other databases
     assert tally.slots_used == 3 and tally.count.breakdown() == "data/spike.db 3"
+
+
+def test_the_run_cost_line_covers_both_files_and_the_per_file_line_says_it_is_one_file(dbs):
+    # 6 lines in the spike file and 18 in the web app's, US$0.001 each: the old line showed 0.0060 only.
+    spike_db, app_db = dbs
+    make_db(spike_db, spike=6)
+    make_db(app_db, spike=18)
+    printed = []
+    spike.main(["--tally"], env={**RUN_ENV, "DATABASE_PATH": str(app_db)}, spike_db=spike_db,
+               out=printed.append)
+    text = "\n".join(printed)
+    assert "Run cost       : US$0.0240 recorded, every database counted above" in text
+    assert "This file only : US$0.0060 recorded;" in text
+    assert "(the tables below read this file only)" in text
+
+
+def test_the_run_cost_total_equals_the_sum_of_the_per_database_costs(dbs):
+    spike_db, app_db = dbs
+    make_db(spike_db, spike=2)
+    make_db(app_db, spike=5, demo=9)                                        # a demo line is not a spike call
+    tally = spike_tally.collect(spike_db, other_databases=[app_db])
+    assert tally.count.cost_usd == pytest.approx(sum(d.cost_usd for d in tally.count.databases))
+    assert tally.count.cost_usd == pytest.approx(0.007)
+    assert "Run cost       : US$0.0070 recorded" in spike_tally.format_tally(tally)
+
