@@ -929,6 +929,74 @@ before and after; on the real database its hash was identical before and after).
 output was hidden reasoning; the trace does not separate it. (4) Tests: T-SPIKE-7 (the cases, 56 tests) and
 T-SPIKE-8 (the tally, 39), against the fake only.
 
+## B3 spike: the 70-call cap counts both databases, and the steps before the real clean run (2026-11-23)
+
+**The problem (found 2026-11-23).** The spike runner writes its trace to `data/spike.db`; the web app writes
+its own to `data/app.db`. The 70-call cap (EC-R10) was counted inside **one** file, and **only the spike runner
+ever checked it**. A real review run through the web app, even labelled `SPEND_ACTIVITY=spike`, was invisible
+to the cap and to `--tally`, and was never stopped. (At the time `app.db` held no real calls, so nothing had
+slipped through.)
+
+**The fix (operator, 2026-11-23).** `harness.count_real_calls(activity, database_paths)` sums an activity's
+real-call lines across several database files and returns a **per-database breakdown** (lines and cost).
+Read-only (`mode=ro`); a missing file counts 0 and is never created; the same file reached by two paths counts
+once; **an unreadable file raises** instead of counting 0, so the cap cannot be passed by accident. It is used
+by the spike runner's cap check (a plan or a `--go` is refused when the **sum** is 70, and every plan prints a
+`Counted in` line) and by `--tally` (`Slots used` is the total, with a breakdown and cost per file). Tests:
+T-CAP-1. `settings.DEFAULT_DATABASE_PATH` is now a named constant and `tests/conftest.py` points it at a
+throwaway file, so no test can see the developer's real databases.
+
+**Not built, on purpose (no SAD change).** The web app does **not stop** at 70. That would need a new refusal
+or failure reason. A clean run is about 18 calls. The count is for visibility, and the spike runner's own cap
+check now includes the web app's calls. The cost cap (US$2.50) stays per run, not across files.
+
+### Before the operator's real clean run through the web app (steps)
+
+**Prerequisites, all merged to `main`:** the real-mode integration test and the fake's switch (#181), the
+audit-wording fix (#183), and this cap fix. Without the audit fix the run's audit log would say stand-in;
+without this one its calls would not count toward the 70.
+
+1. **A run folder.** The shared folder may be on another session's branch, and a real run must see the same
+   `data/` files as the spike runner. A worktree on `main` with links to your `.env` and `data/` does that:
+
+   ```bash
+   cd <your project folder>        # the folder that holds backend/, tests/ and data/
+   PROJECT="$(pwd)"
+   git fetch origin
+   git worktree add ../capstone-worktrees/operator-run origin/main
+   cd ../capstone-worktrees/operator-run
+   for f in .venv reference .env data; do ln -s "$PROJECT/$f" "$f"; done
+   ```
+   (If the shared folder is on `main` and `git status` is empty, you can run from it after `git pull`.)
+2. **Check nothing redirects the requests.** The web app prints no Endpoint line, so check the shell:
+   `env | grep OPENAI_BASE_URL` must print **nothing**.
+3. **Start the server in real mode, without `--reload`** (the reloader restarts the server when a file
+   changes, which would fail a running stage as "service restarted"):
+
+   ```bash
+   AGENTS_MODE=real SPEND_ACTIVITY=spike .venv/bin/python -m uvicorn backend.main:create_app --factory --port 8000
+   ```
+   `AGENTS_MODE=real` goes on the command line, never in `.env`. `SPEND_ACTIVITY=spike` makes the calls count
+   toward the 70. The three `LLM_MODEL_*` IDs and the key come from `.env`.
+4. **Abandon the stand-in review that is still ACTIVE** (`RUN-20261117-4`, waiting at G1; a new review is
+   refused while one is active). Open `http://localhost:8000`, sign in as **Compliance specialist**, open
+   **Filing rules** (`/specialist/runs`), open `RUN-20261117-4`, scroll to **Abandon this review**, type a
+   reason (for example "Closing an old stand-in review before the first real run") and press **Abandon
+   review**. No model is called by this. The page should say the review was abandoned at step 1.
+5. **Start the real review.** On **Filing rules** the start form must say **"Agents: real model"** (if it says
+   stand-in, stop and check step 3). For a clean run leave **"Add the demo rule (rule 7)" unticked**, then press
+   **Start a new review**. Stage A makes about 12 requests and takes roughly a minute.
+6. **Work through it as you did in the stand-in demo:** G1 (approve each rule with a business-day rule and who
+   files, or reject with a reason), **Finish checking**; G2 (answer each verdict), **Finish and calculate
+   dates**; G3 (acknowledge and publish). **The counts may differ from the stand-in demo**: the real extractor
+   split one rule in two on the first document, so expect about 7 rules, not 6. That is a finding for the
+   evaluation, not a bug. Expect about 17 to 19 requests and about US$0.05 to 0.08.
+7. **If anything looks wrong, stop the server with Ctrl+C**; nothing is sent after that. A failed review says
+   why on its page. Retry is not built; start a new review (more calls).
+8. **When done, Ctrl+C, then** `.venv/bin/python -m backend.runtime.spike --tally --exclude 'SRC-UCILAW-P3#1'`.
+   `Counted in` should read about `data/spike.db 6 (US$0.0164), data/app.db <the run's requests>`. Send the
+   tally and the run ID; the run can then be read back from `data/app.db`, read-only.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -1173,3 +1241,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: step 3, the judge result and the run instructions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "Step 3 docs PR". Docs only: new section "B3 spike finding 3" (the operator's first real judge call, `SRC-UCILAW-P3#1`, run 2026-11-23: valid, CORRECT, `reasoning_effort` medium accepted, US$0.0013, 988 in and 62 out; a table of where the three roles stand; **all three models accepted their pinned settings so far, with the caveat of one or two calls per role**; the `minItems` drop recorded as an untested precaution; the numbers for the spike report: 6 of 70, US$0.0164, first-attempt schema-pass 4 of 5); new subsection "How to run the verifier and judge calls" in the runner section; a pointer from the older spike-report notes. Raised H-079 to `@system.arch` (decision 2; sad.md is not mine to edit). Read from `data/spike.db` opened read-only; nothing in it was changed. `setup.md` and the README (`@project.mgr`'s) do not yet carry the verifier and judge run steps: not raised here. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: handoff for the run steps) · operator instruction "raise a handoff to @project.mgr for the verifier and judge run steps". Docs only: **H-080** to `@project.mgr` asks for the verifier and judge run steps (the subsection "How to run the verifier and judge calls" above is the source) in `setup.md` and the README; added to the open docs PR #173 because that PR already carries those steps. `--case` is deliberately not described there yet. No code, no model call, no paid call, no snapshot changed.
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: PR 3, the verifier bake-off docs) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "PR3" (read as go, before the staged runs, which had not happened: `--tally` showed 6 of 70). Docs only: new section "B3 spike: the verifier bake-off (DL-26): how to run it, and the tally" (status; the four cases and their rows; the two candidates and their settings; the typed words with the model ID; the staged plan with the slot arithmetic and cost; pass and fail; the DL-26 decision, with one proposed addition marked as such; how to run it one command at a time; the read-only tally, its re-pricing and `--exclude`; known limits); a pointer from the run instructions; the stale "Known gaps" paragraph brought to the present. **No bake-off results are recorded: none exist yet.** Read from `data/spike.db` with the read-only tally (hash unchanged). H-080 (to `@project.mgr`) and H-077 (to `@qa.eng`) amended: `--case` and `--tally` are now merged. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
+- 2026-11-23 · persona `backend-eng` · `develop-be` + `document-backend` (the 70-call cap across both databases) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "count every real call toward the 70, whichever database it lands in; leave the web app's own refusal out (no SAD change)". Code: `harness.count_real_calls` (read-only, per-database breakdown, a missing file is not created, an unreadable file raises), used by the spike runner's cap check and `--tally`; `settings.DEFAULT_DATABASE_PATH` and a conftest isolation so tests never see the real databases; T-CAP-1 (18 tests) and one tally test strengthened. Docs: new section "B3 spike: the 70-call cap counts both databases, and the steps before the real clean run" with the exact operator steps (a run-folder worktree, real mode on the command line, abandon the ACTIVE stand-in `RUN-20261117-4`, start, work through the gates, tally). The web app still does not stop at 70 (a SAD change, not made). Read-only checks of `data/app.db` and `data/spike.db` (hashes unchanged). **No real key was used by me, no model call, no paid call, no snapshot changed.**
