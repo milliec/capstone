@@ -3,6 +3,8 @@
 Owner: `@qa.eng`. 2026-11-21. `AAMAD_TARGET_RUNTIME=crewai`. **Status: partial.** This file records the
 evaluation strategy for the whole MVP and the results of **two slices only**: the Stage A grader and the Stage B grader (EC-004, EC-010, EC-012).
 No model has been evaluated. The cycle (three real runs on one commit, EC-R10) has not been made.
+Section 9 (2026-11-23, H-084) maps the operator's three Sprint 4 cases onto this strategy and says what the
+fake-backed test T-INT-1 proves and what only a real run can show. It adds no result.
 
 **Inputs.** PRD §7 (via the SAD); `sad.md` §9 evaluation criteria (EC-001 to EC-021) and run rules
 (EC-R1 to EC-R11), DL-34, DL-36, DL-41, DL-45, D4; `backend.md`; `US-013`; the answer key. `integration.md`
@@ -151,10 +153,69 @@ cycle. Handoff to `@devops.eng` for Deliver.
 See `qa.md` "Future work". In order: the run starter (B8, after the spike), D4 export and T-D4-1, the void rule,
 the `I-1` and injection cases, grading a failed run, the three-run comparison, EC-R5, and a calibrated model grader for EC-002.
 
+## 9. Sprint 4 cases: should succeed, should refuse or ask a human, should fail clearly
+
+The operator's three cases (H-084). **No new golden items and no new thresholds**: each case is mapped onto the
+answer key, the EC criteria and the tests that already exist. The mapping is `@backend.eng`'s; I checked each line
+against `tests/tier1/test_real_mode_green_path.py` (T-INT-1, PR #181; run 2026-11-23: 3 passed) and corrected one number (note 1).
+
+**How to read the evidence. Three levels, never mixed up:**
+
+| Level | What it can show | What it cannot show |
+|---|---|---|
+| **Fake-backed (T-INT-1, Tier 1, blocks merges)** | The whole journey in **real mode** (CrewAI crews, the schema sent, one trace line per request, the cost count, the chat-completions-only guard, the pages, the audit log) works, against a fake server on this machine. **Wiring.** | Anything about a model. **The fake answers from the stand-in answer key, so every answer is right by construction.** A pass here is not an evaluation, and it never counts towards the cycle |
+| **The operator's real clean run (not made yet; `spike`, not `evaluation`)** | What the **real service** does on the same path: whether real answers pass the schema all the way through, the real row count, the real time and cost of a whole run, and that the pages and audit log tell the truth about a real run | A rate. It is **one** run, labelled `spike`, so it **does not count towards the cycle** (EC-R6) and cannot pass any criterion (they need 3 of 3 runs, EC-R1) |
+| **The evaluation cycle (B8, B9: three real runs of one commit)** | Quality: EC-001 to EC-006, EC-010, EC-012, EC-021 | Nothing here is measured yet |
+
+### Case 1: should succeed (the happy path)
+
+**Expected:** the answer key's 6 genuine rows OBL-01 to OBL-06 (OBL-06 is the decoy and must still be extracted;
+EC-001 to EC-003), the 6 verdicts (EC-004: OBL-01, 02, 03 and 05 apply, OBL-04 unsure, OBL-06 does not apply) and the
+22 calendar entries (key §4). With the demo rule on, **7 rules drafted, 6 approved and checked, 22 dates**.
+
+| | |
+|---|---|
+| **Proven by T-INT-1 (fake)** | Start form says "Agents: real model"; stage A sends **5 extractor and 7 verifier requests** (the planted row is verified too); G1 shows 7 rules; stage B sends **6 judge requests**; stage C sends **none** (18 requests in all); G2 and G3 complete and the run is `COMPLETED`; the GP sees **22 entries in 2027**, not labelled stand-in; the audit log has every milestone in order and none says "stand-in"; **18 trace lines, one per request**, all `/v1/chat/completions`, none estimated, none off the pinned setting, and the run's cost equals the sum of the lines; every audit `agent_output` points to a trace line; the fake received no request it had no script for |
+| **Only the real clean run can show** | That the same path completes against the real service; the real **row count** (the real extractor split OBL-02 into two rules on its one document, 3 rows against the key's 2, so expect about 7, not 6: **a finding for EC-001 and EC-002, not a bug**); the real **time and cost of a whole run** (backend.md expects about 17 to 19 requests and US$0.05 to 0.08: an estimate); that no real answer fails its schema on the way through |
+| **Only the evaluation cycle can show** | Whether the real extractor gets the six rows right (EC-001 to EC-003), whether the real judge gives the key's verdicts and cites the named facts (EC-004), the time under 5 minutes and cost under US$2 (EC-010, EC-012), each on 3 of 3 runs |
+
+### Case 2: should refuse or ask a human
+
+| Part | Expected | Proven by T-INT-1 (fake) | Only a real run can show |
+|---|---|---|---|
+| **(a) The planted demo rule** | "7 drafted, 6 genuine; the planted row must be rejected" (CR-029). **Code decides, no model:** Approval is refused by the server (HTTP 409, "Approval blocked", refusal `DEMO_ROW_NOT_APPROVABLE` in the audit log), the specialist rejects it with a reason, and the run still completes with no trace of it in the GP's calendar | **Yes, fully.** The refusal, the rejection, the audit refusal and the clean calendar are asserted | **Nothing more is needed for the refusal.** What a real verifier does with the planted row is not part of the rule. **The clean run leaves the demo rule unticked, so it does not exercise this part at all**; only the fake (and the stand-in path) does |
+| **(b) A verdict the judge is unsure about goes to a human** | OBL-04 (CNMV registration unconfirmed; FACT-03 and FACT-04) is `unsure`; **"applies" on OBL-04 is the named confident error** (EC-004) | **The hand-off only:** G2 shows the verdicts, the specialist must answer each one, and the run's counts include `unsure: 1`. The unsure answer is scripted | **Whether a real judge ever says `unsure`.** The one real judge call said `applies` on an easy row; **no real model has produced `unsure` or `does_not_apply`** (spike report, known limit 3). A clean run will show it by chance; EC-004 in the cycle measures it |
+| **(c) Rows that must be blocked** | `I-1` (an internal conflict: flag and block approval) and the altered quote (EC-005) | **Neither.** T-INT-1 does not test verifier recall: its fake answers from the stand-in key, which flags C-1 only | **The altered quote** is a code check (QN-1) and is tested without a model (the `altered_quote` copy case, graded under EC-005). **`I-1` is not tested with any model**: the verifier was never sent it (bake-off dropped, DL-55), so its first test is the evaluation cycle. C-2 is in the same position |
+
+### Case 3: should fail clearly
+
+**Expected:** a call that gets no usable answer ends the review in a **named state, in plain words**, keeps what
+it cost, stores nothing half-done, and sends nothing after the failure. The reasons are: **"model service"** (the
+provider fails twice, DL-43), **"invalid output"** (D5), **"cost cap"** (CR-017, EC-012) and **"stage time limit"**.
+
+| | |
+|---|---|
+| **Proven by T-INT-1 (fake)** | One reason, end to end through the pages: the fake answers **503** for the third document and for its retry. The run is `FAILED` and keeps its phase `A_RUNNING` (DL-46); the page says "The model service did not answer in time, or returned an error, twice" and never "Stand-in"; **only 4 extractor requests were sent** (2 documents, and 1 asked twice) and nothing after; **no paragraphs stored** (rule 9); the unit failed with "model service"; **both failed requests are traced, flagged as estimated, and their cost counts** in the run's total; the GP still sees "being prepared and checked" |
+| **Proven by code tests (also fake or no server)** | The other reasons at the stage and store level: `test_trace_cost_timer.py` (invalid output fails the run and is traced; the cost cap stops further calls; a stage past its limit fails and late output is traced only; a cap or limit not above zero refuses to start), `test_crews.py` (an answer that is not JSON, breaks the schema or breaks a guardrail fails the unit after one request; a 5xx or 429 is sent twice, a 4xx once; a second timeout is final), `test_attempt_trace.py` (a failed attempt's cost counts towards the cap), `test_rule9_store.py` (a failed stage stores nothing). **I did not re-read the page wording for every reason here:** T-INT-1 asserts it for "model service" only |
+| **Only a real run can show** | **What a real provider failure looks like on the wire.** Every failure above is simulated, and the 5 real calls so far had none. A clean run is not expected to fail, so it will **not** show this case. I do **not** recommend paying to provoke a real outage |
+| **Only the evaluation cycle can show** | The two reportable numbers: **EC-010** (agent time) and **EC-012** (cost), from the trace of real runs. A **failed** real run is not graded yet; it belongs to the void rule (EC-R8) and the run starter, which are not built |
+
+### Which the evaluation cycle will measure with a real model, and which stay code tests
+
+| Measured with a real model, in the cycle (B8, B9) | Stay code tests (no model, or a fake) |
+|---|---|
+| EC-001 to EC-003 (the extractor's rows); EC-004 (verdicts, `unsure` on OBL-04); EC-005 (C-1, C-2, `I-1`); EC-006 (false alarms); EC-021 (injection); EC-010 and EC-012 (time and cost of real runs) | The planted row's refusal (CR-029); the altered-quote check (QN-1); the date rules (EC-007, EC-008); the failure states and their wording (all simulated); the coverage list (EC-009 is graded in every run but does not depend on the model); the guard that sends only chat completions (T-REQ-2) |
+
+**Notes.**
+1. **"5 apply" is not used here.** H-084 and the docstring of T-INT-1 say "5 apply"; the answer key and EC-004 say **4 apply, 1 unsure, 1 does not apply**. The test asserts only `rules 7, unsure 1, dates 22` and 6 judge requests, so it does not contradict the key. See Open Questions 5.
+2. **A green T-INT-1 is not a passed criterion.** The status of every EC row stays as section 6 says; this section adds no result.
+3. **The clean run is the first look at a real run, not the start of the cycle.** It uses `SPEND_ACTIVITY=spike` and the 70-call cap; the cycle's runs are labelled `evaluation` (EC-R6).
+
 ## Sources
 
 `sad.md` §9, §5 (release rule), §10, Build card, D4, DL-34, DL-36, DL-41, DL-45; `backend.md`; `scaffold-plan.md`;
 `user-stories/US-013-evaluation-report.md`; `mock-data/expected-obligation-library.md`;
+`tests/tier1/test_real_mode_green_path.py` (T-INT-1) and the failure tests named in section 9; `spike-report.md`;
 `.cursor/skills/run-evals/SKILL.md`; `.cursor/templates/evals-template.md`.
 
 ## Assumptions
@@ -174,7 +235,11 @@ the `I-1` and injection cases, grading a failed run, the three-run comparison, E
 2. **EC-R5:** the match rules for the name and the applicability sentence, to be written by the operator before the first evaluation run.
 3. **EC-004 citations** (enforce the key's facts for all six rows, or only the SAD's two) and **EC-010 late calls** (counted in the time, as now, or left out): see `qa.md` open questions 4 and 5.
 4. Spike figures (time limits, first-pass success) are needed before EC-R8's limits are final and before the alert
-   thresholds in §7 are numbers.
+   thresholds in §7 are numbers. (The spike's real figures so far are in `spike-report.md`; the stage limits are
+   the operator's decision, DL-55, not measured.)
+5. **"5 apply" (H-084, section 9 note 1):** the handoff and T-INT-1's docstring say "5 apply"; the key says 4 apply,
+   1 unsure, 1 does not apply. Probably "5" counts the unsure row as one the human must still answer; `@backend.eng`
+   to confirm and, if so, fix the docstring wording. Not changed here (it is test code).
 
 ## Audit
 
@@ -183,3 +248,4 @@ the `I-1` and injection cases, grading a failed run, the three-run comparison, E
 - 2026-11-21 · persona `qa-eng` · action `run-evals` (update, H-068) · the applicability sentence moved from exact code match (EC-001) to operator judgement (EC-002); `sad.md` wording changed at the operator's instruction · `AAMAD_TARGET_RUNTIME=crewai` · no model call.
 - 2026-11-21 · persona `qa-eng` · action `update` (follow-up to the H-068 check on SAD EC-002) · Lines in the EC-002 row, the grader notes and the not-yet-built list: "model judge" and "judge model" changed to "model grader" where they mean the future calibrated grader for EC-002, so this file uses the SAD's word. Left as written: the dated H-068 decision lines and handoff H-068 (records of what was decided then), and the applicability `judge` agent (DL-40). No threshold, criterion or code changed. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-21 · persona `qa-eng` · action `run-evals` (partial: the Stage B grader slice of B8: EC-004, EC-010, EC-012) · `AAMAD_TARGET_RUNTIME=crewai` · no model call, no real key, no paid call.
+- 2026-11-23 · persona `qa-eng` · action `run-evals` (update, H-084: section 9, the three Sprint 4 cases) · mapped should succeed, should refuse or ask a human, and should fail clearly onto the answer key, EC-001 to EC-006, EC-010, EC-012 and the existing tests, with three evidence levels (fake-backed T-INT-1, the operator's real clean run, the evaluation cycle). Read `tests/tier1/test_real_mode_green_path.py` and ran it (3 passed) to check each claim. **No result, threshold, criterion, golden item or code changed.** One discrepancy found ("5 apply"; Open Questions 5). No model call, no real key, no paid call. `AAMAD_TARGET_RUNTIME=crewai`.
