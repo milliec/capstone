@@ -172,7 +172,7 @@ the work and hand over through written documents in `project-context/`. Persona 
 | 1. Define | `@ux.designer` | Interaction design and visual direction (`ux.md`) | ✅ Done (`ux.md` and the style note; edits on request) |
 | 2. Build | `@project.mgr` | Project scaffold and environment | ✅ Done (setup, git hooks, CI recorded in `setup.md`); keeps the plan and README current |
 | 2. Build | `@frontend.eng` | Specialist and GP web surfaces | 🟡 Pages and calendar views built; closing checks and the visual snapshot refresh wait for the operator |
-| 2. Build | `@backend.eng` | Agents, gates, date code, storage | 🟡 Stand-in path built and the first green path passes; real agents (CrewAI, one retry, a trace line per request) are built and tested against a fake model service only; the spike runner is built for all three steps (extractor, verifier, judge) and the operator has made real calls; the verifier bake-off is next (steps in [`setup.md`](project-context/2.build/setup.md), "Run the spike's first real call" and "Run the verifier and judge calls") |
+| 2. Build | `@backend.eng` | Agents, gates, date code, storage | 🟡 Stand-in path built and the first green path passes; real agents (CrewAI, one retry, a trace line per request) are built and tested against a fake model service only; the spike runner is built for all three steps (extractor, verifier, judge) and the operator has made real calls; the verifier bake-off is dropped (DL-55: not run, not owed; the verifier stays `gpt-5.6-terra`) and its tools stay built as optional future work (steps in [`setup.md`](project-context/2.build/setup.md), "Run the spike's first real call" and "Run the verifier and judge calls") |
 | 2. Build | `@integration.eng` | Connecting frontend and backend | Not started (no separate step so far: the pages call the services directly) |
 | 2. Build | `@qa.eng` | Tests and evaluation against the answer key | 🟡 Answer-key tests and the green path co-owned; `qa.md` written; B8 Stage A and Stage B graders built (read a finished run, no model call); run starter, trace export, void rule and the model-calling cases come after the spike |
 | 2. Build | `@security.eng` | Security review before delivery | Not started (the final acceptance block, B10) |
@@ -416,8 +416,7 @@ Two paths are **git-ignored** and never committed: `reference/` (private source 
    agents sit behind the same functions, with one retry after a timeout or a server error and a
    trace line for every request. They are tested against a fake model service only: no real key, no
    paid call, and `AGENTS_MODE` stays `stand_in` in `.env`.
-4. **Next: the spike.** The runner is built for all three steps (extractor, verifier, judge) and the operator has made real calls from their own terminal. The verifier bake-off comes next, then the rest of the spike's calls with timings,
-   then the rest of the evaluation runner (the graders for the first two stages are done and read a
+4. **Next: the spike.** The runner is built for all three steps (extractor, verifier, judge) and the operator has made real calls from their own terminal. The verifier bake-off and the "five runs each" are dropped (DL-55), so the stage limits stay at their starting values. Still to come: the rest of the evaluation runner (the graders for the first two stages are done and read a
    finished run; the run starter and the reports on cost are not), tuning the prompts and one
    evaluation cycle. After the spike the operator decides whether a call that drifts from the pinned
    reasoning setting counts as a failure.

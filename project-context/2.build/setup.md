@@ -328,9 +328,11 @@ Added for H-080.*
 **Status (2026-11-23).** The spike runner now has **three steps**, each one real call per command, each
 with a typed confirmation. All three are built and merged and were tested against the fake OpenAI first.
 `--case` (the verifier bake-off's four cases) and `--tally` (a read-only summary) are merged too (#174,
-#175). **You have made real calls with all three steps** (extractor 2, verifier 2, judge 1): **6 of 70
-call slots used, US$0.0164**. **The verifier bake-off (DL-26) is planned and staged but has not been run.**
-The numbers are a snapshot: `--tally` prints the live ones.
+#175); they are **built and ready, and not needed for the capstone**. **You have made real calls with all
+three steps** (extractor 2, verifier 2, judge 1): **6 of 70 call slots used, US$0.0164**. **The verifier
+bake-off (DL-26) is dropped (DL-55, operator, 2026-11-23): it was not run and is not owed.** The verifier
+stays `gpt-5.6-terra`, and the "five runs each" for the extractor and the judge are skipped too. The
+numbers are a snapshot: `--tally` prints the live ones.
 
 | Step | Command ends with | You type exactly | `.env` needs |
 |---|---|---|---|
@@ -375,9 +377,14 @@ against the token limit.
 **Do not delete `data/spike.db`.** All steps share one spike run in it, each request is one trace line and
 takes one of the 70 slots, and deleting it resets the count (EC-R10).
 
-**The verifier bake-off (`--case`).** DL-26 asks whether the mid-tier verifier model catches every planted
-conflict. It runs four cases, each on a fixed row: `C-1`, `C-2`, `I-1` (a copy of a row with its offset
-changed, so the quote check alone would pass it) and `OK-1` (a correct row that should get no flag).
+**The verifier bake-off (`--case`): built, ready, not needed for the capstone.** DL-26 asked whether the
+mid-tier verifier model catches every planted conflict. **DL-55 (operator, 2026-11-23) dropped it: it is
+not run and not owed, and DL-26 is closed.** The verifier stays `gpt-5.6-terra`. **Do not run the commands
+below as a next step.** They stay documented in case a later operator decision brings the bake-off back
+(that needs a new entry in the decision log). The first test of `C-2` and `I-1` on the verifier is the
+evaluation cycle. The bake-off would run four cases, each on a fixed row: `C-1`, `C-2`, `I-1` (a copy of a
+row with its offset changed, so the quote check alone would pass it) and `OK-1` (a correct row that should
+get no flag).
 
 ```bash
 AGENTS_MODE=real SPEND_ACTIVITY=spike .venv/bin/python -m backend.runtime.spike --step verify --case C-2 --go
@@ -387,11 +394,12 @@ AGENTS_MODE=real SPEND_ACTIVITY=spike .venv/bin/python -m backend.runtime.spike 
   ID, another case's words, or the wrong model all cancel.
 - **Candidate 2** is the same command with `LLM_MODEL_VERIFY=gpt-6.1-terra` in front. If you forget it, the
   dry-run shows the model actually in use and the words you type will not match: nothing is sent.
-- **Staged (operator, 2026-11-23): candidate 1 first, then stop and review the tally, then candidate 2.**
-  The plan uses about 41 of the 70 slots by the end of the bake-off. `backend.md` has the slot arithmetic,
-  the cost estimate (well under the US$2.50 cap) and the pass and fail rules.
+- **If it were ever run** (it would need a new decision): candidate 1 first, then stop and review the
+  tally, then candidate 2, about 41 of the 70 slots. `backend.md` has the slot arithmetic, the cost
+  estimate and the pass and fail rules.
 - **Paste one command at a time.** Each stops at a prompt and reads what you type.
-- The decision (DL-26) is yours. Five runs can say "no miss in five runs", never that a miss cannot happen.
+- Five runs could say "no miss in five runs", never that a miss cannot happen. That is one of the known
+  limits DL-55 states.
 
 **The tally (read-only, no key needed).**
 
@@ -475,14 +483,14 @@ CI, B2, B3 stand-in steps 1 to 6 and 7a, B13a, B4, B5, B7, B12, and **the first 
 **B3 step 7b is built: PRs 1 to 5 are merged** (#127, #153, #154, #155, #158; the SAD side of PR 5 is
 H-073, #159) and PR 6, the documentation (#160), is merged too. Real mode builds one one-agent crew
 per unit with DL-43's one retry, but it is **tested only against a fake OpenAI: no real key, no paid
-call, and real mode must not be run before the operator's spike.** **The spike runner is built and merged for all three steps** (extractor #164, #166; verifier and judge; `--case` #174; `--tally` #175), tested against the fake OpenAI first. **The operator has made real calls with all three steps (6 of 70 slots, US$0.0164, as of 2026-11-23); the verifier bake-off (DL-26) is planned and staged but not yet run.** Steps: "Run the spike's first real call" and "Run the verifier and judge calls". **The spike is under way; B8 and B9 follow** (week of 2026-11-23). Order from there, per the
+call, and real mode must not be run before the operator's spike.** **The spike runner is built and merged for all three steps** (extractor #164, #166; verifier and judge; `--case` #174; `--tally` #175), tested against the fake OpenAI first. **The operator has made real calls with all three steps (6 of 70 slots, US$0.0164, as of 2026-11-23); the verifier bake-off (DL-26) is dropped by DL-55: not run and not owed.** Steps: "Run the spike's first real call" and "Run the verifier and judge calls". **The spike is under way; B8 and B9 follow** (week of 2026-11-23). Order from there, per the
 Build card: the spike → B8 → B9 → B13b → B6 → B10. Drop order: B6 and Tier 2, then
 B12, then B13b; never T-MAP-1. The live list of open requests is `project-context/handoffs.md`.*
 
 | Agent | Next |
 |---|---|
-| Operator | **Run the verifier bake-off (DL-26), one command at a time**, candidate 1 first, then stop and read `--tally` before candidate 2: `--step verify --case C-1`, `C-2`, `I-1` or `OK-1`, type the words with the model ID (for example `verify C-2 gpt-5.6-terra`), and send each printout to `@backend.eng`. **Stop and send the printout after any 400, `Off pinned setting : YES`, `Stop reason : length` or invalid answer.** The steps are under "Run the verifier and judge calls, the verifier bake-off, and the tally" in "Tests and checks". `.env` must hold the real key and the three pinned model IDs (`LLM_MODEL_EXTRACT`, `_VERIFY`, `_JUDGE`; never committed), with `AGENTS_MODE=stand_in` left in place; do not delete `data/spike.db`. **You make the DL-26 decision** (the verifier's model) after the bake-off. **After the spike, decide whether a call off the pinned reasoning setting counts as a failure** (SAD Production Shape, "Decisions to take once the spike has shown the result); so far all three models have accepted their pinned settings (H-079), so it may not arise. Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
-| `@backend.eng` | **B3 step 7b** is built, PRs 1 to 5 merged (#127, #153, #154, #155, #158) plus the PR 6 docs (#160): CrewAI 1.15.35 installed with its outside connections off; real mode sends one one-agent crew per unit, with DL-43's one retry (a timeout, no connection, a 429 or a 5xx; never a 400, 401 or 404; never a bad answer), **one trace line per HTTP request** (up to four per unit, at most two billed), four new `trace` columns, and a flag when CrewAI repeats a call without `reasoning_effort`. All tested against the fake OpenAI only: no real key, no paid call. **The spike runner is built for all three steps** (`python -m backend.runtime.spike`: extractor #164, #166; `--step verify`, `--step judge`; `--case` #174; read-only `--tally` #175; a dry-run and a `--go` with a typed confirmation, its own `data/spike.db`; tested against the fake OpenAI first). The operator has made real calls with all three (6 of 70 slots, US$0.0164, 2026-11-23). Next: read the bake-off results as the operator sends them; then the extractor and judge runs up to five each, the clean run, and the timings that replace the starting limits in `.env.example`. Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
+| Operator | **No bake-off to run: DL-55 (2026-11-23) dropped the verifier bake-off (DL-26), and the verifier stays `gpt-5.6-terra`.** `--case` and `--tally` stay built as optional future work; the steps are under "Run the verifier and judge calls, the verifier bake-off, and the tally" in "Tests and checks". Anything you run from there needs a typed confirmation: type the words with the model ID, and **stop and send the printout after any 400, `Off pinned setting : YES`, `Stop reason : length` or invalid answer.** `.env` must hold the real key and the three pinned model IDs (`LLM_MODEL_EXTRACT`, `_VERIFY`, `_JUDGE`; never committed), with `AGENTS_MODE=stand_in` left in place; do not delete `data/spike.db`. **After the spike, decide whether a call off the pinned reasoning setting counts as a failure** (SAD Production Shape, "Decisions to take once the spike has shown the result); so far all three models have accepted their pinned settings (H-079), so it may not arise. Snapshots: all 16 are approved and recorded and the visual check passes (H-055; four review-status baselines were refreshed on 2026-11-20 for the "unit" wording change, #140). Re-check the B1 + B2 timing now that B7 is done |
+| `@backend.eng` | **B3 step 7b** is built, PRs 1 to 5 merged (#127, #153, #154, #155, #158) plus the PR 6 docs (#160): CrewAI 1.15.35 installed with its outside connections off; real mode sends one one-agent crew per unit, with DL-43's one retry (a timeout, no connection, a 429 or a 5xx; never a 400, 401 or 404; never a bad answer), **one trace line per HTTP request** (up to four per unit, at most two billed), four new `trace` columns, and a flag when CrewAI repeats a call without `reasoning_effort`. All tested against the fake OpenAI only: no real key, no paid call. **The spike runner is built for all three steps** (`python -m backend.runtime.spike`: extractor #164, #166; `--step verify`, `--step judge`; `--case` #174; read-only `--tally` #175; a dry-run and a `--go` with a typed confirmation, its own `data/spike.db`; tested against the fake OpenAI first). The operator has made real calls with all three (6 of 70 slots, US$0.0164, 2026-11-23). The verifier bake-off and the "five runs each" are dropped (DL-55); the stage limits stay at their starting values as the operator's decision. The next steps are not yet merged; a later handoff will carry them. Later: **B13b** Retry if time allows. H-059 and H-061 (H-036 part) are done |
 | `@frontend.eng` | Nothing open on snapshots: the mobile fix (H-062) and the 360 px baselines are done. H-061: move your finished entries (H-048, H-027) to Done (H-054 is already there). Later: **B6** light visual pass (dropped first) |
 | `@qa.eng` | **B8** has two slices built and merged, both reading a finished run from the database with no model call: the Stage A grader (#142) and the Stage B grader (#151: EC-004 applicability verdicts, EC-010 agent time and EC-012 cost, from the trace). How to run them and what they report: "Grade a finished run" under "Tests and checks"; the details are in `2.build/qa.md`. Still to do, after the spike: the run starter (evaluation-run type, scripted gates, EC-R7 refusal), the trace export (D4), the void rule (EC-R8), the `I-1` and injection cases, grading a failed run, and the three-run comparison, and the spike and evaluation reports that show `off_pinned_setting` and estimated cost (the `trace` columns exist since 7b PR 5; nothing reads them yet). `T-MAP-1` must pass before the first evaluation run. **B9** tuning and one evaluation cycle with the operator |
 | `@ux.designer` | **H-063** (open): say whether specialist pages at 360 px are a requirement or a courtesy, and the sign-in order when narrow. Otherwise answers questions from `ux.md` and reviews the pages again after B6 |
@@ -625,3 +633,10 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`.
   `--exclude`, the typed words) and `python -m backend.runtime.spike --help`; `--tally` was run read-only
   (6 of 70 slots, US$0.0164, matching `backend.md`). No real call was made. No code. No model call. No
   real key. No paid call.
+- 2026-11-23 · persona `project-mgr` · action `document-setup` (handoff H-082) ·
+  `AAMAD_TARGET_RUNTIME=crewai` · wording only: the verifier bake-off (DL-26) is dropped by DL-55, not run
+  and not owed, and "five runs each" are skipped; `--case` and `--tally` stay documented as built, ready,
+  not needed. Changed the subsection's status line and the bake-off paragraph, the Hand-off status note, and
+  the Operator and `@backend.eng` rows (the Operator row no longer says to run the bake-off). Does not say
+  what comes next, as asked: the next steps are not yet merged. Source: `backend.md` and DL-55. No code. No
+  model call. No real key. No paid call.
