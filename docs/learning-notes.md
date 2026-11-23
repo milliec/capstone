@@ -397,6 +397,19 @@ rule nobody can meet; decide how to grade it before the first real run. It's lik
 must read exactly like this mock-up": no writer ever hits it, so the review fails every time and tells you
 nothing about the writing.
 
+**Passing tests against a pretend server do not prove the real one behaves the same.** The first
+real model call sent two requests where the design said one. The library had quietly sent a
+second request of its own, to count the prompt's tokens, but only when it believed it was talking
+to the real provider. Every test talked to a pretend server on the same computer, so none of them
+could ever see it. The call still gave a valid answer and cost a fraction of a cent; the only
+sign was an extra line in the log. The fix had three parts: switch the extra request off, make the
+tests pretend to be the real provider, and add a guard that refuses to send any request that is not
+the one kind we expect, and writes down what it stopped. Lesson: a fake can only show what you
+taught it to show, so treat the first real run as a test of what the fake cannot see, and build
+something that stops surprises instead of only noticing them afterwards. It's like testing a
+prototype only in the design tool's preview: it behaves, until it meets a real phone with a real
+keyboard that nobody drew.
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -643,3 +656,4 @@ bring it back. Changing visible text also touches the tests that check it and th
 - 2026-11-20 · added one note from the review status wording fix (a builder's word is not a user's
   word; change only what the user sees, and record that the code's word is never shown)
 - 2026-11-21 · added two notes from the B8 Stage A grader slice (break the code on purpose to see whether a test can fail; try the grader on pretend answers before paying for real ones)
+- 2026-11-23 · added one note from H-076 (the first real call sent a request the pretend server could never show; treat the first real run as a test of what the fake cannot see, and add a guard)

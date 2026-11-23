@@ -683,7 +683,7 @@ built in this plan.
 | CR-015 | Indirect injection through the sources, and unsafe display | The sources are version-controlled mock files loaded by code, never fetched. They are placed in prompts as data with paragraph IDs. **Model output is stored and shown as text**: the page templates escape every value automatically, and no model output is ever marked as safe HTML. A quote is checked against its source by code (CR-005), so a model cannot cite text that is not there | input · output | Fail closed | Build crew · `@security.eng` | A display test: model output containing HTML is shown as text; the source files are under version control with no network path | Not applicable |
 | CR-016 | Fairness and leakage | **Corpus**: fixed mock sources, no selection step. **Prompt framing**: the instruction to prefer "unsure" is a deliberate bias towards over-inclusion, stated here, and is why "unsure" goes to a person (CR-007). **Examples**: none drawn from the answer key, which is never in a run-time prompt or fixture; the worked examples in the agent cards are invented and use their own IDs. **The mock files carry the answers, so the loader strips them (DL-39):** it reads only the paragraph text of each source and the ID, fact and value of each fund fact, never the test notes, planted-conflict notes, header warnings, amendments or the "Decides" column | input | Fail closed: a prompt that refers to the answer key, or carries any of the stripped content, fails a test that runs without a model | `@system.arch` (design) · `@qa.eng` (check) | A search-style test: no prompt template or run-time fixture refers to `expected-obligation-library`. **T-LEAK-1** (no model): every task prompt is rendered from the real mock files and the test fails if it contains (a) the phrases "Test note", "Planted conflict" or "correct verdict", (b) the "Decides" heading or any value from that column, (c) the text of any blockquote in `mock-regulatory-sources.md`, or (d) any answer-key ID (`OBL-`, `C-1`, `C-2`, `I-1`, `AMD-`). Phrases are matched as written in the mock files, so ordinary words in a prompt such as "decides" do not trip it. **T-PROMPT-1** (no model): every task renders with sample inputs, with no missing or left-over placeholder. **T-EXAMPLE-1** (no model): no quote in a one-shot example appears in any mock source paragraph, the planted-row fixture, the answer key's quotes or an evaluation case; no example paragraph shares six or more consecutive words with them; no example uses a mock-data ID (§2, "Agent cards") | The review table "Examples against the demo traps" is redone whenever an example changes |
 | CR-017 | Token and cost exhaustion (SD MC-001, MC-002) | Per call: a fixed `max_tokens` per step and a bounded input (one document, or one row and six short documents). Per run: a **hard stop at US$2.50** (`RUN_COST_CAP_USD`, DL-36), counted from the provider's usage data across every request, retries included (a request with no usage data and possible work done is charged at its worst case, and a refused 4xx costs 0: §4 "What a line costs"). Reaching it stops further calls and ends the run as `FAILED`, with the reason recorded. **A run stopped by the cost cap cannot be retried** (DL-51), and a retry after any other failure counts towards the same cap. Calls already in flight finish, so the final figure can be slightly above the stop. **Why the stop is a little above the target:** a run slightly over US$2 still finishes, and is reported as a miss on EC-012 only. A run that reaches US$2.50 is cut off, and every criterion it would have measured then counts as a miss. Run status shows a warning when a run passes US$2 | input (size) · tool-call (making a call) | Fail closed: no further calls | Build crew · `@qa.eng` (report) | The report's cost and time fields against US$2 and 5 minutes (US-013 c3, c6); trace records with token counts; US-015 c17 | The specialist sees the warning and, at the cap, the reason the run stopped |
-| CR-018 | Explaining why an output was produced (SD MP-005) | Every **HTTP request** a model call sends, a retry and CrewAI's silent repeat included, appends a **trace record** keyed by run, step, stage attempt (DL-51), unit and attempt number (the request's place in the unit, 1 to 4: §4 "How many requests one unit can send"): prompt version (a hash of its content), model, sampling settings, `max_tokens`, a hash of the input, the raw output, the parsed output or the validation error, token counts, cost (marked when estimated), the finish reason, why the request got no answer, whether it ran off the pinned settings, duration and the spend activity (CR-030). A request that got no answer has a record too. The audit entry for an agent output links to its trace record. With the audit log, any row, verdict or entry can be explained from start to finish | output | Fail closed: a call whose trace cannot be written counts as failed | Build crew | The trace store (append-only, CR-013); a query that rebuilds the history of one calendar entry; the trace export (D4) | Not applicable |
+| CR-018 | Explaining why an output was produced (SD MP-005) | Every **HTTP request** a model call sends, a retry and CrewAI's silent repeat included, appends a **trace record** keyed by run, step, stage attempt (DL-51), unit and attempt number (the request's place in the unit, 1 to 4: §4 "How many requests one unit can send"): prompt version (a hash of its content), model, sampling settings, `max_tokens`, a hash of the input, the raw output, the parsed output or the validation error, token counts, cost (marked when estimated), the finish reason, why the request got no answer, whether it ran off the pinned settings, the request's URL path, duration and the spend activity (CR-030). A request that got no answer has a record too, and so has a request refused before it was sent because it was not a chat completion (cost 0; §2 "Nothing else is ever sent", H-076). The audit entry for an agent output links to its trace record. With the audit log, any row, verdict or entry can be explained from start to finish | output | Fail closed: a call whose trace cannot be written counts as failed | Build crew | The trace store (append-only, CR-013); a query that rebuilds the history of one calendar entry; the trace export (D4) | Not applicable |
 | CR-019 | GP text implies permission or gives advice (SD MN-009; DL-01, DL-05) | Code generates the "precautionary" label and note from the specialist's decision (W-12); no model writes it. On screen the label reads **"May not be required"** (DL-01 amendment, U5). The G2 reason field is labelled as visible to GPs (W-17, SA-8). The calendar-level "not legal advice / conventions not yet checked" note is one fixed sentence on the GP view. The wording is checked in a copy review before the demo | output (a human control) | Not applicable (a review) | `@ux.designer` · specialist | The copy review record; US-011 c5, c11 | Human review before the demo |
 | CR-021 | Secrets and real data (SD NFR-009, MN-001) | The provider key is read from `OPENAI_API_KEY` in the git-ignored `.env`; `.env.example` lists names only. The real-name scan runs before every commit. The system holds no real data | input | Fail closed: no key → no calls; a scan hit → no commit | Operator · `@security.eng` | The scan output; `.env.example` | Not applicable |
 | CR-023 | Concurrent runs, and runs that never end (PRD A-6; DL-29) | The server refuses to start a run for the fund while one is `ACTIVE` (see the run state model). **An active run always has a way out:** G3 is decided, a step fails, a time limit passes, the backend restarts mid-stage, or the specialist abandons it at a gate. There is no other cancel | tool-call | Fail closed | Build crew | **T-RUN-0**: start a second run → refused, naming the active run. **T-RUN-1**: a unit fails → the run is `FAILED`, no gate opens, a new run can start. **T-RUN-2**: a stubbed call never returns → it times out, is retried once, times out again → the run is `FAILED` with the reason `model service`; a stubbed call that times out once and then answers → the unit succeeds and both attempts are in the trace (DL-43). **T-RUN-3**: abandon without a reason → `REASON_REQUIRED`; with one → `ABANDONED`, one audit entry, nothing else changed, a new run can start. **T-RUN-4**: abandon or decide on a run that is not active → `RUN_NOT_ACTIVE`; a stale run version → `VERSION_MISMATCH`. **T-RUN-5**: decline G3 without a reason → `REASON_REQUIRED`; with one → `DECLINED`, the GP view unchanged, a new run can start. **T-RUN-6**: a stage passes its stage time limit → `FAILED` with the reason "stage time limit", no gate opens. **T-RUN-7**: restart the backend in each `*_RUNNING` phase → `FAILED` with the reason "service restarted"; a run in an `AT_G*` phase is still `ACTIVE`; abandon in a `*_RUNNING` phase → `RUN_STAGE_RUNNING`; a row decision while `A_RUNNING` → `RUN_STAGE_RUNNING` (DL-46). **T-RUN-8**: a stubbed unit answers after its stage has failed → nothing is stored as a row, flag or verdict, the output is in the trace, and its cost is in the run's cost (DL-43). (AM T-26 to T-29, T-33 to T-35) | The specialist is shown the active run, or the terminal state and its reason |
@@ -754,16 +754,42 @@ built in this plan.
   false alarms on the correct rows and the cost of a full run. The choice is recorded in the
   decision log before the first evaluation run. Output: a short table under
   `project-context/2.build/`, named in this document's Audit when it exists.
+  **What the spike has found so far (H-076, H-078).** Evidence: `2.build/backend.md`, "B3 spike
+  finding" and "B3 spike finding 2".
+  - **Finding 1, the extractor's first real call (H-076).** It sent **two requests**: CrewAI's own
+    pre-flight and the model call. The answer was valid and the pinned settings were accepted, but
+    the rule "one unit sends one request" had been broken, and the fake could not have shown it
+    (§2 "Nothing else is ever sent", §9 "What a fake server cannot show"). The spike database keeps
+    the two lines as they are (append-only): **report it as one model call plus one pre-flight
+    request, 2 of the 70 slots used**, and take the call's cost, flag and counts from the model
+    line, not the pre-flight line.
+  - **Finding 2, the verifier's first real call (H-078).** `gpt-5.6-terra` accepted `reasoning_effort`
+    low and **caught the planted conflict C-1 in substance**: it cited `SRC-PRACT-P1` with a quote
+    copied word for word. Our check refused the answer because it also wrote `field` and
+    `row_value` on a cross-source flag. **First-attempt schema-pass: 0 of 1** (US$0.0077, 1723 in,
+    351 out, 5.1 s); the spike's stop rule fired and no further call was made. **Call it a schema
+    failure, not a miss**, and count it in the share of calls that pass on the first attempt. **The
+    fix is the schema, not the prompt or the check:** the flag goes out as two shapes (§2 Outputs).
+    **After the fix** the operator's re-run (`SRC-UCILAW-P3#2`) returned a valid answer, caught C-1
+    and raised no false alarm (US$0.0057, 1721 in, 185 out, 3.9 s), and **OpenAI accepted the
+    nested `anyOf`**. **First-attempt schema-pass for the verifier is 1 of 2.** The two calls were
+    sent different `response_format`s (the prompt did not change), and the report must say so. One
+    valid answer is one data point, not a trend.
+  - **What neither finding decides:** the verifier bake-off (DL-26). It needs C-2 and I-1 and the
+    other candidate model, five runs each.
   **Decisions to take once the spike has shown the result** (a list kept here, H-073; the operator
   decides, not the build):
-  1. **Verifier model**: the bake-off choice above (DL-26).
+  1. **Verifier model**: the bake-off choice above (DL-26). **Still open** after the first two
+     verifier calls (H-078).
   2. **Treat a call that went off the pinned reasoning setting as a failure?** When a 400 says a
      model refuses `reasoning_effort`, CrewAI sends the call again without it, reports success, and
      **leaves the setting out of every later call in the same process** (a memory kept per model and
      endpoint, with no setting to turn it off; `completion.py` in crewai 1.15.35). Today it is only
      flagged (`off_pinned_setting` = 1 on each line) and the run goes on; the spike and evaluation
      reports state how often it happened (H-064 condition c). The spike shows whether the three
-     DL-40 models accept the setting. If they all do, the question does not arise. If one does not,
+     DL-40 models accept the setting. **Count only real model calls here:** the pre-flight line of
+     the extractor's first call was flagged `off_pinned_setting` by mistake and is not a case
+     (H-076). If they all do, the question does not arise. If one does not,
      the options are to keep flagging, or to fail the call and the unit, which would end the run
      as `FAILED`.
 - **The failure mode of a document pipeline, and what limits it**: **well-formed but wrong, and
@@ -891,9 +917,22 @@ the G1 or G3 page is shown.
   strict JSON schema goes through the LLM's `additional_params`, built from the same Pydantic classes
   by `backend/runtime/wire_schema.py`, with the keywords OpenAI's strict mode does not accept dropped
   (`minLength`, `maxLength`, `discriminator`, and `oneOf` written as `anyOf`). Dropping them loses no
-  rule: our Pydantic check still enforces every constraint. **Not yet proven against the provider:**
-  it is tested against the fake OpenAI only, so a 400 "invalid schema" on the spike's first call
-  means one more keyword has to be dropped.
+  rule: our Pydantic check still enforces every constraint. **A 400 "invalid schema" from the
+  provider would mean one more keyword has to be dropped.** None has come on a real call so far
+  (the verifier's nested `anyOf` below is the proof for that shape).
+  **The verifier's flag is sent as two shapes (H-078).** Strict mode requires every key on every
+  object, and a JSON schema cannot say "an internal flag has no `other_quote`". With one flag shape
+  holding five optional keys, the model had to write all of them, and the first real verifier call
+  filled `field` and `row_value` on a cross-source flag, which `Flag` allows on an internal flag
+  only (CR-003 refused it). So `wire_schema.py` sends the flag as `anyOf` two shapes built from
+  `Flag` itself: an **internal flag** (`flag_type`, `explanation`, `field`, `row_value`,
+  `quote_says`) and a **cross-source flag** (`flag_type`, `explanation`, `other_paragraph_id`,
+  `other_quote`), each with exactly its own keys, all required, none nullable, so the model cannot
+  mix them. **Only the wire changes.** The Pydantic check, the stored flags, the card text and the
+  other two steps' schemas are unchanged. The choice was the operator's (2026-11-22). Not taken:
+  telling the model in the prompt to "set the others to null" (it relies on the model obeying, and
+  it would change the card and so the prompt version), and a check that silently drops the extra
+  keys (it loosens CR-003 and D5 and hides the very thing the spike measures).
 - **Errors**: a failed schema or guardrail check fails its unit, and the run ends as `FAILED`. The
   model is never asked again, by us or by CrewAI (`guardrail_max_retries: 0`, D5; no
   `output_pydantic`, so CrewAI's converter has nothing to repair). A transport or provider error,
@@ -922,6 +961,25 @@ the G1 or G3 page is shown.
   requests one unit can send"). A run that contains a silent repeat "ran off the pinned reasoning setting":
   this shows in the trace and in the spike and evaluation reports only, not on the review status
   page.
+- **Nothing else is ever sent (H-076).** The rule "exactly one request" was **broken by the first
+  real call** (spike run RUN-20261122-1): CrewAI sent a second request of its own, a pre-flight
+  `POST /v1/responses/input_tokens` that counts the prompt's tokens (`Agent.respect_context_window`
+  is true by default). It is neither a model call nor one of the kinds listed above. It was
+  charged the worst case (US$0.0011, estimated) and flagged `off_pinned_setting`, both **false
+  alarms** (the model call cost US$0.00033), and it used 2 of the 70 call slots for one model
+  call. Two things now hold. (1) **The pre-flight is switched off**: `respect_context_window=False`
+  on the agent (also stops CrewAI summarising our prompt on its own). (2) **The only request that
+  leaves the machine is `POST .../chat/completions`.** The interceptor refuses any other request
+  **before it is sent**, because a request that is not a chat completion is a side effect nobody
+  planned, and side effects fail closed. A refused request gets a trace line (cost 0, not an
+  estimate, not flagged `off_pinned_setting`, never retried) that records its URL path
+  (`request_path`, §4). It is never sent, so it is **not one of the "at most four"**. It still takes
+  one of the 70 call slots, at no cost (the cap counts trace lines; not counting it would need a
+  special case in the count). CrewAI wraps its pre-flight in its own `try/except`, so a refused
+  pre-flight is swallowed and CrewAI still makes the real call. If the chat request itself were
+  refused, the unit fails once with that reason and is not retried (DL-43's retry is for provider
+  failures, and a refusal would only be refused again). **Billing of the count request, when it
+  was sent, is not verified**: the operator checks the provider's usage page.
 - **Time limits and stopping**: there is **no cancel**. Each call has its own timeout, with the HTTP
   client timeout slightly below it (Production Shape, DL-43). **The backend's stage timer around
   the stage function is the bound that ends a stage**; `max_execution_time` is set to the call
@@ -952,7 +1010,8 @@ the G1 or G3 page is shown.
 | `max_execution_time` | Equal to the call timeout in the table above | **Not relied on as a bound**: it does not cancel a call in flight. The backend stage timer ends a stage (DL-43) |
 | `max_rpm` at crew level | 30 | Limits bursts from the parallel units |
 | *Not an adapter rule:* CrewAI's own rate-limit retry (HTTP 429, three attempts by default, no setting) | **One attempt**, set in `load_crewai()` (H-072) | A third retry layer next to D1's two. Our one DL-43 retry is the only retry. Pinned with the CrewAI version; an upgrade that renames it stops the call (see the "CrewAI's third retry layer" bullet above) |
-| *Not an adapter rule:* how the strict schema is sent | Our own JSON schema through the LLM's `additional_params`, from `backend/runtime/wire_schema.py` (H-072) | CrewAI's own `response_format` cannot carry an optional (null) field. See the Outputs bullet above |
+| *Not an adapter rule:* how the strict schema is sent | Our own JSON schema through the LLM's `additional_params`, from `backend/runtime/wire_schema.py` (H-072). The verifier's flag goes as two shapes (H-078) | CrewAI's own `response_format` cannot carry an optional (null) field. See the Outputs bullet above |
+| *Not an adapter rule:* CrewAI's context-window pre-flight (`respect_context_window`, true by default) | **False** on every agent (H-076) | By default CrewAI sends its own token-count request to OpenAI before the call. It broke "one unit sends one request" on the first real call. Our prompt is one bounded message, so it has no use. See "Nothing else is ever sent" above |
 | Tools: the minimum set | Empty for every agent | CR-002 |
 | `memory=False` | Yes | No `CREWAI_STORAGE_DIR` needed |
 | `Task.guardrail` for high-risk outputs | **Not set** (H-065). The same guardrails (CR-003) run in our code after the call | One check path for stand-in and real mode, and no way to ask the model again. `guardrail_max_retries: 0` is still set explicitly: D5 |
@@ -967,7 +1026,7 @@ follows these in place of the adapter text they name.
 | D2 | "Use explicit task context chaining (`Task.context`) for deterministic dependency flow." (24) | Not used. It would pass the extractor's output and reasoning into the verifier's prompt, which W-05 forbids. The order is still fixed: it is the step order of the stage function, and inputs come from stored data | Low. A developer used to CrewAI may expect it; this section says where every input comes from |
 | D3 | "Define `expected_output` with required headings and target artifact paths." (25) | `expected_output` describes the step's typed schema. The schema is enforced by a strict `response_format` sent to OpenAI and by our own Pydantic check, not by `output_pydantic` (H-065: when output does not parse, CrewAI's converter calls the model again to repair it, a hidden re-ask). The adapter rule is written for crews that produce documents; these tasks return data | Low. Recorded so a reviewer comparing against the adapter text sees why they differ |
 | D4 | "Require `Task.id` and explicit output path for traceability." (54) | `Task.id` is kept. **There is no output path**: outputs go to the database, and a file would be a second store outside the append-only rule. In its place, **every evaluation run must export its trace** to `project-context/2.build/logs/<run_id>/`, with secrets removed. An evaluation run without its export is reported as failed. **T-D4-1**: with the export switched off or deleted → the evaluation run is marked failed and says why; with it present → it holds one record per model call attempt, matching the trace store | Low, with T-D4-1 in place |
-| D5 | *A library default, not an adapter rule:* CrewAI asks the model again when a guardrail fails (`guardrail_max_retries`). The adapter rule followed is "Use `Task.guardrail` for high-risk outputs" (53), applied in our code after the call, not as `Task.guardrail` (H-065) | `guardrail_max_retries: 0`, set explicitly. Asking the model again with its own failure is the self-correcting loop the design rejects (Pattern Decision) | First-pass success may be lower, because a small formatting slip is not repaired. **The spike records first-pass success per role.** If it is too low, the fix is a better prompt or schema, released under the release rule, never a re-ask |
+| D5 | *A library default, not an adapter rule:* CrewAI asks the model again when a guardrail fails (`guardrail_max_retries`). The adapter rule followed is "Use `Task.guardrail` for high-risk outputs" (53), applied in our code after the call, not as `Task.guardrail` (H-065) | `guardrail_max_retries: 0`, set explicitly. Asking the model again with its own failure is the self-correcting loop the design rejects (Pattern Decision) | First-pass success may be lower, because a small formatting slip is not repaired. **The spike records first-pass success per role.** If it is too low, the fix is a better prompt or schema, released under the release rule, never a re-ask. **The first real case (H-078):** the verifier's first call failed the check (0 of 1) on a schema shape, not on its judgement, and the fix was the schema (two flag shapes, §2 Outputs), exactly as this row says |
 | D6 | "For high-risk outputs, require a human review gate (`human_input=true` or explicit review task)." (56) | *An interpretation, not a deviation.* G1, G2 and G3 in the backend are the explicit review. `human_input=true` would put gate state inside the agent runtime (DL-17) | Low. If `@security.eng` reads the rule literally, it is raised again as a deviation |
 
 #### Agent cards (DL-39)
@@ -1183,6 +1242,12 @@ after quarter end); quote check passed. The sources also hold a technical annex:
 ANNEX-P1 gives a different frequency for the same return, so it is flagged with its own words.
 ANNEX-P2 is about a different return, so it is not a conflict. The row's own fields match its
 quote, so there is no internal flag. The verifier does not say which document is right.
+
+*Note (H-078; not part of the prompt, so the prompt version does not change).* On the wire a flag is
+one of **two shapes, each with exactly its own keys** (§2 Outputs), so the example above is the
+exact format the model is held to: a cross-source flag has no `field`, `row_value` or `quote_says`,
+and an internal flag has no `other_paragraph_id` or `other_quote`. The first real call mixed them
+and was refused (CR-003); that is why the shapes are split.
 
 ##### Card 3: Applicability judge (W-11)
 
@@ -1489,13 +1554,15 @@ run has ended every later request is refused and logged as a `refusal`, never as
 nothing can come after it. A `COMPLETED` run's time is `publications.published_at`; a `FAILED`
 run's reason is its failed unit's line in `units`.
 
-**The `trace` columns (H-035, before B3; four columns added by H-073).** One line per model call
+**The `trace` columns (H-035, before B3; four columns added by H-073, one by H-076).** One line per model call
 attempt (CR-018), insert-only. **An attempt is one HTTP request** (H-073): a real call that is
 retried (DL-43), or that CrewAI repeats (see "How many requests one unit can send" below), has one
 line for each request, and a request that got no answer has a line too. They come from CR-018,
 DL-40, DL-43 and the evaluation copy cases (DL-45). B3 may refine types, not meaning. The four
-columns added by H-073 sit at the end of the table, nothing was renamed or dropped, and each has a
-default (empty or 0), so older lines and stand-in lines read as before.
+columns added by H-073, and `request_path` added by H-076, sit at the end of the table, nothing was
+renamed or dropped, and each has a default (empty or 0), so older lines and stand-in lines read as
+before. `init_db` adds a column to an older database and leaves every existing value unchanged (the
+trace stays append-only).
 
 | Column | Holds | Source |
 |---|---|---|
@@ -1515,7 +1582,8 @@ default (empty or 0), so older lines and stand-in lines read as before.
 | `stop_reason` | The API's finish reason for the request (for example `stop` or `length`). Empty when no answer came. Default empty | H-073 |
 | `provider_error` | Why the request got no answer: the HTTP status and the provider's message, or a timeout or no connection. Empty when the request was answered. Default empty | H-073, DL-43 |
 | `cost_estimated` | 0 or 1. **1** when no usage data came and the worst case was charged instead (see "What a line costs"). Default 0 | H-073, CR-017 |
-| `off_pinned_setting` | 0 or 1. **1** when the request did not carry the settings pinned in DL-40, for example CrewAI's silent repeat without `reasoning_effort`. A flag only: it does not fail the call or the run. Default 0 | H-073, DL-40 |
+| `off_pinned_setting` | 0 or 1. **1** when the request did not carry the settings pinned in DL-40, for example CrewAI's silent repeat without `reasoning_effort`. A flag only: it does not fail the call or the run. Default 0. **Judge a line by its request, not only by this flag:** a line with no model returned, no tokens and no stop reason was not a model call (H-076) | H-073, DL-40 |
+| `request_path` | The request's URL path, for example `/v1/chat/completions`. For a request the guard refused before sending (§2 "Nothing else is ever sent"), the path it tried, with the reason in `provider_error`. Empty on a stand-in line and on a line written before the column existed. Default empty | H-076 |
 
 **What a line costs (H-073, CR-017).** The cost cap counts every request, answered or not, in the
 same transaction as the trace line. Three cases:
@@ -1542,7 +1610,9 @@ prompt of each role) is **US$1.49 with two billed requests per unit**. If all fo
 unit were billed, it would be **US$2.98, above the US$2.50 cap**. **So the cap's safety rests on
 "a 4xx costs 0", not on the count of requests.** If a provider ever bills a refused request, this
 paragraph and CR-017 must be revisited before the next real call. CrewAI's repeat runs inside the
-stage timer (H-064 condition c); the stage limits are not changed.
+stage timer (H-064 condition c); the stage limits are not changed. **Nothing else is ever sent
+(H-076):** a request that is not `POST .../chat/completions` is refused before it leaves the machine,
+so it is never billed and is not one of the four (§2).
 
 A call whose trace line cannot be written counts as failed (CR-018). Stand-in calls also write a
 line, so the cost count and the audit link work the same way; the run's stored mode tells them apart.
@@ -2023,10 +2093,18 @@ roles and single SQLite file provide none of this, and the walkthroughs do not t
 |---|---|---|
 | Unit | The deterministic modules on their own | Date engine: the 22 expected entries, rolls forward and backward, an approved row with no rule stopping generation (DL-19), event awareness, the open-question mark (US-008, US-009, T-W13-1, T-W13-2) · quote check (T-W04-1 to T-W04-6) · IDs (T-ID-1, T-ID-2) · coverage view (SD AC-029) |
 | Control tests | Every Control Register entry, through the service functions and the routes, with the database | The evidence tests in the Control Register · AM T-01 to T-08, T-11 to T-15, T-18, T-23, T-25 to T-37 · T-RUN-0 to T-RUN-7 · T-DEC-1 · T-G3ACK-1 · T-DEMO-1, T-DEMO-2 · T-MODE-1 |
-| Runtime checks | The CrewAI settings behave as recorded in §2 | No agent has a tool (AM T-07) · every task has `Task.id`, no task has `output_pydantic` or `Task.guardrail`, and `max_retry_limit`, the HTTP client's `max_retries` and `guardrail_max_retries` are all 0 (H-065), and CrewAI's rate-limit retry is one attempt (H-072; `load_crewai()` stops the call if a CrewAI upgrade renames it) · a guardrail failure ends the run with **no re-ask** (D5) · one retry only, made in our code (D1, T-RUN-2) · one unit sends exactly one request, except that retry and CrewAI's silent repeat without `reasoning_effort`, counted by the fake OpenAI · one trace record per attempt (CR-018) · the trace export exists (T-D4-1) |
+| Runtime checks | The CrewAI settings behave as recorded in §2 | No agent has a tool (AM T-07) · every task has `Task.id`, no task has `output_pydantic` or `Task.guardrail`, and `max_retry_limit`, the HTTP client's `max_retries` and `guardrail_max_retries` are all 0 (H-065), and CrewAI's rate-limit retry is one attempt (H-072; `load_crewai()` stops the call if a CrewAI upgrade renames it) · a guardrail failure ends the run with **no re-ask** (D5) · one retry only, made in our code (D1, T-RUN-2) · one unit sends exactly one request, except that retry and CrewAI's silent repeat without `reasoning_effort`, counted by the fake OpenAI; **this test runs with CrewAI made to behave as if the fake were `api.openai.com`** (T-REQ-1, H-076) · only `POST .../chat/completions` is ever sent, and any other request is refused before it is sent and traced (T-REQ-2, H-076) · one trace record per attempt (CR-018) · the trace export exists (T-D4-1) |
 | Pages | Each of the seven pages shows every state it can be in, from stand-in data | One test per page and state · model output containing HTML is shown as text (CR-015) · an automated accessibility check, and a manual WCAG 2.2 AA review of every page (PRD §6) |
 | Acceptance | The happy path from start to finish | In CI with stand-in agents; once with the real model, as the rehearsal run |
 | Evaluation (local, real model) | Agent quality against the answer key | The US-013 report; one cycle of three runs (EC-R10) |
+
+**What a fake server cannot show (H-076).** Every CI test talks to a fake OpenAI on `127.0.0.1`, and
+CrewAI does some things only when it believes the server is `api.openai.com` (the token-count
+pre-flight is one). So **passing tests do not prove that nothing else is sent to the real provider.**
+The test fixture that makes CrewAI behave as if it were on OpenAI narrows the gap and cannot close
+it: there may be more behaviour like this, which is why the request guard exists (§2). **The first
+real call of the spike is therefore also a test of what the fake cannot show**, and a request that
+is not a chat completion is reported as a spike finding, not as a failure of the run.
 
 **Verification before Deliver**: `@qa.eng` runs `*verify-change` on the final branch. The security
 assessment by `@security.eng` is **required**, and checks the Control Register, D1 to D6 and the
@@ -2124,7 +2202,7 @@ and the answer key. Behaviour that is Future Work has no criterion here.
 - **EC-R10: real model calls only where they count (DL-36).**
   1. **Building and the automated tests use stand-in agents** and call no model (CR-030).
   2. Real calls are allowed for five activities only, each with a limit: the **spike** (at most 70
-     calls), **tuning** (at most 60 calls), **one evaluation cycle** (three runs, plus replacements
+     calls, counted as trace lines: a request the guard refused takes a slot at no cost, H-076), **tuning** (at most 60 calls), **one evaluation cycle** (three runs, plus replacements
      under EC-R8), **one rehearsal run** and **the demo run**.
   3. **One cycle, and its result stands.** If the cycle reports a miss, the miss is reported. A
      second cycle, or any model-facing change after the cycle, needs a recorded operator decision
@@ -3311,3 +3389,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-21 · persona `system-arch` (at the operator's instruction; closes the open point in the entry above) · action `update` · **"Model grader" wording aligned.** US-013 criterion 11 now says "model grader" (`@product-mgr`, PR #148), so the SAD and the story use the same word. The open wording point in the previous entry is closed. Still saying "model judge" for the same idea, and owned by `@qa.eng` (not edited here): `project-context/2.build/qa.md` (F-1 area and the list at line 117), `project-context/2.build/evals.md` (EC-002 row, lines 76, 142, 157) and handoff H-068 in `project-context/handoffs.md`. The `qa-eng` entry above keeps its original "model judge" text, as a record of what was written then. No other text, threshold or code changed. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-22 · persona `system-arch` (at the operator's instruction; handoff H-073; PR stacked on #158) · action `update` · **Recorded the B3 step 7b PR 5 trace changes.** §4 "The `trace` columns": four columns added at the end (`stop_reason`, `provider_error`, `cost_estimated`, `off_pinned_setting`, each with a default); `attempt_n` now counts HTTP requests of a unit; `late` is decided from the unit's last trace line; new "What a line costs" table (usage data: priced; 4xx: 0; 5xx, timeout, no connection or no usage data: worst case, `cost_estimated` = 1); new "How many requests one unit can send" paragraph (up to four requests, at most two billed, US$1.49 worst-case run for two billed per unit against US$2.98 for four, so the US$2.50 cap rests on "a 4xx costs 0"). Production Shape, Measurement spike: new list "Decisions to take once the spike has shown the result" (the verifier choice, and the new question "treat a call that went off the pinned reasoning setting as a failure?"). CR-017 gained one clause pointing to the cost rule. Checked against the PR 5 code (`backend/runtime/attempts.py`, `model_settings.py`, `agents.py`, `db/schema.sql`) and H-064 condition (c), by reading only; no code changed, no model call made. **Follow-up the same day (operator asked):** CR-018 now counts HTTP requests and lists the four new fields; EC-012 now says a request with no usage data counts at its worst case and a refused 4xx counts 0; the §2 "Counting every request" sentence now states the bound (at most four requests, at most two billed). The §6 Runtime checks row keeps its "one unit sends exactly one request, except..." wording, which is still true. PRD and stories untouched. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-22 · persona `system-arch` (at the operator's instruction; handoff H-072) · action `update` · **Recorded CrewAI's third retry layer and how the strict schema is sent (B3 step 7b PR 4).** Checked against the code first, by reading only (`backend/runtime/crewai_setup.py`, `crews.py`, `wire_schema.py`, `tests/tier1/test_crews.py`). §2: new "CrewAI's third retry layer" bullet (CrewAI's own 429 retry, three attempts, no setting; set to one in `load_crewai()`; pinned with the CrewAI version, and the call stops if an upgrade renames it); the Errors bullet now names it among the layers that add nothing; the Outputs bullet says how the schema is sent (our own strict schema through `additional_params`, not CrewAI's `response_format`, with the keywords strict mode refuses dropped) and that the provider has not yet accepted it; two rows added to the CrewAI settings table; D1 and the §6 Runtime checks row name the setting. The "at most four requests" bound (H-073) now says it depends on this setting. No rule changes: DL-43, D1, H-064 and H-065 stand. One detail beyond the handoff: `wire_schema.py` also drops `title` and `default` keywords; not recorded as a rule because the Pydantic check enforces what matters. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `system-arch` (at the operator's instruction; handoffs H-076 and H-078) · action `update` · **Recorded the first two real-call findings of the B3 spike and their fixes.** Checked against the code first, by reading only (`backend/runtime/wire_schema.py`, `attempts.py`, `crews.py`, `db/schema.sql`, `tests/tier1/test_request_guard.py`) and `2.build/backend.md` ("B3 spike finding" and "finding 2"). **H-078:** §2 Outputs now says the verifier's flag is sent as `anyOf` two shapes (internal and cross-source, each with exactly its own keys, all required, none nullable), why (strict mode needs every key, so the first real verifier call mixed them), that only the wire changed, and the two options not taken; the "not yet proven" sentence is replaced (the real re-run was accepted); the D5 row gets its first real case; the verifier card gets a **note outside the prompt** (the prompt version does not change); the CrewAI settings row names the two shapes. **The finding as recorded (Measurement spike):** the verifier caught C-1 in substance, **first-attempt schema-pass 0 of 1**, called a schema failure and not a miss; after the fix the re-run was valid and caught C-1, **1 of 2**; DL-26 stays open. **H-076:** new §2 bullet "Nothing else is ever sent" (the pre-flight was a second request and broke "exactly one"; it is switched off; only `POST .../chat/completions` may be sent, any other request is refused before sending and traced with cost 0, is not one of the "at most four", and still takes a call slot); new CrewAI settings row `respect_context_window` false; §4 new `trace` column `request_path` and a note on reading `off_pinned_setting`; §4 "How many requests" gets one sentence; CR-018 names the path and the refused request; §9 Runtime checks row names T-REQ-1 and T-REQ-2 and a new paragraph "What a fake server cannot show" (the first real call is also a test of that); EC-R10 says the 70 are counted as trace lines; "Decisions to take once the spike has shown the result" items 1 and 2 updated. **Decisions I took:** keep counting a refused request as a slot (the backend's conservative choice, no special case in the cap); the card's prompt text is not edited. **Not touched:** H-079 (decision 2 of that list, and the `minItems`/`maxItems` precaution) is a separate handoff and is still open; the 70-call figure and cost cap; DL-26, DL-40, DL-43; the stage limits. The pre-flight's billing is not verified (operator checks the usage page). No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
