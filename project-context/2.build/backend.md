@@ -560,6 +560,9 @@ answer-key row of `SRC-UCILAW-P3` (where the planted conflict C-1 sits), so ever
    `Stop reason : length` is the reasoning models' own risk: reasoning tokens count against the token limit.
 4. Each request is one trace line and takes one of the 70 slots. Each call is its own unit
    (`SRC-UCILAW-P3#1`, `#2`, numbered per step); all steps share the one spike run.
+5. This table is the **first call's** path (`--row`, the words `verify SRC-UCILAW-P3`), kept as it was. The
+   verifier bake-off uses `--case` and the typed words with the model ID, and `--tally` summarises the
+   database: see "B3 spike: the verifier bake-off".
 
 ## B3 spike finding: the first real call sent two requests (RUN-20261122-1, 2026-11-22)
 
@@ -814,6 +817,118 @@ CrewAI's memory of a refused setting lives only inside a process, so a model tha
 - **Not decided yet:** the verifier model (DL-26, needs the bake-off); the stage time limits (they need the
   five-run figures).
 
+## B3 spike: the verifier bake-off (DL-26): how to run it, and the tally (2026-11-23)
+
+**Status, 2026-11-23 (read with `--tally`): the bake-off has not been run.** The spike database holds
+**6 of 70** slots and US$0.0164. For the verifier it holds one invalid call sent *before* the two-flag-shapes
+fix (`SRC-UCILAW-P3#1`, left out of the counts with `--exclude`) and one valid C-1 run (`SRC-UCILAW-P3#2`,
+run 1 of 5 for candidate 1). This section records the procedure and the tool; the results go in a
+follow-up after the operator's runs (finding 4).
+
+**What it decides (SAD, DL-26 and DL-40).** The verifier's default is the mid-tier `gpt-5.6-terra`. It
+switches to the judge's reasoning model (`gpt-6.1-terra`) **only if the mid-tier model misses any planted
+conflict in any run**. The operator makes the choice and records it in the decision log; the build does not.
+The SAD also asks the spike to record the false alarms on a correct row and the cost of a full run.
+
+**The four cases.** Each runs on a fixed row from `expected-obligation-library.md` section 3, so every run
+and both candidates see the same input. All four rows pass the code's own quote check.
+
+| Case | Row sent | A good answer | The trace unit |
+|---|---|---|---|
+| **C-1** | `SRC-UCILAW-P3` (OBL-03) | a cross-source flag citing `SRC-PRACT-P1` (four months against six) | `SRC-UCILAW-P3#n` |
+| **C-2** | `SRC-RBELAW-P1` (OBL-05) | a cross-source flag citing `SRC-PRACT-P2` (anchors on the date of the change; the row on becoming aware) | `SRC-RBELAW-P1#n` |
+| **I-1** | `SRC-UCILAW-P2` (a copy of OBL-02) with its **offset changed to 30 calendar days**; its quote still says 20 | an **internal** flag naming the field `offset`. The quote check alone would pass this row | `SRC-UCILAW-P2#n` |
+| **OK-1** | `SRC-CSSF15627-P2` (OBL-01) | **no flag** (the false-alarm check; `SRC-PRACT-P3` agrees with the row) | `SRC-CSSF15627-P2#n` |
+
+The I-1 change is made on a copy; the answer key is never altered. Each row belongs to one case, so the unit's
+name says which case a line is. **Unit numbers count calls, not valid runs** (a call that failed still uses
+a number), and both candidates share the numbering; the `model` column tells them apart.
+
+**The two candidates.**
+
+| | Candidate 1 | Candidate 2 |
+|---|---|---|
+| Model | `gpt-5.6-terra` (DL-40's verifier) | `gpt-6.1-terra` (the judge's model) |
+| Settings | `reasoning_effort` low, 2000 tokens, **no temperature** | **the same**: this is what "the verifier switches to the judge's model" means in production, since only `LLM_MODEL_VERIFY` changes |
+| How it is run | the command as it is | the same command with `LLM_MODEL_VERIFY=gpt-6.1-terra` in front; no code differs |
+| Risk | none known | `gpt-6.1-terra` has not yet been sent `reasoning_effort: low`; a 400 is free but stops the plan |
+
+**The typed words name the case and the model**, for example `verify C-2 gpt-5.6-terra`. If the override is
+forgotten, the dry-run shows the model actually in use, the operator types the model they meant, the two
+differ, and **nothing is sent**. The bare row ID, another case's words and the wrong model all cancel.
+
+**The plan, staged (operator, 2026-11-23): candidate 1 first, then stop for review, then candidate 2.**
+
+| Phase | Calls | Slots after |
+|---|---|---|
+| Now | | 6 |
+| Candidate 1: C-1 ×4 more (the valid call #2 is run 1), C-2 ×5, I-1 ×5, OK-1 ×3 | 17 | **23** |
+| *Stop: review the tally before candidate 2* | | |
+| Candidate 2: C-1 ×5, C-2 ×5, I-1 ×5, OK-1 ×3 | 18 | **41** |
+| Still to do outside the bake-off: extractor +3, judge +4, the clean run (about 17) | 24 | **65** |
+
+That leaves **5 spare slots**, and every retry or 400 uses one. The SAD's "about 63" fits once the two slots
+already spent on the first call's pre-flight line and the invalid verifier call are counted. A further call
+beyond 70 needs a recorded operator decision (EC-R10).
+
+**Cost.** Measured so far: a verifier call costs US$0.0057 to 0.0077; the judge's, US$0.0013. Estimates (not
+yet measured): candidate 1's 17 calls about **US$0.10 to 0.13**; candidate 2's 18 calls about **US$0.04 to
+0.07** at its own prices (it is *recorded* at the verifier's prices, about twice that; see "Known"). Even if
+every call hit its ceiling it would be about US$1.00, against the US$2.50 cap.
+
+**Pass and fail.**
+
+- **Each call (mechanics):** one request on `/v1/chat/completions`, stop reason `stop`, `off_pinned_setting`
+  0, and the answer passes its guardrail. **Stop rule:** after any 400, `Off pinned setting : YES`,
+  `Stop reason : length` or an invalid answer, stop and send the printout; no further call until the
+  operator decides. An invalid answer counts against schema-pass and is **never** counted as a miss.
+- **Each call (content):** **C-1, C-2:** CAUGHT when a cross-source flag cites the other paragraph; an
+  internal flag is a false alarm. **I-1:** CAUGHT when an internal flag names `offset`; an internal flag on
+  another field is a false alarm. **OK-1:** CLEAN when there is no flag; any flag is a false alarm. A miss is
+  a finding, not a failure, and the stop rule does not fire for it (but send it: it is the DL-26 signal).
+- **The decision (DL-26, the operator's):** any MISSED by candidate 1 in any run means the verifier switches
+  to the judge's model. **Proposed addition (not the SAD's wording):** switch only if candidate 2 is seen to
+  catch all of the planted runs; if both miss, the operator decides. **Five runs can only say "no miss in
+  five runs", not that a miss can never happen.**
+
+**Running it (operator, from your own terminal, one command at a time).**
+
+1. `AGENTS_MODE=real SPEND_ACTIVITY=spike .venv/bin/python -m backend.runtime.spike --step verify --case C-2 --go`
+   (or `--case C-1`, `I-1`, `OK-1`; for candidate 2 put `LLM_MODEL_VERIFY=gpt-6.1-terra` in front). The
+   command shows the plan first, so a separate dry-run is optional.
+2. Check that the Endpoint line says `OpenAI's default (api.openai.com)`, then type the exact words shown.
+3. **Paste one command at a time.** Each stops at a prompt and reads what you type; pasting several would feed
+   the next lines to the prompt (safe, since the words must match exactly, but each call would cancel).
+4. The runs may be spread across sessions. `--tally` shows where things stand at any time.
+
+**The tally (read-only).** `.venv/bin/python -m backend.runtime.spike --tally --exclude 'SRC-UCILAW-P3#1'`
+reads `data/spike.db` and prints, per model and per case: calls; first-try schema-pass (valid, invalid, no
+answer); CAUGHT or MISSED (C-1, C-2, I-1) and CLEAN or FALSE ALARM (OK-1); planted runs that also drew a
+false-alarm flag; tokens, time and cost; the valid runs still needed for five of each case; what DL-26
+says a miss means (information only); and the cost of a full run (the mean valid call times 7 rows). It
+also summarises the extractor and the judge. It sends nothing, needs **no key**, **no real mode** and **no
+network**, imports no CrewAI, opens the file read-only and never creates it (tests compare the file's bytes
+before and after; on the real database its hash was identical before and after).
+
+- **Re-pricing.** The trace prices every line at its *role's* prices (the DL-40 prices are per role), which
+  overstates the judge's model run as a verifier. The tally prices each line at the role whose model ID (in
+  `.env`) is the model that ran, and shows **recorded** and **priced-for-model** side by side. A line with no
+  usage data (an estimate), a failed or refused request, and a model that matches no role are left as
+  recorded, and counted.
+- **A call that is not a model call** (the first call's pre-flight line) takes a slot and is named, but is
+  not counted as a call. A call is one or more requests; its last request is the one that answered.
+- **`--exclude`** leaves named *verifier* units out of the bake-off counts and lists them. Use
+  `--exclude 'SRC-UCILAW-P3#1'` for the call sent before the fix; the judge's call with the same unit name is
+  untouched.
+- **One decision, shared.** `classify_case` in `spike.py` decides CAUGHT / MISSED / CLEAN / FALSE ALARM; the
+  live printout and the tally both read it, so they cannot disagree.
+
+**Known.** (1) The trace records a candidate-2 line at the verifier role's prices, about twice its real cost
+(prices are per role, not per model); that errs on the safe side for the cap, and the tally corrects it.
+(2) A request the guard stops takes a slot, at no cost (finding 1). (3) The tally cannot say how much of an
+output was hidden reasoning; the trace does not separate it. (4) Tests: T-SPIKE-7 (the cases, 56 tests) and
+T-SPIKE-8 (the tally, 39), against the fake only.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -833,17 +948,20 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   T-RUN-2) are built (step 7b PR 5) and tested against the fake OpenAI; a stand-in call cannot
   time out. The run status page shows the cost but not yet the "over US$2" warning (CR-017); the
   warning's wording and place are `@ux.designer`'s.
-- **Step 7b is built; no real call has been made** (plan approved 2026-11-19; PRs 1 to 5 merged,
-  this documentation is PR 6): CrewAI is installed with its outside connections off (PR 1), per-role
+- **Step 7b is built, and the operator's spike is under way** (plan approved 2026-11-19; PRs 1 to 5
+  merged): CrewAI is installed with its outside connections off (PR 1), per-role
   model settings and token limits (PR 2), a fake OpenAI for tests (PR 3), the crews behind the three
   agent functions (PR 4), and DL-43's one retry with one trace line per HTTP request (PR 5). **Real
-  mode must not be run before the operator's spike.** The spike runner for the **first extractor
-  call** is built (PR 1 and 2a to 2c, see "B3 spike runner") and tested against the fake only; the
-  operator makes the first real call. Still to build: the runner's verifier and judge calls and the
-  call plan up to 70 (DL-40 is pinned and the role harness has its call caps), and the reports that
-  show `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
+  mode is run only by the operator, through the spike command** (`AGENTS_MODE=real` on the command line,
+  never in `.env`). The spike runner is built and merged for **all
+  three steps** (the extractor, the verifier and the judge; `--case` for the verifier bake-off; a read-only
+  `--tally`) and tested against the fake only. The operator has made real calls with all three steps (6 of 70
+  slots, US$0.0164; see findings 1 to 3). **Still to do:** the verifier bake-off itself (not yet run; see "B3
+  spike: the verifier bake-off"), the extractor and judge runs up to five each, the clean run, the spike
+  report, and the reports that show `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
   Open for after the spike: "treat a call off the pinned reasoning setting as a failure?" (SAD
-  Production Shape, "Decisions to take once the spike has shown the result").
+  Production Shape, "Decisions to take once the spike has shown the result"). **So far all three models
+  have accepted their pinned settings, so it may not arise** (finding 3, H-079; one or two calls per role).
 - **MVP limitation (B4, operator 2026-11-19): every logged event applies to every event-based
   rule.** The date engine anchors each `event_awareness` / `event_occurrence` rule on every event in
   the fund's event log; it does not read the log's "Obligation" column (that column names the
@@ -1054,3 +1172,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: the verifier re-run) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "docs-only PR recording verifier call #2". Docs only: "B3 spike finding 2" now records the operator's second real verifier call (`SRC-UCILAW-P3#2`, run 2026-11-23, trace line 5): valid, C-1 caught, no false alarm, US$0.0057, 1721 in and 185 out; **OpenAI accepted the nested `anyOf` in strict mode**; the "not proved" paragraph became the result, with a side-by-side table of the two calls and the numbers in the spike-report note (schema-pass 1 of 2; 5 of 70). Read from `data/spike.db` opened read-only; nothing in it was changed. H-078 (to `@system.arch`) updated with the result. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: step 3, the judge result and the run instructions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "Step 3 docs PR". Docs only: new section "B3 spike finding 3" (the operator's first real judge call, `SRC-UCILAW-P3#1`, run 2026-11-23: valid, CORRECT, `reasoning_effort` medium accepted, US$0.0013, 988 in and 62 out; a table of where the three roles stand; **all three models accepted their pinned settings so far, with the caveat of one or two calls per role**; the `minItems` drop recorded as an untested precaution; the numbers for the spike report: 6 of 70, US$0.0164, first-attempt schema-pass 4 of 5); new subsection "How to run the verifier and judge calls" in the runner section; a pointer from the older spike-report notes. Raised H-079 to `@system.arch` (decision 2; sad.md is not mine to edit). Read from `data/spike.db` opened read-only; nothing in it was changed. `setup.md` and the README (`@project.mgr`'s) do not yet carry the verifier and judge run steps: not raised here. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: handoff for the run steps) · operator instruction "raise a handoff to @project.mgr for the verifier and judge run steps". Docs only: **H-080** to `@project.mgr` asks for the verifier and judge run steps (the subsection "How to run the verifier and judge calls" above is the source) in `setup.md` and the README; added to the open docs PR #173 because that PR already carries those steps. `--case` is deliberately not described there yet. No code, no model call, no paid call, no snapshot changed.
+- 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: PR 3, the verifier bake-off docs) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "PR3" (read as go, before the staged runs, which had not happened: `--tally` showed 6 of 70). Docs only: new section "B3 spike: the verifier bake-off (DL-26): how to run it, and the tally" (status; the four cases and their rows; the two candidates and their settings; the typed words with the model ID; the staged plan with the slot arithmetic and cost; pass and fail; the DL-26 decision, with one proposed addition marked as such; how to run it one command at a time; the read-only tally, its re-pricing and `--exclude`; known limits); a pointer from the run instructions; the stale "Known gaps" paragraph brought to the present. **No bake-off results are recorded: none exist yet.** Read from `data/spike.db` with the read-only tally (hash unchanged). H-080 (to `@project.mgr`) and H-077 (to `@qa.eng`) amended: `--case` and `--tally` are now merged. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
