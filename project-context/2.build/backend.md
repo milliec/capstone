@@ -819,11 +819,11 @@ CrewAI's memory of a refused setting lives only inside a process, so a model tha
 
 ## B3 spike: the verifier bake-off (DL-26): how to run it, and the tally (2026-11-23)
 
-**Status, 2026-11-23 (read with `--tally`): the bake-off has not been run.** The spike database holds
-**6 of 70** slots and US$0.0164. For the verifier it holds one invalid call sent *before* the two-flag-shapes
-fix (`SRC-UCILAW-P3#1`, left out of the counts with `--exclude`) and one valid C-1 run (`SRC-UCILAW-P3#2`,
-run 1 of 5 for candidate 1). This section records the procedure and the tool; the results go in a
-follow-up after the operator's runs (finding 4).
+**Status, 2026-11-23: WAIVED for the capstone, not run (operator decision, same day).** The procedure and the
+tools below are built and tested and are kept as **the stated next step**; see "B3 spike: what is waived, the
+known limits, and the stated next step". The spike database holds **6 of 70** slots and US$0.0164. For the
+verifier it holds one invalid call sent *before* the two-flag-shapes fix (`SRC-UCILAW-P3#1`, left out of the
+counts with `--exclude`) and one valid C-1 run (`SRC-UCILAW-P3#2`, which caught the planted conflict).
 
 **What it decides (SAD, DL-26 and DL-40).** The verifier's default is the mid-tier `gpt-5.6-terra`. It
 switches to the judge's reasoning model (`gpt-6.1-terra`) **only if the mid-tier model misses any planted
@@ -929,6 +929,54 @@ before and after; on the real database its hash was identical before and after).
 output was hidden reasoning; the trace does not separate it. (4) Tests: T-SPIKE-7 (the cases, 56 tests) and
 T-SPIKE-8 (the tally, 39), against the fake only.
 
+## B3 spike: what is waived, the known limits, and the stated next step (operator, 2026-11-23)
+
+**The decision (operator, 2026-11-23).** For the capstone, **(1) the verifier bake-off (DL-26) is waived**
+and **(2) the "five runs each" for the extractor and the judge are skipped**. The verifier stays
+`gpt-5.6-terra`, DL-40's default. The next piece of work is full-stack integration (the happy path with real
+agents through the web app). Nothing already built is removed: `--case`, `--tally` and the docs stay, as the
+stated next step. The decision is recorded for `@system.arch` in H-081 (`sad.md` is not edited here).
+
+**The evidence we do have** (every real call so far, from `data/spike.db`; 6 of 70 slots, US$0.0164):
+
+| Role | Model | Calls | What they showed |
+|---|---|---|---|
+| Extractor | `gpt-6-luna` | 2, both on `SRC-UCILAW` | valid both times; 3 rows each (the answer key has 2 for that document: the model split the subscription tax return and its payment); about US$0.0003 and 3.7 to 4.4 s |
+| Verifier | `gpt-5.6-terra` | 2, both on C-1 | call #1 invalid (a flag-shape mistake, fixed by two shapes); call #2 **valid and caught C-1**, no false alarm; US$0.0057 to 0.0077, 3.9 to 5.1 s |
+| Judge | `gpt-6.1-terra` | 1, on `SRC-UCILAW-P3` | valid and **CORRECT** (`applies`, citing `FACT-01`); US$0.0013, 3.9 s |
+
+All three models accepted their pinned settings. First-attempt schema-pass is 4 of 5.
+
+**The known limits this leaves (to be stated, not hidden).**
+
+1. **The verifier's choice is not measured.** One valid answer on one planted conflict (C-1) is the whole
+   evidence. **C-2 and I-1 were never sent to it, so nothing says whether it catches them.** DL-26's rule ("it
+   switches to the judge's model only if the mid-tier model misses a planted conflict") is therefore
+   **untested**, not passed.
+2. **The false-alarm rate is unmeasured.** No OK-1 run exists; the one valid verifier run had no false alarm.
+3. **The extractor was tried on one document of five**, and the judge on one row of the six that reach it,
+   with only the "applies" verdict seen. **The "unsure" and "does not apply" verdicts were never produced by a
+   real model.** Agent quality across the answer key is what the evaluation cycle (B8, B9) measures; it is not
+   replaced by anything here.
+4. **No per-role "five runs" figures exist**, so the time limits are still the SAD's starting values. They
+   look roomy against the measured per-call times: the code runs a stage's units one after another (the SAD
+   says in parallel), so Stage A is about 5 extractions and 7 verifications, roughly a minute, against its
+   375 s limit, and Stage B about 6 judge calls, roughly 25 s, against 150 s. These are **estimates from
+   per-call figures, not measured stage times.**
+
+**What the decision does not change.** The model IDs and pinned settings (DL-40); the guard, the schema and
+the one-request-per-call rules; the evaluation cycle; the 70-call cap.
+
+**The stated next step: run the bake-off.** The procedure is in "B3 spike: the verifier bake-off" above:
+candidate 1's 17 calls (C-1 ×4 more, C-2 ×5, I-1 ×5, OK-1 ×3), a stop for review, then candidate 2's 18 (about
+**41 of 70** slots, about US$0.15 to 0.20 of real spend). Topping the extractor and judge up to five runs each
+would take 3 and 4 more calls. Then the operator records DL-26's choice in the decision log.
+
+**Suggested wording for the capstone write-up.** "The verifier model was not chosen by a measured bake-off.
+It is the pinned default (`gpt-5.6-terra`). On the one planted conflict it was tried on, it caught it (one
+valid run). Whether it catches the other planted cases, and how often it raises false alarms, is
+unmeasured. The bake-off procedure and tooling are built and ready as the next step."
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -956,9 +1004,12 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   never in `.env`). The spike runner is built and merged for **all
   three steps** (the extractor, the verifier and the judge; `--case` for the verifier bake-off; a read-only
   `--tally`) and tested against the fake only. The operator has made real calls with all three steps (6 of 70
-  slots, US$0.0164; see findings 1 to 3). **Still to do:** the verifier bake-off itself (not yet run; see "B3
-  spike: the verifier bake-off"), the extractor and judge runs up to five each, the clean run, the spike
-  report, and the reports that show `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
+  slots, US$0.0164; see findings 1 to 3). **Waived for the capstone (operator,
+  2026-11-23):** the verifier bake-off and the five runs each for the extractor and the judge, with their known
+  limits and the stated next step in "B3 spike: what is waived, the known limits, and the stated next step".
+  **Still to do:** full-stack integration (the happy path with real agents through the web app, first
+  against the fake and then one real clean run), the spike report, and the reports that show
+  `off_pinned_setting` and estimated cost (`@qa.eng`, B8).
   Open for after the spike: "treat a call off the pinned reasoning setting as a failure?" (SAD
   Production Shape, "Decisions to take once the spike has shown the result"). **So far all three models
   have accepted their pinned settings, so it may not arise** (finding 3, H-079; one or two calls per role).
@@ -1173,3 +1224,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: step 3, the judge result and the run instructions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "Step 3 docs PR". Docs only: new section "B3 spike finding 3" (the operator's first real judge call, `SRC-UCILAW-P3#1`, run 2026-11-23: valid, CORRECT, `reasoning_effort` medium accepted, US$0.0013, 988 in and 62 out; a table of where the three roles stand; **all three models accepted their pinned settings so far, with the caveat of one or two calls per role**; the `minItems` drop recorded as an untested precaution; the numbers for the spike report: 6 of 70, US$0.0164, first-attempt schema-pass 4 of 5); new subsection "How to run the verifier and judge calls" in the runner section; a pointer from the older spike-report notes. Raised H-079 to `@system.arch` (decision 2; sad.md is not mine to edit). Read from `data/spike.db` opened read-only; nothing in it was changed. `setup.md` and the README (`@project.mgr`'s) do not yet carry the verifier and judge run steps: not raised here. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: handoff for the run steps) · operator instruction "raise a handoff to @project.mgr for the verifier and judge run steps". Docs only: **H-080** to `@project.mgr` asks for the verifier and judge run steps (the subsection "How to run the verifier and judge calls" above is the source) in `setup.md` and the README; added to the open docs PR #173 because that PR already carries those steps. `--case` is deliberately not described there yet. No code, no model call, no paid call, no snapshot changed.
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: PR 3, the verifier bake-off docs) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "PR3" (read as go, before the staged runs, which had not happened: `--tally` showed 6 of 70). Docs only: new section "B3 spike: the verifier bake-off (DL-26): how to run it, and the tally" (status; the four cases and their rows; the two candidates and their settings; the typed words with the model ID; the staged plan with the slot arithmetic and cost; pass and fail; the DL-26 decision, with one proposed addition marked as such; how to run it one command at a time; the read-only tally, its re-pricing and `--exclude`; known limits); a pointer from the run instructions; the stale "Known gaps" paragraph brought to the present. **No bake-off results are recorded: none exist yet.** Read from `data/spike.db` with the read-only tally (hash unchanged). H-080 (to `@project.mgr`) and H-077 (to `@qa.eng`) amended: `--case` and `--tally` are now merged. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
+- 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: the bake-off waived, step 1 of the integration plan) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator decision "waive the bake-off for the capstone, and skip the 5 runs each for extractor and judge; record both as known limits with the evidence and make 'run the bake-off' the stated next step". Docs only: the bake-off section's status is now "WAIVED, not run"; new section "B3 spike: what is waived, the known limits, and the stated next step" (the decision; the evidence table; four known limits stated plainly; what is not changed; the stated next step with its cost and slot count; suggested wording for the write-up); the "Known gaps" bullet updated. Evidence read from `data/spike.db` with the read-only tally (hash unchanged). The stage-time estimates are from per-call figures, not measured stage times, and say so. Raised H-081 to `@system.arch` (record the decision; `sad.md` is not mine to edit) and H-082 to `@project.mgr` (`setup.md` and the README still say the bake-off comes next); H-077 (`@qa.eng`) amended. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
