@@ -114,6 +114,7 @@ Otherwise a failed run is followed by a new run. See "Known limitations".
 | **DL-53** | **Screen-to-data gaps answered** (`ux.md` §10.3). `runs` gains `started_at`, `started_by`, `stage_attempt`, `demo_fail_step1` and `spend_activity`; `units` is drawn with a readable label and its stage attempt; the fund and regulation config gain display names. Everything else is read from tables already listed |
 | **DL-54** | **B13 is split, and stand-in agents pause per unit** (operator, 2026-11-16). **B13a Failure demo and stand-in pause** (0.25 day) is built straight after B3's stand-in part and is **kept**; **B13b Retry** (0.25 day) is built after B9 and is dropped next after B6. The failure demo no longer depends on Retry. New setting `STAND_IN_UNIT_PAUSE_S` (default 1 second per unit, stand-in mode only, 0 in tests) so units finish one by one. T-DEMOFAIL-1 is Tier 1 from B13a; new Tier 1 test T-PAUSE-1. Estimate totals unchanged |
 | **DL-55** | **The verifier stays `gpt-5.6-terra`; no model comparison, and no "5 runs each" for the extractor and judge** (operator, 2026-11-23). The basis is one valid verifier run that caught `C-1`, and the pinned settings accepted by every model so far. DL-26's bake-off and switch rule are not run. **Left unmeasured:** `C-2` and `I-1` on the verifier, whose first test is now the evaluation cycle, where a miss is reported as it stands (EC-R10 point 3). The stage time limits keep their starting values (operator, DL-55) |
+| **DL-56** | **The units of a stage run one after another, as built** (operator, 2026-11-23; the SAD said "in parallel" and no code does that). Estimated about 1 minute for Stage A and 25 s for Stage B (from the per-call figures, not measured stage times), against limits of 375 s and 150 s. A failed unit ends the stage before later calls start. Parallel units would be a release, not a tuning step |
 
 ### Work Ownership
 
@@ -493,14 +494,14 @@ the data flow in §6. The run-state diagram itself is open (SOQ-28).
 - **How to describe the system**: **three CrewAI agents in a gated workflow.** "Multi-agent" here
   means three agents with separate roles, models and prompts. It does not mean an agent that plans
   its own steps: the order of work is written in code.
-- **Workflow sub-shape**: **chaining** between stages, with **parallelization** of the per-unit
-  model calls inside a stage. Human gates break the chain, so the product is three short workflows
+- **Workflow sub-shape**: **chaining** between stages; the per-unit model calls inside a stage run
+  **one after another** (DL-56; the SAD first said "in parallel", the code never did). Human gates break the chain, so the product is three short workflows
   run one after another, not one long-running process:
 
   | Stage | Steps (Work Ownership IDs) | Model calls | Ends at |
   |---|---|---|---|
-  | A. Extract and verify | W-02 → W-03 → W-04 → W-05 + W-06 (per row, in parallel) → W-03b | 1 extractor call per **primary** source document (5; the secondary guide goes to the verifier only, DL-39), then 1 verifier call per row (6, or 7 with the planted demo row) | **G1** (W-07), human |
-  | B. Judge applicability | W-10 → W-11 (per approved row, in parallel) | 1 judge call per approved row (up to 6) | **G2** (W-12), human |
+  | A. Extract and verify | W-02 → W-03 → W-04 → W-05 + W-06 (per row, one after another) → W-03b | 1 extractor call per **primary** source document (5; the secondary guide goes to the verifier only, DL-39), then 1 verifier call per row (6, or 7 with the planted demo row) | **G1** (W-07), human |
+  | B. Judge applicability | W-10 → W-11 (per approved row, one after another) | 1 judge call per approved row (up to 6) | **G2** (W-12), human |
   | C. Generate and publish | W-13 | **None** | **G3** (W-15), human; then W-16 |
 
   A stage is complete only when every unit has a valid output, and only then does its gate open. A
@@ -517,7 +518,7 @@ the data flow in §6. The run-state diagram itself is open (SOQ-28).
   | Predictability | Fixed order, fixed gates, fixed outputs per step | A planning agent could reorder, repeat or skip work around a gate |
   | Error cost | Each model output is a schema-checked draft that stops at a gate; a wrong draft costs review time, never a wrong calendar | One call that extracts and checks itself has no separate verifier (SD MD-003) and no G1 between extraction and judgement |
   | Observability | Every step's output is a logged record with a step name and run ID (US-012 c1); run status names the step (US-015 c1) | "What should I do next" reasoning is harder to show a specialist than "step 3 of 4 finished" |
-  | Latency | About 17 small calls per run (18 with the planted demo row), per-unit calls in parallel; expected under 5 minutes (SD MC-001). *An estimate, measured by the spike in block B3 and by US-013* | An open-ended loop has no fixed upper bound |
+  | Latency | About 17 small calls per run (18 with the planted demo row), per-unit calls one after another (DL-56), so about 1 minute for Stage A and 25 s for Stage B by the per-call figures so far; expected under 5 minutes (SD MC-001). *An estimate until US-013 measures a full run; the spike measured single calls only* | An open-ended loop has no fixed upper bound |
   | Cost | Six short documents and one fund profile; a few thousand tokens per call; expected under US$2 (SD MC-002). *An estimate, measured the same way* | Turn count, not input size, drives an agent's cost |
 
 - **Rejected alternatives and reversal cost**:
@@ -702,8 +703,8 @@ built in this plan.
   model (CR-030). Real runs are few and counted: one in the spike, three evaluation runs, one
   rehearsal and the demo (EC-R10). A clean run makes about 17 calls of a few thousand input
   tokens each, so model usage is small and the US$2 target is a ceiling per run, not a scaling
-  concern. A stage takes about as long as its slowest call, because the calls of a stage run in
-  parallel; stage C has no model and takes under a second. These are estimates (SA-6) until the
+  concern. A stage takes about the sum of its calls, because they run one after another (DL-56):
+  about 1 minute for stage A and 25 s for stage B by the per-call figures from the spike; stage C has no model and takes under a second. These are estimates (SA-6) until the
   spike measures them.
 - **Retries**: one automatic retry per call on a transport or provider error (its own call timeout,
   a rate limit, a server error), after a short wait (DL-43). **None** on output that fails its schema: sending the same
@@ -721,13 +722,15 @@ built in this plan.
      retry starts cleanly.
   2. **A timed-out call is retried once.** Only a timeout on the retry is a final failure. It is
      recorded as the `model service` reason (§4), which is voidable in evaluations (EC-R8).
-  3. **Each stage limit is the sum of its calls, one retry each, plus about 25%.** Calls of one step
-     run in parallel, so a step costs its slowest call:
-     Stage A ≈ **375 s** (extraction 90 + 90, verification 60 + 60 = 300, plus margin); Stage B ≈
-     **150 s** (60 + 60 = 120, plus margin); Stage C **30 s** (no model). *Rechecked 2026-11-14
-     with Stage A's method:* Stage B has one step (the judge, one call per approved row in
-     parallel), so its slowest call plus one retry is 60 + 60 = 120 s, and 120 × 1.25 = **150 s**.
-     The figure is unchanged.
+  3. **The starting limits: A 375 s, B 150 s, C 30 s (kept by the operator, DL-55).** They were
+     worked out when the calls of a step were assumed to run in parallel, so a step cost its slowest
+     call plus one retry, plus about 25%: Stage A = extraction 90 + 90 and verification 60 + 60 = 300,
+     times 1.25 = 375 s; Stage B = 60 + 60 = 120, times 1.25 = 150 s; Stage C has no model. **The units
+     run one after another (DL-56), so the limits are not a sum of the calls.** They bound a hang.
+     By the per-call figures from the spike, a normal Stage A takes about 1 minute and Stage B about
+     25 s, so a run trips a limit only if its calls run about six times slower than measured, and
+     then it ends as `FAILED` with "stage time limit". *Estimates from per-call figures, not
+     measured stage times.*
   4. **The backend stage timer is the real bound.** CrewAI's `max_execution_time` does **not**
      cancel a call already in flight, so nothing relies on it to end a stage.
   5. **Late results are discarded but paid for.** Every store call checks the run's status and
@@ -883,7 +886,7 @@ external service except the model provider; no PDF parsing; no real data; no not
 **Runtime shape (DL-17 as reworded, DL-35).** The backend is the single owner of gate state. Each
 stage (A, B, C) is run by **one plain Python function, the stage function**. The backend starts it
 as a background task with the run ID; it runs that stage's steps in a fixed order, with the
-per-unit model calls in parallel; and it **ends at its gate**. As each unit finishes, the stage
+per-unit model calls one after another (DL-56); and it **ends at its gate**. As each unit finishes, the stage
 function passes its output to a backend service function, which validates and stores it (CR-003).
 When the stage function returns, the backend records that the gate is open and waits for the
 specialist. The next stage function is started only by the backend, and only after the
@@ -925,7 +928,7 @@ Settings for all three: `allow_delegation=false`, `memory=False`, `tools=[]`, no
 
 **What each stage function does**:
 
-| Stage | Steps in order | In parallel | Handed to the backend | Starting time limits (replaced after the spike) |
+| Stage | Steps in order | Units, one after another | Handed to the backend | Starting time limits (replaced after the spike) |
 |---|---|---|---|---|
 | A | Load the paragraphs (code) → `extract_rows` per **primary** document (5) → add the planted row if the switch is on (code, CR-029) → quote check W-04 per row (code) → `check_conflicts` per row | Extraction per document; verification per row | Rows, quote-check results, flags, and the status of each unit | Call timeout 90 s per extraction call, 60 s per verification call, each with one retry; `STAGE_TIME_LIMIT_A` 375 s (DL-43) |
 | B | Load the fund profile (code) → `judge_applicability` per approved row | Per row | Verdicts, and the status of each unit | Call timeout 60 s, with one retry; `STAGE_TIME_LIMIT_B` 150 s (DL-43) |
@@ -937,8 +940,11 @@ the G1 or G3 page is shown.
 - **Passing data between steps**: through stored data only, never through task context or agent
   memory. Code builds each task's input from the stored row, sources and profile. `Task.context`
   chaining is **not used** (D2).
-- **Parallel units**: the calls of one step run with `kickoff_for_each` or its async form. Each
-  output is matched to its unit by the key `run_id · step · unit_id`, never by position.
+- **Units run one after another (DL-56)**: the stage function loops over the units of a step and
+  makes one `run_step` call (one crew, one kickoff) for each. `kickoff_for_each` is not used. Each
+  output is matched to its unit by the key `run_id · step · unit_id`, never by position. **A failed
+  unit ends the stage, so the units after it never start** and stay `waiting`; no later call is paid
+  for. Running units in parallel would be a release, with a SAD edit first.
 - **Outputs**: no task sets `output_pydantic` or `Task.guardrail` (H-065). Each step's schema (Row
   list, Flag list or Verdict) goes to OpenAI as a **strict `response_format`** (a JSON schema), and
   our code then validates the answer with the Pydantic schema and applies the rules in CR-003, the
@@ -1045,7 +1051,7 @@ the G1 or G3 page is shown.
 | Sequential process | Yes | Hierarchical is not used |
 | `max_iter <= 12` | `max_iter: 1` (H-065) | No tools, so a second loop turn could only be a second paid call |
 | `max_execution_time` | Equal to the call timeout in the table above | **Not relied on as a bound**: it does not cancel a call in flight. The backend stage timer ends a stage (DL-43) |
-| `max_rpm` at crew level | 30 | Limits bursts from the parallel units |
+| `max_rpm` at crew level | 30 | A ceiling only: units run one at a time, so it is not expected to be reached (DL-56) |
 | *Not an adapter rule:* CrewAI's own rate-limit retry (HTTP 429, three attempts by default, no setting) | **One attempt**, set in `load_crewai()` (H-072) | A third retry layer next to D1's two. Our one DL-43 retry is the only retry. Pinned with the CrewAI version; an upgrade that renames it stops the call (see the "CrewAI's third retry layer" bullet above) |
 | *Not an adapter rule:* how the strict schema is sent | Our own JSON schema through the LLM's `additional_params`, from `backend/runtime/wire_schema.py` (H-072). The verifier's flag goes as two shapes (H-078) | CrewAI's own `response_format` cannot carry an optional (null) field. See the Outputs bullet above |
 | *Not an adapter rule:* CrewAI's context-window pre-flight (`respect_context_window`, true by default) | **False** on every agent (H-076) | By default CrewAI sends its own token-count request to OpenAI before the call. It broke "one unit sends one request" on the first real call. Our prompt is one bounded message, so it has no use. See "Nothing else is ever sent" above |
@@ -3430,3 +3436,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-079) · action `update` · **Recorded what the real calls so far say about decision 2, and the judge's first call.** Checked against `2.build/backend.md` ("B3 spike finding 3") and `backend/runtime/wire_schema.py`, by reading only. Measurement spike: new "Finding 3" (the judge's first real call: valid, the expected verdict, `reasoning_effort` medium accepted, first-attempt schema-pass 1 of 1, US$0.0013), a "where the three roles stand" bullet (all pinned settings accepted; schema-pass 4 of 5; 6 of 70 slots; US$0.0164; **5 real model calls, not five per role, so "so far", not "proved"**), and a bullet saying the bake-off (DL-26) and the stage time limits are still undecided. **Decision 2 of "Decisions to take once the spike has shown the result"** now has a status: it has not arisen so far and stays on the list until the spike's calls are done; a refusal could not hide (CrewAI's memory is per process and each spike command is a new process); my recommendation, for the operator to confirm if it ever arises, is to keep flagging (the flag costs nothing and guards a model change). §2 Outputs: `minItems` and `maxItems` added to the dropped keywords and recorded as an **untested precaution** (only the judge's `cited_fact_ids` carried one; we never sent it, so we do not know whether OpenAI would have refused it; the Pydantic check still refuses an empty list). **Decided:** the `off_pinned_setting` flag and its trace line stay. **Not changed:** decision 1 (DL-26), the stage limits, DL-40, DL-43, the cost cap. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · **Recorded the operator's decision: the verifier stays `gpt-5.6-terra` with no model comparison, and "5 runs each" is skipped for the extractor and judge (DL-55).** Changed: new DL-55 row and the `DL-25, DL-26`, DL-40, model-provider, Model and Context Strategy (verifier) rows; Measurement spike (the plan is reduced; the bake-off is marked not run; "What the findings leave open"; decision 1 is decided; decision 2's status line; **new decision 3, the stage time limits**); the spike budget row, the B3 row, Order row 7, and one sentence in the estimate. **Stated plainly in the SAD and DL-55:** `C-2` and `I-1` are now first tried on the verifier in the evaluation cycle, where a miss is reported as it stands and a change needs a recorded operator decision (EC-R10 point 3); the extractor and judge figures rest on 2 and 1 real calls. **Not assumed, left for the operator:** the stage time limits (my reading: the starting limits stay, since they bound a hang and the calls made are far inside them); the spike's one clean run is not mentioned in the decision and stays in the plan. **Not changed:** DL-40's IDs and settings, the thresholds, the cost cap, the 70-call cap, historical audit lines and resolved items that mention the bake-off. New handoff H-081 for the runner docs, `setup.md` and the spike report. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · **DL-55 follow-up.** (1) **Stage time limits:** the operator confirmed the starting limits stay for now; recorded as the operator's decision in DL-55, the DL-55 row and Measurement spike decision 3 (it was "my reading, operator to confirm"). (2) **Handoff renumbered:** my handoff for the runner docs was H-081; `@backend.eng` raised its own H-081 (to `@system.arch`) and H-082 in PR #180, so mine is now **H-083**. The earlier audit line above still says H-081 and is left as history. Own files only: `backend.md`, `setup.md` and the spike report are not touched. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · **Stage units: the SAD now says what the code does (DL-56).** Checked against `backend/runtime/stages.py` first, by reading only: Stage A loops over its 5 documents and then its rows, and Stage B over its approved rows, one `run_step` call each, one at a time; nothing uses `kickoff_for_each`. Changed: Pattern Decision (workflow sub-shape and the two stage rows), Production Shape (latency, expected volume, **time-limit item 3**, which had worked out the limits on a parallel assumption), §2 (runtime shape, stage table header, the units bullet, the `max_rpm` row), the DL-56 row. **The figures:** Stage A about 41 to 58 s (5 extractor calls at 3.7 to 4.4 s, 6 to 7 verifier calls at 3.9 to 5.1 s) and Stage B about 25 s (up to 6 judge calls at 3.9 s), against 375 s and 150 s; estimates, not measured stage times. **The limits are unchanged** (operator, DL-55); item 3 now says they bound a hang and trip only at about six times the measured speed. Not changed: DL-43's call timeouts and retry, the stage limits, the 5-minute target (EC-010), historical audit lines that say "parallel". Stacked on PR #184. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.

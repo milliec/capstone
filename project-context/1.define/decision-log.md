@@ -1392,6 +1392,35 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   row 7, the "green path" sentence in the estimate); `decision-log.md` (this entry; updates to DL-26 and
   DL-40); `handoffs.md` (H-083 to `@backend.eng`, `@qa.eng` and `@project.mgr`).
 
+
+### DL-56 · The units of a stage run one after another, as built; the SAD said "in parallel"
+
+- **Decision** (operator, 2026-11-23; the SAD is corrected to match the code, which is the built
+  truth). **Within a stage, the model calls of its units run one after another.** Stage A makes its
+  5 extractor calls, then its 6 verifier calls (7 with the planted demo row); Stage B makes its judge
+  calls (up to 6), one at a time. The SAD had said the calls run in parallel (`kickoff_for_each`); no
+  code does that (`backend/runtime/stages.py`: a plain loop over the units, one `run_step` call each).
+- **Why it is fine**: by the per-call figures from the spike so far (3.7 to 5.1 s each), Stage A is
+  about 41 to 58 s and Stage B about 25 s, against starting limits of 375 s and 150 s, and a run
+  target of under 5 minutes (EC-010). **These are estimates from the per-call figures, not measured
+  stage times**, and a harder row may take longer. In its favour: a failed unit ends the stage
+  before the later units start, so no later paid call is made (units 2 to 5 stay `waiting`); the cost
+  cap is checked before each call, so with one call at a time it is exact; and stand-in mode already
+  fills in one unit at a time (DL-54).
+- **What it costs**: time only, about a minute at Stage A instead of about the slowest call. The
+  starting limits were worked out on the parallel assumption ("a step costs its slowest call", DL-43).
+  They stay (DL-55); they bound a hang and are not a sum of the calls, and a run trips them only if
+  its calls run about six times slower than measured, which ends it as `FAILED` ("stage time limit")
+  rather than letting it hang.
+- **Not changed**: DL-43's call timeouts and retry; the stage limits (DL-55); `max_rpm: 30` (a ceiling
+  that one-at-a-time calls will not reach); the workflow shape, which stays chaining between stages
+  with human gates.
+- **If it becomes too slow**: running a stage's units in parallel is a model-facing code change, made
+  as a release with a SAD edit first, not a tuning step.
+- **Changed**: SAD Pattern Decision (workflow sub-shape and the two stage rows), Production Shape
+  (latency, expected volume, time-limit item 3), §2 (runtime shape, the stage table, the units bullet,
+  the `max_rpm` row), the DL-56 row.
+
 ## Audit
 
 - 2026-11-09 · persona `product-mgr` · action `update` · log created; DL-01 to DL-12 from the UX and
@@ -1472,3 +1501,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-19 · persona `system-arch` (at the operator's instruction; handoff H-064) · action `update` · new DL-40 (model IDs pinned by the operator: extractor `gpt-6-luna`, verifier `gpt-5.6-terra`, judge `gpt-6.1-terra`, with each role's reasoning setting, per-call `max_completion_tokens`, IDs only in `.env`; SAD SOQ-25 closed); the three step 7b retry settings checked against DL-43 (met, with two conditions in the H-064 Outcome). Operator decision
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-55 (the verifier stays `gpt-5.6-terra`; the model comparison and "5 runs each" for the extractor and judge are skipped; what that leaves unmeasured is stated in the entry); DL-26 and DL-40 updated to point to it. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · DL-55: the stage time limits are recorded as the operator's decision (starting limits stay for now); the handoff for the runner docs is renumbered H-081 to H-083, because `@backend.eng` raised its own H-081 and H-082 in PR #180. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-56 (a stage's units run one after another, as built; the SAD said in parallel). `AAMAD_TARGET_RUNTIME=crewai`.
