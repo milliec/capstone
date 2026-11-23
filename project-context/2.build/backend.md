@@ -538,6 +538,29 @@ further call needs a recorded operator decision.
   request may have been billed without a trace line. The 70-call and cost caps would then undercount.
 - Handoff H-075 asks `@project.mgr` to put these steps in `setup.md` (not mine to edit).
 
+### How to run the verifier and judge calls (operator, from your own terminal)
+
+The same command, with `--step verify` or `--step judge`. Both are measured on a **fixed input**: the
+answer-key row of `SRC-UCILAW-P3` (where the planted conflict C-1 sits), so every run sees the same row.
+
+| | Verifier | Judge |
+|---|---|---|
+| `.env` needs | `LLM_MODEL_VERIFY` (DL-40: `gpt-5.6-terra`) | `LLM_MODEL_JUDGE` (DL-40: `gpt-6.1-terra`) |
+| Settings sent | `reasoning_effort` low, 2000 tokens, **no temperature** | `reasoning_effort` medium, 4000 tokens, **no temperature** |
+| What it carries | the row and its quote, the code's quote check, and all 13 paragraphs (primary and secondary) | the approved row, 7 fund facts (ID, fact, value) and 1 event. Never the "Decides" column, flags or other verdicts |
+| You type exactly | `verify SRC-UCILAW-P3` | `judge SRC-UCILAW-P3` |
+| The result says | **CAUGHT** or **MISSED** for C-1 (a miss points at DL-26); any internal flag is a **false alarm** | **CORRECT** or **WRONG** against the answer key (`applies`, citing `FACT-01`); a wrong verdict is a finding, not a failure |
+
+1. Dry-run first: `AGENTS_MODE=real SPEND_ACTIVITY=spike .venv/bin/python -m backend.runtime.spike --step verify`
+   (or `--step judge`). Read the model, the settings, the worst case and `Spike calls`.
+2. Then the same command with `--go`. Check that the Endpoint line says `OpenAI's default (api.openai.com)`,
+   and type the exact words from the table. The other step's words do not confirm; neither does the bare row ID.
+3. **Stop rule (operator, 2026-11-22):** after **any 400**, **`Off pinned setting : YES`**, **`Stop reason : length`**
+   or an **invalid answer**, stop and send the printout. No further call until you decide. A 400 costs US$0.
+   `Stop reason : length` is the reasoning models' own risk: reasoning tokens count against the token limit.
+4. Each request is one trace line and takes one of the 70 slots. Each call is its own unit
+   (`SRC-UCILAW-P3#1`, `#2`, numbered per step); all steps share the one spike run.
+
 ## B3 spike finding: the first real call sent two requests (RUN-20261122-1, 2026-11-22)
 
 **Summary.** The operator's first real call (`SRC-UCILAW#1`, `gpt-6-luna`) gave a valid answer (3 rows)
@@ -730,6 +753,66 @@ Read from `data/spike.db`, opened read-only; the printout and the database agree
   schema on the first attempt".
 - Say what changed afterwards (two flag shapes) and that later verifier lines were sent a different
   `response_format` from this one. The prompt version did not change; the schema did.
+- **The current numbers** (slots, cost, schema-pass for all three roles) are in "B3 spike finding 3"; use
+  those, not the ones above.
+
+## B3 spike finding 3: the first real judge call, and where the three roles stand (2026-11-23)
+
+**Summary.** The operator's first real judge call (`gpt-6.1-terra`, row `SRC-UCILAW-P3`, unit
+`SRC-UCILAW-P3#1`, trace line 6, run 2026-11-23 13:48 UTC) **passed**: a valid answer, the verdict the
+answer key expects (**`applies`, citing `FACT-01`**), `reasoning_effort` medium accepted, one request, no
+400. Read from `data/spike.db`, opened read-only; the printout and the database agree.
+
+| | |
+|---|---|
+| Answer | exactly the four verdict keys; `missing_information` is `""`, as the worked example shows |
+| Verdict | `applies`, citing `FACT-01`: **CORRECT** against the answer key |
+| Request | one, `POST /v1/chat/completions`; `provider_error` empty; stop reason `stop`; 3.9 s |
+| Settings | `reasoning_effort` medium accepted; no temperature sent; `max_completion_tokens` 4000; `off_pinned_setting` 0 |
+| Size and cost | 988 in, **62 out**, **US$0.0013**; not estimated |
+| Model returned | `gpt-6.1-terra` |
+
+- **The cost estimate was too high.** The plan said US$0.004 to 0.016; the call cost US$0.0013. The printed
+  worst case (US$0.0210) is a ceiling, not a forecast.
+- **62 output tokens in total.** Hidden reasoning tokens are inside that number and the trace cannot
+  separate them, so the only fair reading is that this call reasoned very little on an easy row. One
+  data point; a harder row may differ.
+
+**A precaution, untested: `minItems` was dropped from the judge's schema** (#172, `d12d2f3`). The judge's
+`cited_fact_ids` carried `minItems: 1`. OpenAI's own Structured Outputs guide lists `minItems` both as
+supported and as not yet supported, and developer-forum reports show real rejections, so it was removed
+before the first real judge call, as `minLength` and `maxLength` already are. **We never sent it, so we do
+not know whether OpenAI would have refused it.** Our Pydantic check still refuses an empty list of cited
+IDs, so nothing was lost. Only the judge's schema changed, and by that one keyword.
+
+**Where the three roles stand** (every real call so far, from `data/spike.db`):
+
+| Role | Model | Pinned setting accepted? | Calls | Schema pass on the first try | Real cost per call |
+|---|---|---|---|---|---|
+| Extractor | `gpt-6-luna` | `none`, temperature 0: **yes** | 2 | **2 of 2** | about US$0.0003 |
+| Verifier | `gpt-5.6-terra` | `low`, no temperature: **yes** | 2 | **1 of 2** (call #1: mixed flag, fixed by two shapes) | US$0.0057 to 0.0077 |
+| Judge | `gpt-6.1-terra` | `medium`, no temperature: **yes** | 1 | **1 of 1** | US$0.0013 |
+
+**All three models have accepted their pinned settings, so far.** There was no 400 on `reasoning_effort` and
+no silent repeat by CrewAI on any real call. The one `off_pinned_setting` line in the database is the
+first call's pre-flight request, a false alarm (finding 1). **Caveat: this is one or two calls per role**, so
+the honest wording is "so far", not "proved". It bears on SAD "Decisions to take once the spike has shown the
+result", decision 2 (H-079). One more point in its favour: every spike command is a new process, and
+CrewAI's memory of a refused setting lives only inside a process, so a model that refused
+`reasoning_effort` would be refused again, and flagged, on each command.
+
+**Numbers for the spike report (supersede the numbers in "B3 spike finding" and "B3 spike finding 2").**
+
+- **Slots: 6 of 70** used (one is the first call's pre-flight line). **Run cost: US$0.0164** of the US$2.50 cap.
+  The line costs add up to the run's `cost_so_far`.
+- The SAD asks for each role's call on the demo inputs **5 times**; so far: extractor 2, verifier 2, judge 1.
+  The verifier bake-off (DL-26: both candidate models on C-1, C-2 and I-1, five runs each) has not started.
+- **First-attempt schema-pass:** extractor 2 of 2, verifier 1 of 2, judge 1 of 1; **4 of 5** in all. Say why
+  verifier call #1 failed (finding 2).
+- **Cost and time per call, so far:** extractor about US$0.0003 and 3.7 to 4.4 s; verifier US$0.0057 to 0.0077 and
+  3.9 to 5.1 s; judge US$0.0013 and 3.9 s. All well under the cost cap and the call timeouts (60 to 90 s).
+- **Not decided yet:** the verifier model (DL-26, needs the bake-off); the stage time limits (they need the
+  five-run figures).
 
 ## Pattern Decision compliance
 
@@ -969,3 +1052,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-22 · persona `backend-eng` · `develop-be` + `document-backend` (B3 spike fix, step D: the request guard) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only, with CrewAI made to behave as if on OpenAI) · operator instruction "Go D". Code in `9479f23`: the interceptor refuses any request that is not `POST .../chat/completions` before it is sent; new `trace` column `request_path` (additive, default empty); a refused request costs 0 and is never retried; the spike prints each request's path; T-REQ-2 (17 tests) and two older tests updated. Rehearsed the column migration on a copy of the real `data/spike.db` (all values unchanged, still append-only; the original file untouched). The docs of step D are in this entry's commit: "B3 spike finding" (row D, "What D does"), one row added to the run instructions, H-076 updated (D's commit and the new column for sad.md §4), and H-077 to `@qa.eng` (a pointer to the spike report note). LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator will make one confirmation call after this merges.
 - 2026-11-22 · persona `backend-eng` · `develop-be` + `document-backend` (B3 spike fix: the verifier's flag as two shapes) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instruction after the first real verifier call (run by the operator): "Option 1, two flag shapes, as its own PR with tests against the fake". Code in `666b27c`: `backend/runtime/wire_schema.py` sends the verifier's flag as `anyOf` two shapes built from `Flag`; T-WIRE-1 (20 new tests); one older test changed (it pinned the old nullable keys). The extractor's and judge's schemas checked byte for byte against their schemas from before the change. Read `data/spike.db` opened read-only; nothing in it was changed. This entry's docs: new section "B3 spike finding 2" (what the trace holds, the cause, the fix, what is not proved, a note for the spike report), one row added to the run instructions (a 400 on the schema), and H-078 to `@system.arch` (sad.md is not mine to edit). LLM, temperature and max-token controls: unchanged (verifier: reasoning effort low, no temperature, 2000 tokens). **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator re-runs the verifier call after the fix merges.
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: the verifier re-run) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "docs-only PR recording verifier call #2". Docs only: "B3 spike finding 2" now records the operator's second real verifier call (`SRC-UCILAW-P3#2`, run 2026-11-23, trace line 5): valid, C-1 caught, no false alarm, US$0.0057, 1721 in and 185 out; **OpenAI accepted the nested `anyOf` in strict mode**; the "not proved" paragraph became the result, with a side-by-side table of the two calls and the numbers in the spike-report note (schema-pass 1 of 2; 5 of 70). Read from `data/spike.db` opened read-only; nothing in it was changed. H-078 (to `@system.arch`) updated with the result. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
+- 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: step 3, the judge result and the run instructions) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "Step 3 docs PR". Docs only: new section "B3 spike finding 3" (the operator's first real judge call, `SRC-UCILAW-P3#1`, run 2026-11-23: valid, CORRECT, `reasoning_effort` medium accepted, US$0.0013, 988 in and 62 out; a table of where the three roles stand; **all three models accepted their pinned settings so far, with the caveat of one or two calls per role**; the `minItems` drop recorded as an untested precaution; the numbers for the spike report: 6 of 70, US$0.0164, first-attempt schema-pass 4 of 5); new subsection "How to run the verifier and judge calls" in the runner section; a pointer from the older spike-report notes. Raised H-079 to `@system.arch` (decision 2; sad.md is not mine to edit). Read from `data/spike.db` opened read-only; nothing in it was changed. `setup.md` and the README (`@project.mgr`'s) do not yet carry the verifier and judge run steps: not raised here. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
