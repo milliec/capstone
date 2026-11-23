@@ -18,6 +18,10 @@ What this file deliberately does NOT do (the safety design, kept for every later
     row of SRC-UCILAW-P3, where the planted conflict C-1 sits (SRC-PRACT-P1 says four months, the
     row says six). Same safety design; the operator types `verify SRC-UCILAW-P3`. The result says
     CAUGHT or MISSED, and counts any internal flag as a false alarm.
+  - Spike PR 4 (the verifier bake-off, DL-26), PR 1: `--step verify --case C-1|C-2|I-1|OK-1` plans or
+    makes ONE verifier call on one of the four bake-off cases. The operator types the case AND the
+    model ID (`verify C-2 gpt-5.6-terra`), so a forgotten model override cannot quietly run the wrong
+    candidate. `--row SRC-UCILAW-P3` still works for C-1, as before.
   - Spike PR 3, step 2: `--step judge` plans or makes ONE Stage B judge call on the same answer-key
     row. The operator types `judge SRC-UCILAW-P3`. The result says whether the verdict matches the
     answer key (applies, citing FACT-01).
@@ -74,6 +78,40 @@ FIRST_VERIFY_ROW = "SRC-UCILAW-P3"             # the answer-key row that carries
 # conflicts"). Row's source paragraph -> (conflict ID, the OTHER paragraph a good flag must cite).
 # Step 1 plans only C-1; C-2 and I-1 come with the bake-off.
 PLANTED_CONFLICTS = {"SRC-UCILAW-P3": ("C-1", "SRC-PRACT-P1")}
+
+
+@dataclass(frozen=True)
+class VerifierCase:
+    """One planted test of the verifier (the bake-off, DL-26): which answer-key row it runs on and what a
+    good answer looks like. Plain data, so a test can read it. The four cases are the planted flags of
+    expected-obligation-library.md section 3."""
+    case_id: str                   # C-1, C-2, I-1 or OK-1
+    row_id: str                    # the answer-key row's source paragraph; also the trace unit's name
+    expects: str                   # "cross_source", "internal" or "nothing"
+    other_paragraph: str = ""      # cross_source: the paragraph a good flag cites
+    field: str = ""                # internal: the row field a good flag names
+    inject: dict | None = None     # row fields this test CHANGES before sending (I-1 only)
+    row_note: str = ""             # what the dry-run says about the row, when it is not the plain answer-key row
+
+
+# Each row id is used by exactly ONE case, so the trace's unit name (the row id, "#", a number) tells
+# the tally which case a line belongs to. In particular SRC-UCILAW-P2 in the verifier step is ALWAYS
+# the injected copy (I-1): no un-injected verifier call is ever made on it.
+CASES = {
+    # C-1: SRC-PRACT-P1 says four months; the row (OBL-03) says six.
+    "C-1": VerifierCase("C-1", "SRC-UCILAW-P3", "cross_source", other_paragraph="SRC-PRACT-P1"),
+    # C-2: SRC-PRACT-P2 anchors on the date of the change; the row (OBL-05) anchors on becoming aware.
+    "C-2": VerifierCase("C-2", "SRC-RBELAW-P1", "cross_source", other_paragraph="SRC-PRACT-P2"),
+    # I-1: a copy of OBL-02 with the offset changed to 30 days while the quote still says 20. The quote
+    # check alone would pass it; only the verifier's internal check can see it.
+    "I-1": VerifierCase("I-1", "SRC-UCILAW-P2", "internal", field="offset",
+                        inject={"offset": {"unit": "calendar_days", "amount": 30}},
+                        row_note="the answer-key row with its OFFSET CHANGED to 30 calendar days; "
+                                 "its quote still says 20; injected test I-1"),
+    # OK-1: OBL-01, which SRC-PRACT-P3 agrees with. A good answer has NO flag (the false-alarm check).
+    "OK-1": VerifierCase("OK-1", "SRC-CSSF15627-P2", "nothing"),
+}
+
 # What the answer key says the judge should decide for a row: (verdict, the fact it must cite). The row
 # the fund is subject to: "subject to Part II of the Law" is FACT-01, and the fund is subject to it.
 EXPECTED_VERDICTS = {"SRC-UCILAW-P3": ("applies", "FACT-01")}
@@ -100,6 +138,8 @@ class SpikePlan:
     kind: str = "extract"          # "extract" or "verify"
     confirm_text: str = ""         # exactly what the operator must type to send; "" = the document ID
     sends: str = ""                # one line saying what the request carries (shown by `format_plan`)
+    case_id: str = ""              # a verifier bake-off case (C-1, C-2, I-1, OK-1); "" for a plain step
+    row_note: str = ""             # what to say about the row ("" = the answer-key row, unchanged)
 
 
 def _calls_used(spike_db: Path) -> int:
@@ -235,18 +275,30 @@ def answer_key_row(row_id: str, kind: str = "verify") -> dict:
     if row_id not in planned:
         raise SpikeRefused(f"{row_id!r} is not a row this step plans a {label} call for; "
                            f"choose one of {sorted(planned)}.")
+    return _lookup_row(row_id)
+
+
+def _lookup_row(row_id: str, inject: dict | None = None) -> dict:
+    """The answer key's row for a source paragraph, as a `Row` dict. `inject` changes some fields
+    first (the I-1 test); the row is checked as a `Row` AFTER the change, and the answer-key file is
+    never altered (the change is made on a copy)."""
     by_document = yaml.safe_load(ANSWER_KEY_ROWS.read_text(encoding="utf-8"))
     for rows in by_document.values():
         for row in rows:
             if row["source_paragraph_id"] == row_id:
-                return Row.model_validate(row).model_dump()
+                return Row.model_validate({**row, **(inject or {})}).model_dump()
     raise SpikeRefused(f"The answer key has no row for {row_id!r}.")
 
 
-def _verifier_inputs(row_id: str):
+def case_row(case: VerifierCase) -> dict:
+    """The row a bake-off case sends: the answer-key row, with the case's change if it has one."""
+    return _lookup_row(case.row_id, case.inject)
+
+
+def _verifier_inputs(row_id: str, case: VerifierCase | None = None):
     """Everything the verifier call carries, built the way Stage B builds it: the row, the code's
     own quote check, and EVERY loaded paragraph as `sources` (stages.py `_stage_a`)."""
-    row = answer_key_row(row_id)
+    row = case_row(case) if case else answer_key_row(row_id)
     paragraphs = {p["paragraph_id"]: p["text"] for p in sources.load_paragraphs()}
     quote_check = check_quote(row["quote"], row["source_paragraph_id"], paragraphs)
     if not quote_check.passed:     # the planned input must be a row whose quote is real
@@ -258,18 +310,46 @@ def _verifier_inputs(row_id: str):
     return row, quote_check, paragraphs, inputs
 
 
+def _case_sends(case: VerifierCase, n_paragraphs: int) -> str:
+    """The one line of the dry-run that says what a bake-off case carries and what a good answer is."""
+    carries = (f"the row and its quote, the code's quote check (passed), the cited paragraph, and all "
+               f"{n_paragraphs} loaded paragraphs (primary and secondary)")
+    if case.expects == "cross_source":
+        return (f"{carries}. Planted conflict {case.case_id}: {case.other_paragraph} disagrees with "
+                f"{case.row_id}. A good answer: a cross-source flag citing {case.other_paragraph}")
+    if case.expects == "internal":
+        return (f"{carries}. Planted conflict {case.case_id}: the row's {case.field} no longer matches "
+                f"its quote, which the quote check cannot see. A good answer: an internal flag "
+                f"naming the field {case.field!r}")
+    return (f"{carries}. No conflict is planted: the other sources agree with this row. A good answer: "
+            "NO flag")
+
+
 def plan_verifier_call(settings: Settings, *, row_id: str = FIRST_VERIFY_ROW,
-                       spike_db: Path = SPIKE_DB) -> SpikePlan:
+                       spike_db: Path = SPIKE_DB, case: VerifierCase | None = None) -> SpikePlan:
     """The same checks as the extractor's plan (for the VERIFIER's model), then describe the one
-    verifier call on one answer-key row. Sends nothing."""
+    verifier call on one answer-key row. Sends nothing. With a bake-off `case` (C-1, C-2, I-1 or
+    OK-1) the row, the words to type and the expected answer come from the case."""
     call = _check_ready(settings, VERIFY_ROLE)               # checks 1 to 4, for the verify role
-    row, _quote_check, paragraphs, inputs = _verifier_inputs(row_id)   # check 5: a planned row
+    if case:
+        row_id = case.row_id
+    row, _quote_check, paragraphs, inputs = _verifier_inputs(row_id, case)   # check 5: a planned row
     used, cap = _check_cap(spike_db)                         # check 6
 
     rendered = prompts.render(VERIFY_STEP, inputs)
     request_text = "".join(rendered.values()) + json.dumps(wire_schema(VerificationResult))
     tokens = len(request_text) // model_settings.CHARS_PER_TOKEN + 1
     one_request = model_settings.worst_case_call_cost_usd(settings, VERIFY_ROLE, tokens)
+    if case:
+        # The typed words name the case AND the model, so the operator cannot run the wrong candidate
+        # by forgetting to override LLM_MODEL_VERIFY on the command line.
+        return SpikePlan(
+            document_id=row_id, document_title=row["obligation_name"],
+            paragraph_count=len(paragraphs), model=call.model, sent_settings=call.sent_to_provider(),
+            input_tokens_estimate=tokens, worst_case_usd=one_request,
+            worst_case_with_retry_usd=2 * one_request, calls_used=used, call_cap=cap, kind="verify",
+            confirm_text=f"verify {case.case_id} {call.model}",
+            sends=_case_sends(case, len(paragraphs)), case_id=case.case_id, row_note=case.row_note)
     conflict, other = PLANTED_CONFLICTS[row_id]
     return SpikePlan(
         document_id=row_id, document_title=row["obligation_name"], paragraph_count=len(paragraphs),
@@ -294,6 +374,7 @@ class SpikeResult:
     run_cost_usd: float            # the spike run's cost so far, including this call
     kind: str = "extract"          # "extract" or "verify"
     assessment: tuple = ()         # for a verifier call: CAUGHT / MISSED, false alarms (text lines)
+    case_id: str = ""              # the verifier bake-off case, "" for a plain step
 
 
 def _judge_inputs(row_id: str):
@@ -329,10 +410,12 @@ def plan_judge_call(settings: Settings, *, row_id: str = FIRST_JUDGE_ROW,
                f"or other verdicts. The answer key says: {verdict}, citing {fact}"))
 
 
-def _plan_for(settings: Settings, kind: str, target: str, spike_db: Path) -> SpikePlan:
+def _plan_for(settings: Settings, kind: str, target: str, spike_db: Path,
+              case_id: str = "") -> SpikePlan:
     """The dry-run plan for one kind of call. Every refusal comes from here, before anything is sent."""
     if kind == "verify":
-        return plan_verifier_call(settings, row_id=target, spike_db=spike_db)
+        return plan_verifier_call(settings, row_id=target, spike_db=spike_db,
+                                  case=CASES[case_id] if case_id else None)
     if kind == "judge":
         return plan_judge_call(settings, row_id=target, spike_db=spike_db)
     return plan_first_call(settings, document_id=target, spike_db=spike_db)
@@ -356,30 +439,54 @@ def assess_judgement(row_id: str, verdict) -> tuple[str, ...]:
 
 
 def assess_verification(row_id: str, flags) -> tuple[str, ...]:
-    """What a verifier's flags say about the row's planted conflict, in words (plan, "Pass or fail").
+    """The C-1 assessment, kept under its first name: the planted conflict of one row (`--row`)."""
+    return assess_case(CASES[PLANTED_CONFLICTS[row_id][0]], flags)
 
-    CAUGHT: a cross-source flag cites the other paragraph of the planted conflict. MISSED: none does
-    (DL-26: a miss in any run switches the verifier to the reasoning model). FALSE ALARM: any
-    internal flag, because the answer-key row's fields match its quote. A cross-source flag on some
-    OTHER paragraph is not judged here: it is listed so that a person reads it."""
-    conflict, other = PLANTED_CONFLICTS[row_id]
-    caught = [f for f in flags if f.flag_type == "cross_source" and f.other_paragraph_id == other]
+
+def assess_case(case: VerifierCase, flags) -> tuple[str, ...]:
+    """What a verifier's flags say about one bake-off case, in words (plan, "Pass or fail").
+
+    C-1 and C-2 (cross-source): CAUGHT when a cross-source flag cites the other paragraph; any internal
+    flag is a FALSE ALARM, because the answer-key row's fields match its quote.
+    I-1 (internal): CAUGHT when an internal flag names the changed field; an internal flag on another
+    field is a FALSE ALARM.
+    OK-1 (no conflict): CLEAN when there is no flag; any flag is a FALSE ALARM.
+    MISSED means the verifier did not see a planted conflict (DL-26: a miss in any run switches the
+    verifier to the reasoning model). A flag of another kind is not judged here: it is listed so that
+    a person reads it."""
+    cross = [f for f in flags if f.flag_type == "cross_source"]
     internal = [f for f in flags if f.flag_type == "internal"]
-    extra = [f for f in flags if f.flag_type == "cross_source" and f.other_paragraph_id != other]
-    lines = [f"Planted {conflict}   : CAUGHT (a cross-source flag cites {other})" if caught else
-             f"Planted {conflict}   : MISSED (no cross-source flag cites {other}). DL-26: a miss in "
-             "any run switches the verifier to the reasoning model"]
-    if internal:
-        lines.append(f"False alarms     : {len(internal)} internal flag(s) on a row whose fields "
-                     "match its quote: " + "; ".join(
-                         f"{f.field}: row says {f.row_value!r}, quote says {f.quote_says!r}"
-                         for f in internal))
+    lines: list[str] = []
+    if case.expects == "nothing":
+        lines.append("Correct row      : CLEAN (no flag)" if not flags else
+                     f"Correct row      : FALSE ALARM ({len(flags)} flag(s) on a row the answer key "
+                     "says needs none)")
     else:
-        lines.append("False alarms     : none")
-    if extra:
-        lines.append("Other flags      : " + "; ".join(
-            f"cross-source on {f.other_paragraph_id} (not the planted conflict: read it)"
-            for f in extra))
+        if case.expects == "cross_source":
+            caught = [f for f in cross if f.other_paragraph_id == case.other_paragraph]
+            what = f"a cross-source flag cites {case.other_paragraph}"
+            missed = f"no cross-source flag cites {case.other_paragraph}"
+            false_alarms, extra = internal, [f for f in cross if f not in caught]
+            fa_note, extra_note = "on a row whose fields match its quote", "not the planted conflict"
+        else:
+            caught = [f for f in internal if f.field == case.field]
+            what = f"an internal flag names the field {case.field!r}"
+            missed = f"no internal flag names the field {case.field!r}"
+            false_alarms, extra = [f for f in internal if f not in caught], cross
+            fa_note, extra_note = "on a field that matches its quote", "not the injected conflict"
+        lines.append(f"Planted {case.case_id}   : CAUGHT ({what})" if caught else
+                     f"Planted {case.case_id}   : MISSED ({missed}). DL-26: a miss in any run "
+                     "switches the verifier to the reasoning model")
+        if false_alarms:
+            lines.append(f"False alarms     : {len(false_alarms)} internal flag(s) {fa_note}: " + "; ".join(
+                f"{f.field}: row says {f.row_value!r}, quote says {f.quote_says!r}"
+                for f in false_alarms))
+        else:
+            lines.append("False alarms     : none")
+        if extra:
+            lines.append("Other flags      : " + "; ".join(
+                f"{f.flag_type.replace('_', '-')} on {f.other_paragraph_id or f.field} "
+                f"({extra_note}: read it)" for f in extra))
     for flag in flags:
         lines.append(f"Verifier said    : [{flag.flag_type}] {' '.join(flag.explanation.split())[:240]}")
     return tuple(lines)
@@ -391,11 +498,12 @@ def run_first_call(settings: Settings, *, document_id: str = FIRST_CALL_DOCUMENT
     return run_call(settings, kind="extract", target=document_id, spike_db=spike_db)
 
 
-def run_call(settings: Settings, *, kind: str, target: str,
-             spike_db: Path = SPIKE_DB) -> SpikeResult:
+def run_call(settings: Settings, *, kind: str, target: str, spike_db: Path = SPIKE_DB,
+             case_id: str = "") -> SpikeResult:
     """Make the ONE real call the dry-run described, and trace every request it sends.
     `kind` is "extract" (target: a primary document ID), "verify" or "judge" (target: an answer-key
-    row's source paragraph ID).
+    row's source paragraph ID). `case_id` (verify only) picks a bake-off case; `target` is then that
+    case's row.
 
     ⚠ THIS IS THE FUNCTION THAT CAN SPEND MONEY. Only two things call it: the command's `--go`
     (`_go`, behind a typed confirmation) and the tests (against the fake OpenAI). Keep it so.
@@ -410,7 +518,7 @@ def run_call(settings: Settings, *, kind: str, target: str,
     if kind not in KINDS:
         raise ValueError(f"kind must be one of {KINDS}, not {kind!r}")
     document_id = target
-    plan = _plan_for(settings, kind, target, spike_db)                              # (1)
+    plan = _plan_for(settings, kind, target, spike_db, case_id)                     # (1)
     run_id = open_spike_run(settings, spike_db)                                    # (2)
 
     # The real-mode code is imported only now, never when this file is imported (T-SPIKE-2).
@@ -449,11 +557,13 @@ def run_call(settings: Settings, *, kind: str, target: str,
         row_count, failure, assessment = 0, None, ()
         try:                                                                       # (4)
             if kind == "verify":
-                row, quote_check, paragraphs, _inputs = _verifier_inputs(document_id)
+                case = CASES[case_id] if case_id else None
+                row, quote_check, paragraphs, _inputs = _verifier_inputs(document_id, case)
                 flags = agents.check_conflicts(settings, row=row, quote_check=quote_check,
                                                sources=paragraphs, record=record)
                 row_count = len(flags)
-                assessment = assess_verification(document_id, flags)
+                assessment = (assess_case(case, flags) if case
+                              else assess_verification(document_id, flags))
             elif kind == "judge":
                 row, facts, _inputs = _judge_inputs(document_id)
                 verdict = agents.judge_applicability(settings, row=row, fund_facts=facts,
@@ -474,7 +584,7 @@ def run_call(settings: Settings, *, kind: str, target: str,
         return SpikeResult(run_id=run_id, document_id=document_id, unit_id=unit_id,
                            ok=failure is None, row_count=row_count, failure=failure,
                            lines=tuple(lines), run_cost_usd=trace.cost_so_far(conn, run_id),
-                           kind=kind, assessment=assessment)
+                           kind=kind, assessment=assessment, case_id=case_id)
     finally:
         conn.close()
 
@@ -489,15 +599,17 @@ def format_plan(plan: SpikePlan, *, live: bool = False) -> str:
     verify = plan.kind in ("verify", "judge")       # both are measured on a fixed answer-key row
     confirm = plan.confirm_text or plan.document_id
     closing = ("" if live else
-               (f"To make this call, run it again with --step {plan.kind} --go. You will be asked "
-                f"to type exactly: {confirm}") if verify else
+               (f"To make this call, run it again with --step {plan.kind}"
+                + (f" --case {plan.case_id}" if plan.case_id else "")
+                + f" --go. You will be asked to type exactly: {confirm}") if verify else
                "To make this call, run it again with --go. You will be asked to type the document ID first.")
     if verify:
         label = (f"{VERIFY_STEP} (Stage B verifier, ONE call)" if plan.kind == "verify"
                  else f"{JUDGE_STEP} (Stage B judge, ONE call)")
         what = [f"Step           : {label}",
+                *([f"Case           : {plan.case_id}"] if plan.case_id else []),
                 (f"Row            : {plan.document_id} - {plan.document_title} "
-                 f"(the answer-key row; the SAME input every run)")]
+                 f"({plan.row_note or 'the answer-key row; the SAME input every run'})")]
     else:
         what = [f"Step           : {STEP} (Stage A extractor, ONE call)",
                 (f"Document       : {plan.document_id} - {plan.document_title} "
@@ -547,6 +659,8 @@ def format_result(result: SpikeResult) -> str:
         lines.append(f"Answer         : VALID ({result.row_count} {noun} passed the guardrail)")
     else:
         lines.append(f"Answer         : NOT USABLE - {result.failure}")
+    if result.case_id:
+        lines.append(f"Case           : {result.case_id} ({result.document_id})")
     lines.append(f"Unit           : {result.unit_id} (run {result.run_id})")
     lines += list(result.assessment)
     for call in result.lines:
@@ -579,14 +693,14 @@ REFUSALS = (SpikeRefused, SettingsError, model_settings.ModelNotSet, model_setti
             harness.CallCapReached)
 
 
-def _go(env, kind: str, target: str, spike_db: Path, out, read_line) -> int:
+def _go(env, kind: str, target: str, spike_db: Path, out, read_line, case_id: str = "") -> int:
     """`--go`: every refusal first, then the plan, then a typed confirmation, then the one call.
 
     Returns 0 for a usable answer, 1 when the call was made but the answer was not usable, 2 when
     nothing was sent (a refusal, or the confirmation was not given)."""
     try:
         settings = load_settings(env)
-        plan = _plan_for(settings, kind, target, spike_db)
+        plan = _plan_for(settings, kind, target, spike_db, case_id)
     except REFUSALS as refusal:
         out(f"REFUSED: {refusal}")                  # before the prompt: never ask to confirm a refusal
         return 2
@@ -607,7 +721,7 @@ def _go(env, kind: str, target: str, spike_db: Path, out, read_line) -> int:
         return 2
     out("Sending one request now...")
     try:
-        result = run_call(settings, kind=kind, target=target, spike_db=spike_db)
+        result = run_call(settings, kind=kind, target=target, spike_db=spike_db, case_id=case_id)
     except REFUSALS as refusal:                     # the cost cap is checked inside the call
         out(f"REFUSED: {refusal}")
         return 2
@@ -626,19 +740,36 @@ def main(argv: list[str] | None = None, *, env: dict[str, str] | None = None,
                              "or the Stage B judge")
     parser.add_argument("--document", default=FIRST_CALL_DOCUMENT,
                         help=f"extract only: a primary document ID (default {FIRST_CALL_DOCUMENT})")
-    parser.add_argument("--row", default=FIRST_VERIFY_ROW,
+    parser.add_argument("--row", default=None,
                         help=f"verify and judge: the answer-key row's source paragraph (default "
-                             f"{FIRST_VERIFY_ROW})")
+                             f"{FIRST_VERIFY_ROW}). For the verifier this is the first call's C-1 "
+                             "only; the bake-off uses --case")
+    parser.add_argument("--case", choices=sorted(CASES), default=None,
+                        help="verify only: a verifier bake-off case (DL-26): C-1 and C-2 (a planted "
+                             "conflict between sources), I-1 (an injected conflict inside the row) "
+                             "or OK-1 (a row that should get no flag)")
     parser.add_argument("--go", action="store_true",
                         help="make the real call, after you type the confirmation shown")
     args = parser.parse_args(argv)
 
-    target = args.document if args.step == "extract" else args.row
+    case_id = args.case or ""
+    if case_id and args.step != "verify":
+        out("REFUSED: --case is only for --step verify (the verifier bake-off).")
+        return 2
+    if case_id and args.row:
+        out("REFUSED: give --case or --row, not both: a case names its own row.")
+        return 2
+    if case_id:
+        target = CASES[case_id].row_id
+    elif args.step == "extract":
+        target = args.document
+    else:
+        target = args.row or FIRST_VERIFY_ROW
     if args.go:
-        return _go(env, args.step, target, spike_db, out, read_line)
+        return _go(env, args.step, target, spike_db, out, read_line, case_id)
     try:
         settings = load_settings(env)
-        plan = _plan_for(settings, args.step, target, spike_db)
+        plan = _plan_for(settings, args.step, target, spike_db, case_id)
     except REFUSALS as refusal:
         out(f"REFUSED: {refusal}")
         return 2
