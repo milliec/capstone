@@ -1382,15 +1382,15 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **Not changed**: the pinned IDs and settings (DL-40); the evaluation's thresholds; the 70-call cap
   (it now has more room); the cost cap; the swap-as-release rule. The spike's **one clean run from
   start to finish** is not mentioned in the decision and stays in the plan.
-- **Needs the operator's word** (not assumed): **the stage time limits.** The spike was to set them
-  from five-run figures (DL-43). The calls made take 3.7 to 5.1 s against starting limits of 375 s
-  (Stage A) and 150 s (Stage B). My reading: **the starting limits stay**, because they bound a
-  hang and are not the speed target; they would be recorded as "set from the measured calls" with the
-  figures. This is the operator's to confirm.
+- **The stage time limits (operator, 2026-11-23, confirmed after this entry was first written):
+  the starting limits stay for now.** The spike was to set them from five-run figures (DL-43). The
+  calls made take 3.7 to 5.1 s against starting limits of 375 s (Stage A), 150 s (Stage B) and 30 s
+  (Stage C). They bound a hang and are not the speed target, so nothing here changes them. This is
+  the operator's decision, not an inference; the numbers are not "set from five runs".
 - **Changed**: SAD (`DL-25, DL-26` row, new DL-55 row, DL-40 row, Model and Context Strategy verifier
   row, Measurement spike, the model-provider row, the spike and bake-off budget row, B3 and Order
   row 7, the "green path" sentence in the estimate); `decision-log.md` (this entry; updates to DL-26 and
-  DL-40); `handoffs.md` (H-081 to `@backend.eng`, `@qa.eng` and `@project.mgr`).
+  DL-40); `handoffs.md` (H-083 to `@backend.eng`, `@qa.eng` and `@project.mgr`).
 
 ## Audit
 
@@ -1471,3 +1471,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-17 · persona `system-arch` (at the operator's instruction; handoff H-040) · action `update` · DL-49 update: B12 built now (before B6 and B10), switch is a `:has()` radio group, Month is the default, the display-only helper is confirmed with its condition; B12 dropped as a whole after B6 and Tier 2, before B13b. Operator decisions
 - 2026-11-19 · persona `system-arch` (at the operator's instruction; handoff H-064) · action `update` · new DL-40 (model IDs pinned by the operator: extractor `gpt-6-luna`, verifier `gpt-5.6-terra`, judge `gpt-6.1-terra`, with each role's reasoning setting, per-call `max_completion_tokens`, IDs only in `.env`; SAD SOQ-25 closed); the three step 7b retry settings checked against DL-43 (met, with two conditions in the H-064 Outcome). Operator decision
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-55 (the verifier stays `gpt-5.6-terra`; the model comparison and "5 runs each" for the extractor and judge are skipped; what that leaves unmeasured is stated in the entry); DL-26 and DL-40 updated to point to it. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · DL-55: the stage time limits are recorded as the operator's decision (starting limits stay for now); the handoff for the runner docs is renumbered H-081 to H-083, because `@backend.eng` raised its own H-081 and H-082 in PR #180. `AAMAD_TARGET_RUNTIME=crewai`.
