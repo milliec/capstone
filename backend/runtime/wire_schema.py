@@ -7,7 +7,10 @@ CrewAI, no network, no model call.
 
 How: the `openai` library's own helper makes every property required, forbids extra properties
 and writes an optional field as "this type or null". Strict mode then does not accept a few
-keywords, so those are dropped here: `minLength` and `maxLength`, `discriminator`, and `oneOf`
+keywords, so those are dropped here: `minLength` and `maxLength`, `minItems` and `maxItems`
+(OpenAI's own guide lists them both as supported and as not yet supported, and forum reports show
+real rejections: the judge's `cited_fact_ids` carried `minItems`, so it is dropped before the first
+real judge call, not discovered by it), `discriminator`, and `oneOf`
 (rewritten as the `anyOf` it means). Dropping them loses nothing: our Pydantic check runs on every
 answer and enforces them (a model that sends an empty explanation is refused there).
 
@@ -34,7 +37,7 @@ import re
 from pydantic import BaseModel
 
 # Keywords strict mode does not accept. Dropped; the Pydantic check enforces them instead.
-_DROPPED = {"minLength", "maxLength", "discriminator", "title", "default"}
+_DROPPED = {"minLength", "maxLength", "minItems", "maxItems", "discriminator", "title", "default"}
 
 
 def _clean(node):

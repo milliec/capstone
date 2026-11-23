@@ -12,7 +12,8 @@ from backend.domain.schemas import ExtractionResult, Verdict, VerificationResult
 from backend.runtime.wire_schema import wire_schema
 
 CLASSES = [ExtractionResult, VerificationResult, Verdict]
-NOT_ACCEPTED = {"minLength", "maxLength", "discriminator", "oneOf", "default", "title"}
+NOT_ACCEPTED = {"minLength", "maxLength", "minItems", "maxItems", "discriminator", "oneOf",
+                "default", "title"}
 
 
 def _walk(node, path="schema"):
@@ -89,3 +90,17 @@ def test_a_field_named_like_a_dropped_keyword_is_kept():
 def test_the_value_sets_are_kept():
     schema = wire_schema(Verdict)["json_schema"]["schema"]
     assert schema["properties"]["verdict"]["enum"] == ["applies", "does_not_apply", "unsure"]
+
+
+def test_dropping_min_items_loses_nothing_the_validator_still_wants_at_least_one_cited_id():
+    """The judge's `cited_fact_ids` is `minItems: 1` in the class; the wire schema no longer says so
+    (OpenAI's strict mode may refuse the keyword), and our check, which runs on every answer, still
+    does. An answer that cites nothing is refused there."""
+    from pydantic import ValidationError
+
+    from backend.domain.schemas import Verdict as VerdictClass
+    items = wire_schema(Verdict)["json_schema"]["schema"]["properties"]["cited_fact_ids"]
+    assert "minItems" not in items and items["type"] == "array"
+    with pytest.raises(ValidationError):
+        VerdictClass.model_validate({"verdict": "applies", "cited_fact_ids": [],
+                                     "reasoning": "x", "missing_information": ""})
