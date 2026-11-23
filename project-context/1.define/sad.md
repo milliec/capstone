@@ -87,7 +87,7 @@ Otherwise a failed run is followed by a new run. See "Known limitations".
 | DL-19, DL-20 | Business-day rules are never guessed by code. **The specialist chooses one of three at G1: following working day, preceding working day, or keep the date; "not confirmed" is not a choice** (DL-19 updated 2026-11-14). An entry whose rule depends on an open question is marked for the specialist (CR-027) |
 | DL-21 | CrewAI adapter deviations D1 to D5 and interpretation D6 still apply to the three agents |
 | DL-22 | The MVP is one happy path. Edit, reopen, re-run, release, manual rows, duplicate groups, the review notice and **choosing which source a rule follows** (A5) are Future Work |
-| DL-25, DL-26 | OpenAI API on prepaid credits; one model per role; the verifier's model is settled by the measured bake-off. (DL-24, the earlier spend cap, is superseded by DL-36) |
+| DL-25, DL-26 | OpenAI API on prepaid credits; one model per role; the verifier stays `gpt-5.6-terra` (DL-55: the bake-off was not run). (DL-24, the earlier spend cap, is superseded by DL-36) |
 | DL-27 | Before the first publication the GP view shows one fixed message and nothing else (wording updated 2026-11-16) |
 | DL-29 | Abandon only at a gate; a stage time limit; a start-up rule that fails a run interrupted mid-stage |
 | DL-30 | Publishing needs one explicit acknowledgement of the rejected rows and uncited paragraphs |
@@ -99,7 +99,7 @@ Otherwise a failed run is followed by a new run. See "Known limitations".
 | **DL-36** | **Model spend: a target of about US$15 in total.** The per-run hard stop is US$2.50. Building uses stand-in agents, which call no model. Real model calls are allowed only for the spike, a capped number of tuning calls, one evaluation cycle of three runs, one rehearsal run and the demo run |
 | **DL-38** | *Parked by DL-42.* A hosted portfolio demo was a stretch goal outside the five days. It is now **Future Work (F-18)**; its design is kept in Appendix A and is not built in this plan |
 | **DL-39** | **Agent cards** (in §2). The loader strips the mock files' answers before any prompt (T-LEAK-1). The extractor sees only the primary documents and reports "who files" only when the source states it; otherwise the specialist sets it at G1. No `pattern` field; code derives it for the report. The judge's general rule is worded generally. Each card's worked example is its one-shot example, drawn from text in no demo row, planted row or evaluation case and mirroring no demo trap (T-EXAMPLE-1 and a review table). The exact model IDs are pinned in DL-40 |
-| **DL-40** | **Model IDs and reasoning settings, pinned by the operator (2026-11-19; SOQ-25 closed).** Extractor `gpt-6-luna` (`reasoning_effort` `none`, temperature 0); verifier `gpt-5.6-terra` (`low`; a different family from the other two; switches to the judge's model only if the spike misses the planted conflict, DL-26); judge `gpt-6.1-terra` (`medium`, no temperature; upgraded to `gpt-6.2-sol` only if the spike shows it is too weak, and then the context size is set by hand). OpenAI aliases, no dated snapshots, so a change in behaviour is treated as a release. Every call sets its own `max_completion_tokens` (CR-017). IDs only in the operator's `.env` |
+| **DL-40** | **Model IDs and reasoning settings, pinned by the operator (2026-11-19; SOQ-25 closed).** Extractor `gpt-6-luna` (`reasoning_effort` `none`, temperature 0); verifier `gpt-5.6-terra` (`low`; a different family from the other two; stays unless a later release changes it: the DL-26 switch was not run, DL-55); judge `gpt-6.1-terra` (`medium`, no temperature; the `gpt-6.2-sol` upgrade has no measuring step now, so it would be a release, DL-55). OpenAI aliases, no dated snapshots, so a change in behaviour is treated as a release. Every call sets its own `max_completion_tokens` (CR-017). IDs only in the operator's `.env` |
 | **DL-41** | **Responsible role is graded through a fixed lookup** (EC-R11), written before the first evaluation run: code maps the extractor's free text to a profile party name, then matches exactly; text that does not map is a miss (T-MAP-1). No parties list in the extractor's prompt (DL-39 stands). The model IDs are in DL-40 |
 | **DL-42** | **Capacity: 5 days planned, 8 days hard stop.** The estimate now counts the hours that were noted but not added (stand-in mode and harness, the "who files" choice, the loader tests): about 6 days likely. **Tests in two tiers**: Tier 1 blocks the build, Tier 2 is done if time allows. **Tripwire**: the first stand-in green path has not passed by the end of day 4 → drop B6 and Tier 2 (moved from day 3 on 2026-11-13, SOQ-30). The hosted demo (DL-38) is parked as Future Work F-18. At least US$5 stays for the rehearsal and the demo (EC-R10 point 4). See "Estimate" |
 | **DL-43** | **One timeout rule everywhere.** Each model call has its own timeout, with the HTTP client timeout slightly below it; a timed-out call is retried once, and only a second timeout is a final failure (`model service`, voidable under EC-R8). Each stage limit is the sum of its calls with one retry each, plus about 25%: A ≈ 375 s, B ≈ 150 s, C 30 s. **The backend stage timer is the real bound**; CrewAI `max_execution_time` does not cancel a call in flight. Late results after a stage fails are discarded but count towards cost. Starting values, replaced after the spike |
@@ -113,6 +113,7 @@ Otherwise a failed run is followed by a new run. See "Known limitations".
 | **DL-52** | **Failure demo switch** (`demo_fail_step1`), stand-in mode only, off by default, set only at start and audited. The stand-in extractor fails stage A's first unit on the first attempt, with the reason `demo failure`; once Retry exists (B13b), a retry then runs normally. **Built in B13a, which does not need Retry** (DL-54). Specialist pages only; never with real agents or on an evaluation run |
 | **DL-53** | **Screen-to-data gaps answered** (`ux.md` §10.3). `runs` gains `started_at`, `started_by`, `stage_attempt`, `demo_fail_step1` and `spend_activity`; `units` is drawn with a readable label and its stage attempt; the fund and regulation config gain display names. Everything else is read from tables already listed |
 | **DL-54** | **B13 is split, and stand-in agents pause per unit** (operator, 2026-11-16). **B13a Failure demo and stand-in pause** (0.25 day) is built straight after B3's stand-in part and is **kept**; **B13b Retry** (0.25 day) is built after B9 and is dropped next after B6. The failure demo no longer depends on Retry. New setting `STAND_IN_UNIT_PAUSE_S` (default 1 second per unit, stand-in mode only, 0 in tests) so units finish one by one. T-DEMOFAIL-1 is Tier 1 from B13a; new Tier 1 test T-PAUSE-1. Estimate totals unchanged |
+| **DL-55** | **The verifier stays `gpt-5.6-terra`; no model comparison, and no "5 runs each" for the extractor and judge** (operator, 2026-11-23). The basis is one valid verifier run that caught `C-1`, and the pinned settings accepted by every model so far. DL-26's bake-off and switch rule are not run. **Left unmeasured:** `C-2` and `I-1` on the verifier, whose first test is now the evaluation cycle, where a miss is reported as it stands (EC-R10 point 3). The stage time limits need the operator's word (DL-55) |
 
 ### Work Ownership
 
@@ -597,7 +598,7 @@ the personas that build the product, not the product).
   | Role | Model tier | Variable | Why |
   |---|---|---|---|
   | Extractor (W-03) | A **cheaper default** model | `LLM_MODEL_EXTRACT` | Fixed-schema extraction from short mock paragraphs; the code quote check and the verifier catch its mistakes |
-  | Verifier (W-05, W-06) | **Default: a mid-tier model, different from the other two** (DL-26). **It switches to the judge's reasoning model** only if the mid-tier model misses any planted conflict in the bake-off | `LLM_MODEL_VERIFY` | Two different models are less likely to share a blind spot, which strengthens the separate verifier (SD MD-003). Same provider, so no second live service (SD MN-002) |
+  | Verifier (W-05, W-06) | **A mid-tier model, different from the other two, and it stays `gpt-5.6-terra`** (DL-26, DL-55). The switch to the judge's reasoning model was tied to a bake-off that was **not run**; a later change of verifier is a release | `LLM_MODEL_VERIFY` | Two different models are less likely to share a blind spot, which strengthens the separate verifier (SD MD-003). Same provider, so no second live service (SD MN-002) |
   | Applicability judge (W-11) | A **reasoning** model | `LLM_MODEL_JUDGE` | Applicability is the judgement-heavy step, and a wrong "does not apply" is the costliest error (P-1) |
 
   No other step uses a model. **The model IDs are pinned in DL-40 (operator, 2026-11-19)**:
@@ -742,17 +743,19 @@ built in this plan.
   still miss EC-010 (under 5 minutes), which is then reported as a miss.
 - **Measurement spike** (the first real calls, in estimate block B3, **run after B5 and B7 once the
   first green path passes in stand-in mode and DL-40 is pinned**; **at most 70 real calls**,
-  EC-R10; the plan here uses about 63). Run each role's call on the
-  demo inputs 5 times (the extractor on one document, the verifier on one row, the judge
-  on one row), then one clean run from start to finish. Record, per role: tokens in and out, cost,
+  EC-R10; the plan here used about 63). **Reduced by DL-55 (2026-11-23):** the plan was to run each
+  role's call on the demo inputs 5 times (the extractor on one document, the verifier on one row, the
+  judge on one row); **"5 runs each" is skipped for the extractor and the judge**, and the verifier
+  is not compared with another model. What stays: the calls already made, and **one clean run from
+  start to finish**. Record, per role: tokens in and out, cost,
   duration, and the share of calls whose output passes its schema on the first attempt. The
-  measured figures replace the estimates and set the time limits. **Verifier bake-off (DL-26):**
-  both candidates, the mid-tier default and the reasoning model, run 5 times each on the
-  planted conflicts (`C-1` on `OBL-03`, `C-2` on `OBL-05`, and `I-1` on a copy of `OBL-02`). **If
-  the mid-tier model misses any planted conflict in any run, the verifier switches to the
-  reasoning model**; otherwise the mid-tier model stays. For each candidate the spike also records
-  false alarms on the correct rows and the cost of a full run. The choice is recorded in the
-  decision log before the first evaluation run. Output: a short table under
+  measured figures replace the estimates and set the time limits (see decision 3 below).
+  **Verifier bake-off (DL-26): not run (DL-55).** It was to run both candidates 5 times each on the
+  planted conflicts (`C-1` on `OBL-03`, `C-2` on `OBL-05`, and `I-1` on a copy of `OBL-02`), and
+  to switch the verifier to the reasoning model on any miss. The operator decided the verifier stays
+  `gpt-5.6-terra` on the evidence of one valid run that caught `C-1`. **So `C-2` and `I-1` are first
+  tried on the verifier in the evaluation cycle**, where a miss is reported as it stands and a change
+  of model needs a recorded operator decision (EC-R10 point 3). Output: a short table under
   `project-context/2.build/`, named in this document's Audit when it exists.
   **What the spike has found so far (H-076, H-078, H-079).** Evidence: `2.build/backend.md`, "B3
   spike finding", "finding 2" and "finding 3".
@@ -785,13 +788,13 @@ built in this plan.
     pre-flight line); run cost US$0.0164. **This is 5 real model calls (extractor 2, verifier 2,
     judge 1), not the five per role the spike plans**, so the honest wording is "so far", not
     "proved".
-  - **What none of the findings decides:** the verifier bake-off (DL-26), which needs C-2 and I-1
-    and the other candidate model, five runs each; and the stage time limits, which need the
-    five-run figures.
+  - **What the findings leave open:** the verifier bake-off (DL-26) was **closed by the operator
+    without being run** (DL-55). **The stage time limits** were to come from five-run figures; they
+    now need the operator's word (decision 3 below).
   **Decisions to take once the spike has shown the result** (a list kept here, H-073; the operator
   decides, not the build):
-  1. **Verifier model**: the bake-off choice above (DL-26). **Still open** after the first two
-     verifier calls (H-078).
+  1. **Verifier model**: **decided 2026-11-23 (DL-55): it stays `gpt-5.6-terra`**, with no
+     bake-off. Accepted risk: `C-2` and `I-1` are first tried in the evaluation cycle.
   2. **Treat a call that went off the pinned reasoning setting as a failure?** When a 400 says a
      model refuses `reasoning_effort`, CrewAI sends the call again without it, reports success, and
      **leaves the setting out of every later call in the same process** (a memory kept per model and
@@ -803,8 +806,8 @@ built in this plan.
      (H-076). If they all do, the question does not arise. If one does not,
      the options are to keep flagging, or to fail the call and the unit, which would end the run
      as `FAILED`.
-     **Status (H-079): it has not arisen so far, and it stays on the list until the spike's calls
-     are done.** All three models accepted their pinned settings on every real call, with no 400
+     **Status (H-079): it has not arisen so far, and it stays on the list, though the spike is now
+     smaller (DL-55), so it will get little more evidence from it.** All three models accepted their pinned settings on every real call, with no 400
      and no silent repeat, but on only 5 real calls in all, so "so far" is the honest word. A model
      could refuse the setting later only if its behaviour changed, which DL-40 already treats as a
      release. A refusal could not hide: CrewAI's memory of it lives inside one process and every
@@ -814,6 +817,12 @@ built in this plan.
      the unit would end a run that may still have produced an answer, and every answer is
      checked against its schema and CR-003 either way. **The flag stays
      in the design** (§4 `off_pinned_setting`).
+  3. **The stage time limits (DL-55; the operator confirms).** They were to be set from the spike's
+     five-run figures before the first evaluation run (DL-43, EC-R8 point 5), and "5 runs each" is
+     skipped. The calls made so far took 3.7 to 5.1 s each, against starting limits of 375 s
+     (Stage A), 150 s (Stage B) and 30 s (Stage C). **My reading: the starting limits stay.** They
+     bound a hang and are not the speed target (§2), and the measured calls are far inside them. If
+     the operator agrees, the figures are recorded next to the limits as "measured, not changed".
 - **The failure mode of a document pipeline, and what limits it**: **well-formed but wrong, and
   silently missing.** A pipeline's outputs look right because they fit the schema; the dangerous
   cases are a plausible wrong field and a row that is simply absent. What limits them: the
@@ -863,7 +872,7 @@ external service except the model provider; no PDF parsing; no real data; no not
 | Thin page handlers | A page handler reads the request, calls a **service function** and renders a template. It holds no rule. Every check (role, gate, version, reason) is in the service layer | A JSON API can be added later by calling the same service functions, without rework. The tests exercise the service layer and the HTTP routes, not the HTML | DL-33 · CR-001, CR-004 |
 | Backend language and framework | **Python 3.12, FastAPI, Pydantic v2** | CrewAI is a Python library, so the agents run in Python. Keeping gates, dates and audit in the same process avoids a second service that must agree on state. The same Pydantic models describe the agents' structured outputs and the stored records | `AAMAD_TARGET_RUNTIME=crewai` · CR-001, CR-003 |
 | Storage | **SQLite** (one local file), through SQLAlchemy 2 | The PRD requires data to survive between sessions; one run at a time and a local demo need no database server. Append-only is enforced at the storage boundary with database triggers (CR-013) | PRD §3 Storage · SD MD-009, NFR-003 |
-| Model provider | **OpenAI API** on prepaid credits, one model per role, set in configuration | Decided in Define; the verifier's model is settled by the measured bake-off in block B3 | DL-25, DL-26, DL-36 |
+| Model provider | **OpenAI API** on prepaid credits, one model per role, set in configuration | Decided in Define; the verifier stays `gpt-5.6-terra`: the bake-off in block B3 was not run (DL-55) | DL-25, DL-26, DL-36, DL-55 |
 | Two sets of pages | **Specialist review pages** (runs, G1, G2, G3) and a **GP read-only calendar**. Not a chat, not a dashboard. `ux.md` is a short page-by-page note | PRD §6 names exactly these two surfaces | PRD §6 · SD §1 |
 | Running a stage | The backend runs each stage function as a **background task**. The run status page **reloads itself** every few seconds while a stage is running, and also has an ordinary refresh link | A run lasts minutes, not seconds, with one user and one run. Reloading the page shows progress with no script and no open connection | US-015 c1 · PRD A-6 |
 | Streaming | **None.** A model output is shown only after schema validation (CR-003) | Showing partial model text would display unvalidated content | SD NFR-004 |
@@ -2050,7 +2059,7 @@ three runs (EC-R1) and about 15 minutes of agent time. **One cycle is planned** 
 | Activity | Real model calls | Expected cost | Worst case at the hard stop |
 |---|---|---|---|
 | Building and automated tests | **None**: stand-in agents (CR-030) | US$0 | US$0 |
-| Spike and verifier bake-off | At most 70 (about 63 planned, including one clean run) | US$1 to US$2 | Limited by the call cap |
+| Spike (the verifier bake-off and the "5 runs each" are dropped, DL-55) | At most 70 (about 63 were planned, including one clean run; fewer will be made) | US$1 to US$2 | Limited by the call cap |
 | Prompt tuning | **At most 60** | US$1 to US$2 | Limited by the call cap |
 | One evaluation cycle | 3 runs, about 57 calls (each run adds 2 harness calls, for `I-1` and the injection case; the altered-quote case is a code check, DL-45), plus any replacement under EC-R8 | US$1 to US$2 | US$7.50, and up to US$2.50 for each replacement |
 | Rehearsal and demo | 2 runs, about 38 calls | About US$1 | US$5 |
@@ -2441,7 +2450,7 @@ writing (SA-16). Figures are the architect's judgement in quarter days, not meas
 |---|---|---|---|---|
 | B1 | Setup and data: repository, FastAPI, SQLite, tables with `fund_id`, append-only audit and trace, configuration loading, lint and tests in CI, git hooks | WP-03, WP-04 | 4 | 0.5 |
 | B2 | Gates and run states: gate transitions, role checks, decide-once and version check, one active run, the five run states, abandon at a gate, stage time limit, start-up rule, error envelope. **Also the stage-end store (rule 9), moved here from B3 by the operator (H-047, 2026-11-17)**; not re-estimated (`@backend.eng` puts B2 at about 0.8 to 1.0 day with it, `scaffold-plan.md`); B3 shrinks by a similar amount | WP-05, WP-12a, WP-12b | 4.75 | 0.5 |
-| B3 | Stages A and B: loader, quote check, the three model steps as one-agent crews behind their interfaces, schema validation, trace and cost count, cost cap, **stand-in mode with its label and the role harness (CR-030)**. **The first real calls are the measurement spike**: timings set the time limits, and the verifier bake-off (DL-26) is run here. **B3 is stand-in only until B5 and B7 are done and the first green path passes; the spike and bake-off then run, after DL-40 is pinned** | WP-00, WP-06, WP-07 | 6.5 | 1.0 |
+| B3 | Stages A and B: loader, quote check, the three model steps as one-agent crews behind their interfaces, schema validation, trace and cost count, cost cap, **stand-in mode with its label and the role harness (CR-030)**. **The first real calls are the measurement spike**: timings set the time limits, and the verifier bake-off (DL-26) was to be run here (**dropped, DL-55**). **B3 is stand-in only until B5 and B7 are done and the first green path passes; the spike then runs, after DL-40 is pinned** | WP-00, WP-06, WP-07 | 6.5 | 1.0 |
 | B4 | Stage C: date engine against the 22-entry key, entry IDs, marks including OQ-7 | WP-08 | 3 | 0.5 |
 | B5 | Gate actions and pages: G1 with the coverage view, G2, G3 with the acknowledgement, run list and status, mock sign-in, GP calendar. Server-rendered, thin handlers. `ux.md` is a short page-by-page note, not a full design document | WP-01, WP-09, WP-11, WP-12, WP-12c, WP-13 to WP-17 | 17 | 1.0 |
 | B6 | Light visual pass: one shared stylesheet with clear type, spacing and status colours, **including the new shell and look (U7, U8: white sidebar, Lexend and Inter, rounded corners, Iconoir), half a day in total; anything that does not fit is dropped** (operator, 2026-11-14) | New (DL-33) | — | 0.5 (was 0.25) |
@@ -2482,7 +2491,7 @@ needed. The architect tells the operator the same day. **Dropping Tier 2 never d
 which must still pass before the first evaluation run. The check moved from "no real Stage A rows
 by the end of day 3" because the spike now runs after B5 and B7, and B1 to B7 take about 3.75 days (about 3.5 before B13a, a quarter day, was built ahead of the green path, DL-54).
 The green path is the earliest reliable sign that the riskiest block works; it does not show how
-the real models behave, which the spike and bake-off still test.
+the real models behave, which the spike and the evaluation still test.
 
 **Where 40 days went.** About half is real cuts: no separate frontend application, generated
 client, fixtures or integration step; no unit re-run, invalidation or duplicate-output machinery
@@ -2647,7 +2656,7 @@ field per form, and nothing else.
 | 6 | B7 Planted demo row | `@backend.eng` | Before the visual pass |
 | — | **First green path** (gate, not a block) | `@backend.eng`, `@qa.eng` | The full stand-in happy path in the Build card passes end to end with `AGENTS_MODE=stand_in`. **Nothing below this row that spends money starts before it passes** |
 | — | **Pin DL-40** (SOQ-25) | operator | **Done 2026-11-19** (after the green path): the operator pinned the model IDs and DL-40 is recorded (H-064) |
-| 7 | **B3 spike**, then the verifier bake-off | `@backend.eng`, operator | The first real model calls (DL-26, EC-R10). Timings replace the starting limits in §2 |
+| 7 | **B3 spike** (the verifier bake-off is dropped, DL-55) | `@backend.eng`, operator | The first real model calls (EC-R10). The calls made so far are within the starting limits in §2 (decision 3 in Measurement spike) |
 | 8 | B8 Evaluation runner and report | `@qa.eng` | With the trace export (D4) and the void rule (EC-R8). **Slice 1 started before the spike (operator, 2026-11-21, H-066):** the Stage A grader in `backend/evaluation/`, which grades a finished Stage A run read from the database, starts no run, calls no model and stamps stand-in runs "does not count towards the cycle". The run starter with the evaluation-run type, scripted gates and EC-R7 refusal, the trace export (D4), the void rule (EC-R8) and the copy cases that need a model (`I-1`, injection) stay after the spike |
 | 9 | B9 Tuning, then the evaluation cycle | `@qa.eng`, operator | Capped at half a day and 60 real calls (EC-R9). Then the one cycle (EC-R10) |
 | 9a | B13b Retry | `@backend.eng`, `@frontend.eng` | Stand-in only; no model call. After B9, before B6. Dropped next after B6 if time runs out (operator, 2026-11-16, SOQ-35, DL-54); the page then uses the "Without Retry" fallback in `ux.md`, which B5 already builds |
@@ -3418,3 +3427,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-22 · persona `system-arch` (at the operator's instruction; handoff H-072) · action `update` · **Recorded CrewAI's third retry layer and how the strict schema is sent (B3 step 7b PR 4).** Checked against the code first, by reading only (`backend/runtime/crewai_setup.py`, `crews.py`, `wire_schema.py`, `tests/tier1/test_crews.py`). §2: new "CrewAI's third retry layer" bullet (CrewAI's own 429 retry, three attempts, no setting; set to one in `load_crewai()`; pinned with the CrewAI version, and the call stops if an upgrade renames it); the Errors bullet now names it among the layers that add nothing; the Outputs bullet says how the schema is sent (our own strict schema through `additional_params`, not CrewAI's `response_format`, with the keywords strict mode refuses dropped) and that the provider has not yet accepted it; two rows added to the CrewAI settings table; D1 and the §6 Runtime checks row name the setting. The "at most four requests" bound (H-073) now says it depends on this setting. No rule changes: DL-43, D1, H-064 and H-065 stand. One detail beyond the handoff: `wire_schema.py` also drops `title` and `default` keywords; not recorded as a rule because the Pydantic check enforces what matters. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoffs H-076 and H-078) · action `update` · **Recorded the first two real-call findings of the B3 spike and their fixes.** Checked against the code first, by reading only (`backend/runtime/wire_schema.py`, `attempts.py`, `crews.py`, `db/schema.sql`, `tests/tier1/test_request_guard.py`) and `2.build/backend.md` ("B3 spike finding" and "finding 2"). **H-078:** §2 Outputs now says the verifier's flag is sent as `anyOf` two shapes (internal and cross-source, each with exactly its own keys, all required, none nullable), why (strict mode needs every key, so the first real verifier call mixed them), that only the wire changed, and the two options not taken; the "not yet proven" sentence is replaced (the real re-run was accepted); the D5 row gets its first real case; the verifier card gets a **note outside the prompt** (the prompt version does not change); the CrewAI settings row names the two shapes. **The finding as recorded (Measurement spike):** the verifier caught C-1 in substance, **first-attempt schema-pass 0 of 1**, called a schema failure and not a miss; after the fix the re-run was valid and caught C-1, **1 of 2**; DL-26 stays open. **H-076:** new §2 bullet "Nothing else is ever sent" (the pre-flight was a second request and broke "exactly one"; it is switched off; only `POST .../chat/completions` may be sent, any other request is refused before sending and traced with cost 0, is not one of the "at most four", and still takes a call slot); new CrewAI settings row `respect_context_window` false; §4 new `trace` column `request_path` and a note on reading `off_pinned_setting`; §4 "How many requests" gets one sentence; CR-018 names the path and the refused request; §9 Runtime checks row names T-REQ-1 and T-REQ-2 and a new paragraph "What a fake server cannot show" (the first real call is also a test of that); EC-R10 says the 70 are counted as trace lines; "Decisions to take once the spike has shown the result" items 1 and 2 updated. **Decisions I took:** keep counting a refused request as a slot (the backend's conservative choice, no special case in the cap); the card's prompt text is not edited. **Not touched:** H-079 (decision 2 of that list, and the `minItems`/`maxItems` precaution) is a separate handoff and is still open; the 70-call figure and cost cap; DL-26, DL-40, DL-43; the stage limits. The pre-flight's billing is not verified (operator checks the usage page). No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-079) · action `update` · **Recorded what the real calls so far say about decision 2, and the judge's first call.** Checked against `2.build/backend.md` ("B3 spike finding 3") and `backend/runtime/wire_schema.py`, by reading only. Measurement spike: new "Finding 3" (the judge's first real call: valid, the expected verdict, `reasoning_effort` medium accepted, first-attempt schema-pass 1 of 1, US$0.0013), a "where the three roles stand" bullet (all pinned settings accepted; schema-pass 4 of 5; 6 of 70 slots; US$0.0164; **5 real model calls, not five per role, so "so far", not "proved"**), and a bullet saying the bake-off (DL-26) and the stage time limits are still undecided. **Decision 2 of "Decisions to take once the spike has shown the result"** now has a status: it has not arisen so far and stays on the list until the spike's calls are done; a refusal could not hide (CrewAI's memory is per process and each spike command is a new process); my recommendation, for the operator to confirm if it ever arises, is to keep flagging (the flag costs nothing and guards a model change). §2 Outputs: `minItems` and `maxItems` added to the dropped keywords and recorded as an **untested precaution** (only the judge's `cited_fact_ids` carried one; we never sent it, so we do not know whether OpenAI would have refused it; the Pydantic check still refuses an empty list). **Decided:** the `off_pinned_setting` flag and its trace line stay. **Not changed:** decision 1 (DL-26), the stage limits, DL-40, DL-43, the cost cap. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · **Recorded the operator's decision: the verifier stays `gpt-5.6-terra` with no model comparison, and "5 runs each" is skipped for the extractor and judge (DL-55).** Changed: new DL-55 row and the `DL-25, DL-26`, DL-40, model-provider, Model and Context Strategy (verifier) rows; Measurement spike (the plan is reduced; the bake-off is marked not run; "What the findings leave open"; decision 1 is decided; decision 2's status line; **new decision 3, the stage time limits**); the spike budget row, the B3 row, Order row 7, and one sentence in the estimate. **Stated plainly in the SAD and DL-55:** `C-2` and `I-1` are now first tried on the verifier in the evaluation cycle, where a miss is reported as it stands and a change needs a recorded operator decision (EC-R10 point 3); the extractor and judge figures rest on 2 and 1 real calls. **Not assumed, left for the operator:** the stage time limits (my reading: the starting limits stay, since they bound a hang and the calls made are far inside them); the spike's one clean run is not mentioned in the decision and stays in the plan. **Not changed:** DL-40's IDs and settings, the thresholds, the cost cap, the 70-call cap, historical audit lines and resolved items that mention the bake-off. New handoff H-081 for the runner docs, `setup.md` and the spike report. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
