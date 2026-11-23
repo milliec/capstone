@@ -17,7 +17,10 @@ The three Sprint 4 cases, in this file:
 
 The fake answers by LOOKING at each request (`answer_with`): which model asked, and which document or
 row its prompt names. It answers with the stand-in answer key, so the numbers must equal the stand-in
-green path's: 5 documents, 7 rules drafted, 6 approved and checked, 5 apply, 22 dates.
+green path's: 5 documents, 7 rules drafted, 6 approved and checked, 22 dates. Of the 6 checked, the key's
+verdicts are 4 apply, 1 unsure (OBL-04) and 1 does not apply (OBL-06). The key's "5 apply" means the 5 rows
+that get dates: the 4 that apply plus the unsure one, which the human resolves to "applies" at G2. This test
+asserts only rules 7, unsure 1, dates 22 and 6 judge requests.
 """
 
 import copy
