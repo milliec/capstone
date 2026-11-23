@@ -22,6 +22,10 @@ What this file deliberately does NOT do (the safety design, kept for every later
     makes ONE verifier call on one of the four bake-off cases. The operator types the case AND the
     model ID (`verify C-2 gpt-5.6-terra`), so a forgotten model override cannot quietly run the wrong
     candidate. `--row SRC-UCILAW-P3` still works for C-1, as before.
+  - Spike PR 4, PR 2: `--tally` is a READ-ONLY summary of data/spike.db (backend/runtime/spike_tally.py):
+    per model and per verifier case, the calls, schema-pass, CAUGHT / MISSED, false alarms, tokens, time
+    and cost, with the judge's model re-priced at the judge's prices. It sends nothing, needs no key, and
+    is refused together with `--go`.
   - Spike PR 3, step 2: `--step judge` plans or makes ONE Stage B judge call on the same answer-key
     row. The operator types `judge SRC-UCILAW-P3`. The result says whether the verdict matches the
     answer key (applies, citing FACT-01).
@@ -443,50 +447,71 @@ def assess_verification(row_id: str, flags) -> tuple[str, ...]:
     return assess_case(CASES[PLANTED_CONFLICTS[row_id][0]], flags)
 
 
+@dataclass(frozen=True)
+class CaseOutcome:
+    """What a verifier's flags amount to for one bake-off case. The ONE place that decides it: the live
+    printout (`assess_case`) and the read-only tally (`spike_tally`) both read it, so they cannot disagree."""
+    good: bool             # planted cases: CAUGHT. OK-1: CLEAN (no flag)
+    false_alarms: list     # flags that are false alarms (see `classify_case`)
+    extra: list            # flags of the other kind, which a person should read (not judged)
+
+
+def classify_case(case: VerifierCase, flags) -> CaseOutcome:
+    """Decide CAUGHT / MISSED / CLEAN / FALSE ALARM for one case. Plain code, no model.
+
+    C-1 and C-2 (cross-source): good when a cross-source flag cites the other paragraph; any internal
+    flag is a false alarm, because the answer-key row's fields match its quote.
+    I-1 (internal): good when an internal flag names the changed field; an internal flag on another
+    field is a false alarm. OK-1 (no conflict): good when there is no flag; any flag is a false alarm."""
+    cross = [f for f in flags if f.flag_type == "cross_source"]
+    internal = [f for f in flags if f.flag_type == "internal"]
+    if case.expects == "nothing":
+        return CaseOutcome(good=not flags, false_alarms=list(flags), extra=[])
+    if case.expects == "cross_source":
+        return CaseOutcome(
+            good=any(f.other_paragraph_id == case.other_paragraph for f in cross),
+            false_alarms=internal,
+            extra=[f for f in cross if f.other_paragraph_id != case.other_paragraph])
+    return CaseOutcome(
+        good=any(f.field == case.field for f in internal),
+        false_alarms=[f for f in internal if f.field != case.field],
+        extra=cross)
+
+
 def assess_case(case: VerifierCase, flags) -> tuple[str, ...]:
     """What a verifier's flags say about one bake-off case, in words (plan, "Pass or fail").
 
-    C-1 and C-2 (cross-source): CAUGHT when a cross-source flag cites the other paragraph; any internal
-    flag is a FALSE ALARM, because the answer-key row's fields match its quote.
-    I-1 (internal): CAUGHT when an internal flag names the changed field; an internal flag on another
-    field is a FALSE ALARM.
-    OK-1 (no conflict): CLEAN when there is no flag; any flag is a FALSE ALARM.
     MISSED means the verifier did not see a planted conflict (DL-26: a miss in any run switches the
     verifier to the reasoning model). A flag of another kind is not judged here: it is listed so that
-    a person reads it."""
-    cross = [f for f in flags if f.flag_type == "cross_source"]
-    internal = [f for f in flags if f.flag_type == "internal"]
+    a person reads it. The decision itself is `classify_case`."""
+    outcome = classify_case(case, flags)
     lines: list[str] = []
     if case.expects == "nothing":
-        lines.append("Correct row      : CLEAN (no flag)" if not flags else
+        lines.append("Correct row      : CLEAN (no flag)" if outcome.good else
                      f"Correct row      : FALSE ALARM ({len(flags)} flag(s) on a row the answer key "
                      "says needs none)")
     else:
         if case.expects == "cross_source":
-            caught = [f for f in cross if f.other_paragraph_id == case.other_paragraph]
             what = f"a cross-source flag cites {case.other_paragraph}"
             missed = f"no cross-source flag cites {case.other_paragraph}"
-            false_alarms, extra = internal, [f for f in cross if f not in caught]
             fa_note, extra_note = "on a row whose fields match its quote", "not the planted conflict"
         else:
-            caught = [f for f in internal if f.field == case.field]
             what = f"an internal flag names the field {case.field!r}"
             missed = f"no internal flag names the field {case.field!r}"
-            false_alarms, extra = [f for f in internal if f not in caught], cross
             fa_note, extra_note = "on a field that matches its quote", "not the injected conflict"
-        lines.append(f"Planted {case.case_id}   : CAUGHT ({what})" if caught else
+        lines.append(f"Planted {case.case_id}   : CAUGHT ({what})" if outcome.good else
                      f"Planted {case.case_id}   : MISSED ({missed}). DL-26: a miss in any run "
                      "switches the verifier to the reasoning model")
-        if false_alarms:
-            lines.append(f"False alarms     : {len(false_alarms)} internal flag(s) {fa_note}: " + "; ".join(
-                f"{f.field}: row says {f.row_value!r}, quote says {f.quote_says!r}"
-                for f in false_alarms))
+        if outcome.false_alarms:
+            lines.append(f"False alarms     : {len(outcome.false_alarms)} internal flag(s) {fa_note}: "
+                         + "; ".join(f"{f.field}: row says {f.row_value!r}, quote says {f.quote_says!r}"
+                                     for f in outcome.false_alarms))
         else:
             lines.append("False alarms     : none")
-        if extra:
+        if outcome.extra:
             lines.append("Other flags      : " + "; ".join(
                 f"{f.flag_type.replace('_', '-')} on {f.other_paragraph_id or f.field} "
-                f"({extra_note}: read it)" for f in extra))
+                f"({extra_note}: read it)" for f in outcome.extra))
     for flag in flags:
         lines.append(f"Verifier said    : [{flag.flag_type}] {' '.join(flag.explanation.split())[:240]}")
     return tuple(lines)
@@ -729,6 +754,21 @@ def _go(env, kind: str, target: str, spike_db: Path, out, read_line, case_id: st
     return 0 if result.ok else 1
 
 
+def _tally(env, spike_db: Path, out, exclude_text: str) -> int:
+    """`--tally`: read the spike database and print the summary. Sends nothing, writes nothing."""
+    from backend.runtime import spike_tally  # only `--tally` needs it
+    role_models, note = {}, ""
+    try:
+        role_models = dict(load_settings(env).llm_models)
+    except SettingsError as error:                   # a read-only summary should still work
+        note = f"the role models in .env could not be read ({error}); no line was priced for another model"
+    exclude = {unit.strip() for unit in exclude_text.split(",") if unit.strip()}
+    tally = spike_tally.collect(spike_db, role_models, exclude)
+    tally.note = note
+    out(spike_tally.format_tally(tally))
+    return 0
+
+
 def main(argv: list[str] | None = None, *, env: dict[str, str] | None = None,
          spike_db: Path = SPIKE_DB, out=print, read_line=input) -> int:
     """The command. Returns 0 for a plan or a usable answer, 1 for a call whose answer was not
@@ -750,7 +790,22 @@ def main(argv: list[str] | None = None, *, env: dict[str, str] | None = None,
                              "or OK-1 (a row that should get no flag)")
     parser.add_argument("--go", action="store_true",
                         help="make the real call, after you type the confirmation shown")
+    parser.add_argument("--tally", action="store_true",
+                        help="READ-ONLY: summarise data/spike.db (calls, schema-pass, CAUGHT/MISSED, "
+                             "false alarms, tokens, time, cost per model and case). Sends nothing")
+    parser.add_argument("--exclude", default="",
+                        help="with --tally: verifier units to leave out of the bake-off counts, comma "
+                             "separated, for example SRC-UCILAW-P3#1 (a call sent before a fix)")
     args = parser.parse_args(argv)
+
+    if args.tally:
+        if args.go:
+            out("REFUSED: --tally only reads; it cannot be combined with --go.")
+            return 2
+        return _tally(env, spike_db, out, args.exclude)
+    if args.exclude:
+        out("REFUSED: --exclude is only for --tally.")
+        return 2
 
     case_id = args.case or ""
     if case_id and args.step != "verify":
