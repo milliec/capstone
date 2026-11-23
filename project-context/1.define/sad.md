@@ -754,8 +754,8 @@ built in this plan.
   false alarms on the correct rows and the cost of a full run. The choice is recorded in the
   decision log before the first evaluation run. Output: a short table under
   `project-context/2.build/`, named in this document's Audit when it exists.
-  **What the spike has found so far (H-076, H-078).** Evidence: `2.build/backend.md`, "B3 spike
-  finding" and "B3 spike finding 2".
+  **What the spike has found so far (H-076, H-078, H-079).** Evidence: `2.build/backend.md`, "B3
+  spike finding", "finding 2" and "finding 3".
   - **Finding 1, the extractor's first real call (H-076).** It sent **two requests**: CrewAI's own
     pre-flight and the model call. The answer was valid and the pinned settings were accepted, but
     the rule "one unit sends one request" had been broken, and the fake could not have shown it
@@ -775,8 +775,19 @@ built in this plan.
     nested `anyOf`**. **First-attempt schema-pass for the verifier is 1 of 2.** The two calls were
     sent different `response_format`s (the prompt did not change), and the report must say so. One
     valid answer is one data point, not a trend.
-  - **What neither finding decides:** the verifier bake-off (DL-26). It needs C-2 and I-1 and the
-    other candidate model, five runs each.
+  - **Finding 3, the judge's first real call (H-079).** `gpt-6.1-terra` accepted `reasoning_effort`
+    medium and gave a valid answer with the verdict the answer key expects (`applies`, citing
+    `FACT-01`): one request, 988 in, 62 out, US$0.0013, 3.9 s. **First-attempt schema-pass 1 of 1.**
+    The call cost far less than planned (US$0.004 to 0.016); one easy row is one data point.
+  - **Where the three roles stand so far:** every real call accepted its pinned settings (extractor
+    `gpt-6-luna`, verifier `gpt-5.6-terra`, judge `gpt-6.1-terra`). First-attempt schema-pass is **4
+    of 5** (extractor 2 of 2, verifier 1 of 2, judge 1 of 1). **6 of 70** slots used (one is the
+    pre-flight line); run cost US$0.0164. **This is 5 real model calls (extractor 2, verifier 2,
+    judge 1), not the five per role the spike plans**, so the honest wording is "so far", not
+    "proved".
+  - **What none of the findings decides:** the verifier bake-off (DL-26), which needs C-2 and I-1
+    and the other candidate model, five runs each; and the stage time limits, which need the
+    five-run figures.
   **Decisions to take once the spike has shown the result** (a list kept here, H-073; the operator
   decides, not the build):
   1. **Verifier model**: the bake-off choice above (DL-26). **Still open** after the first two
@@ -792,6 +803,17 @@ built in this plan.
      (H-076). If they all do, the question does not arise. If one does not,
      the options are to keep flagging, or to fail the call and the unit, which would end the run
      as `FAILED`.
+     **Status (H-079): it has not arisen so far, and it stays on the list until the spike's calls
+     are done.** All three models accepted their pinned settings on every real call, with no 400
+     and no silent repeat, but on only 5 real calls in all, so "so far" is the honest word. A model
+     could refuse the setting later only if its behaviour changed, which DL-40 already treats as a
+     release. A refusal could not hide: CrewAI's memory of it lives inside one process and every
+     spike command is a new process, so it would be seen and flagged again on each command. **My
+     recommendation, for the operator to confirm if the question ever arises: keep flagging.**
+     The flag and its trace column cost nothing and still guard a future model change; failing
+     the unit would end a run that may still have produced an answer, and every answer is
+     checked against its schema and CR-003 either way. **The flag stays
+     in the design** (§4 `off_pinned_setting`).
 - **The failure mode of a document pipeline, and what limits it**: **well-formed but wrong, and
   silently missing.** A pipeline's outputs look right because they fit the schema; the dangerous
   cases are a plausible wrong field and a row that is simply absent. What limits them: the
@@ -916,8 +938,13 @@ the G1 or G3 page is shown.
   every type (an optional field, such as the verifier's `field`, could then never be null). Our own
   strict JSON schema goes through the LLM's `additional_params`, built from the same Pydantic classes
   by `backend/runtime/wire_schema.py`, with the keywords OpenAI's strict mode does not accept dropped
-  (`minLength`, `maxLength`, `discriminator`, and `oneOf` written as `anyOf`). Dropping them loses no
-  rule: our Pydantic check still enforces every constraint. **A 400 "invalid schema" from the
+  (`minLength`, `maxLength`, `minItems`, `maxItems`, `discriminator`, and `oneOf` written as
+  `anyOf`). Dropping them loses no rule: our Pydantic check still enforces every constraint.
+  **`minItems` and `maxItems` are an untested precaution (H-079):** OpenAI's own guide lists them
+  both as supported and as not yet supported, so they were dropped before the first real judge call
+  (only the judge's `cited_fact_ids` carried one, `minItems: 1`). We never sent it, so we do not
+  know whether OpenAI would have refused it. Nothing is lost: the Pydantic check still refuses an
+  empty list of cited IDs. **A 400 "invalid schema" from the
   provider would mean one more keyword has to be dropped.** None has come on a real call so far
   (the verifier's nested `anyOf` below is the proof for that shape).
   **The verifier's flag is sent as two shapes (H-078).** Strict mode requires every key on every
@@ -3390,3 +3417,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-22 · persona `system-arch` (at the operator's instruction; handoff H-073; PR stacked on #158) · action `update` · **Recorded the B3 step 7b PR 5 trace changes.** §4 "The `trace` columns": four columns added at the end (`stop_reason`, `provider_error`, `cost_estimated`, `off_pinned_setting`, each with a default); `attempt_n` now counts HTTP requests of a unit; `late` is decided from the unit's last trace line; new "What a line costs" table (usage data: priced; 4xx: 0; 5xx, timeout, no connection or no usage data: worst case, `cost_estimated` = 1); new "How many requests one unit can send" paragraph (up to four requests, at most two billed, US$1.49 worst-case run for two billed per unit against US$2.98 for four, so the US$2.50 cap rests on "a 4xx costs 0"). Production Shape, Measurement spike: new list "Decisions to take once the spike has shown the result" (the verifier choice, and the new question "treat a call that went off the pinned reasoning setting as a failure?"). CR-017 gained one clause pointing to the cost rule. Checked against the PR 5 code (`backend/runtime/attempts.py`, `model_settings.py`, `agents.py`, `db/schema.sql`) and H-064 condition (c), by reading only; no code changed, no model call made. **Follow-up the same day (operator asked):** CR-018 now counts HTTP requests and lists the four new fields; EC-012 now says a request with no usage data counts at its worst case and a refused 4xx counts 0; the §2 "Counting every request" sentence now states the bound (at most four requests, at most two billed). The §6 Runtime checks row keeps its "one unit sends exactly one request, except..." wording, which is still true. PRD and stories untouched. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-22 · persona `system-arch` (at the operator's instruction; handoff H-072) · action `update` · **Recorded CrewAI's third retry layer and how the strict schema is sent (B3 step 7b PR 4).** Checked against the code first, by reading only (`backend/runtime/crewai_setup.py`, `crews.py`, `wire_schema.py`, `tests/tier1/test_crews.py`). §2: new "CrewAI's third retry layer" bullet (CrewAI's own 429 retry, three attempts, no setting; set to one in `load_crewai()`; pinned with the CrewAI version, and the call stops if an upgrade renames it); the Errors bullet now names it among the layers that add nothing; the Outputs bullet says how the schema is sent (our own strict schema through `additional_params`, not CrewAI's `response_format`, with the keywords strict mode refuses dropped) and that the provider has not yet accepted it; two rows added to the CrewAI settings table; D1 and the §6 Runtime checks row name the setting. The "at most four requests" bound (H-073) now says it depends on this setting. No rule changes: DL-43, D1, H-064 and H-065 stand. One detail beyond the handoff: `wire_schema.py` also drops `title` and `default` keywords; not recorded as a rule because the Pydantic check enforces what matters. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoffs H-076 and H-078) · action `update` · **Recorded the first two real-call findings of the B3 spike and their fixes.** Checked against the code first, by reading only (`backend/runtime/wire_schema.py`, `attempts.py`, `crews.py`, `db/schema.sql`, `tests/tier1/test_request_guard.py`) and `2.build/backend.md` ("B3 spike finding" and "finding 2"). **H-078:** §2 Outputs now says the verifier's flag is sent as `anyOf` two shapes (internal and cross-source, each with exactly its own keys, all required, none nullable), why (strict mode needs every key, so the first real verifier call mixed them), that only the wire changed, and the two options not taken; the "not yet proven" sentence is replaced (the real re-run was accepted); the D5 row gets its first real case; the verifier card gets a **note outside the prompt** (the prompt version does not change); the CrewAI settings row names the two shapes. **The finding as recorded (Measurement spike):** the verifier caught C-1 in substance, **first-attempt schema-pass 0 of 1**, called a schema failure and not a miss; after the fix the re-run was valid and caught C-1, **1 of 2**; DL-26 stays open. **H-076:** new §2 bullet "Nothing else is ever sent" (the pre-flight was a second request and broke "exactly one"; it is switched off; only `POST .../chat/completions` may be sent, any other request is refused before sending and traced with cost 0, is not one of the "at most four", and still takes a call slot); new CrewAI settings row `respect_context_window` false; §4 new `trace` column `request_path` and a note on reading `off_pinned_setting`; §4 "How many requests" gets one sentence; CR-018 names the path and the refused request; §9 Runtime checks row names T-REQ-1 and T-REQ-2 and a new paragraph "What a fake server cannot show" (the first real call is also a test of that); EC-R10 says the 70 are counted as trace lines; "Decisions to take once the spike has shown the result" items 1 and 2 updated. **Decisions I took:** keep counting a refused request as a slot (the backend's conservative choice, no special case in the cap); the card's prompt text is not edited. **Not touched:** H-079 (decision 2 of that list, and the `minItems`/`maxItems` precaution) is a separate handoff and is still open; the 70-call figure and cost cap; DL-26, DL-40, DL-43; the stage limits. The pre-flight's billing is not verified (operator checks the usage page). No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-079) · action `update` · **Recorded what the real calls so far say about decision 2, and the judge's first call.** Checked against `2.build/backend.md` ("B3 spike finding 3") and `backend/runtime/wire_schema.py`, by reading only. Measurement spike: new "Finding 3" (the judge's first real call: valid, the expected verdict, `reasoning_effort` medium accepted, first-attempt schema-pass 1 of 1, US$0.0013), a "where the three roles stand" bullet (all pinned settings accepted; schema-pass 4 of 5; 6 of 70 slots; US$0.0164; **5 real model calls, not five per role, so "so far", not "proved"**), and a bullet saying the bake-off (DL-26) and the stage time limits are still undecided. **Decision 2 of "Decisions to take once the spike has shown the result"** now has a status: it has not arisen so far and stays on the list until the spike's calls are done; a refusal could not hide (CrewAI's memory is per process and each spike command is a new process); my recommendation, for the operator to confirm if it ever arises, is to keep flagging (the flag costs nothing and guards a model change). §2 Outputs: `minItems` and `maxItems` added to the dropped keywords and recorded as an **untested precaution** (only the judge's `cited_fact_ids` carried one; we never sent it, so we do not know whether OpenAI would have refused it; the Pydantic check still refuses an empty list). **Decided:** the `off_pinned_setting` flag and its trace line stay. **Not changed:** decision 1 (DL-26), the stage limits, DL-40, DL-43, the cost cap. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
