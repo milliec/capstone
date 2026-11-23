@@ -642,7 +642,11 @@ request that is not a chat completion, so the next one is stopped instead of dis
 `SRC-UCILAW-P3#1`, trace line 4) **accepted the pinned settings and caught the planted conflict C-1 in
 substance**, but our validator refused the answer: **schema-pass on the first attempt: 0 of 1.** The
 spike's stop rule fired (an invalid answer); no further call was made. Fixed by sending the verifier's
-flag as two shapes (branch `backend-eng/spike-flag-shapes`, T-WIRE-1).
+flag as two shapes (branch `backend-eng/spike-flag-shapes`, #170, T-WIRE-1).
+
+**Update, 2026-11-23: the re-run after the fix passed.** The operator's second verifier call
+(`SRC-UCILAW-P3#2`, trace line 5) **returned a valid answer and caught C-1**, and **OpenAI accepted the
+nested `anyOf`**. See "The re-run" below. First-attempt schema-pass for the verifier is now **1 of 2**.
 
 **What the trace holds** (append-only, so it stays as it is):
 
@@ -691,19 +695,39 @@ by both); the validator still refuses and records a mixed flag that gets through
 answers pass the schema; a verifier request carries the two shapes. With the fix switched off 9 tests
 fail; with one shape damaged 4 fail.
 
-**Not proved, and what a real re-run will show.** Whether OpenAI accepts a nested `anyOf` in strict mode.
-Only a real call can say. The operator re-runs the verifier call after the fix merges (it will be
-`SRC-UCILAW-P3#2`, count 5 of 70, about US$0.008). **A 400 "invalid schema" costs US$0 and fires the stop
-rule: stop and report; do not retry by hand.**
+**The re-run (2026-11-23, `SRC-UCILAW-P3#2`, trace line 5): passed.** Run by the operator after #170 merged.
+Read from `data/spike.db`, opened read-only; the printout and the database agree.
+
+| | Call #1 (before the fix) | Call #2 (after the fix) |
+|---|---|---|
+| Answer | **invalid**: a cross-source flag carried `field` and `row_value` | **valid**: exactly the cross-source keys (`flag_type`, `explanation`, `other_paragraph_id`, `other_quote`) |
+| Planted conflict C-1 | cited `SRC-PRACT-P1` (but refused for its shape) | **CAUGHT**: cites `SRC-PRACT-P1`, quote word for word |
+| False alarms | n/a | none |
+| Request | one, `/v1/chat/completions` | one, `/v1/chat/completions` |
+| Tokens in / out | 1723 / 351 | 1721 / 185 |
+| Cost | US$0.0077 | **US$0.0057** |
+| Duration | 5.1 s | 3.9 s |
+| Settings | `reasoning_effort` low, no temperature, 2000 tokens; `off_pinned_setting` 0; stop reason `stop` | the same |
+
+- **OpenAI accepted the nested `anyOf` in strict mode.** This was the one thing the tests could not prove.
+  There was no 400 and no `provider_error`.
+- The two calls' totals: **5 of 70** call slots used; the line costs add up to the run's `cost_so_far`
+  (US$0.0151); nothing was estimated.
+- One answer is one data point. The second answer was shorter (185 output tokens against 351), and that
+  is not yet a trend. The output tokens include the model's hidden reasoning, which the trace cannot
+  separate.
+- **What this does not decide:** the DL-26 bake-off. It needs the runs on all three planted conflicts
+  (C-1, C-2, I-1) for both candidate models, five times each. This is one valid answer on C-1.
 
 **For the spike report (note for whoever writes it; `@qa.eng`, with B8).**
 
-- **Record the verifier's first call honestly:** accepted `reasoning_effort` low; **caught C-1 in
-  substance but failed the schema check; first-attempt schema-pass 0 of 1**; US$0.0077; 4 of 70 slots. Do
-  not describe it as a miss: the answer cited the right paragraph with a verbatim quote.
-- **The DL-26 bake-off is not decided by this call.** "Missed" applies to answers that pass the schema,
-  and none had yet. Count the first call in "share of calls whose output passes its schema on the first
-  attempt" and say why it failed.
+- **Record the verifier's two calls honestly.** Call #1: accepted `reasoning_effort` low; **caught C-1 in
+  substance but failed the schema check**; US$0.0077. Call #2, after the fix: **valid, C-1 caught, no
+  false alarm**; US$0.0057. **First-attempt schema-pass: 1 of 2**, and say why call #1 failed. Do not
+  describe call #1 as a miss: the answer cited the right paragraph with a verbatim quote. **5 of 70** slots.
+- **The DL-26 bake-off is not decided by these calls.** It needs the planted conflicts C-2 and I-1 and
+  the other candidate model, five runs each. Count call #1 in "share of calls whose output passes its
+  schema on the first attempt".
 - Say what changed afterwards (two flag shapes) and that later verifier lines were sent a different
   `response_format` from this one. The prompt version did not change; the schema did.
 
@@ -944,3 +968,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-22 · persona `backend-eng` · `document-backend` (B3 spike fix, step C: documentation) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "Go C" after the first real spike call (RUN-20261122-1, run by the operator). Docs only: new section "B3 spike finding" (what the two trace lines were, how it was identified and how sure we are, what did and did not go wrong, why no test saw it, the fix in steps A to D, and a note for the spike report: `SRC-UCILAW#1` stays as the honest record, 1 model call plus 1 pre-flight request, 2 of 70 slots used, its cost and `off_pinned_setting` are false alarms); one pointer added to the run instructions' "Off pinned setting" row. Read from `data/spike.db` opened read-only, and from the installed CrewAI 1.15.35; reproduced locally against the fake OpenAI with CrewAI made to believe it was on OpenAI (127.0.0.1 only). Raised H-076 to `@system.arch` (sad.md is not mine to edit). Steps A (`bc0b320`) and B (`fcd2a69`) are code; D is not built yet. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator will make one confirmation call after the fix merges.
 - 2026-11-22 · persona `backend-eng` · `develop-be` + `document-backend` (B3 spike fix, step D: the request guard) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only, with CrewAI made to behave as if on OpenAI) · operator instruction "Go D". Code in `9479f23`: the interceptor refuses any request that is not `POST .../chat/completions` before it is sent; new `trace` column `request_path` (additive, default empty); a refused request costs 0 and is never retried; the spike prints each request's path; T-REQ-2 (17 tests) and two older tests updated. Rehearsed the column migration on a copy of the real `data/spike.db` (all values unchanged, still append-only; the original file untouched). The docs of step D are in this entry's commit: "B3 spike finding" (row D, "What D does"), one row added to the run instructions, H-076 updated (D's commit and the new column for sad.md §4), and H-077 to `@qa.eng` (a pointer to the spike report note). LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator will make one confirmation call after this merges.
 - 2026-11-22 · persona `backend-eng` · `develop-be` + `document-backend` (B3 spike fix: the verifier's flag as two shapes) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (tests use real mode against the fake OpenAI only) · operator instruction after the first real verifier call (run by the operator): "Option 1, two flag shapes, as its own PR with tests against the fake". Code in `666b27c`: `backend/runtime/wire_schema.py` sends the verifier's flag as `anyOf` two shapes built from `Flag`; T-WIRE-1 (20 new tests); one older test changed (it pinned the old nullable keys). The extractor's and judge's schemas checked byte for byte against their schemas from before the change. Read `data/spike.db` opened read-only; nothing in it was changed. This entry's docs: new section "B3 spike finding 2" (what the trace holds, the cause, the fix, what is not proved, a note for the spike report), one row added to the run instructions (a 400 on the schema), and H-078 to `@system.arch` (sad.md is not mine to edit). LLM, temperature and max-token controls: unchanged (verifier: reasoning effort low, no temperature, 2000 tokens). **No real key was used by me, no model call, no paid call, no snapshot changed.** The operator re-runs the verifier call after the fix merges.
+- 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: the verifier re-run) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "docs-only PR recording verifier call #2". Docs only: "B3 spike finding 2" now records the operator's second real verifier call (`SRC-UCILAW-P3#2`, run 2026-11-23, trace line 5): valid, C-1 caught, no false alarm, US$0.0057, 1721 in and 185 out; **OpenAI accepted the nested `anyOf` in strict mode**; the "not proved" paragraph became the result, with a side-by-side table of the two calls and the numbers in the spike-report note (schema-pass 1 of 2; 5 of 70). Read from `data/spike.db` opened read-only; nothing in it was changed. H-078 (to `@system.arch`) updated with the result. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
