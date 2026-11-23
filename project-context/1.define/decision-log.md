@@ -1367,7 +1367,9 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   the judge.** The basis is what the real calls have shown so far: every model accepted its pinned
   settings, and the verifier's valid run (`SRC-UCILAW-P3#2`) caught the planted conflict `C-1` with a
   quote copied word for word and no false alarm (its first call also caught `C-1` in substance and
-  failed only our schema check, H-078).
+  failed only our schema check, H-078). **The bake-off is not owed and no step waits for it.**
+  Running it later (about 41 of the 70 call slots, about US$0.15 to 0.20) would need a new operator
+  decision and a new decision-log entry.
 - **Why**: the operator judged one valid run on the planted conflict enough, and the bake-off and the
   extra runs cost build time and part of the 70-call cap for a result that, so far, points one way.
 - **What this leaves unmeasured, stated plainly** (recorded by `@system.arch`; the operator accepted
@@ -1378,7 +1380,13 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   changing the model afterwards is a model-facing change that needs a recorded operator decision to
   spend more (EC-R10 point 3). **(c)** The extractor has 2 real calls and the judge 1, so their
   figures (time, cost, share of calls passing the schema on the first attempt) rest on those. The
-  verifier's first-attempt schema-pass stands at 1 of 2.
+  verifier's first-attempt schema-pass stands at 1 of 2. **(d)** The false-alarm rate is
+  unmeasured: no `OK-1` run exists, and the one valid verifier run had no false alarm. **(e)** The
+  extractor was tried on one document of five, and the judge on one row of the six that reach it,
+  with only the `applies` verdict seen. A real model has never produced `unsure` or
+  `does_not_apply`. The evaluation cycle measures agent quality against the answer key, and nothing
+  here replaces it. **(f)** No per-role five-run figures exist, so the stage time limits are the
+  operator's decision and not a measurement (see below). *(d) to (f) added 2026-11-23 from H-081.*
 - **Not changed**: the pinned IDs and settings (DL-40); the evaluation's thresholds; the 70-call cap
   (it now has more room); the cost cap; the swap-as-release rule. The spike's **one clean run from
   start to finish** is not mentioned in the decision and stays in the plan.
@@ -1502,3 +1510,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-55 (the verifier stays `gpt-5.6-terra`; the model comparison and "5 runs each" for the extractor and judge are skipped; what that leaves unmeasured is stated in the entry); DL-26 and DL-40 updated to point to it. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · DL-55: the stage time limits are recorded as the operator's decision (starting limits stay for now); the handoff for the runner docs is renumbered H-081 to H-083, because `@backend.eng` raised its own H-081 and H-082 in PR #180. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-56 (a stage's units run one after another, as built; the SAD said in parallel). `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-081) · action `update` · DL-55: the bake-off is stated as not owed (a later run needs a new operator decision and entry), and three known limits are added: the false-alarm rate, the extractor on one document of five, the judge's verdicts seen. `AAMAD_TARGET_RUNTIME=crewai`.
