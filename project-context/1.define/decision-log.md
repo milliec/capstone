@@ -521,6 +521,8 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   alarms (EC-006), that is brought to the operator as a separate decision.
 - **Changed**: SAD Model and Context Strategy (verifier row), Production Shape (week-1 spike),
   SOQ-15 resolved. The chosen verifier model and its ID are added to this entry after the spike.
+- **Update 2026-11-23 (operator; DL-55): closed without the comparison.** The verifier stays
+  `gpt-5.6-terra`. The bake-off and its switch rule were not run.
 
 ### DL-27 · Before the first publication, GPs see a read-only "being prepared" message
 
@@ -868,6 +870,9 @@ or adds to a Define document, so it is logged here as DL-13 requires.
      (CR-017).
   5. **The IDs live in the operator's `.env`, never in a committed file.**
   6. Pinned **after** the first stand-in green path passed (DL-42 item 8). No paid call has been made.
+  7. **Update 2026-11-23 (DL-55):** the two "only if the spike..." switches (item 2, the verifier to
+     the judge's model; item 3, the judge to `gpt-6.2-sol`) have no measuring step any more. Any
+     later change of a model is a release under the swap-as-release rule, with a recorded decision.
 - **Checked by `@backend.eng`** (2026-11-19, crewai 1.15.35, throwaway environment, no network, no
   model call): all three IDs are in crewai's bundled model catalogue (provider OpenAI, reasoning
   models, 922k-token context) and go to the chat completions endpoint unchanged, with the settings
@@ -1353,6 +1358,40 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 
 ---
 
+
+### DL-55 · The verifier stays `gpt-5.6-terra`; the model comparison and the "5 runs each" are skipped
+
+- **Decision** (operator, 2026-11-23). **(1) The verifier stays `gpt-5.6-terra`** (DL-40). It is
+  **not** compared with the judge's reasoning model, so the DL-26 bake-off and its switch rule are
+  **not run**; DL-26 is closed. **(2) The spike's "5 runs each" is skipped for the extractor and
+  the judge.** The basis is what the real calls have shown so far: every model accepted its pinned
+  settings, and the verifier's valid run (`SRC-UCILAW-P3#2`) caught the planted conflict `C-1` with a
+  quote copied word for word and no false alarm (its first call also caught `C-1` in substance and
+  failed only our schema check, H-078).
+- **Why**: the operator judged one valid run on the planted conflict enough, and the bake-off and the
+  extra runs cost build time and part of the 70-call cap for a result that, so far, points one way.
+- **What this leaves unmeasured, stated plainly** (recorded by `@system.arch`; the operator accepted
+  the decision with these in view): **(a)** the verifier has been shown on `C-1` only, once; `C-2` and
+  `I-1` have not been run on it. **(b)** DL-26's rule ("any miss in any spike run switches the
+  verifier") no longer fires before the evaluation. **The first test of `C-2` and `I-1` on the
+  verifier is now the evaluation cycle itself**, where a miss is **reported as it stands**, and
+  changing the model afterwards is a model-facing change that needs a recorded operator decision to
+  spend more (EC-R10 point 3). **(c)** The extractor has 2 real calls and the judge 1, so their
+  figures (time, cost, share of calls passing the schema on the first attempt) rest on those. The
+  verifier's first-attempt schema-pass stands at 1 of 2.
+- **Not changed**: the pinned IDs and settings (DL-40); the evaluation's thresholds; the 70-call cap
+  (it now has more room); the cost cap; the swap-as-release rule. The spike's **one clean run from
+  start to finish** is not mentioned in the decision and stays in the plan.
+- **Needs the operator's word** (not assumed): **the stage time limits.** The spike was to set them
+  from five-run figures (DL-43). The calls made take 3.7 to 5.1 s against starting limits of 375 s
+  (Stage A) and 150 s (Stage B). My reading: **the starting limits stay**, because they bound a
+  hang and are not the speed target; they would be recorded as "set from the measured calls" with the
+  figures. This is the operator's to confirm.
+- **Changed**: SAD (`DL-25, DL-26` row, new DL-55 row, DL-40 row, Model and Context Strategy verifier
+  row, Measurement spike, the model-provider row, the spike and bake-off budget row, B3 and Order
+  row 7, the "green path" sentence in the estimate); `decision-log.md` (this entry; updates to DL-26 and
+  DL-40); `handoffs.md` (H-081 to `@backend.eng`, `@qa.eng` and `@project.mgr`).
+
 ## Audit
 
 - 2026-11-09 · persona `product-mgr` · action `update` · log created; DL-01 to DL-12 from the UX and
@@ -1431,3 +1470,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-16 · persona `system-arch` (at the operator's instruction; handoff H-033) · action `update` · new DL-54 (B13 split into B13a Failure demo and stand-in pause, kept, after B3, and B13b Retry, after B9, dropped next after B6; new setting `STAND_IN_UNIT_PAUSE_S`; T-DEMOFAIL-1 Tier 1 from B13a; new Tier 1 test T-PAUSE-1); DL-52 update (the failure demo no longer depends on Retry). Operator decisions
 - 2026-11-17 · persona `system-arch` (at the operator's instruction; handoff H-040) · action `update` · DL-49 update: B12 built now (before B6 and B10), switch is a `:has()` radio group, Month is the default, the display-only helper is confirmed with its condition; B12 dropped as a whole after B6 and Tier 2, before B13b. Operator decisions
 - 2026-11-19 · persona `system-arch` (at the operator's instruction; handoff H-064) · action `update` · new DL-40 (model IDs pinned by the operator: extractor `gpt-6-luna`, verifier `gpt-5.6-terra`, judge `gpt-6.1-terra`, with each role's reasoning setting, per-call `max_completion_tokens`, IDs only in `.env`; SAD SOQ-25 closed); the three step 7b retry settings checked against DL-43 (met, with two conditions in the H-064 Outcome). Operator decision
+- 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-55 (the verifier stays `gpt-5.6-terra`; the model comparison and "5 runs each" for the extractor and judge are skipped; what that leaves unmeasured is stated in the entry); DL-26 and DL-40 updated to point to it. `AAMAD_TARGET_RUNTIME=crewai`.

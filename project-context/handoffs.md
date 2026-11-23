@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+
+### H-081: The verifier bake-off and the "5 runs each" are dropped (operator decision, DL-55): what that changes in the runner docs, setup.md and the spike report
+- From: @system.arch (operator decision, 2026-11-23)   To: @backend.eng   Date: 2026-11-23
+- Touches: `2.build/backend.md`, sections "B3 spike: the verifier bake-off (DL-26)" and the "Not decided yet" lines in "B3 spike finding 3"; `2.build/setup.md` (the bake-off and tally steps added by H-080, `@project.mgr`); the spike report (B8, `@qa.eng`, H-077); `sad.md` DL-55, Measurement spike
+- Ask: Please bring the docs in line with DL-55. In short: **the verifier stays `gpt-5.6-terra`; the bake-off is not run, and the "5 runs each" is skipped for the extractor and the judge.** The `--case` and `--tally` features can stay in the code (they cost nothing and `--tally` still reads the database), but the docs should no longer say the bake-off is a step to run, or that DL-26 is open. Please also say in `backend.md` whether any other part of the spike runner still expects five calls per role (for example a stop or count rule), so the SAD does not promise it. **For the spike report (`@qa.eng`, via H-077):** report the real calls as made (extractor 2, verifier 2, judge 1, plus the pre-flight line), say the verifier was **not** compared with another model, say `C-2` and `I-1` were not run on the verifier, and do not present the first-attempt figures (4 of 5) as a five-run share. **For `@project.mgr`:** the H-080 steps for the bake-off and tally need a one-line note that they are optional.
+- Why: The SAD no longer asks for the bake-off, and the next reader of the runner docs and the report should not think a step is still owed.
+- Outcome: (the owner fills this in)
 ### H-079: sad.md: "Decisions to take once the spike has shown the result", decision 2 (a call off the pinned reasoning setting) may not arise
 - From: @backend.eng (operator request, 2026-11-23)   To: @system.arch   Date: 2026-11-23
 - Touches: sad.md "Measurement spike", the list "Decisions to take once the spike has shown the result" (decision 2: treat a call that went off the pinned reasoning setting as a failure?); §2 "Counting every request (H-065)" and H-064 condition (c) (CrewAI's silent repeat without `reasoning_effort`); §2 "strict `response_format`" (the wire schema). Evidence: `2.build/backend.md`, section "B3 spike finding 3"
