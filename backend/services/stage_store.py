@@ -92,8 +92,11 @@ def store_stage_outputs(conn: sqlite3.Connection, *, run_id: str, fund_id: str, 
                 (f"CAL-{run_id}", run_id, fund_id, now_utc()))
             _store_entries(conn, run, outputs["entries"])
         conn.execute("UPDATE runs SET phase = ? WHERE run_id = ?", (NEXT_GATE[stage], run_id))
+        # Say which kind of agents did the stage. This used to say "(stand-in)" for EVERY run, so a real
+        # run's audit log falsely claimed stand-in agents (found by the real-mode integration test).
+        kind = " (stand-in)" if run["agents_mode"] == "stand_in" else ""
         write_audit(conn, fund_id=fund_id, actor=f"stage {stage}", event_type="system",
-                    run_id=run_id, subject_id=run_id, reason=f"Stage {stage} finished (stand-in)")
+                    run_id=run_id, subject_id=run_id, reason=f"Stage {stage} finished{kind}")
         conn.commit()
         return True
     except BaseException:

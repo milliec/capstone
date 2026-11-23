@@ -146,3 +146,72 @@ def test_the_count_endpoint_is_answered_written_down_and_takes_no_scripted_answe
                                                "input_tokens": 1500}
     assert [r.path for r in fake_openai.requests] == ["/v1/responses/input_tokens"]
     assert fake_openai.unused() == 1 and fake_openai.unscripted == []      # the script is untouched
+
+
+# --- It can answer by LOOKING at the request (answer_with) --------------------------------------
+
+def ask_as(c, model, text="hi"):
+    return c.chat.completions.create(model=model, messages=[{"role": "user", "content": text}])
+
+
+def test_a_responder_answers_by_model_whatever_the_order(fake_openai):
+    def by_model(body):
+        return {"m-a": Reply("from a"), "m-b": Reply("from b")}.get(body["model"])
+    fake_openai.answer_with(by_model)
+    c = client(fake_openai)
+    answers = [ask_as(c, m).choices[0].message.content for m in ("m-b", "m-a", "m-b", "m-a")]
+    assert answers == ["from b", "from a", "from b", "from a"]
+    assert len(fake_openai.requests) == 4 and fake_openai.unscripted == []
+
+
+def test_a_responder_can_read_what_the_prompt_names(fake_openai):
+    fake_openai.answer_with(lambda body: Reply(json.dumps({"doc": "SRC-CNMV" if "SRC-CNMV" in json.dumps(body["messages"]) else "other"})))
+    c = client(fake_openai)
+    assert json.loads(ask_as(c, "m", "document SRC-CNMV").choices[0].message.content) == {"doc": "SRC-CNMV"}
+    assert json.loads(ask_as(c, "m", "document SRC-VATLAW").choices[0].message.content) == {"doc": "other"}
+
+
+def test_no_opinion_falls_through_to_the_queue_exactly_as_before(fake_openai):
+    fake_openai.answer_with(lambda body: Reply("from the responder") if body["model"] == "m-a" else None)
+    fake_openai.script(Reply("from the queue"))
+    c = client(fake_openai)
+    assert ask_as(c, "m-a").choices[0].message.content == "from the responder"
+    assert fake_openai.unused() == 1                      # the responder did NOT take the queued answer
+    assert ask_as(c, "m-z").choices[0].message.content == "from the queue"
+    assert fake_openai.unused() == 0 and fake_openai.unscripted == []
+
+
+def test_with_no_opinion_and_an_empty_queue_the_request_is_unscripted_and_written_down(fake_openai):
+    fake_openai.answer_with(lambda body: None)
+    with pytest.raises(openai.InternalServerError):
+        ask_as(client(fake_openai), "m")
+    assert len(fake_openai.requests) == 1 and len(fake_openai.unscripted) == 1
+
+
+def test_a_responder_can_answer_with_a_failure(fake_openai):
+    fake_openai.answer_with(lambda body: Failure(503, "Overloaded") if body["model"] == "bad" else Reply("fine"))
+    c = client(fake_openai)
+    with pytest.raises(openai.InternalServerError):
+        ask_as(c, "bad")
+    assert ask_as(c, "good").choices[0].message.content == "fine"
+    assert len(fake_openai.requests) == 2
+
+
+def test_the_responder_gets_a_copy_so_it_cannot_change_what_was_written_down(fake_openai):
+    def meddles(body):
+        body["model"] = "changed"
+        body["messages"].clear()
+        return Reply("ok")
+    fake_openai.answer_with(meddles)
+    ask_as(client(fake_openai), "original", "keep me")
+    seen = fake_openai.requests[0].body
+    assert seen["model"] == "original" and seen["messages"][0]["content"] == "keep me"
+
+
+def test_a_setting_the_model_refuses_is_still_refused_and_the_responder_is_not_asked(fake_openai):
+    asked = []
+    fake_openai.reject_params = frozenset({"reasoning_effort"})
+    fake_openai.answer_with(lambda body: asked.append(1) or Reply("ok"))
+    with pytest.raises(openai.BadRequestError):
+        ask(client(fake_openai), reasoning_effort="low")
+    assert asked == [] and len(fake_openai.requests) == 1

@@ -78,6 +78,7 @@ class Tally:
     repriced_total: float = 0.0
     role_models: dict = field(default_factory=dict)
     note: str = ""
+    count: object = None              # harness.CallCount: the real calls in EVERY database that can hold them
 
 
 # --- Reading -------------------------------------------------------------------------------------
@@ -190,15 +191,20 @@ def _judge_the_answer(unit: Unit, final: dict) -> None:
 
 # --- The tally -------------------------------------------------------------------------------------
 
-def collect(path: Path, role_models: dict | None = None, exclude: set | None = None) -> Tally:
-    """Read the database and work out everything the printout shows. Sends nothing, writes nothing."""
+def collect(path: Path, role_models: dict | None = None, exclude: set | None = None,
+            other_databases=()) -> Tally:
+    """Read the database and work out everything the printout shows. Sends nothing, writes nothing.
+
+    `other_databases` are further files that can hold real spike calls (the web app's `data/app.db`):
+    they count toward the 70 and are shown in the breakdown. The per-model tables read `path` only."""
     role_models = role_models or {}
     tally = Tally(path=path, slot_cap=harness.CALL_CAPS["spike"], role_models=role_models)
+    tally.count = harness.count_real_calls("spike", [path, *other_databases])
+    tally.slots_used = tally.count.total
     lines = read_lines(path)
     if lines is None:
         tally.exists = False
         return tally
-    tally.slots_used = sum(1 for line in lines if line.get("spend_activity") == "spike")
     for line in lines:
         kind = line_kind(line)
         tally.line_kinds[kind] = tally.line_kinds.get(kind, 0) + 1
@@ -256,13 +262,19 @@ def _role_label(model: str, role_models: dict) -> str:
 
 def format_tally(tally: Tally) -> str:
     if not tally.exists:
-        return ("SPIKE TALLY (read-only): there is no spike database yet, so nothing has been sent.\n"
-                f"Looked for: {tally.path}")
+        missing = ("SPIKE TALLY (read-only): there is no spike database yet, so nothing has been sent.\n"
+                   f"Looked for: {tally.path}")
+        if tally.count is not None and tally.slots_used:     # ...but another database has real calls
+            missing = ("SPIKE TALLY (read-only): there is no spike database yet, so the spike runner has sent "
+                       f"nothing.\nLooked for: {tally.path}\nReal calls elsewhere: {tally.slots_used} of "
+                       f"{tally.slot_cap} ({tally.count.breakdown_with_cost()})")
+        return missing
     out = ["SPIKE TALLY (read-only: nothing was sent, nothing was written, no model was called)", ""]
     kinds = ", ".join(f"{kind}: {n}" for kind, n in sorted(tally.line_kinds.items())) or "none"
     out += [f"Database       : {tally.path}",
             (f"Slots used     : {tally.slots_used} of {tally.slot_cap} "
              f"({tally.slot_cap - tally.slots_used} left); one slot per request (EC-R10)"),
+            *([f"Counted in     : {tally.count.breakdown_with_cost()}"] if tally.count else []),
             f"The lines are  : {kinds}",
             f"Calls          : {len(tally.units)} (a call is one or more requests)",
             (f"Run cost       : {_money(tally.recorded_total)} recorded; {_money(tally.repriced_total)} "

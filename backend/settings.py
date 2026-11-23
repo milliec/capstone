@@ -67,6 +67,9 @@ class Settings:
     openai_api_key: str = field(default="", repr=False)
 
 
+# Where the app's database is when DATABASE_PATH is not set. A named constant so that the tests can point
+# it at a throwaway file (tests/conftest.py): no test may read or write the developer's real data/app.db.
+DEFAULT_DATABASE_PATH = "data/app.db"
 STAGE_TIME_LIMIT_DEFAULTS = {"A": 375.0, "B": 150.0, "C": 30.0}
 
 # The output limit of one call. A reasoning model's hidden thinking counts inside it, so the two
@@ -136,7 +139,7 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         # sign-in is a mock (SD A-5), not access control. Set SESSION_SECRET in .env anyway.
         session_secret = "local-dev-only-not-a-secret"
 
-    database_path = Path(env.get("DATABASE_PATH", "").strip() or "data/app.db")
+    database_path = Path(env.get("DATABASE_PATH", "").strip() or DEFAULT_DATABASE_PATH)
     if not database_path.is_absolute():
         database_path = ROOT / database_path
 

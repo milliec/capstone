@@ -18,6 +18,7 @@ Use the `fake_openai` fixture (tests/conftest.py). Example:
         assert len(fake_openai.requests) == 1
 """
 
+import copy
 import json
 import threading
 import time
@@ -69,6 +70,7 @@ class FakeOpenAI:
     requests: list = field(default_factory=list)          # does for a model that refuses a setting
     unscripted: list = field(default_factory=list)
     _script: list = field(default_factory=list)
+    _responder: object = None         # asked FIRST for every chat request; see `answer_with`
     _lock: threading.Lock = field(default_factory=threading.Lock)
     _server: ThreadingHTTPServer | None = None
     _thread: threading.Thread | None = None
@@ -79,6 +81,20 @@ class FakeOpenAI:
         """Queue answers, used one per request, in order."""
         with self._lock:
             self._script.extend(behaviours)
+
+    def answer_with(self, responder) -> None:
+        """Answer by LOOKING at the request, instead of in the order of a queue.
+
+        `responder(body)` gets a copy of the request body (the model and the messages) and returns a
+        `Reply`, a `Failure`, or `None` for "no opinion", in which case the request falls through to
+        the queue (`script`) exactly as before. The point (spike fix, integration): a whole review
+        sends about 18 requests to three models, so a queue would tie a test to the exact ORDER of the
+        calls. A responder says "the extractor's model, asked about this document" and answers that.
+
+        It is called from the server's own threads, so it must not change shared state. A request that
+        the responder answers is still written down in `requests`; one it declines can still end up in
+        `unscripted`."""
+        self._responder = responder
 
     def unused(self) -> int:
         """How many scripted answers no request has used (0 when the test sent what it planned)."""
@@ -143,8 +159,11 @@ class FakeOpenAI:
         with self._lock:
             self.requests.append(SeenRequest(path, body, api_key))
             refused = sorted(p for p in self.reject_params if p in body)
-            behaviour = None
-            if not refused:
+        behaviour = None
+        if not refused and self._responder is not None:
+            behaviour = self._responder(copy.deepcopy(body))     # outside the lock: it may take a moment
+        if not refused and behaviour is None:
+            with self._lock:
                 behaviour = self._script.pop(0) if self._script else None
                 if behaviour is None:
                     self.unscripted.append(SeenRequest(path, body, api_key))
