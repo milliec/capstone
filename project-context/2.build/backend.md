@@ -1066,6 +1066,36 @@ without this one its calls would not count toward the 70.
    tally and the run ID; the run can then be read back from `data/app.db`, read-only.
 
 
+### The first real run through the web app: what it showed (RUN-20261123-1, 2026-11-23)
+
+Read back from `data/app.db`, read-only, after the operator's first real run (`SPEND_ACTIVITY=spike`, demo rule
+off). **No code or SAD wording is changed by this section.**
+
+- **Stages A and B worked.** 19 requests (extractor 5, verifier 7, judge 7), all on `/v1/chat/completions`, stop
+  reason `stop`, none off the pinned setting, none invalid or failed; US$0.0427; slots 25 of 70 (6 in
+  `spike.db`, 19 in `app.db`). The verifier flagged **C-1** (`ROW-4`) and **C-2** (`ROW-6`) and nothing else
+  (no false alarm on the other five rows; I-1 was not in this run). The judge gave one `applies`, two
+  `unsure` and one `does_not_apply`.
+- **Stage C refused to build the calendar, by design.** The real extractor split one sentence of
+  `SRC-UCILAW-P2` ("within 20 calendar days following the end of each calendar quarter") into two rules,
+  "subscription tax return" and "payment of subscription tax": same source paragraph, recipient AED, frequency
+  and anchor, same offset. The operator approved all 7 rows at G1. Two approved rules gave the same calendar
+  entry ID (`ENT-FND-DEMO-01-SRC-UCILAW-P2-AED-2026-12`), so the stage failed on the collision rule (DL-35,
+  CR-011), logged the reason in the audit log, stored **no calendar version**, and moved nothing forward.
+  The run is `FAILED`, phase `C_RUNNING`, cost kept. The page said, in plain words: "The dates could not be
+  worked out into one complete calendar. Nothing moved forward. Decisions you already made stay in the audit log."
+- **What this is, and is not.** It is **not** a model failure and **not** one of the four failure reasons
+  evals.md section 9 names for "should fail clearly" (model service, invalid output, cost cap, stage time
+  limit). It is a **fifth**, in our own code: a stage refusing to publish an inconsistent result. It is the
+  first real-run evidence that a failure is reported plainly and keeps the audit trail. It is also the second
+  time the real extractor has split this obligation (the first was the spike's first call, on `SRC-UCILAW`),
+  against an answer key with one rule for it. **The split is one sample of a model's behaviour, not a rate.**
+- **The open question** (raised as H-087 to `@system.arch`): when one sentence gives two rules, merge them, or
+  make the entry ID include the obligation? Not decided here.
+- **The operator's second review (review B)** rejects the second of the two rows at G1 as a duplicate. Which row
+  is the duplicate depends on that run's extraction; the rule is "the second row from `SRC-UCILAW-P2` with the same
+  quote", whatever its number.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -1316,3 +1346,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-23 · persona `backend-eng` · `document-backend` (B3 spike: the bake-off waived, step 1 of the integration plan) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator decision "waive the bake-off for the capstone, and skip the 5 runs each for extractor and judge; record both as known limits with the evidence and make 'run the bake-off' the stated next step". Docs only: the bake-off section's status is now "WAIVED, not run"; new section "B3 spike: what is waived, the known limits, and the stated next step" (the decision; the evidence table; four known limits stated plainly; what is not changed; the stated next step with its cost and slot count; suggested wording for the write-up); the "Known gaps" bullet updated. Evidence read from `data/spike.db` with the read-only tally (hash unchanged). The stage-time estimates are from per-call figures, not measured stage times, and say so. Raised H-081 to `@system.arch` (record the decision; `sad.md` is not mine to edit) and H-082 to `@project.mgr` (`setup.md` and the README still say the bake-off comes next); H-077 (`@qa.eng`) amended. LLM, temperature and max-token controls: unchanged. **No real key was used by me, no model call, no paid call, no code changed, no snapshot changed.**
 - 2026-11-23 · persona `backend-eng` · `develop-be` + `document-backend` (the 70-call cap across both databases) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "count every real call toward the 70, whichever database it lands in; leave the web app's own refusal out (no SAD change)". Code: `harness.count_real_calls` (read-only, per-database breakdown, a missing file is not created, an unreadable file raises), used by the spike runner's cap check and `--tally`; `settings.DEFAULT_DATABASE_PATH` and a conftest isolation so tests never see the real databases; T-CAP-1 (18 tests) and one tally test strengthened. Docs: new section "B3 spike: the 70-call cap counts both databases, and the steps before the real clean run" with the exact operator steps (a run-folder worktree, real mode on the command line, abandon the ACTIVE stand-in `RUN-20261117-4`, start, work through the gates, tally). The web app still does not stop at 70 (a SAD change, not made). Read-only checks of `data/app.db` and `data/spike.db` (hashes unchanged). **No real key was used by me, no model call, no paid call, no snapshot changed.**
 - 2026-11-23 · persona `backend-eng` · `document-backend` (H-083: the runner docs in line with DL-55) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "go onto H-083". Docs only, no code: the bake-off section is now "dropped by DL-55, not owed, optional future work"; "the stated next step: run the bake-off" is gone (the operator's earlier instruction to keep it is superseded by DL-55 and H-083; reworded, flagged to the operator); limits 1 and 4 and finding 3's "not decided yet" lines say what DL-55 settled; "4 of 5" is not a five-run share; added that nothing in the runner expects five calls per role (`RUNS_PER_CASE = 5` is display only). H-082 and H-077 amended, H-083 moved to Done. No model call, no real call.
+- 2026-11-23 · persona `backend-eng` · `document-backend` (the first real web-app run: the extractor split and the Stage C refusal) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "record the finding first". Docs only: new section "The first real run through the web app: what it showed" (read back from `app.db`, read-only); handoffs H-087 (`@system.arch`) and H-088 (`@qa.eng`). No code, no real call.
