@@ -207,7 +207,7 @@ provider fails twice, DL-43), **"invalid output"** (D5), **"cost cap"** (CR-017,
 | EC-001 to EC-003 (the extractor's rows); EC-004 (verdicts, `unsure` on OBL-04); EC-005 (C-1, C-2, `I-1`); EC-006 (false alarms); EC-021 (injection); EC-010 and EC-012 (time and cost of real runs) | The planted row's refusal (CR-029); the altered-quote check (QN-1); the date rules (EC-007, EC-008); the failure states and their wording (all simulated); the coverage list (EC-009 is graded in every run but does not depend on the model); the guard that sends only chat completions (T-REQ-2) |
 
 **Notes.**
-1. **"5 apply" is not used here.** H-084 and the docstring of T-INT-1 say "5 apply"; the answer key and EC-004 say **4 apply, 1 unsure, 1 does not apply**. The test asserts only `rules 7, unsure 1, dates 22` and 6 judge requests, so it does not contradict the key. See Open Questions 5.
+1. **"5 apply" is not used here.** H-084 and the docstring of T-INT-1 said "5 apply"; the answer key and EC-004 say **4 apply, 1 unsure, 1 does not apply**. The test asserts only `rules 7, unsure 1, dates 22` and 6 judge requests, so it does not contradict the key. The key's own "5 apply" counts the 5 rows that get dates (the 4 that apply plus the unsure one, resolved to "applies" at G2). The T-INT-1 docstring now says this (PR #192). See Open Questions 5 (closed).
 2. **A green T-INT-1 is not a passed criterion.** The status of every EC row stays as section 6 says; this section adds no result.
 3. **The clean run is the first look at a real run, not the start of the cycle.** It uses `SPEND_ACTIVITY=spike` and the 70-call cap; the cycle's runs are labelled `evaluation` (EC-R6).
 
@@ -237,9 +237,7 @@ provider fails twice, DL-43), **"invalid output"** (D5), **"cost cap"** (CR-017,
 4. Spike figures (time limits, first-pass success) are needed before EC-R8's limits are final and before the alert
    thresholds in §7 are numbers. (The spike's real figures so far are in `spike-report.md`; the stage limits are
    the operator's decision, DL-55, not measured.)
-5. **"5 apply" (H-084, section 9 note 1):** the handoff and T-INT-1's docstring say "5 apply"; the key says 4 apply,
-   1 unsure, 1 does not apply. Probably "5" counts the unsure row as one the human must still answer; `@backend.eng`
-   to confirm and, if so, fix the docstring wording. Not changed here (it is test code).
+5. ~~"5 apply" (H-084, section 9 note 1)~~ **Closed 2026-11-23.** `@backend.eng` confirmed: the key's "5 apply" means the 5 rows that get dates (4 apply + 1 unsure, which the human resolves to "applies" at G2). The T-INT-1 docstring was reworded, with no test logic change (PR #192). The key's own "5 apply" line and the `test_green_path.py` docstring were left as they are.
 
 ## Audit
 
@@ -249,3 +247,4 @@ provider fails twice, DL-43), **"invalid output"** (D5), **"cost cap"** (CR-017,
 - 2026-11-21 · persona `qa-eng` · action `update` (follow-up to the H-068 check on SAD EC-002) · Lines in the EC-002 row, the grader notes and the not-yet-built list: "model judge" and "judge model" changed to "model grader" where they mean the future calibrated grader for EC-002, so this file uses the SAD's word. Left as written: the dated H-068 decision lines and handoff H-068 (records of what was decided then), and the applicability `judge` agent (DL-40). No threshold, criterion or code changed. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-21 · persona `qa-eng` · action `run-evals` (partial: the Stage B grader slice of B8: EC-004, EC-010, EC-012) · `AAMAD_TARGET_RUNTIME=crewai` · no model call, no real key, no paid call.
 - 2026-11-23 · persona `qa-eng` · action `run-evals` (update, H-084: section 9, the three Sprint 4 cases) · mapped should succeed, should refuse or ask a human, and should fail clearly onto the answer key, EC-001 to EC-006, EC-010, EC-012 and the existing tests, with three evidence levels (fake-backed T-INT-1, the operator's real clean run, the evaluation cycle). Read `tests/tier1/test_real_mode_green_path.py` and ran it (3 passed) to check each claim. **No result, threshold, criterion, golden item or code changed.** One discrepancy found ("5 apply"; Open Questions 5). No model call, no real key, no paid call. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-23 · persona `backend-eng` · action `update` (H-084 follow-up) · closed Open Questions 5 and updated section 9 note 1: "5 apply" is confirmed to mean the 5 rows that get dates; the T-INT-1 docstring was fixed in PR #192. Wording only. No result, threshold, criterion, golden item or code changed. No model call.
