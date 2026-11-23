@@ -174,9 +174,10 @@ def test_a_real_mode_review_passes_end_to_end_against_the_fake(
     assert "Made with stand-in agents" not in words and "Stand-in" not in gp_page
     assert "OQ-7" not in gp_page and "Demo" not in words
 
-    # --- The audit log: every step in order (the "(stand-in)" suffix is tested on its own below) ---
+    # --- The audit log: every step in order, and none of it says "stand-in" (stages A, B and C) ---
     audit = list_audit(db, run_id)
-    milestones = [a["reason"].replace(" (stand-in)", "") for a in audit if a["event_type"] in ("gate_event", "system")]
+    assert not [a["reason"] for a in audit if "stand-in" in (a["reason"] or "")]
+    milestones = [a["reason"] for a in audit if a["event_type"] in ("gate_event", "system")]
     expected = ["Review started", "Demo rule switch on", "Stage A finished", "G1 completed",
                 "Stage B finished", "G2 completed", "Stage C finished"]
     assert [m for m in milestones if m in expected] == expected
@@ -204,23 +205,17 @@ def test_a_real_mode_review_passes_end_to_end_against_the_fake(
 
 
 def test_the_audit_does_not_claim_stand_in_agents_in_a_real_run(real_settings, specialist, db):
-    """THE BUG THIS TEST FOUND, kept here so it cannot be forgotten.
+    """A real run's audit log must not say stand-in agents did the work.
 
-    `store_stage_outputs` writes "Stage A finished (stand-in)" for every run, whatever the mode
-    (backend/services/stage_store.py). In a real run the audit log, which is the record people rely
-    on, would say the stage was done by stand-in agents. It is marked as an EXPECTED failure (strict)
-    so that the fix has to remove this marker: once the code is right, this test starts passing and
-    the strict marker turns that into a failure that says "delete me"."""
+    This test FOUND a bug: `store_stage_outputs` wrote "Stage A finished (stand-in)" for every run,
+    whatever the mode, so the log people rely on said the opposite of the truth in a real run. It was
+    pinned as an expected failure until the fix; the stand-in wording is kept for stand-in runs
+    (test_green_path.py asserts it)."""
     specialist.post("/specialist/runs", data={}, follow_redirects=False)
     run_id = runs.list_runs(db, FUND_ID)[0]["run_id"]
     said = [a["reason"] for a in list_audit(db, run_id) if "stand-in" in (a["reason"] or "")]
     assert said == [], f"a real run's audit log says stand-in: {said}"
-
-
-test_the_audit_does_not_claim_stand_in_agents_in_a_real_run = pytest.mark.xfail(
-    strict=True, reason="BUG: stage_store.store_stage_outputs hard-codes '(stand-in)' in the audit entry "
-                        "for every mode. Found by the real-mode integration test; fix needs the operator's go."
-)(test_the_audit_does_not_claim_stand_in_agents_in_a_real_run)
+    assert "Stage A finished" in [a["reason"] for a in list_audit(db, run_id)]
 
 
 # --- 3: SHOULD FAIL CLEARLY ---------------------------------------------------------------------
