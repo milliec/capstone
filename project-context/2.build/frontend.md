@@ -739,6 +739,10 @@ overrule button's `value`. The service should refuse a `value` that does not mat
   calendar, 403, 404) at ux.md's widths. Run IDs, today's date and clock times are replaced with
   fixed placeholders before each picture; animations are frozen. Threshold: `maxDiffPixels` 150.
 - **Updating a baseline** follows the skill: propose, wait for the operator, then write.
+- **Evaluation snapshots (H-101 follow-up):** `evaluation.spec.js` adds 3 pictures (page 2 populated, page 3 published, page 6
+  after G3, each with an evaluation review, 1280 px). It uses its own app on port 8778, over a database that
+  `seed_evaluation.py` fills against a fake model on this machine (no real call). Shared helpers are in
+  `helpers.js`. Candidates mode (`npm run test:visual:candidates`) writes all pictures to `candidates/`.
 
 ## Sources
 
@@ -809,6 +813,12 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
     1280 px the third card wrapped onto a second row. Decided: **always one row**: every unit card
     shares one row, tops aligned, stacked below 760 px. A new refresh is proposed for that layout.
 - **Mobile calendar (360 px) — resolved 2026-11-19:** the phone layout was built as H-062 (phone menu) and S-34. The operator approved the two 360 px calendar baselines (`07-calendar-gp-published-360`, `07-calendar-gp-empty-360`) in commit 5823849, and approved all 16 proposed snapshots (H-053, H-054, H-055) on the same day. All 16 are recorded and the visual check passes.
+
+- **Open (small), 2026-11-24: page 6 heading after publish.** For a published review, page 6 still reads
+  "Check the calendar and publish" (the same on an ordinary review). Seen in the evaluation snapshot
+  `06-publish-after-g3-evaluation`. Not changed; `@ux.designer` to say whether the heading should change once published.
+- **Re-record note, 2026-11-24 (operator):** the three evaluation snapshots (H-101 follow-up) will be re-recorded once H-104 (A2)
+  is built. Propose the new pictures then; do not treat the change as a regression.
 
 ## Audit
 
@@ -909,3 +919,4 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-19 · persona `frontend-eng` · `document-frontend` (docs only) · "Later" note now records the H-062 decision (outside-click / Escape close not in the MVP, polish-week idea); two 2026-11-17 audit lines that said "snapshot refresh proposed, not written" now say they were resolved. No code, no snapshot touched.
 - 2026-11-19 · persona `frontend-eng` · `document-frontend` (docs only) · Added an "Out of scope (MVP)" signpost near the top that points to where each deferral is already recorded (source picking A5, Funds pages, phone-menu outside-tap / Escape close, shorter publish phone layout, Retry, fields dropped from H-036). No new decisions. No code, no snapshot touched.
 - 2026-11-24 · persona `frontend-eng` · `develop-fe` (H-101: "Evaluation review" label and outcome sentence, DL-60) · `parts/macros.html`, `pages/review_status.html`, `pages/publish.html`, `pages/filing_rules.html`; new `tests/tier1/test_evaluation_label.py` (UX-025). Checks: 893 tests pass; ruff clean; `aamad validate` OK; name scan prints nothing; visual check passes (no existing snapshot changed, none re-recorded). New snapshots for page 2, page 3 and page 6 with an evaluation review proposed, not recorded. `AGENTS_MODE=stand_in`, no real call.
+- 2026-11-24 · persona `frontend-eng` · `develop-fe` (H-101 follow-up: evaluation-review snapshots, operator-approved) · new `tests/visual/evaluation.spec.js`, `seed_evaluation.py`, `helpers.js` (helpers moved unchanged out of `visual.spec.js`); `playwright.config.js` starts a second app on 8778; `.gitignore` +`.tmp-eval/`. Recorded exactly 3 snapshots (`02-filing-rules-populated-evaluation`, `03-review-status-published-evaluation`, `06-publish-after-g3-evaluation`, 1280 px). Full visual check: all 26 existing + 3 new pass; no existing snapshot changed. No real call (17 requests, all to the fake, placeholder key); real databases not opened. Open item and re-record note (H-104) added to Open Questions. `AGENTS_MODE=stand_in`.
