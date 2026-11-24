@@ -34,11 +34,11 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-100: ux.md: the label for an evaluation run, and the sentence on its G3 outcome (new DL-60)
-- From: @system.arch (operator decision, 2026-11-24)   To: @ux.designer   Date: 2026-11-24
-- Touches: `2.build/ux.md` §1.3 item 3 (run labels), page 2 (Filing rules), page 3 (review status), page 6 (G3 outcome); page 7 only to confirm no change; sad.md DL-60, DL-59; related: H-099 (`@backend.eng`)
-- Ask: (1) Give an evaluation run a **run label**, in the family of "Stand-in agents", "Demo rule on" and "Failure demo on" (a text tag, never colour alone), and say on which pages it shows. An evaluation run **uses real agents** (it refuses stand-in mode, T-MODE-1), so the wording must not read like the stand-in label. (2) Write the one sentence a **completed** evaluation run shows where a normal run shows "Published on {date}" (page 6 outcome, and page 3 if it shows the outcome): it was published for the evaluation only and **was not shown to General Partners**. (3) Confirm page 7 needs **no change**: it never shows an evaluation run, so "Published on {date}" there is always a real publication.
-- Why: DL-60 keeps an evaluation run's publication off the live calendar, so the only people who can meet it are specialists on the run pages, and they must not mistake it for a real publish.
+### H-101: draw the "Evaluation review" label and the evaluation outcome sentence (ux.md, H-100; DL-60)
+- From: @ux.designer (H-100)   To: @frontend.eng   Date: 2026-11-24
+- Touches: `backend/web/templates/` (the review-list row, the review status page, the three step pages, and the shared label part), `site.css`, `tests/visual/`; `2.build/ux.md` §1.3 item 3, page 2 (Review column), page 3 (`COMPLETED` row), page 6 ("After G3"), page 7 (no change), UX-025; related: H-099 (`@backend.eng`, the `is_evaluation` flag)
+- Ask: **Start only after H-099 is Done** (it gives the page data a plain `is_evaluation`). (1) Add the text tag **"Evaluation review"** to the run labels, drawn like the other three (a word, never colour alone). It shows next to the H1 on pages 3 to 6 and under the review link in the "Review" column on page 2, only when `is_evaluation` is true. Never on pages 1 and 7. (2) On page 3 and page 6, for an evaluation review that is published, show exactly **"Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."** in place of the usual "Published on…" sentence. On page 3, show **"Go to Filing rules"** instead of the link to `/calendar`. (3) **Visual check.** No existing snapshot should change: the recorded ones use ordinary reviews, which get no new tag, so a changed old snapshot is a real finding, not something to re-record. The new states have no snapshot yet: propose (do not record on your own) new ones for page 2 populated, page 3 published and page 6 after G3, each with an evaluation review, and the operator approves them. I did not run or record any snapshot.
+- Why: DL-60 keeps an evaluation publication off the live calendar, so a specialist on the run pages is the only person who can meet one, and must not mistake it for a real publish.
 - Outcome: (the owner fills this in)
 
 ### H-099: the live calendar skips evaluation runs: one rule in the code that reads publications, and a flag the pages can use (new DL-60)
@@ -169,6 +169,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-100: ux.md: the label for an evaluation run, and the sentence on its G3 outcome (new DL-60)
+- From: @system.arch (operator decision, 2026-11-24)   To: @ux.designer   Date: 2026-11-24
+- Touches: `2.build/ux.md` §1.3 item 3 (run labels), page 2 (Filing rules), page 3 (review status), page 6 (G3 outcome); page 7 only to confirm no change; sad.md DL-60, DL-59; related: H-099 (`@backend.eng`)
+- Ask: (1) Give an evaluation run a run label, in the family of "Stand-in agents", "Demo rule on" and "Failure demo on" (a text tag, never colour alone), and say on which pages it shows; the wording must not read like the stand-in label, because an evaluation run uses real agents (T-MODE-1). (2) Write the one sentence a completed evaluation run shows where a normal run shows "Published on {date}": published for the evaluation only, not shown to General Partners. (3) Confirm page 7 needs no change.
+- Why: DL-60 keeps an evaluation run's publication off the live calendar, so the only people who can meet it are specialists on the run pages, and they must not mistake it for a real publish.
+- Outcome: **Done.** 2026-11-24, `@ux.designer` (branch `ux-designer/h100-evaluation-label`; docs only). (1) **Label: "Evaluation review"** (§1.3 item 3, §1.8). It says what the review is, and avoids "stand-in", "test", "demo" and "run"; it never shows with "Stand-in agents". Shows on pages 2 to 6, not on 1 or 7. (2) **Sentence: "Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."** on page 3 (`COMPLETED`) and page 6 ("After G3"). Singular "General Partner", as everywhere else in the note. **One addition:** page 3 shows "Go to Filing rules" instead of the link to `/calendar`, which would open the real calendar. (3) **Page 7: confirmed, no change** (reasons written on the page). New check UX-025. **Not decided, Open Question 26:** "Your turn" and "Continue checking" for an evaluation review waiting at a step, the "will see these dates straight away" text if a person opens page 6, and the "Started by Compliance specialist" and US$2.50 lines on page 3 (for `@system.arch` and `@backend.eng`). The drawing is H-101 (`@frontend.eng`, after H-099). No snapshot was run or recorded.
 
 ### H-096: B8 support in the backend: PR 1 (trace labels a copy case) and PR 3 (evaluation-run guards)
 - From: @project.mgr (operator request, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
