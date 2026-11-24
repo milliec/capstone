@@ -215,6 +215,7 @@ def _describe(conn: sqlite3.Connection, run: dict) -> dict:
     run["workflow_state"] = WORKFLOW_STATE[status]
     run["is_working"] = status == "ACTIVE" and phase.endswith("_RUNNING")
     run["is_at_gate"] = status == "ACTIVE" and phase.startswith("AT_G")
+    run["is_evaluation"] = is_evaluation_run(run)      # H-099, DL-60: for the label H-100 words; no page reads it yet
     # H-036 view fields (placeholder-safe in stand-in mode)
     run["review_number"] = _review_number(conn, run)                                # V-1
     run["status_tone"] = (TONE_ACTIVE.get(phase, "neutral") if status == "ACTIVE"
