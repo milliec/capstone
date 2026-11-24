@@ -1,7 +1,7 @@
 """The role harness's call caps (CR-030, EC-R10, B3 step 7a).
 
-Real model calls are allowed for five activities only. Two of them have a call cap: the spike
-(at most 70 real calls) and tuning (at most 60). The harness counts the real calls already made for
+Real model calls are allowed for five activities only. Three of them have a call cap: the spike
+(at most 70 real calls), tuning (at most 60) and evaluation (at most 63, DL-59). The harness counts the real calls already made for
 an activity FROM THE TRACE (every real call writes a line with its `spend_activity`, late calls
 included, because they were paid for) and refuses the next call once the cap is reached.
 
@@ -16,7 +16,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-CALL_CAPS = {"spike": 70, "tuning": 60}   # EC-R9, EC-R10; the other three activities have none
+# EC-R9, EC-R10, DL-59 (SOQ-36). Evaluation is three runs of 21 calls: 19 requests for a run (the most
+# seen) plus the 2 harness calls (`I-1` and injection). Rehearsal and demo have no cap.
+CALL_CAPS = {"spike": 70, "tuning": 60, "evaluation": 63}
 
 
 class CallCapReached(Exception):

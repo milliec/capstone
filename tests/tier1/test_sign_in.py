@@ -38,3 +38,24 @@ def test_sign_out_ends_the_session(specialist_client):
     specialist_client.post("/sign-out")
     response = specialist_client.get("/specialist/runs", follow_redirects=False)
     assert response.status_code == 303
+
+
+# --- H-096 PR 3 (b): `specialist-eval` is for the scripted evaluation gates, not a sign-in choice ---------
+
+def test_the_sign_in_page_still_offers_exactly_two_identities(client):
+    page = client.get("/sign-in").text
+    assert page.count('name="identity_id"') == 2
+    assert 'value="specialist-1"' in page and 'value="gp-1"' in page
+    assert "specialist-eval" not in page and "Evaluation script" not in page
+
+
+def test_specialist_eval_cannot_sign_in(client):
+    response = client.post("/sign-in", data={"identity_id": "specialist-eval"})
+    assert response.status_code == 422
+    assert "session" not in client.cookies
+
+
+def test_a_session_naming_specialist_eval_is_not_an_identity():
+    from backend.services.auth import identity_from_session, sign_in
+    assert sign_in("specialist-eval") is None
+    assert identity_from_session({"identity_id": "specialist-eval"}) is None

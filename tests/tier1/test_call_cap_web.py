@@ -106,7 +106,35 @@ def test_the_tuning_cap_is_60(tmp_path, fake):
     assert _units(conn, run_id)[0] == ("failed", "call limit") and fake.requests == []
 
 
-@pytest.mark.parametrize("activity", ["rehearsal", "demo", "evaluation"])
+def test_the_cap_table_holds_spike_tuning_and_evaluation():
+    """H-096 PR 3, DL-59 (SOQ-36): evaluation has its own cap of 63, beside spike 70 and tuning 60."""
+    assert harness.CALL_CAPS == {"spike": 70, "tuning": 60, "evaluation": 63}
+
+
+@pytest.mark.parametrize("in_app, in_spike", [(63, 0), (0, 63), (30, 33)])
+def test_at_63_an_evaluation_unit_fails_with_call_limit_and_nothing_is_sent(tmp_path, fake, in_app, in_spike):
+    """63 evaluation lines, however they split across the two files: the counts add, no request is sent."""
+    settings, conn = _seed(tmp_path, "evaluation", in_app, in_spike)
+    run_id = _review(conn, settings)
+    assert _units(conn, run_id)[0] == ("failed", "call limit") and fake.requests == []
+    assert runs.get_run(conn, run_id)["failure"]["reason_sentence"] == CALL_LIMIT
+
+
+def test_at_62_an_evaluation_call_is_made_and_the_next_unit_is_refused(tmp_path, fake):
+    settings, conn = _seed(tmp_path, "evaluation", 31, 31)                  # 62 in all
+    run_id = _review(conn, settings)
+    units = _units(conn, run_id)
+    assert units[0] == ("done", None) and units[1] == ("failed", "call limit")
+
+
+def test_another_activitys_lines_do_not_count_towards_the_evaluation_cap(tmp_path, fake):
+    settings, conn = _seed(tmp_path, "evaluation", 0, 0)
+    make_db(tmp_path / "spike.db", spike=70)                                # spike is full; evaluation is empty
+    run_id = _review(conn, settings)
+    assert runs.get_run(conn, run_id)["phase"] == "AT_G1"
+
+
+@pytest.mark.parametrize("activity", ["rehearsal", "demo"])
 def test_activities_without_a_cap_are_never_refused(tmp_path, fake, activity):
     settings, conn = _seed(tmp_path, activity, 100, 100)                    # 200 lines: far past any cap
     run_id = _review(conn, settings)
@@ -135,13 +163,25 @@ def conn_standin(settings):
 
 # --- it fails closed, and the pinned cost cap is untouched ----------------------------------------------
 
-def test_a_spike_database_that_cannot_be_read_ends_the_review_as_failed_not_as_allowed(tmp_path, fake):
-    """A count that quietly said 0 would let the cap be passed (harness.count_real_calls raises instead);
-    the unexpected-error handler (E-11) then ends the review, and no call is sent."""
-    settings, conn = _seed(tmp_path, "spike", 0, 0)
+@pytest.mark.parametrize("activity", ["spike", "tuning", "evaluation"])
+def test_a_database_that_cannot_be_read_fails_the_unit_with_call_limit_and_sends_nothing(tmp_path, fake, activity):
+    """Fail closed (DL-59): a count that quietly said 0 would let the cap be passed, and a count that cannot be
+    read is treated as the cap reached. No request is sent; the reason is `call limit` (not `unexpected error`).
+    This applies to every capped activity, spike and tuning included (operator, SOQ-36)."""
+    settings, conn = _seed(tmp_path, activity, 0, 0)
     (tmp_path / "spike.db").write_bytes(b"this is not a database" * 100)
     run_id = _review(conn, settings)
-    assert _units(conn, run_id)[0] == ("failed", "unexpected error") and fake.requests == []
+    assert _units(conn, run_id)[0] == ("failed", "call limit") and fake.requests == []
+    assert runs.get_run(conn, run_id)["status"] == "FAILED"
+
+
+@pytest.mark.parametrize("activity", ["rehearsal", "demo"])
+def test_an_activity_without_a_cap_never_reads_the_count(tmp_path, fake, activity):
+    """No cap, no look: an unreadable file cannot stop a rehearsal or a demo."""
+    settings, conn = _seed(tmp_path, activity, 0, 0)
+    (tmp_path / "spike.db").write_bytes(b"this is not a database" * 100)
+    run_id = _review(conn, settings)
+    assert runs.get_run(conn, run_id)["phase"] == "AT_G1"
 
 
 def test_the_pinned_cost_cap_is_not_changed(tmp_path):

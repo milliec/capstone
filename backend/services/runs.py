@@ -11,7 +11,7 @@ from datetime import date
 from backend.domain.ids import new_run_id
 from backend.services import gates, guards
 from backend.services.audit import now_utc, write_audit
-from backend.services.auth import IDENTITIES
+from backend.services.auth import EVALUATION_ACTOR, IDENTITIES, SCRIPTED_IDENTITIES
 from backend.services.refusals import NotFound, refuse
 from backend.settings import Settings
 
@@ -57,8 +57,14 @@ def _review_number(conn: sqlite3.Connection, run: dict) -> int:
 
 def actor_label(started_by: str) -> str:
     """H-036 V-7, V-8. 'Compliance specialist (mock)': the sign-in label, marked as a demo identity."""
-    identity = IDENTITIES.get(started_by)
+    identity = IDENTITIES.get(started_by) or SCRIPTED_IDENTITIES.get(started_by)
     return f"{identity.label} (mock)" if identity else started_by
+
+
+def is_evaluation_run(run: dict) -> bool:
+    """An evaluation run is DERIVED, not stored (DL-59, EC-R2): `spend_activity` is `evaluation` AND it was
+    started by `specialist-eval`. Both are needed, so there is no new column and the schema does not move."""
+    return run.get("spend_activity") == "evaluation" and run.get("started_by") == EVALUATION_ACTOR
 
 
 # Where a step page stands for each phase of an ACTIVE review: "before" (not reached yet), "at"
@@ -287,6 +293,16 @@ def start_run(conn: sqlite3.Connection, settings: Settings, schedule: Callable, 
     if demo_fail_step1 and settings.agents_mode != "stand_in":
         refuse(conn, "VALIDATION", "field", actor=started_by, fund_id=fund_id, anchor="start",
                target_label="Start a new review", field="the failure demo")
+    # H-096 PR 3, DL-59: the guards for an evaluation run. Each refuses BEFORE anything is written, and
+    # `refuse` audits it, so the run never exists. They reuse VALIDATION (as the failure demo does, DL-52):
+    # no new refusal code. Nobody sees the sentence on a page; the scripted starter gets the refusal.
+    if is_evaluation_run({"spend_activity": settings.spend_activity, "started_by": started_by}):
+        if settings.agents_mode == "stand_in":                                    # T-MODE-1
+            refuse(conn, "VALIDATION", "field", actor=started_by, fund_id=fund_id, anchor="start",
+                   target_label="Start a new review", field="stand-in agents on an evaluation run")
+        if demo_planted_row:                                                      # EC-R7
+            refuse(conn, "VALIDATION", "field", actor=started_by, fund_id=fund_id, anchor="start",
+                   target_label="Start a new review", field="the planted row on an evaluation run")
     run_id = new_run_id(conn, date.today())
     conn.execute(
         """INSERT INTO runs (run_id, fund_id, status, phase, run_version, demo_planted_row,

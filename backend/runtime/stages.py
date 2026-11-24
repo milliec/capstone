@@ -101,18 +101,25 @@ def _counting_databases(settings: Settings) -> list:
 
 
 def _real_call_cap_reached(settings: Settings) -> bool:
-    """Is this run's activity at its real-call cap (EC-R10: spike 70, tuning 60)? Real mode only.
+    """Is this run's activity at its real-call cap (EC-R10, DL-59: spike 70, tuning 60, evaluation 63)?
+    Real mode only.
 
     Stand-in mode makes no real call, so it never looks. The count adds the activity's lines over BOTH
     database files (a per-file count undercounts: harness.count_real_calls says so). An activity with no
-    cap (rehearsal, demo, evaluation) is never refused. A file that cannot be read RAISES, so the cap
-    fails closed: the error reaches run_stage's handler and ends the review as "unexpected error"."""
+    cap (rehearsal, demo) is never refused and never reads the count.
+
+    FAILS CLOSED (DL-59): a file that cannot be read means the count is unknown, and an unknown count is
+    treated as the cap reached, so the unit fails with `call limit` and no call is made. (Before DL-59 the
+    error escaped and the review ended as "unexpected error".) This holds for every capped activity."""
     if settings.agents_mode != "real":
         return False
     cap = harness.CALL_CAPS.get(settings.spend_activity)
     if cap is None:
         return False
-    return harness.count_real_calls(settings.spend_activity, _counting_databases(settings)).total >= cap
+    try:
+        return harness.count_real_calls(settings.spend_activity, _counting_databases(settings)).total >= cap
+    except (sqlite3.Error, OSError):
+        return True
 
 
 def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, call):
