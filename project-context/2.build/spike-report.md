@@ -346,6 +346,9 @@ wrongly rejected one row at G1 (below) and the calendar is 4 entries short.
   0 invalid**. No request was sent after Stage B (the last trace line is 11:10:21).
 - **Call slots: 41 of 70** (6 in `spike.db`, 35 in `app.db`); **US$0.0946 over both**. Real calls so far: 40 (5 + 19 + 16),
   none failed. The web app itself does not stop at 70 (`backend.md`, 2026-11-23), so the cap is kept by discipline.
+  **Update 2026-11-24 (H-091, #214): this is no longer true on `main`.** The web path now stops at the real-call cap
+  before each real call (reason `call limit`, counted over both databases). A unit already in flight finishes, so the
+  count can pass the cap by that unit's calls. I have not run it against a real key; it is tested against the fake OpenAI.
 - **Observed, not graded:** Stage A 25 s (11:07:40 to 11:08:05), Stage B 24 s (G1 completed 11:10:00 to 11:10:24),
   Stage C under a second (no model call), 47.2 s of model calls in all. Review A: 25 s and 30 s. Two runs, two values.
 
@@ -426,6 +429,8 @@ stored cost.)
 - **Call slots: 58 of 70** (6 in `spike.db`, 52 in `app.db`); **US$0.1331 over both** (0.0164 + 0.0427 + 0.0355 +
   0.0385). Real calls so far: 57 (5 + 19 + 16 + 17), none failed. The web app does not stop at 70 by itself
   (`backend.md`), so the cap is kept by discipline.
+  **Update 2026-11-24 (H-091, #214): no longer true on `main`.** The web path now refuses a real call at or over the
+  cap (see the update in 12.6). The 58 of 70 figure above is unchanged, and it is still the count the new check reads.
 - **Observed, not graded:** from the trace timestamps, Stage A's calls ran from 12:15:15 to 12:15:37 (about 22 s) and
   Stage B's judge calls from 12:23:09 to 12:23:36 (about 27 s); Stage C made no model call and finished at 12:34:46.
   These are first-to-last trace lines, **not** the stage times in 12.1 and 12.6 (25 s, 30 s and 25 s, 24 s), so do
