@@ -101,8 +101,27 @@ SENTENCES = {
                              "now shows where it is."),
     ("RETRY_LIMIT_REACHED", ""): ("Step {k} has already been tried again once and failed again. "
                                   "Start a new review from Filing rules."),
-    ("RETRY_NOT_ALLOWED", ""): ("This step can't be tried again, because {reason}. Start a new "
-                                "review from Filing rules."),
+    # RETRY_NOT_ALLOWED has five sentences, one per reason (ux.md §5; H-094). The context is the
+    # reason: three are the stored failure reasons, two are not failures (an evaluation run, a newer
+    # run). Retry (B13b) is not built, so nothing calls these yet; B13b passes the context.
+    # The first four end by sending the specialist to a new review. `call limit` must NOT: the call
+    # limit counts an activity's real calls across both databases (EC-R10), so a new review would
+    # reach the same limit and the usual advice would send the specialist in a circle.
+    ("RETRY_NOT_ALLOWED", "cost cap"): (
+        "This step can't be tried again, because the review reached its cost limit. Start a new "
+        "review from Filing rules."),
+    ("RETRY_NOT_ALLOWED", "calendar generation"): (
+        "This step can't be tried again, because the dates could not be worked out, and trying "
+        "again would give the same result. Start a new review from Filing rules."),
+    ("RETRY_NOT_ALLOWED", "evaluation run"): (
+        "This step can't be tried again, because this is an evaluation run. Start a new review "
+        "from Filing rules."),
+    ("RETRY_NOT_ALLOWED", "newer run"): (
+        "This step can't be tried again, because a newer review has been started. Start a new "
+        "review from Filing rules."),
+    ("RETRY_NOT_ALLOWED", "call limit"): (
+        "This step can't be tried again, because the limit on real model calls was reached. A new "
+        "review would reach the same limit. Ask the operator to review the limit."),
     ("VALIDATION", "no_answer"): "Choose an answer first, then use its button. Nothing was saved.",
     ("VALIDATION", "field"): ("Part of this form was not valid ({field}), so nothing was saved. "
                               "Check the form and try again."),

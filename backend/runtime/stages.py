@@ -25,6 +25,11 @@ B3 step 6:
                   passes STAGE_TIME_LIMIT_<stage>, the running unit fails with "stage time limit".
                   There is no cancel: a call still running finishes, its output is LATE, goes to
                   the trace only (its cost counts), and nothing from the stage is stored (rule 9).
+
+H-091 (DL-58):
+  Unexpected error  any other error that escapes a stage (or its storing) ends the run as FAILED with
+                  "unexpected error", against the same unit the timer would name. The audit entry holds
+                  the error's class name only, never its message (E-11).
 """
 
 import json
@@ -39,7 +44,7 @@ from backend.domain import dates, sources
 from backend.domain.fund_facts import load_fund_facts
 from backend.domain.quote_check import check_quote
 from backend.domain.schemas import Row
-from backend.runtime import agents
+from backend.runtime import agents, harness, spike
 from backend.services import audit, stage_store, trace
 from backend.services import runs as runs_service
 from backend.settings import ROOT, Settings
@@ -88,6 +93,28 @@ def _still_current(conn, run: dict, stage: str) -> bool:
             and now["stage_attempt"] == run["stage_attempt"])
 
 
+def _counting_databases(settings: Settings) -> list:
+    """Every database file that can hold this run's real calls: data/spike.db and the app's own, the same
+    two the spike command counts (`spike.counted_databases`). One small function so the test suite can point
+    it away from the real data/spike.db (tests/conftest.py)."""
+    return spike.counted_databases(settings, spike.SPIKE_DB)
+
+
+def _real_call_cap_reached(settings: Settings) -> bool:
+    """Is this run's activity at its real-call cap (EC-R10: spike 70, tuning 60)? Real mode only.
+
+    Stand-in mode makes no real call, so it never looks. The count adds the activity's lines over BOTH
+    database files (a per-file count undercounts: harness.count_real_calls says so). An activity with no
+    cap (rehearsal, demo, evaluation) is never refused. A file that cannot be read RAISES, so the cap
+    fails closed: the error reaches run_stage's handler and ends the review as "unexpected error"."""
+    if settings.agents_mode != "real":
+        return False
+    cap = harness.CALL_CAPS.get(settings.spend_activity)
+    if cap is None:
+        return False
+    return harness.count_real_calls(settings.spend_activity, _counting_databases(settings)).total >= cap
+
+
 def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, call):
     """Run one unit: check it may start, call the agent, trace the call, mark the unit.
 
@@ -95,6 +122,10 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
     with the unit's own inputs already bound, so a loop variable can never leak in). In order:
       1. the stage stopped meanwhile (timer, abandon)  → stop, start no call;
       2. the run reached its cost cap (CR-017)         → fail with "cost cap", start no call;
+      2b. the activity reached its real-call cap (EC-R10, DL-58), real mode only
+                                                       → fail with "call limit", start no call;
+         Like the cost cap, this is checked BEFORE a unit starts: a unit already in flight finishes (and may
+         take the count past the cap by the calls that unit makes); the NEXT unit is the one refused.
       3. call the agent; its trace line, cost and audit entry are written as it returns (CR-018);
          a call whose trace line cannot be written counts as failed ("invalid output");
       4. the output came LATE (rule 9, DL-43)          → stop: it is in the trace only;
@@ -105,6 +136,9 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
         raise _StageStopped
     if trace.cost_so_far(conn, run["run_id"]) >= settings.run_cost_cap_usd:
         stage_store.fail_stage(conn, run, stage, unit_id, "cost cap")
+        raise _StageStopped
+    if _real_call_cap_reached(settings):
+        stage_store.fail_stage(conn, run, stage, unit_id, "call limit")
         raise _StageStopped
     stage_store.mark_unit(conn, run, stage, unit_id, "running")
 
@@ -269,15 +303,21 @@ def _on_stage_time_limit(settings: Settings, run: dict, stage: str) -> None:
     """
     conn = connect(settings.database_path)
     try:
-        unit = conn.execute(
-            """SELECT unit_id FROM units WHERE run_id = ? AND stage = ? AND stage_attempt = ?
-               ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting' THEN 1 ELSE 2 END,
-                        CASE status WHEN 'waiting' THEN rowid ELSE -rowid END
-               LIMIT 1""", (run["run_id"], stage, run["stage_attempt"])).fetchone()
-        stage_store.fail_stage(conn, run, stage, unit["unit_id"] if unit else stage,
-                               "stage time limit")
+        stage_store.fail_stage(conn, run, stage, _unit_to_blame(conn, run, stage), "stage time limit")
     finally:
         conn.close()
+
+
+def _unit_to_blame(conn, run: dict, stage: str) -> str:
+    """The unit a stage-wide failure is recorded against: the one running, else the first waiting, else
+    the last one; the stage's own letter if it has no units yet. Shared by the stage timer (rule 6) and
+    the unexpected-error handler (DL-58), so both name the same unit."""
+    unit = conn.execute(
+        """SELECT unit_id FROM units WHERE run_id = ? AND stage = ? AND stage_attempt = ?
+           ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting' THEN 1 ELSE 2 END,
+                    CASE status WHEN 'waiting' THEN rowid ELSE -rowid END
+           LIMIT 1""", (run["run_id"], stage, run["stage_attempt"])).fetchone()
+    return unit["unit_id"] if unit else stage
 
 
 def run_stage(settings: Settings, run_id: str, stage: str) -> None:
@@ -295,11 +335,19 @@ def run_stage(settings: Settings, run_id: str, stage: str) -> None:
         timer.start()
         try:
             outputs = _STAGES[stage](conn, settings, run)
+            stage_store.store_stage_outputs(
+                conn, run_id=run_id, fund_id=run["fund_id"], stage=stage,
+                stage_attempt=run["stage_attempt"], outputs=outputs)
         except _StageStopped:
             return   # the failure is recorded (or the run moved on); nothing is stored (rule 9)
-        stage_store.store_stage_outputs(
-            conn, run_id=run_id, fund_id=run["fund_id"], stage=stage,
-            stage_attempt=run["stage_attempt"], outputs=outputs)
+        except Exception as error:  # noqa: BLE001  (deliberate catch-all: the point of E-11 / DL-58)
+            # E-11, DL-58: an error nobody listed (a missing model ID, a bug, a full disk). Without this
+            # the background task died and the review stayed "AI is drafting" until a restart. End it as
+            # Failed instead. Only Exception: Ctrl-C and exit still stop the app. The audit entry gets the
+            # error's CLASS NAME only; its message could hold anything, so it is never stored or shown.
+            conn.rollback()      # drop anything the failed stage left half-written on this connection
+            stage_store.fail_stage(conn, run, stage, _unit_to_blame(conn, run, stage),
+                                   "unexpected error", detail=type(error).__name__)
     finally:
         if timer is not None:
             timer.cancel()

@@ -33,6 +33,9 @@ built, or if it is dropped, the failed page uses the "Without Retry" version (pa
 Wording synced to DL-51 to DL-54 on 2026-11-16 (H-034). Approval unchanged: the sync records
 decisions already made, with one exception, three draft Retry refusal sentences in §5 that only
 matter if B13b is built (Open Question 24; see Audit).
+Two failure-reason sentences were added on 2026-11-24 (`unexpected error`, `call limit`; H-093,
+DL-58). Approval unchanged: it is wording for two reasons the SAD already records, plus one refusal
+ending, confirmed by the operator (Open Question 25, closed).
 
 ---
 
@@ -484,7 +487,8 @@ controls are not shown.
 | `ABANDONED` | **"Abandoned"** | "Abandoned at step {k} ({step name}) on {date} at {time}. Nothing was published, and the decisions made so far stay in the audit log." Then: "Your reason: {reason}" | **"Go to Filing rules"** |
 | `FAILED` | **"This review failed"** | Two versions, see "Failed review" below: without Retry (until B13b is built, or if it is dropped) and with Retry (B13b) | Without Retry: the link **"Start a new review from Filing rules"**. With Retry: the **"Retry step {k}"** form, then the link **"Or start a new review from Filing rules"** |
 
-**Failure reason sentences** (the six reasons in §4 that this page words, plus `demo failure`, DL-52):
+**Failure reason sentences** (one for each of the nine reasons in §4; number 2 is retired.
+`demo failure` is DL-52; `unexpected error` and `call limit` are DL-58, H-092, H-093):
 
 | Reason code | Sentence |
 |---|---|
@@ -495,6 +499,16 @@ controls are not shown.
 | `service restarted` | "The application restarted while AI was working" |
 | `calendar generation` | "The dates could not be worked out into one complete calendar" |
 | `demo failure` (reason 8, DL-52) | "This step failed on purpose, for the demo only, because "Make step 1 fail (demo)" was ticked when the review started. Nothing else went wrong" |
+| `unexpected error` (reason 9, DL-58) | "Something went wrong that the app did not expect, so this step was stopped and nothing from it was saved" |
+| `call limit` (reason 10, DL-58) | "The limit on real model calls for this kind of review was reached, so no further call was made" |
+
+Like the others, these have no final full stop, because the status line adds one. **The page shows
+the sentence only.** For `unexpected error` it never shows the error's own name or message (the
+audit entry keeps the class name only, DL-58), so the page does not say what went wrong, only that
+something did. Read in the status line, both sentences fit without change ("…while working on
+{item}. Something went wrong that the app did not expect, so this step was stopped and nothing
+from it was saved. Nothing moved forward…"). `call limit` can only appear with real agents; with
+stand-in agents no real call is made.
 
 **Abandon this review** (only in `AT_G1`, `AT_G2`, `AT_G3`). One form,
 `POST /specialist/runs/{run_id}/abandon`, with the run version as a hidden field:
@@ -574,7 +588,17 @@ hidden field. The route is `POST /specialist/runs/{run_id}/retry`.
 | Records | One audit entry: who, when, the step retried and the failure it follows. Every refusal is also recorded |
 | Cost | Not reset. The retry's calls count towards the same US$2.50 limit (CR-017) |
 | How often | Once per step. A step that fails again after its retry cannot be retried again; the specialist starts a new review. Each later step has its own single retry |
-| Refused when | Another review is in progress (`RUN_ACTIVE`), the page is out of date (`VERSION_MISMATCH`), the review is not failed (`RUN_NOT_FAILED`), the step was already retried (`RETRY_LIMIT_REACHED`), or the review failed on the **cost limit** or on **working out the dates** (`calendar generation`), is an evaluation run, or a newer review has been started since (`RETRY_NOT_ALLOWED`; the sentence says which). Sentences: §5 (proposed, Open Question 24) |
+| Refused when | Another review is in progress (`RUN_ACTIVE`), the page is out of date (`VERSION_MISMATCH`), the review is not failed (`RUN_NOT_FAILED`), the step was already retried (`RETRY_LIMIT_REACHED`), or the review failed on the **cost limit**, on **working out the dates** (`calendar generation`) or on the **real model call limit** (`call limit`, DL-58), is an evaluation run, or a newer review has been started since (`RETRY_NOT_ALLOWED`; the sentence says which). Sentences: §5 (Open Question 24 proposed; Open Question 25 closed) |
+| After `unexpected error` | Retry is allowed, once, like any reason not excluded above (DL-58). Nothing from the stopped step was saved, so it restarts from its start as the table says |
+
+**What page 3 shows after `call limit`.** Nothing different from any other failed review: the
+H1, the stepper, the status line with the sentence above, and (with Retry built) the "Retry step
+{k}" button, shown and enabled as on every failed review (§1.2, the server decides). Clicking it is
+refused with `RETRY_NOT_ALLOWED` and the sentence in §5, exactly as for the cost limit. There is no
+extra page, banner or disabled button. One thing differs from the cost limit: the call limit
+counts an activity's calls across both databases, not one review's, so **a new review would reach
+the same limit**. The refusal sentence in §5 therefore does not send the specialist to Filing
+rules for this reason (Open Question 25).
 
 #### Failure demo (in sad.md: DL-52, CR-033; built in B13a, D12)
 
@@ -1160,7 +1184,7 @@ for that sentence. `{…}` are values the server fills in.
 | `RUN_STAGE_RUNNING` | A decision or finish sent while the review is at a **different gate**, with nothing working (H-049) | **"This step is not open for decisions right now. The review status page shows where the review is."** |
 | `RUN_NOT_FAILED` | Retry on a review that has not failed (B13b; sentence **proposed**, Open Question 24) | **"This review has not failed, so there is nothing to retry. The page now shows where it is."** |
 | `RETRY_LIMIT_REACHED` | Retry a step that was already retried (B13b; **proposed**, Open Question 24) | **"Step {k} has already been tried again once and failed again. Start a new review from Filing rules."** |
-| `RETRY_NOT_ALLOWED` | Retry refused for one of four reasons (B13b; **proposed**, Open Question 24). The sentence names which one | **"This step can't be tried again, because {reason}. Start a new review from Filing rules."** where {reason} is one of: "the review reached its cost limit"; "the dates could not be worked out, and trying again would give the same result"; "this is an evaluation run"; "a newer review has been started" |
+| `RETRY_NOT_ALLOWED` | Retry refused for one of five reasons (B13b; four reasons **proposed**, Open Question 24; the fifth confirmed, Open Question 25). The sentence names which one | **"This step can't be tried again, because {reason}. Start a new review from Filing rules."** where {reason} is one of: "the review reached its cost limit"; "the dates could not be worked out, and trying again would give the same result"; "this is an evaluation run"; "a newer review has been started". **For the fifth reason, the sentence is different:** **"This step can't be tried again, because the limit on real model calls was reached. A new review would reach the same limit. Ask the operator to review the limit."** (no "Start a new review" advice, which would not help; Open Question 25, closed) |
 | `FORBIDDEN` | GP on a specialist action | **"This page is for the compliance specialist. You are signed in as the General Partner, so you can view the published calendar only."** |
 | `VALIDATION` | Decision submitted with no answer chosen (G1, G2 or G3; DL-48, H-030). Shown beside the form (inside the card at G1 and G2, with the short top line; at G3 next to the question) and at the top | **"Choose an answer first, then use its button. Nothing was saved."** |
 | `VALIDATION` | Malformed form, a "who files" value not offered, or a G3 answer that doesn't match the button used | **"Part of this form was not valid ({field}), so nothing was saved. Check the form and try again."** |
@@ -1494,6 +1518,13 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    sentences in §5 (`RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED`) are my drafts.
    The SAD defines the codes and says the `RETRY_NOT_ALLOWED` sentence "names which" reason, but
    gives no wording. Until confirmed, `@frontend.eng` may use the drafts.
+25. **Closed 2026-11-24 (operator).** After `call limit` (DL-58, H-093) the `RETRY_NOT_ALLOWED`
+   sentence does not end "Start a new review from Filing rules", because the call limit counts an
+   activity's real calls across both databases (EC-R10), so a new review reaches the same limit. The
+   sentence is: "This step can't be tried again, because the limit on real model calls was reached. A new review would reach the same limit. Ask the operator to review the limit." The other four reasons keep their ending.
+   The ending is built where the refusal text is made (`backend/services/refusals.py` has one fixed
+   ending today), so the change is H-094 to `@backend.eng`. The "Start a new review from Filing
+   rules" link on the failed page stays: it is a link, not advice, and stand-in reviews still work.
 
 ## Mock-up differences this revision does not apply
 
@@ -1654,3 +1685,23 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   (below 960 px)" in §1.3, new check UX-024, new §9 idea (Escape and outside-tap close). Operator
   decision: no outside-tap or Escape close in the MVP, so the no-script rule holds. Approval status
   left `approved`. No code. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, H-093; from `@system.arch`, DL-58) ·
+  branch `ux-designer/h093-two-failure-sentences` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  `AGENTS_MODE=stand_in` · read `sad.md` §4 failure reasons 9 and 10 and DL-58, `integration.md`
+  §3.4, and (read only) `backend/services/runs.py` and `refusals.py`. Page 3 "Failure reason
+  sentences": lead-in now "one for each of the nine reasons" (was "the six reasons"), two rows added
+  with `integration.md`'s proposed text unchanged (they read correctly in the status line), and a
+  note that the page shows the sentence only, never the error's name or message. Retry table:
+  `call limit` added to "Refused when"; new row for `unexpected error` (retry allowed once); new
+  paragraph "What page 3 shows after `call limit`" (the normal failed page; the button is shown and
+  refused, §1.2). §5 `RETRY_NOT_ALLOWED`: four reasons became five. **Found and recorded, not
+  decided:** the call limit counts across both databases, so "Start a new review from Filing rules"
+  would not help after it; drafted a different ending (Open Question 25). Left alone as history:
+  G-10's "seventh reason" and D12's "six failure reasons". Approval status left `approved`: wording
+  only. The backend already had both sentences word for word (`FAILURE_SENTENCES`), so the page and
+  the code agree. No code. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, H-093 follow-up, operator decision) ·
+  same branch · Open Question 25 **closed** by the operator, with one added sentence: the `call limit`
+  refusal now ends "Ask the operator to review the limit." (§5 row and Open Question 25 updated).
+  H-094 re-addressed to `@backend.eng`, no longer waiting. Approval status left `approved`. No code.
+  No model call.

@@ -47,3 +47,51 @@ def test_refuse_audits_once_and_raises_the_shared_object(settings):
     audit = conn.execute("SELECT * FROM audit_log WHERE event_type = 'refusal'").fetchall()
     assert len(audit) == 1 and audit[0]["refusal_code"] == "REASON_REQUIRED"
     assert audit[0]["subject_id"] == "ROW-X-3" and audit[0]["actor"] == "specialist-1"
+
+
+# --- RETRY_NOT_ALLOWED: five reasons, five sentences (H-094, ux.md §5) ---------------------------
+# Retry (B13b) is not built, so nothing raises this refusal yet. These tests only check that the
+# sentence is right for each reason, so B13b can pass the context and get the right words.
+
+NEW_REVIEW_ENDING = "Start a new review from Filing rules."
+RETRY_SENTENCES = {
+    "cost cap": ("This step can't be tried again, because the review reached its cost limit. "
+                 + NEW_REVIEW_ENDING),
+    "calendar generation": ("This step can't be tried again, because the dates could not be "
+                            "worked out, and trying again would give the same result. "
+                            + NEW_REVIEW_ENDING),
+    "evaluation run": ("This step can't be tried again, because this is an evaluation run. "
+                       + NEW_REVIEW_ENDING),
+    "newer run": ("This step can't be tried again, because a newer review has been started. "
+                  + NEW_REVIEW_ENDING),
+    "call limit": ("This step can't be tried again, because the limit on real model calls was "
+                   "reached. A new review would reach the same limit. Ask the operator to review "
+                   "the limit."),
+}
+
+
+@pytest.mark.parametrize("reason", sorted(RETRY_SENTENCES))
+def test_retry_not_allowed_sentence_for_each_of_the_five_reasons(reason):
+    """Word for word, as in ux.md §5."""
+    assert sentence("RETRY_NOT_ALLOWED", reason) == RETRY_SENTENCES[reason]
+
+
+def test_only_the_call_limit_sentence_leaves_out_the_new_review_advice():
+    """A new review would reach the same call limit, so that one sentence must not send the
+    specialist to start one. The other four still do."""
+    for reason in RETRY_SENTENCES:
+        text = sentence("RETRY_NOT_ALLOWED", reason)
+        assert (NEW_REVIEW_ENDING in text) == (reason != "call limit"), reason
+
+
+def test_retry_not_allowed_is_still_a_409_with_its_audit_entry(settings):
+    """The wording changed; the code, its 409 and the audit entry did not."""
+    init_db(settings.database_path)
+    conn = connect(settings.database_path)
+    with pytest.raises(Refused) as caught:
+        refuse(conn, "RETRY_NOT_ALLOWED", "call limit", actor="specialist-1", fund_id=FUND_ID)
+    refusal = caught.value.refusal
+    assert (refusal.code, refusal.http_status) == ("RETRY_NOT_ALLOWED", 409)
+    assert refusal.sentence == RETRY_SENTENCES["call limit"]
+    audit = conn.execute("SELECT * FROM audit_log WHERE event_type = 'refusal'").fetchall()
+    assert len(audit) == 1 and audit[0]["refusal_code"] == "RETRY_NOT_ALLOWED"

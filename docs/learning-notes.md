@@ -438,6 +438,27 @@ as it happened and did not edit the record. The rule is now: reject a row as a d
 **two rows quote the same sentence**, and never a lone row. It's like deleting "the duplicate" photo
 before checking there are two (H-087).
 
+**A safety net that catches your mistake silently also hides it.** The new database upgrade has a
+main way and a fallback way. The main way failed every time because of a small slip (comparing two
+things that look the same but are different kinds of value), and the fallback quietly did the job,
+so nothing looked wrong. Only a test that asked "which way ran?" and not just "did it work?" found
+it. When you build a fallback, make the test check which route was taken. It's like a spare tyre
+that swaps in without a warning light: you would drive for months before noticing the first tyre
+keeps going flat (H-091).
+
+**When a rule reads real data, keep every test away from the real data.** The new call limit counts
+the real calls recorded in the operator's real files. Left alone, every test that pretended to make a
+real call would have read those real counts and been refused by a limit it had nothing to do with.
+So each test is pointed at an empty throwaway file, and one extra test checks that the real wiring
+still names the real files. It's like rehearsing a fire drill on the building's live alarm panel:
+build the rehearsal so it cannot touch the real one (H-091).
+
+**A limit checked before each step can be passed by the step already running.** The call limit is
+checked before a unit of work starts, so a unit already under way finishes, and the total can go a
+few calls past the limit. That is a fair trade (cutting a call off halfway wastes the money already
+spent), but write it down as a known limit and say who accepted it, so nobody later reads "70" as a
+hard wall. It's like the "last orders" bell: drinks already poured still get drunk (H-091).
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -545,6 +566,13 @@ name so the links could never be committed, and remove the links afterwards. The
 for this case, because a link to an ignored folder looks like an ordinary new file to git. Check
 that a new working copy has what the guards need before the first commit, not at the first
 refusal (H-087).
+
+**When you catch every error, record the kind and never the contents.** The new catch-all for errors
+nobody planned for writes only the error's type (its class name) to the record and shows the user a
+fixed sentence. An error's own message can hold anything, including a secret key that was being used
+when it happened, and the record is kept for good. The price is that debugging needs a test that
+reproduces the error. It's like a "something went wrong" ticket that says which counter it came from
+but never copies the customer's card number onto it (H-091).
 
 ## 5. Domain: fund compliance calendars
 
@@ -695,3 +723,4 @@ bring it back. Changing visible text also touches the tests that check it and th
 - 2026-11-21 · added two notes from the B8 Stage A grader slice (break the code on purpose to see whether a test can fail; try the grader on pretend answers before paying for real ones)
 - 2026-11-23 · added one note from H-076 (the first real call sent a request the pretend server could never show; treat the first real run as a test of what the fake cannot see, and add a guard)
 - 2026-11-24 · added three notes from H-087 (a model splitting one rule: decide what "one" means first; a spec edit does not change the model's text if it is a copy in code; write a clean-up rule from what you see, not what you expect) and one from the new-worktree hook refusal (a new working copy lacks the git-ignored folders the guards need)
+- 2026-11-24 · added three notes from H-091 in theme 3 (a fallback hides a bug unless the test checks which route ran; keep tests off the real data a rule reads; a limit checked before each step can be passed by the step already running) and one in theme 4 (a catch-all records the kind of error, never its contents)

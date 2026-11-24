@@ -24,6 +24,21 @@ def never_the_real_database(tmp_path_factory, monkeypatch):
                         str(tmp_path_factory.mktemp("default-db") / "app.db"))
 
 
+@pytest.fixture(autouse=True)
+def never_the_real_spike_database(tmp_path_factory, monkeypatch):
+    """No test may count real calls in the developer's real data/spike.db (H-091, P-5).
+
+    The web path checks the 70-call cap before each real call, over data/spike.db AND the app's database.
+    The real data/spike.db holds the operator's real calls (58 of 70), so a real-mode test that read it
+    would be refused by a cap it has nothing to do with. Every test is pointed at a throwaway spike file
+    that does not exist (a file that does not exist counts as 0 and is never created). The function still
+    runs for real; only the file it names changes. test_call_cap_web.py checks the real wiring."""
+    from backend.runtime import spike, stages
+    nowhere = tmp_path_factory.mktemp("default-spike") / "spike.db"
+    monkeypatch.setattr(stages, "_counting_databases",
+                        lambda settings: spike.counted_databases(settings, nowhere))
+
+
 @pytest.fixture
 def settings(tmp_path):
     """Stand-in mode, pause 0 (tests stay fast), a temporary database file."""

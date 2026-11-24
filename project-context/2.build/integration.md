@@ -5,11 +5,17 @@ Owner: `@integration.eng`. Written 2026-11-24 on branch `integration-eng/build-s
 used no key, and did not open `data/spike.db` or `data/app.db`.** Every fact below was read from the code or
 from `sad.md`, `backend.md`, `setup.md`, `scaffold-plan.md` and `spike-report.md`.
 
-**Status: DECIDED by the operator on 2026-11-24 (section 8). Documentation only: nothing is built yet.**
-Two fixes are approved: **P-3** (a stuck review on an uncaught error, E-11) and **P-5** (the 70-call cap in the web
-path). Everything else is **parked as future work** with an ID (`IFW-1` to `IFW-6`, section 7). Both fixes need
-two **new failure reasons** first, so they wait for `@system.arch` (handoff H-092) before `@backend.eng` builds
-(handoff H-091). Tested with the fake OpenAI only: **no real call.**
+**Status: DECIDED by the operator on 2026-11-24 (section 8). Both approved fixes are now BUILT by `@backend.eng`
+(H-091), merged on 2026-11-24. This file itself is still documentation only.**
+- **P-3** (a stuck review on an uncaught error, E-11): **built, PR #213.**
+- **P-5** (the 70-call cap in the web path): **built, PR #214.**
+- Both rest on two earlier PRs: **#211** (the two new failure reasons in the schema and their page sentences) and
+  **#212** (an existing database learns them at start-up, from `create_app`). `@system.arch` recorded the reasons
+  in `sad.md` first (H-092, #208).
+
+Everything else is **parked as future work** with an ID (`IFW-1` to `IFW-6`, section 7). Built and tested with the
+fake OpenAI only: **no real call.** The sections below were written before the build and still describe the state
+**before** it (for example, section 4 row E-11 says "Gap"); read them with this status line first.
 
 ## 0. What I found first (read this before the rest)
 
@@ -298,7 +304,7 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 | D-2 | **Approve only the fixes for E-11 and the 70-call cap in the web path** (P-3, P-5). Park the rest with IDs | Section 3.4 and the table in section 7 (`IFW-1` to `IFW-3`) |
 | D-3 | **New wording** for the two new failure reasons | Section 3.4: `unexpected error`, `call limit` |
 | D-4 | **Skip the timed run; polling stays**, on existing timings, recorded as a known limit | Section 2.2 (KL-1) and `IFW-4` |
-| D-5 | **Section 9 approved:** the rewrite, the rebuild only as the fallback, called from `create_app` and not `init_db`; **the real `data/app.db` is migrated**, after the operator's own backup. The new hash baseline goes to `@qa.eng` | Section 9, 9.6, handoff H-093 |
+| D-5 | **Section 9 approved:** the rewrite, the rebuild only as the fallback, called from `create_app` and not `init_db`; **the real `data/app.db` is migrated**, after the operator's own backup. The new hash baseline goes to `@qa.eng` | Section 9, 9.6, handoff H-098 |
 
 **What happens next, in order (each its own pull request; nothing here is merged by `@integration.eng`):**
 1. **H-092** to `@system.arch`: record the two new failure reasons in `sad.md` (the run-state failure rows, the
@@ -378,7 +384,7 @@ expected is refused and left as it was; (e) with SQLite's defensive setting on, 
 (f) **`init_db` on a spike-style database does not change `units`** (so `spike.db` stays as it is). The existing
 `test_attempt_trace.py` trace-column test is the pattern to follow.
 
-### 9.6 The new hash baseline for `@qa.eng` (handoff H-093)
+### 9.6 The new hash baseline for `@qa.eng` (handoff H-098)
 
 **The file hash will change on purpose, so the file hash alone cannot show that the data is intact.** What to
 compare instead is each table's content. Method, read-only, the same before and after:
@@ -427,10 +433,17 @@ review, so the digests are only comparable **before the first new review** is st
 
 ## Open Questions
 
-1. ~~How does an existing `data/app.db` get the two new reasons?~~ **Answered (D-5): section 9, approved.** Still
-   open: the migration has not run. It runs on the first start of the app on the code from H-091, after H-092 and
-   after the operator's backup. Neither real database has been touched yet.
-2. Is E-11 reproduced? I read it in the code; the first test in H-091 settles it.
+1. ~~How does an existing `data/app.db` get the two new reasons?~~ **Answered.** The rewrite of the stored table
+   text, with the table rebuild only as the fallback if the SQLite build refuses the rewrite. Decided in #209
+   (the proposal, with the operator's approval) and built in #212 as `upgrade_failure_reasons`. It runs from
+   `create_app`, **not** `init_db`, so the spike runner never changes `data/spike.db`. **A backup of
+   `data/app.db` was taken first** (the operator's, with the server stopped). Still true: the first start of the
+   app on this code changes `data/app.db`'s file hash (the table definition; the rows are unchanged), so compare
+   table digests, not the file hash.
+2. ~~Is E-11 reproduced?~~ **Answered: yes.** H-091's first test for P-3 (#213) reproduced it against the fake
+   OpenAI: in real mode with the model ID unset, `ModelNotSet` escaped the background task and left the review on
+   "AI is drafting the rules". The test was seen to fail before the fix; after it, the stage ends as Failed with
+   `unexpected error`.
 3. `IFW-5` (process log) and `IFW-6` (test coverage) are open and parked.
 
 ## Audit
@@ -443,4 +456,5 @@ review, so the digests are only comparable **before the first new review** is st
   checked for syntax against an empty in-memory copy of the schema only.
 - 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded the operator's decisions D-1 to D-4: no new real run (`RUN-20261124-2` is the proof); P-3 and P-5 approved; P-1, P-2, P-4 parked as `IFW-1` to `IFW-3`; new failure-reason wording proposed; polling stays with known limit KL-1; the timed run parked as `IFW-4`. Raised H-091 (`@backend.eng`) and H-092 (`@system.arch`). **Documentation only; no code, no model call, no key; `data/spike.db` and `data/app.db` not opened.**
 - 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · added section 9, the proposal for how an existing database gets the two new failure reasons, **tested on copies only** (a read-only `.backup` of `data/app.db`, in the scratchpad, outside the repository). `data/app.db` (`29068e84…`) and `data/spike.db` (`32376900…`) had the same SHA-1 before and after, and were opened read-only. **Documentation only; no change in `backend/`, no model call, no key.**
-- 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded D-5 (section 9 approved; the real `data/app.db` is migrated after the operator's backup), wrote 9.6 (the content-digest baseline for `@qa.eng`, read-only: `units`, `trace`, `audit_log` from the real file and the rest from the backup copy), and raised H-093. `data/app.db` (`29068e84…`) and `data/spike.db` (`32376900…`) were opened read-only and had the same SHA-1 before and after. **Documentation only; no change in `backend/`, no model call, no key.**
+- 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded D-5 (section 9 approved; the real `data/app.db` is migrated after the operator's backup), wrote 9.6 (the content-digest baseline for `@qa.eng`, read-only: `units`, `trace`, `audit_log` from the real file and the rest from the backup copy), and raised H-098. `data/app.db` (`29068e84…`) and `data/spike.db` (`32376900…`) were opened read-only and had the same SHA-1 before and after. **Documentation only; no change in `backend/`, no model call, no key.**
+- 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · updated the Status line (P-3 built in #213, P-5 built in #214, on top of #211 and #212) and closed open questions 1 and 2 in section 8's open list: Q1 answered (rewrite with rebuild fallback, decided in #209, built in #212, runs from `create_app` not `init_db`, backup taken first); Q2 answered from H-091's first test (E-11 reproduced, `ModelNotSet`, #213). Facts read from `backend.md` and `git log` only. **Documentation only; no code, no model call, no key; `data/spike.db` and `data/app.db` not opened.**

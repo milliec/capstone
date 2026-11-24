@@ -1014,9 +1014,10 @@ by the spike runner's cap check (a plan or a `--go` is refused when the **sum** 
 T-CAP-1. `settings.DEFAULT_DATABASE_PATH` is now a named constant and `tests/conftest.py` points it at a
 throwaway file, so no test can see the developer's real databases.
 
-**Not built, on purpose (no SAD change).** The web app does **not stop** at 70. That would need a new refusal
-or failure reason. A clean run is about 18 calls. The count is for visibility, and the spike runner's own cap
-check now includes the web app's calls. The cost cap (US$2.50) stays per run, not across files.
+**Built afterwards (H-091, DL-58, 2026-11-24).** The web app now stops at the cap too: before each real call,
+`_run_unit` counts over both databases and fails the unit with `call limit` (see "H-091: the two fixes in the web
+path"). A unit already in flight finishes, so the count can pass the cap by that unit's calls. The cost cap
+(US$2.50) stays per run, not across files.
 
 **The tally's cost lines (2026-11-23).** `--tally` prints two cost lines. **"Run cost"** is the total across every
 database counted (`spike.db` and `app.db`), the same set as "Slots used" and "Counted in". **"This file only"**
@@ -1044,8 +1045,11 @@ without this one its calls would not count toward the 70.
    git fetch origin
    git worktree add ../capstone-worktrees/operator-run origin/main
    cd ../capstone-worktrees/operator-run
-   for f in .venv reference .env data; do ln -s "$PROJECT/$f" "$f"; done
+   for f in .venv reference .env data; do [ -e "$f" ] || ln -s "$PROJECT/$f" "$f"; done
    ```
+   The `[ -e "$f" ] ||` skips a name that already exists. Without it, a second run makes `ln -s` follow the
+   existing `data` link and put a new `data` link inside the real `data/`, pointing back at it (seen on
+   24 Nov, `qa.md` H-091).
    (If the shared folder is on `main` and `git status` is empty, you can run from it after `git pull`.)
 2. **Check nothing redirects the requests.** The web app prints no Endpoint line, so check the shell:
    `env | grep OPENAI_BASE_URL` must print **nothing**.
@@ -1179,6 +1183,52 @@ extractor requests carry prompt version **`aa365db76f401580`** (the verifier's `
 databases. A full run takes about 17 requests, so **12 slots are not enough for another full run** without a new
 operator decision. The tally's per-role tables still read `spike.db` only; the figures above are from `app.db`.
 
+### H-091: the two fixes in the web path, and how an old database learns the new reasons (2026-11-24)
+
+Operator decisions D-1 to D-4 (`integration.md` sections 3.4 and 4); the two reasons are recorded in `sad.md`
+(DL-58, H-092). **Fake OpenAI only: no real call, no key, and `data/app.db` and `data/spike.db` were never opened.**
+Real mode appears only inside tests, with a dummy key and temporary database files. Four small pull requests:
+
+| PR | What | Where | Tests (Tier 1) |
+|---|---|---|---|
+| #211 | The two reasons `unexpected error` and `call limit` in the `units.failure_reason` CHECK, and their sentences (the wording is `sad.md`'s) | `schema.sql`, `FAILURE_SENTENCES` in `services/runs.py` | `test_new_failure_reasons.py` (5) |
+| #212 | An **existing** database learns the two values at start-up | `upgrade_failure_reasons` in `db/connection.py`, called from `create_app` | `test_failure_reasons_migration.py` (9) |
+| #213 | **E-11:** an error nobody listed ends the review as Failed | `run_stage` in `runtime/stages.py`; `fail_stage` takes an optional `detail` | `test_unexpected_error.py` (8) |
+| #214 | **P-5:** the 70-call cap is enforced in the web path | `_real_call_cap_reached` in `runtime/stages.py`; a conftest safety fixture | `test_call_cap_web.py` (13) |
+
+Tier 1 went from 618 to 653 passing; the first test of each fix was written first and seen to fail.
+
+- **E-11 reproduced, not only read.** Real mode against the fake, model ID unset: `ModelNotSet` escaped the background
+  task and left the review on "AI is drafting the rules". Now any `Exception` that escapes a stage **or its storing**
+  ends the stage with `unexpected error`, against the unit the stage timer would name (one shared helper). `_StageStopped`
+  is not swallowed, a failure already recorded is not overwritten, and the timer is still cancelled. **The audit entry
+  holds the error's class name only, never its message, and no traceback is logged** (operator decision): a message could
+  hold a key. Only `Exception` is caught, so Ctrl-C still stops the app. This is the repo's first `noqa` (`BLE001`),
+  with its reason beside it.
+- **The cap.** Real mode only, before each real call, `harness.count_real_calls` over `spike.SPIKE_DB` and the app
+  database (a per-file count undercounts). At or over `harness.CALL_CAPS` (spike 70, tuning 60) the unit fails with
+  `call limit` and **no call starts**; `rehearsal`, `demo`, `evaluation` and stand-in mode are never refused. An unreadable
+  file **fails closed** (the count raises, and E-11's handler ends the review as `unexpected error`). The US$2.50
+  cap is unchanged. `tests/conftest.py` now points every test away from the real `data/spike.db` (58 real calls), the
+  way it already did for `app.db`.
+- **The migration.** A CHECK cannot be changed with `ALTER TABLE`, and `CREATE TABLE IF NOT EXISTS` leaves an old
+  table alone. **Way A (default):** rewrite the stored table text in one transaction (`BEGIN IMMEDIATE`, raise
+  SQLite's schema version, `integrity_check` before commit); no row is read or written, and the result is identical to a
+  fresh database. **Way B (fallback, only if the SQLite build refuses A):** rebuild the table, rows copied in `rowid`
+  order, foreign keys checked before commit. **Guards:** nothing to do if `'call limit'` is already there; if the stored text
+  does not contain `'demo failure')),` exactly once, the app **refuses to start and changes nothing**. It runs from
+  `create_app`, **not** `init_db`, so the spike runner never changes `data/spike.db`. Proposed by `@integration.eng`
+  (`integration.md` section 9), approved by the operator with a backup first.
+- **What the tests caught in my own work.** (1) The integrity check compared `sqlite3.Row` objects to a tuple, which
+  never match, so way A failed every time and way B quietly took over; the test that checks **which way ran** found it.
+  (2) My first cap tests seeded a spike file the stages were not looking at. Both were test or code slips, fixed before merge.
+
+**What the operator does.** Before the first real start on this code, keep the read-only backup (`data/app.db.bak-20261124`
+was taken with the server stopped). **That start changes `data/app.db`'s file hash** (the table definition; every row is
+unchanged), so a check on the file hash will see a change; compare table digests instead. `data/spike.db` is not migrated
+and its hash does not change. If the app refuses to start with "not the one this version knows how to upgrade", nothing was
+changed: restore from the backup and say so.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -1198,6 +1248,27 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
   T-RUN-2) are built (step 7b PR 5) and tested against the fake OpenAI; a stand-in call cannot
   time out. The run status page shows the cost but not yet the "over US$2" warning (CR-017); the
   warning's wording and place are `@ux.designer`'s.
+  - **Open item for B13b (H-091 test 4e): when Retry is built, add a test proving that a step that failed with
+    `call limit` cannot be retried.** Retry must be refused with `RETRY_NOT_ALLOWED` (as for `cost cap`, DL-51;
+    `sad.md` DL-58), and the refusal must change nothing: the unit stays `failed` with reason `call limit`, the run
+    stays `FAILED`, and `stage_attempt` stays 1. It cannot be tested today, because `retry_run` is a stub that changes
+    nothing. Tier 1, written first and seen to fail, like the other retry tests (T-RETRY-1).
+  - **`RETRY_NOT_ALLOWED` has five sentences, one per reason (H-094, 2026-11-24).** `refusals.py` `SENTENCES` is keyed
+    by `("RETRY_NOT_ALLOWED", reason)` for `cost cap`, `calendar generation`, `evaluation run`, `newer run` and
+    `call limit`, word for word as `ux.md` §5. The first four end "Start a new review from Filing rules."; `call limit`
+    ends "A new review would reach the same limit. Ask the operator to review the limit.", because the call limit counts
+    an activity's real calls across both databases (EC-R10) and a new review would reach it too. The code, its 409 and
+    its audit entry are unchanged. **Nothing raises it yet** (`retry_run` is a stub), so no `{reason}` is chosen anywhere
+    today. **For B13b:** call `refuse(conn, "RETRY_NOT_ALLOWED", <context>, ...)` with the stored failure reason as the
+    context for the three failure reasons, and `evaluation run` or `newer run` for the other two. The old one-sentence
+    key `("RETRY_NOT_ALLOWED", "")` and its `{reason}` blank are gone, so a call with no context raises `KeyError`
+    (found at once in a test, not on a page). Tier 1: `tests/tier1/test_refusals.py` builds the sentence for each of
+    the five reasons, checks only `call limit` leaves out the new-review advice, and checks the 409 and audit entry.
+- **Known limit (operator, 2026-11-24; H-091): the call cap can be passed by one unit.** The cap is checked **before a
+  unit starts**, so a unit already in flight finishes, as with the cost cap, and the count can pass 70 (or 60) by the
+  calls that unit makes (a few at most). The next unit is the one refused.
+- **An unexpected error leaves no traceback in the server log** (operator, 2026-11-24): the audit entry has the class
+  name only, because a message could hold a key. To debug one, reproduce it in a test.
 - **Step 7b is built, and the operator's spike is under way** (plan approved 2026-11-19; PRs 1 to 5
   merged): CrewAI is installed with its outside connections off (PR 1), per-role
   model settings and token limits (PR 2), a fake OpenAI for tests (PR 3), the crews behind the three
@@ -1437,3 +1508,9 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-24 · persona `backend-eng` · `develop-be` (H-090: the extractor card sentence copied into `tasks.yaml`, DL-57) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "start H-090 once #200 is on main". One sentence added to `backend/config/tasks.yaml` step 2, checked word for word against sad.md and the handoff; a release: the extract prompt version `aec586241001b7a5` became `aa365db76f401580`. Tier 1 and Tier 2 green. H-090 Outcome filled and moved to Done. No real call.
 - 2026-11-24 · persona `backend-eng` · `document-backend` (Case 1 recorded as met by RUN-20261124-2) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "record Case 1 as met by RUN-20261124-2, with the card version, 22 entries and all the cautions; note 12 slots are not enough for another full run". Docs only: new section "Case 1 is met by RUN-20261124-2", the "Next" bullet marked done, and an Update line on H-088 (a closed entry; `@qa.eng` asked to re-read it). Read back from `app.db`, read-only. No code, no real call.
 - 2026-11-24 · persona `backend-eng` · `document-backend` (H-089: the judge's verdict count) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "H-089". Docs only: one line in "The first real run through the web app" corrected from "one applies, two unsure, one does_not_apply" (4 of 7) to 1 applies, 5 unsure, 1 does_not_apply (7 of 7), as `@qa.eng` found. Read back from `data/app.db` read-only (`verdicts` for `RUN-20261123-1`). Left as written: the older line near "B3 spike finding 3" that says the unsure and does-not-apply verdicts were never produced (true when it was written, 2026-11-23, before this run). No code, no real call.
+- 2026-11-24 · persona `backend-eng` · `develop-be` (H-091: the two fixes in the web path, DL-58; PRs #211 to #214) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` (real mode only inside tests, against the fake OpenAI, dummy key, temporary databases) · operator instruction "go ahead" after the plan (schema and sentences, then the E-11 fix, then the cap) and approval of way A with way B as fallback, with a backup first. #211 the two reasons in the CHECK and their sentences; #212 `upgrade_failure_reasons` at start-up (not in `init_db`); #213 E-11, class name only and no traceback logged; #214 the real-call cap before each real call, counted over both databases. 35 new Tier 1 tests (618 to 653 passing), each fix's first test seen to fail first; ruff, `aamad validate` and the real-name scan clean each time. Each PR merged after CI. `data/app.db` and `data/spike.db` were never opened by me. No real call, no key. Test 4e (`call limit` cannot be retried) not possible while `retry_run` is a stub; no Tier 2 added.
+- 2026-11-24 · persona `backend-eng` · `document-backend` + `sync-docs` (H-091 closing work) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator approved items 1 to 4 of the proposal. Docs only: new section "H-091: the two fixes in the web path"; three Known gaps bullets (the in-flight overshoot, test 4e, no traceback in the log); sync-docs item 1, one sentence in "the 70-call cap counts both databases" that said the web app does not stop at 70; H-091 Outcome filled and moved to Done (with a note to `@qa.eng` about the new `data/app.db` hash and about "does not stop at 70" in `spike-report.md`); a comment-only change in `tests/tier1/test_call_count.py`; learning notes in `docs/learning-notes.md`. Spec drift: none. No real call.
+- 2026-11-24 · persona `backend-eng` · `document-backend` (B13b open item for H-091 test 4e) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "add an open item under B13b: when retry is built, add a test proving a step that failed with call limit cannot be retried". Docs only: the separate "`call limit` cannot be retried" bullet in Known gaps became a sub-item under the `retry_run` stub (B13b) bullet, with what the test must show; nothing else changed. No code, no real call.
+- 2026-11-24 · persona `backend-eng` · `develop-be` (H-094: the `RETRY_NOT_ALLOWED` sentence for each of five reasons) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "pick up H-094". Code: `backend/services/refusals.py`, the one `("RETRY_NOT_ALLOWED", "")` entry became five, keyed by reason (`cost cap`, `calendar generation`, `evaluation run`, `newer run`, `call limit`), word for word as `ux.md` §5; only `call limit` leaves out "Start a new review from Filing rules" and ends "A new review would reach the same limit. Ask the operator to review the limit." Tests: three in `tests/tier1/test_refusals.py` (each sentence word for word; only `call limit` lacks the new-review advice; still a 409 with one audit entry). 660 Tier 1 tests pass; ruff clean. Nothing raises this refusal yet (`retry_run` is a stub, B13b), so no page or route changed. Known gaps: the B13b open item now says what to pass. No SAD or `ux.md` edit. No model call.
+- 2026-11-24 · persona `backend-eng` · `sync-docs` (after H-094) · Doc sync: no updates. No allowlisted descriptive doc states the old one-sentence `RETRY_NOT_ALLOWED` wording; `backend.md` was updated as part of the change.
+- 2026-11-24 · persona `backend-eng` · `document-backend` (docs only; follow-up to the `data/data` item in `qa.md`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · added `[ -e "$f" ] ||` to the run-folder `ln -s` loop (step 1 of the real clean run) so a second run no longer makes a `data/data` link, plus one explanatory sentence. Tested the guard in a throwaway folder only. No code, no database opened, no model call.

@@ -28,3 +28,6 @@ tests/visual/candidates/
 # Python packaging leftovers from "pip install -e ."
 *.egg-info/
 .pytest_cache/
+
+# Claude Code's local settings and permissions for this machine. Not project content.
+.claude/

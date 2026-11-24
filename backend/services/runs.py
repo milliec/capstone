@@ -112,6 +112,12 @@ FAILURE_SENTENCES = {
     "calendar generation": "The dates could not be worked out into one complete calendar",
     "demo failure": ("This step failed on purpose, for the demo only, because \"Make step 1 fail "
                      "(demo)\" was ticked when the review started. Nothing else went wrong"),
+    # DL-58 / H-092. The words are sad.md's, the same as the ux.md table (H-093). The page shows this
+    # sentence only, never the error's own message (which could hold anything).
+    "unexpected error": ("Something went wrong that the app did not expect, so this step was "
+                         "stopped and nothing from it was saved"),
+    "call limit": ("The limit on real model calls for this kind of review was reached, so no "
+                   "further call was made"),
 }
 
 

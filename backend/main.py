@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
-from backend.db.connection import connect, init_db
+from backend.db.connection import connect, init_db, upgrade_failure_reasons
 from backend.services.auth import Forbidden, identity_from_session
 from backend.services.refusals import NotFound, Refused
 from backend.services.runs import fail_interrupted_runs
@@ -30,6 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Start-up rule (SAD rule 7): a review that was mid-stage when the app stopped cannot finish.
     conn = connect(settings.database_path)
     try:
+        # An older database learns the two new failure reasons (DL-58). Here and not in init_db, so the
+        # spike runner's data/spike.db is never changed. Idempotent: a second start does nothing.
+        upgrade_failure_reasons(conn)
         fail_interrupted_runs(conn)
     finally:
         conn.close()

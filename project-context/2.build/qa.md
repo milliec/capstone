@@ -177,6 +177,96 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 5. ~~EC-010 late calls~~ **Closed (operator, 2026-11-21):** late calls stay in the time as well as the cost, so the time is what a
    user actually waits. The report labels them: "of this, LATE calls: N calls, X s, US$Y".
 
+## Database hash baseline (H-091, set 2026-11-24)
+
+`@backend.eng`'s H-091 (#212) adds `upgrade_failure_reasons`, which runs when the app starts (`create_app`, not
+`init_db`) and rewrites the stored text of the `units` table so its `CHECK` accepts the two new failure reasons.
+No row is touched. **So the first start of the app on this code changes `data/app.db`'s file hash, and that change is
+expected, not a defect.** `data/spike.db` is not migrated; its hash must not change.
+
+| File | SHA-1 now (2026-11-24, before the first start on the new code) | Expected after the first start |
+|---|---|---|
+| `data/app.db` | `29068e84…` (the full value is in the audit line below; same as the backup `data/app.db.bak-20261124`) | **Changes** (stored `units` text only). **Confirmed 2026-11-24: now `cfcd909e…`** (below) |
+| `data/spike.db` | `32376900…` | **Must stay** `32376900…` |
+
+**Compare table digests, not the file hash.** Recipe (read-only, `mode=ro`): the names of every table, index and trigger
+(sorted), then every row of every table in `rowid` order, hashed with SHA-256. The stored `CREATE` text is left out on
+purpose, because that is the one thing that changes. I read it from the backup copy, not from the real file:
+
+- Objects: 14 tables, 4 triggers (`audit_log_no_delete`, `audit_log_no_update`, `trace_no_delete`, `trace_no_update`), no indexes.
+- Row counts: `audit_log` 153, `calendar_entries` 40, `calendar_versions` 4, `flags` 6, `paragraphs` 39, `publications` 4,
+  `quote_checks` 19, `row_decisions` 19, `rows` 19, `runs` 9, `trace` 52, `units` 93, `verdict_decisions` 18, `verdicts` 18.
+- Digest of the names: `307b68b55d321f89`. Digest of all tables together: `e5624554c3c393d3`.
+
+**What to check after the operator's first start** (done 2026-11-24, section below): (1) `app.db` has a new file hash;
+record it. (2) The names digest and the all-tables digest are **unchanged**. (3) `spike.db` is still `32376900…`.
+(4) If the app refuses to start with "not the one this version knows how to upgrade", nothing was changed: restore
+from `data/app.db.bak-20261124`.
+
+**After-start result (2026-11-24, after the operator's first start on `main` at `d7d667b`; server started in stub
+mode, home page loaded, stopped, no review started). Read-only: file hashes, and `mode=ro&immutable=1` for the digests.**
+
+| Check | Result |
+|---|---|
+| (1) `data/app.db` file hash | **Changed, as expected:** `29068e84…` to `cfcd909e8875fab8f054b31ad6ad8e15d622ba76`. The file size is the same (307200 bytes). |
+| (2) Table digests | **Unchanged.** Names digest `307b68b55d321f89`, all-tables digest `e5624554c3c393d3`, and every per-table digest and row count equal the before-start values above (read from the real file this time, and from the backup again for the comparison). No row was added or changed. |
+| (3) `data/spike.db` hash | **Unchanged:** `32376900d98eae2eaaaa5ed434610260fa820f0a`. Its `units` CHECK still has the old list (no `call limit`), as intended. |
+| (4) Refusal to start | **Did not refuse:** the app started and served the home page (the operator's report); the stored `units` text now contains `'unexpected error'` and `'call limit'`, `PRAGMA integrity_check` is `ok`, and the backup still has the old text. |
+
+So the migration ran once on the real file, took way A or B (I cannot tell which from the outside; both leave rows
+alone, and the digests agree), and left every row as it was. The backup `data/app.db.bak-20261124` (`29068e84…`) is
+untouched and can be kept or removed at the operator's choice.
+
+**Seen, not understood:** a symlink `data/data` pointing back to `data/` appeared at 19:57, the time of the start. It is
+git-ignored (`data/`), nothing reads it that I know of, and I did not remove it. It may be an artefact of how the app was
+started; worth a look by `@backend.eng`. **Not tested:** a second start (the "nothing to do" path) on the real file, and
+a review on the new code (so a real `unexpected error` or `call limit` ending was not seen; Tier 1 covers both against the
+fake OpenAI).
+
+**Closed 2026-11-24 (`@backend.eng`): the `data/data` symlink was gone when the operator checked on 24 Nov.** The
+operator's listing of `capstone/data` showed only `app.db`, `app.db.bak-20261124` and `spike.db`. Nothing was removed by
+this note and no database was opened. **Can the app start create it? No, by the code.** The start path
+(`backend/db/connection.py`, `init_db`) only calls `mkdir(parents=True, exist_ok=True)` on the folder that holds the
+database and then opens the file; no code under `backend/` or `scripts/` makes a link inside `data/`. The one place that
+can is the manual run-folder loop in `backend.md` ("Before the operator's real clean run", step 1),
+`for f in .venv reference .env data; do ln -s "$PROJECT/$f" "$f"; done`. Run a second time in a worktree whose `data` is
+already a link to the real folder, `ln -s` follows that link and puts a new link called `data` inside the real `data/`,
+pointing back at it (reproduced in a throwaway folder, no real files touched). That fits what was seen, but I cannot tell
+from the files whether the loop was run twice, so this is the likely cause and not a proven one.
+
+### Verification checklist
+
+**Increment checked:** H-091 to H-094 (2026-11-24), the last code change on `main` (PRs #211 to #214, #216, #219, with
+the sentence and wording changes of #218): two new failure reasons in the web path. `main` at `f31848f`. Runtime
+`AAMAD_TARGET_RUNTIME=crewai`, `AGENTS_MODE=stand_in`. **This is a check of that increment only. It is not a
+sign-off for B8, the MVP or Deliver:** the run starter, the trace export, the void rule and the model cases `I-1`
+and the injection case are still not built (Future work 1 to 3), and the real-model evaluation cycle has not run.
+
+The two new reasons have **no AC-* of their own**: they are a SAD edit (DL-58, E-11, H-092) and no user story was
+changed. They are mapped to DL-58, E-11, EC-R10 and the "follow a run and recover" story (US-015, per-unit failure
+rule). I did not invent an AC ID.
+
+| Check | Result | AC / ref | Note |
+|---|---|---|---|
+| Correctness: unit | **Pass** (with one gap) | DL-58, E-11, EC-R10 | I ran Tier 1 on `main` at `f31848f`: **660 passed**, 1 warning (a pytest deprecation note), 0 failed. `ruff check backend tests`: clean. The tests for each fix were seen to fail first (author's statement; I did not re-run them against the old code). **Gap:** "a `call limit` failure cannot be retried" (H-091 4e) is **not tested**, because `retry_run` is still the B13b stub. It is an open item under B13b. |
+| Correctness: integration / smoke | **Pass (stand-in and fake OpenAI only); not tested on the real database** | DL-58, E-11 | Real mode appears only against the fake OpenAI with a dummy key and temporary databases. The in-flight overshoot is a **known limit** (operator, 2026-11-24): a unit already in flight finishes, so the count can pass 70 by that unit's calls. **Not tested:** the first start of the app on the real `data/app.db`. The migration (`upgrade_failure_reasons`) was tested on temporary copies only. I have not seen it run on the real file (see "Database hash baseline"). No real call was made to test the cap, by design. The ux.md sentences (H-093, H-094) are text: I did not view any page. |
+| Security: no new secrets; tools stay on the SAD allowlist | **Pass** | SAD allowlist, CLAUDE.md Never row | I read the diff of `backend/` from H-091's first commit to `main`. No new dependency, no new network or process call, no key or environment read, no new tool, memory, retry or re-ask. One `except Exception` (a `noqa: BLE001`, the repo's first), which is the point of E-11, with its reason written beside it. The audit entry holds the **class name only** and no traceback is logged (operator decision). The migration never touches `data/spike.db` (`create_app` only, not `init_db`) and refuses to start, changing nothing, if the stored table is not the expected one. `data/app.db` and `data/spike.db` were not opened for writing by `@backend.eng` or by me. **Not assessed:** this is a QA read, not the `@security.eng` assessment. |
+| Maintainability: change stays inside the MVP and the recorded pattern | **Pass** | DL-58, Build card | One small PR per fix as asked; 16 files, mostly tests (945 lines added, 25 removed). Changes stay in the web path, the schema and the failure sentences. `rehearsal`, `demo`, `evaluation` and stand-in mode are never refused. `IFW-1` to `IFW-6` (parked) were not built. B13b (Retry) is not built. No agent loop, no live-state retrieval and no side-effecting tool appeared. The CHECK text in an upgraded database is the same as a fresh one (a test compares them). |
+| Author explanation: what shipped and why it is safe to release | **Filled** (from `@backend.eng`'s H-091 Outcome and `backend.md`, as read by QA) | H-091 Outcome | A review that hits an error nobody listed now ends as **Failed** with the sentence "unexpected error", instead of sitting on "AI is drafting the rules" until a restart. The web path also stops before the 71st real call (reason `call limit`, counted over both databases, not retryable), and an existing `data/app.db` learns the two new values on its first start without any row changing. Safe to release as far as the stand-in path goes: the checks above pass, no real call or key is involved, and the migration refuses and changes nothing on any surprise. **Not yet safe to rely on:** the migration on the real file, until the operator's first start and the after-start checks are recorded. |
+
+**UI changed?** Two sentences on the failed-review page and one in the refusal table (H-093, H-094). `ux-review.md` has no
+entry for them and I did not run `*test-visual` for this check; a matching snapshot would not prove the wording
+is good anyway. **Not tested, not passed.** `@ux.designer` owns that judgment.
+
+**Model call?** The Pattern Decision includes a model call. `evals.md` status: **partial**, as its header says. Three real
+runs are recorded (the third met the key's count with four cautions); nothing is graded for an EC criterion, and
+`*run-evals` is not finished. This increment changes no prompt, card or model setting, so it does not change that status.
+
+**Result of the checklist: pass for this increment, with three things left open:** (1) the first start on the real
+`data/app.db`, with the new hash and after-start digests recorded; (2) the `call limit` retry test, with B13b;
+(3) a look at the new sentences on a real page. **Update 2026-11-24: item (1) is closed** (the first start and the four after-start checks, section "Database hash baseline"); (2) and (3) stay open. **I am not recommending `@security.eng` yet:** B8 is not finished
+and the evaluation cycle has not run (Future work 1 to 3), so a recommendation now would be early.
+
 ## Audit
 
 - 2026-11-21 · persona `qa-eng` · action `qa` (B8 Stage A grader slice; `test-unit`, `test-integration`,
@@ -187,3 +277,7 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 - 2026-11-21 · persona `qa-eng` · action `qa` (B8 Stage B grader slice, operator decision; `test-unit`, `test-integration`) · EC-004, EC-010 and EC-012 graded from a finished run read from the database; 45 new tests; 382 passed, 0 failed; no model call, no real key, no paid call. `*verify-change` and the `@security.eng` recommendation are still **not** made: B8 is not finished. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-21 · persona `qa-eng` · action `update` (operator answers to open questions 4 and 5, closed) · EC-004: the key's uncited facts on OBL-01, 02, 03 and 06 are a non-failing note (`Criterion.notes`, shown in the report); EC-010 and EC-012: the late share of the time and cost is labelled. 4 new tests in `test_evaluation_stage_b.py` and 1 in `test_evaluation_stage_b_run.py`; 5 deliberate breaks, all caught. No threshold changed. No model call, no real key, no paid call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `qa-eng` · action `qa` + `log-defects` (H-077, the spike report) · wrote `2.build/spike-report.md`, an interim report on the 6 real trace lines made so far (extractor 2, verifier 2, judge 1, plus the pre-flight line; US$0.0164), read-only from `data/spike.db` and `data/app.db` and from `--tally`. No test, grader, threshold or code changed here; no model call, no real key, no paid call. Raised H-085 (`@system.arch`: name the report in the SAD Audit) and H-086 (`@backend.eng`: `--tally` adds the pre-flight line to the extractor's time and cost). The real clean run is not made, so the report waits for it. `*verify-change` and the `@security.eng` recommendation are still **not** made: B8 is not finished. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-24 · persona `qa-eng` · action `log-defects` + `update` (H-091, the note to `@qa.eng`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: file hashes of `data/app.db` (SHA-1 `29068e849cc62e921688a30ea31283bcc56ad81e`, equal to `data/app.db.bak-20261124`), `data/spike.db` (`32376900d98eae2eaaaa5ed434610260fa820f0a`); the table digest was read from the backup copy with `mode=ro&immutable=1`, not from the real file. New: the section "Database hash baseline (H-091)". Changed in `spike-report.md`: an Update line after each of the two "does not stop at 70" sentences (12.6 and 12.7). Same Update line added in `evals.md` line 186 (the "Real-run status of Case 1" row), at the operator's instruction. The after-start hash and digests are left open for the operator's first start. No model call, no real key, no paid call, no code changed, no snapshot changed. `*verify-change` and the `@security.eng` recommendation are still not made.
+- 2026-11-24 · persona `qa-eng` · action `verify-change` (the increment H-091 to H-094, `main` at `f31848f`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · ran Tier 1 (660 passed, 0 failed) and `ruff check backend tests` (clean); read the `backend/` diff from H-091's first commit. New: the section "Verification checklist". Result: pass for that increment, with three items left open (first start on the real `data/app.db`; the `call limit` retry test with B13b; the new sentences not viewed on a page). No AC-* exists for the two new reasons, so none was invented. No `*test-visual` run, no `*run-evals`. No model call, no real key, no paid call, no code changed, no snapshot changed; `data/app.db` and `data/spike.db` not opened. The `@security.eng` recommendation is **not** made: B8 is not finished.
+- 2026-11-24 · persona `qa-eng` · action `qa` + `log-defects` (H-091, the four after-start checks) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: file hashes, then `mode=ro&immutable=1` for digests and the stored `units` text; server not running. `data/app.db` SHA-1 `cfcd909e8875fab8f054b31ad6ad8e15d622ba76` (was `29068e84…`; changed as expected); table digests unchanged (names `307b68b55d321f89`, all `e5624554c3c393d3`); `data/spike.db` `32376900d98eae2eaaaa5ed434610260fa820f0a` unchanged. Noted a git-ignored symlink `data/data` (not removed). No model call, no real key, no paid call, no code changed, no snapshot changed. The `@security.eng` recommendation is still not made: B8 is not finished.
+- 2026-11-24 · persona `backend-eng` · action `document-backend` (docs only; closes the `data/data` item from the H-091 after-start check) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read the code only (`backend/db/connection.py`, `scripts/`, the `backend.md` run-folder loop); the link was gone when the operator checked on 24 Nov; no database opened, no model call, no code changed.
