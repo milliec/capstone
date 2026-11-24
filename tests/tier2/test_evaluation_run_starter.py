@@ -25,7 +25,7 @@ from tests.fake_openai import TEST_API_KEY, Reply
 from tests.tier1.test_real_mode_green_path import MODELS, the_answer_key
 
 COMMIT = "abc1234"
-CONFIRM = f"evaluate {COMMIT} 19"
+CONFIRM = f"evaluate {COMMIT} 21"
 
 
 @pytest.fixture(autouse=True)
@@ -117,7 +117,7 @@ def test_the_plan_shows_the_commit_models_projected_calls_and_the_cap(env, spike
     assert code == 0 and console.asked == []
     text = console.text
     assert COMMIT in text and all(model in text for model in MODELS.values())
-    assert "17 calls expected" in text and "19 at most" in text           # 5 + 6 + 6; the most seen
+    assert "19 calls expected" in text and "21 at most" in text           # (5 + 6 + 6) + 2 copy cases; the most seen + 2
     assert "0 of 63" in text and "--go" in text
     assert fake.requests == []                                              # nothing sent
     assert not (tmp_path / "app.db").exists() and not spike_db.exists()     # nothing created
@@ -125,7 +125,7 @@ def test_the_plan_shows_the_commit_models_projected_calls_and_the_cap(env, spike
 
 def test_the_projected_calls_come_from_the_documents_and_the_answer_key():
     assert run_starter.expected_calls() == 17      # 5 documents + 6 verifications + 6 judgements
-    assert run_starter.WORST_CASE_CALLS == 19
+    assert run_starter.WORST_CASE_CALLS == 21 and run_starter.HARNESS_CALLS == 2
 
 
 # --- Refusals come first, before any prompt, and send nothing ------------------------------------------
@@ -160,7 +160,7 @@ def test_there_is_no_command_line_way_to_turn_the_planted_row_on(env, spike_db, 
         start(env, spike_db, tmp_path, Console(), "--planted-row")
 
 
-@pytest.mark.parametrize("used,allowed", [(44, True), (45, False), (63, False)])
+@pytest.mark.parametrize("used,allowed", [(42, True), (43, False), (63, False)])
 def test_the_run_must_fit_under_the_63_call_cap_counting_the_worst_case(
         used, allowed, env, tmp_path, spike_db, fake):
     add_spike_lines(spike_db, used)
@@ -183,7 +183,7 @@ def test_a_call_count_that_cannot_be_read_is_a_refusal(env, tmp_path, spike_db, 
 
 # --- The typed confirmation ----------------------------------------------------------------------------
 
-@pytest.mark.parametrize("typed", ["", "yes", "evaluate abc1234", "evaluate abc1234 17", "evaluate other 19",
+@pytest.mark.parametrize("typed", ["", "yes", "evaluate abc1234", "evaluate abc1234 19", "evaluate other 21",
                                    EOFError(), OSError()], ids=str)
 def test_anything_but_the_exact_words_cancels_and_sends_nothing(typed, env, tmp_path, spike_db, fake):
     console = Console(typed=typed)
