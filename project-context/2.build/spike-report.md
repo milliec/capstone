@@ -10,9 +10,10 @@ grew while I worked) and from the read-only `--tally`.
 **Status: interim.** The spike is not finished. Sections 1 to 11 cover the **6 trace lines in `spike.db`**
 (one command per call, made before the web app was run for real). **Section 12 covers the operator's first
 real run through the web app (review A, `RUN-20261123-1`): 19 more requests in `app.db`. That run did not
-finish: it failed at Stage C** (section 12.4). A second review (B) is still to come and will get its own
-section. **Where sections 1 to 11 say "the clean run is not made", read section 12:** it was made once, it
-ended in `FAILED`, and it is not the clean run the plan hopes for.
+finish: it failed at Stage C** (section 12.4). **Review B (`RUN-20261124-1`, section 12.6) completed and
+published a calendar, but with 18 entries, not the key's 22, so it is not a clean Case 1 result either.**
+**Where sections 1 to 11 say "the clean run is not made", read section 12:** two runs were made; neither is the
+clean run the plan hopes for, and a key-matching calendar is still owed.
 
 ## 1. What was run, and what was not
 
@@ -156,22 +157,24 @@ seen and flagged again on every command. The honest wording is **"so far"**, on 
 | D-1 | `--tally` adds the pre-flight line's time and cost to the extractor's first unit, so its mean time and cost for the extractor read high (4.9 s against 4.1 s for the two model calls). It only changes a printed summary, not the trace or the cap | Low | `@backend.eng` (not changed here; I do not edit code under `backend/`) |
 | F-1 to F-3 | The first-call pre-flight, the verifier's flag shape and the judge's schema precaution: found by the spike, fixed or recorded before this report | See section 4 | Closed (H-076, H-078, H-079) |
 | F-4 | **One sentence became two rules, and Stage C refused the duplicate calendar entry.** The real extractor split `SRC-UCILAW-P2` the same way in 3 of 3 real calls; the run ended `FAILED` at Stage C on the DL-35 collision (section 12.4). The refusal worked as the SAD says; the open question is what the SAD should say a specialist does about it | Medium for the demo path (a real run cannot finish unless the specialist rejects one row at G1); not a defect in the refusal | `@system.arch` (H-087); evidence in section 12 |
-| F-5 | **The judge said `unsure` on 4 rows where the key says `applies`** (OBL-01, OBL-02 ×2 rows, OBL-05), and asked for facts the fund profile does not hold (section 12.3). Safe direction (a human decides at G2). One run | Low to Medium for EC-004 (3 of 3 runs, 6 of 6 needed); a key-or-judge question, not a build defect | Operator, in the evaluation cycle; recorded here, not decided |
+| F-5 | **The judge said `unsure` on 4 rows where the key says `applies`** (OBL-01, OBL-02 ×2 rows, OBL-05), and asked for facts the fund profile does not hold (section 12.3). Safe direction (a human decides at G2). Repeated on OBL-01 and OBL-05 in review B (12.6): 2 runs | Low to Medium for EC-004 (3 of 3 runs, 6 of 6 needed); a key-or-judge question, not a build defect | Operator, in the evaluation cycle; recorded here, not decided |
+| F-6 | **A false "duplicate" rejection at G1 removed a real obligation, and the calendar was published 4 entries short.** In review B the extractor did **not** split `SRC-UCILAW-P2`; the operator, expecting a split, rejected the one OBL-02 row as a duplicate, with a reason that is untrue for that run. The G3 audit entry records an acknowledgement of "1 rejected rules". The published calendar has 18 entries, not 22 (the 4 quarterly AED subscription-tax entries are missing). The system did what the human decided; the audit log keeps the untrue reason (append-only) | Medium for the demo path: a published calendar can silently miss a deadline, which is the wrong-output risk the gates exist for | Operator; for `@system.arch` with H-087 (the case for a G1 warning that tells one rule from two). I recommend nothing |
 | D-2 | **The H-088 handoff's judge count (and `backend.md`'s) reads "one applies, two unsure, one does_not_apply".** The stored verdicts are 1 applies, **5 unsure**, 1 does_not_apply (7 rows). This report uses the stored figures | Low (a wording error in a hand-off; no data is wrong) | `@backend.eng` (H-089); not changed here, because `backend.md` is not mine |
 
 ## 11. Future work (deferred tests, in order)
 
 1. ~~The operator's one real clean run, then a section 12 here~~ **Done once (section 12); the run failed at
-   Stage C.** Still to do: review B (it will get its own section), and a real run that completes through
-   Stage C, G3 and the GP's view. That needs `@system.arch`'s answer to H-087 (or the specialist rejecting the
-   duplicate row at G1) first.
+   Stage C; review B (section 12.6) completed and published, with 18 entries instead of 22.** Still to do: one
+   more real run whose calendar matches the key. The operator's plan: **it waits for `@system.arch`'s change for
+   H-087, then tests that change and Case 1 together; about 16 slots, 41 of 70 used, so about 13 would remain.
+   That is the last run the cap allows without a new operator decision; do not plan on a retry.**
 2. The evaluation cycle (B8, B9): I-1 and the altered quote, and C-2 and OK-1 as proper cases, on the
    verifier; the judge's `unsure` on OBL-04 **and the four rows it said `unsure` on that the key says apply**
    (section 12.3); EC-010 and EC-012 on a graded real run; the stage times measured again, with the limits
    then reviewed.
 3. Optional, new decision needed: the bake-off tooling that already exists.
 
-## 12. The first real run through the web app (review A, `RUN-20261123-1`, 2026-11-23)
+## 12. The first two real runs through the web app (review A, `RUN-20261123-1`, 2026-11-23; review B, `RUN-20261124-1`, 2026-11-24)
 
 **Added for H-088.** The operator ran the web app in real mode (`SPEND_ACTIVITY=spike`, demo rule off,
 `FND-DEMO-01`). I read `data/app.db` read-only (SHA-1 `7d77ea92…` for every read of review A; `spike.db` `32376900…`
@@ -180,9 +183,9 @@ unchanged throughout) and checked every figure in the handoff against the `trace
 **does not count towards the evaluation cycle** (EC-R6) and **cannot pass or fail a criterion** (3 of 3 runs,
 EC-R1). Everything below is an observation about one run. **`app.db` changed during my work, and not because of me:** at 11:08 on 2026-11-24 its hash was `f9c8c90a…`,
 because the operator had started review B (`RUN-20261124-1`, `ACTIVE` at G1, 11 trace lines at that moment). **Review B
-is not in this report** (it will be section 13). The trace and the audit log are append-only, and I re-read review A's
+is in section 12.6, not in 12.1 to 12.5, which are review A only.** The trace and the audit log are append-only, and I re-read review A's
 totals after the change (19 trace lines, US$0.0427, 42 audit events, 7 rows, `FAILED` at `C_RUNNING`): they are the
-same. **Any slot count below is the count at the end of review A; review B has used more since.**
+same. **Any slot count in 12.1 to 12.5 is the count at the end of review A; section 12.6 has the count after review B.**
 
 ### 12.1 Calls
 
@@ -201,7 +204,7 @@ same. **Any slot count below is the count at the end of review A; review B has u
 - **Call slots: 25 of 70 at the end of review A** (6 in `spike.db`, 19 in `app.db`), **US$0.0591 over both** (US$0.0164 + US$0.0427).
   The `--tally` role tables read `spike.db` only, so the figures above come from `app.db` directly. The tally's
   "Run cost" line is being fixed in its own PR (merged as #195).
-- The pinned-setting finding of section 5 now stands on **24 real calls** (5 + 19) instead of 5: no 400 on
+- The pinned-setting finding of section 5 now stands on **24 real calls** (5 + 19; 40 with review B, section 12.6) instead of 5: no 400 on
   `reasoning_effort`, nothing off the pinned setting. "So far" is still the honest wording.
 
 ### 12.2 Time and cost (observed, not graded)
@@ -306,21 +309,89 @@ says it should. The run is `FAILED`, phase `C_RUNNING`.
 It also shows that **a clean run will not always finish**: Case 3 said a clean run "will not show this case"; this
 one did, by accident, and it ended before the GP's calendar and G3. **So Stage C, the calendar, G3 and the GP's
 view have not run on real agents.** The specialist could have avoided the failure by rejecting one of the two
-rows at G1 (the refusal is the safeguard; the operator is doing that in review B). Whether the SAD should merge
+rows at G1 (the refusal is the safeguard; the operator tried that in review B, where it went wrong: see 12.6). Whether the SAD should merge
 the two rules, split the entry ID, or leave the refusal as the answer is H-087, for `@system.arch`. **I make no
 recommendation on that; it is a design decision.** **One consequence for the cycle** (evals.md Open Questions 6):
 the split has now happened in 3 of 3 real calls on this document, and reason 7 is neither voidable nor retryable,
 so a cycle run that repeats it ends `FAILED` unless a duplicate row is rejected at G1.
 
-### 12.5 How to read this section
+### 12.5 How to read sections 12.1 to 12.4 (review A)
 
 - **One run, one commit, `spike`, `FAILED`.** None of it counts towards the cycle. Every "would be" above is a
   reading of one run against a criterion, never a result.
 - **Neither the split nor the judge's caution is a defect in the build.** Both are what the real model did on a
   real document; the build handled them as designed (the refusal at Stage C; the human gate at G2).
 - **Not tested here** (also added to section 8): I-1, the altered quote, the injection case, a provider failure,
-  Stage C past the refusal, G3, the GP's view, three runs, and the page itself (I read the text in code and the
+  Stage C past the refusal and G3 (review B reached them: 12.6), the GP's view, three runs, and the page itself (I read the text in code and the
   database, not the screen).
+
+### 12.6 Review B (`RUN-20261124-1`, 2026-11-24): the path completed, the calendar is 18 entries, not 22
+
+**Added for H-088 (the operator's follow-up).** Read from `data/app.db` read-only (SHA-1 `eef1bba4…` at the time;
+`spike.db` unchanged). I made no call and did not view any page. The run is `COMPLETED` at G3 with a published
+calendar, labelled `spike`, so it **does not count towards the cycle** (EC-R6) and **cannot pass or fail a criterion**.
+**Label it honestly: it shows the full real path works, but it is not a clean Case 1 result,** because the operator
+wrongly rejected one row at G1 (below) and the calendar is 4 entries short.
+
+| Role | Model returned | Requests | Valid on the first try | Mean time | Cost | Tokens in / out |
+|---|---|---|---|---|---|---|
+| Extractor | `gpt-6-luna` | 5 | **5 of 5** | 2.5 s | US$0.0011 | 7167 / 777 |
+| Verifier | `gpt-5.6-terra` | 6 (one per row) | **6 of 6** | 1.8 s | US$0.0248 | 10412 / 333 |
+| Judge | `gpt-6.1-terra` | 5 (the 5 approved rows) | **5 of 5** | 4.8 s | US$0.0096 | 4900 / 932 |
+| **All** | | **16** | **16 of 16** | | **US$0.0355** | 22479 / 2042 |
+
+- All 16 on `/v1/chat/completions`, stop reason `stop`, **0 off the pinned setting, 0 estimated, 0 late, 0 retried,
+  0 invalid**. No request was sent after Stage B (the last trace line is 11:10:21).
+- **Call slots: 41 of 70** (6 in `spike.db`, 35 in `app.db`); **US$0.0946 over both**. Real calls so far: 40 (5 + 19 + 16),
+  none failed. The web app itself does not stop at 70 (`backend.md`, 2026-11-23), so the cap is kept by discipline.
+- **Observed, not graded:** Stage A 25 s (11:07:40 to 11:08:05), Stage B 24 s (G1 completed 11:10:00 to 11:10:24),
+  Stage C under a second (no model call), 47.2 s of model calls in all. Review A: 25 s and 30 s. Two runs, two values.
+
+**Extractor: 6 rows, one per key row, no split.** `SRC-UCILAW-P2` came back as **one** rule, "subscription tax
+return and payment", which is the key's OBL-02. **So the split is not predictable:** across the real extractions of
+this document it split in 3 of 4 (the two spike calls and review A) and not in review B. Four samples, not a rate.
+(I compared the row count and sources, not every field; the grader was not run.)
+
+**Verifier: C-1 and C-2 flagged, nothing else.** Cross-source flags on row 3 (OBL-03, against `SRC-PRACT-P1`) and row 5
+(OBL-05, against `SRC-PRACT-P2`); no flag on rows 1, 2, 4 and 6, OBL-01 included. That is **2 of 2 web-app runs** with
+both caught and no false alarm. I-1 and the altered quote were not in the run (demo rule off). Still not a rate.
+
+**Judge (5 approved rows; row 2, OBL-02, was rejected so it was not judged):**
+
+| Key obligation | Key says | Judge said | Same? | Review A said |
+|---|---|---|---|---|
+| OBL-01 | applies | **unsure** | **No** | unsure |
+| OBL-03 | applies | applies | Yes | applies |
+| OBL-04 | **unsure** | unsure | Yes | unsure |
+| OBL-05 | applies | **unsure** | **No** | unsure |
+| OBL-06 | does not apply | does_not_apply | Yes | does_not_apply |
+
+**The same verdicts in both runs on every obligation judged in both:** OBL-01 and OBL-05 `unsure` where the key says
+`applies` (F-5), OBL-03, 04 and 06 as the key says. The named confident error ("applies" on OBL-04) did not happen in
+either run. **Two runs now point the same way, which makes "the judge is stricter than the key on OBL-01 and
+OBL-05" harder to call noise; it is still two runs, and whether the key or the judge is wrong is the operator's call**
+(evals.md Open Questions 7). I did not re-read review B's stored reasoning.
+
+**What went wrong, and whose it was.** At G1 the operator rejected `ROW-RUN-20261124-1-2` with the reason "Duplicate of
+the subscription tax return rule: same source paragraph (SRC-UCILAW-P2), same deadline sentence. The extractor split one
+rule in two; the calendar needs one. See H-087." **That reason is untrue for this run:** there was one row for that
+paragraph, no duplicate. The operator expected a split because review A had one. So OBL-02 left the calendar, and the
+published calendar holds **18 entries (OBL-01 12, OBL-03 1, OBL-04 4, OBL-05 1), not the key's 22**: the 4 quarterly AED
+subscription-tax entries are missing. The audit log (append-only) keeps the untrue reason. G3 recorded "Calendar
+published (acknowledged 1 rejected rules and 8 unused paragraphs)", so the acknowledgement named the rejection (I did
+not view the screen). **The system did what the human decided.** This is finding F-6.
+
+**What review B proves, and what it does not.**
+
+| | |
+|---|---|
+| **Proves (real service, one run)** | The whole path ran on real agents: start, Stage A, G1 (with a rejection), Stage B, G2, Stage C, G3, publish. 16 of 16 first-try valid answers. The audit log has **0** events with stand-in wording. Stage C, which failed in review A, finished here **because no duplicate existed** (H-087 is still open, so the refusal itself is unchanged) |
+| **Does not prove** | A calendar that matches the key (22 entries): **still owed**. Any EC criterion (spike run, one run). That the GP's page shows the calendar correctly (I did not view it; the database holds the 18 entries). A real provider failure. I-1, the altered quote, injection. The collision refusal and review B together show it **never fires when the extractor does not split**, and that a specialist at G1 must tell "two rules" from "one rule" by reading the rows (for H-087) |
+
+**What comes next (the operator's plan, 2026-11-24).** Review C is **skipped for now.** There will be **one more real run,
+after `@system.arch`'s change for H-087 lands**, testing that change and Case 1 together. It needs about 16 slots; 41 of 70
+are used, so about 13 would remain, **not enough for a second full review. That run is the last one the cap allows without
+a new operator decision; do not plan on a retry.**
 
 ## Sources
 
@@ -342,7 +413,7 @@ read-only; `mock-data/expected-obligation-library.md` (the key) and `mock-fund-p
 ## Open Questions
 
 1. ~~When the operator makes the clean run, where is it reported?~~ **Closed 2026-11-24.** Here, as section 12,
-   because it counts toward the 70 and is labelled `spike`. Review B will be section 13.
+   because it counts toward the 70 and is labelled `spike`. Review B is section 12.6.
 2. Should D-1 be fixed in `spike_tally.py`, or left as a documented reading caution? `@backend.eng` owns it.
 3. `sad.md` says the spike's output is "named in this document's Audit when it exists". That is
    `@system.arch`'s file, so I raised a handoff rather than edit it.
@@ -363,3 +434,4 @@ read-only; `mock-data/expected-obligation-library.md` (the key) and `mock-fund-p
   paid call, no code changed, no snapshot changed. I did not view the failure page (I read its wording in
   `backend/services/runs.py` and the audit log). `*verify-change` and the `@security.eng` recommendation are
   **still not made**: B8 is not finished and review B is to come.
+- 2026-11-24 · persona `qa-eng` · action `qa` + `log-defects` (H-088 follow-up: section 12.6, review B, and F-6) · read-only: `data/app.db` (SHA-1 `eef1bba4…`) and `data/spike.db` opened with `mode=ro`. Every figure in `@backend.eng`'s two H-088 updates re-read from the database and **all matched** (16 requests, 5 / 6 / 5 by role, US$0.0355, 41 of 70, 18 entries, the flags, the judge verdicts); added: stage times (25 s and 24 s), the real-call count (40), the entry count per obligation, and the point that review B's judge verdicts repeat review A's. No model call, no real key, no paid call, no code changed. I did not view any page. `*verify-change` and the `@security.eng` recommendation are still not made.
