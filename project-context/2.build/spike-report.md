@@ -12,8 +12,10 @@ grew while I worked) and from the read-only `--tally`.
 real run through the web app (review A, `RUN-20261123-1`): 19 more requests in `app.db`. That run did not
 finish: it failed at Stage C** (section 12.4). **Review B (`RUN-20261124-1`, section 12.6) completed and
 published a calendar, but with 18 entries, not the key's 22, so it is not a clean Case 1 result either.**
-**Where sections 1 to 11 say "the clean run is not made", read section 12:** two runs were made; neither is the
-clean run the plan hopes for, and a key-matching calendar is still owed.
+**The third run (`RUN-20261124-2`, section 12.7) completed with a calendar of 22 entries, the key's count, on the
+extractor card released under DL-57. It is one run, with four cautions (12.7), and it is not graded.**
+**Where sections 1 to 11 say "the clean run is not made", read section 12:** three runs were made; the first two are
+not the clean run the plan hoped for, and the third delivers the key-matching calendar by count.
 
 ## 1. What was run, and what was not
 
@@ -164,17 +166,17 @@ seen and flagged again on every command. The honest wording is **"so far"**, on 
 ## 11. Future work (deferred tests, in order)
 
 1. ~~The operator's one real clean run, then a section 12 here~~ **Done once (section 12); the run failed at
-   Stage C; review B (section 12.6) completed and published, with 18 entries instead of 22.** Still to do: one
-   more real run whose calendar matches the key. The operator's plan: **it waits for `@system.arch`'s change for
-   H-087, then tests that change and Case 1 together; about 16 slots, 41 of 70 used, so about 13 would remain.
-   That is the last run the cap allows without a new operator decision; do not plan on a retry.**
+   Stage C; review B (section 12.6) completed and published, with 18 entries instead of 22; the run after the
+   DL-57 card release (`RUN-20261124-2`, section 12.7) completed with 22 entries, with four cautions.** The
+   key-matching calendar is delivered; the run it needed is made. **58 of 70 slots are used, 12 are left, and a
+   full run takes about 17, so another full run needs a new operator decision; do not plan on a retry.**
 2. The evaluation cycle (B8, B9): I-1 and the altered quote, and C-2 and OK-1 as proper cases, on the
    verifier; the judge's `unsure` on OBL-04 **and the four rows it said `unsure` on that the key says apply**
    (section 12.3); EC-010 and EC-012 on a graded real run; the stage times measured again, with the limits
    then reviewed.
 3. Optional, new decision needed: the bake-off tooling that already exists.
 
-## 12. The first two real runs through the web app (review A, `RUN-20261123-1`, 2026-11-23; review B, `RUN-20261124-1`, 2026-11-24)
+## 12. The first three real runs through the web app (review A, `RUN-20261123-1`, 2026-11-23; review B, `RUN-20261124-1`, 2026-11-24; the third run, `RUN-20261124-2`, 2026-11-24)
 
 **Added for H-088.** The operator ran the web app in real mode (`SPEND_ACTIVITY=spike`, demo rule off,
 `FND-DEMO-01`). I read `data/app.db` read-only (SHA-1 `7d77ea92…` for every read of review A; `spike.db` `32376900…`
@@ -393,7 +395,99 @@ after `@system.arch`'s change for H-087 lands**, testing that change and Case 1 
 are used, so about 13 would remain, **not enough for a second full review. That run is the last one the cap allows without
 a new operator decision; do not plan on a retry.**
 
-**Update on merge, 2026-11-24:** `main` now carries the H-087 answer. **DL-57: one sentence with one deadline is one row (merge)**, written into the extractor card, and H-090 copied it into `tasks.yaml`. So the change this plan waited for has landed and the one more real run is no longer blocked. Two cautions from DL-57 itself: **every extraction in this report ran on the old card** (so "split in 3 of 4" describes the old card), and EC-001 and EC-002 runs before and after are **not like-for-like**. I have not re-read the card or the code beyond that.
+**Update, 2026-11-24 (later): that run was made as `RUN-20261124-2`; see 12.7.** **Update on merge, 2026-11-24:** `main` now carries the H-087 answer. **DL-57: one sentence with one deadline is one row (merge)**, written into the extractor card, and H-090 copied it into `tasks.yaml`. So the change this plan waited for has landed and the one more real run is no longer blocked. Two cautions from DL-57 itself: **every extraction in this report ran on the old card** (so "split in 3 of 4" describes the old card), and EC-001 and EC-002 runs before and after are **not like-for-like**. I have not re-read the card or the code beyond that.
+
+### 12.7 The third run (`RUN-20261124-2`, 2026-11-24): the calendar matches the key by count, with four cautions
+
+**Added for H-088 (the operator's third update).** Read from `data/app.db` read-only (SHA-1 `29068e84…` at the time;
+`spike.db` `32376900…`, unchanged). I made no call and did not view any page. The run started at 12:15 UTC, in real
+mode, `SPEND_ACTIVITY=spike`, demo rule off. It is `COMPLETED` at G3 with calendar version 1 published. It is labelled
+`spike`, so it **does not count towards the cycle** (EC-R6) and **cannot pass or fail a criterion** (they need 3 of 3
+runs, EC-R1). **This is the run section 12.6 said was owed, and it delivers the key-matching calendar: 22 entries.**
+Read the four cautions below before quoting that sentence anywhere.
+
+**It ran on a different extractor card.** All 5 extractor requests carry prompt version **`aa365db76f401580`**, the
+card released under DL-57 (H-090). The verifier (`e76230593ee07c81`) and the judge (`53dcaa3bf2dc0ab1`) did not change.
+Review A and review B, and the spike's two calls on this document, ran on `aec586241001b7a5`. **So the extractor's
+figures before and after are not like-for-like (EC-001, EC-002) and must not be pooled.**
+
+| Role | Model returned | Requests | Valid on the first try | Mean time | Cost | Tokens in / out |
+|---|---|---|---|---|---|---|
+| Extractor (`aa365db76f401580`) | `gpt-6-luna` | 5 | **5 of 5** | 2.3 s | US$0.0011 | 7337 / 785 |
+| Verifier | `gpt-5.6-terra` | 6 (one per row) | **6 of 6** | 1.9 s | US$0.0257 | 10420 / 409 |
+| Judge | `gpt-6.1-terra` | 6 (all 6 rows) | **6 of 6** | 4.8 s | US$0.0116 | 5892 / 1141 |
+| **All** | | **17** | **17 of 17** | | **US$0.0385** | 23649 / 2335 |
+
+(The role costs are rounded, so they add to US$0.0384; US$0.0385 is the sum of the 17 trace lines and equals the run's
+stored cost.)
+
+- All 17 on `/v1/chat/completions`, stop reason `stop`, **0 off the pinned setting, 0 estimated, 0 late, 0 retried,
+  0 invalid, 0 provider errors.** No request was sent after Stage B (the last trace line is 12:23:36).
+- **Call slots: 58 of 70** (6 in `spike.db`, 52 in `app.db`); **US$0.1331 over both** (0.0164 + 0.0427 + 0.0355 +
+  0.0385). Real calls so far: 57 (5 + 19 + 16 + 17), none failed. The web app does not stop at 70 by itself
+  (`backend.md`), so the cap is kept by discipline.
+- **Observed, not graded:** from the trace timestamps, Stage A's calls ran from 12:15:15 to 12:15:37 (about 22 s) and
+  Stage B's judge calls from 12:23:09 to 12:23:36 (about 27 s); Stage C made no model call and finished at 12:34:46.
+  These are first-to-last trace lines, **not** the stage times in 12.1 and 12.6 (25 s, 30 s and 25 s, 24 s), so do
+  not set them side by side.
+
+**Extractor: 6 rows, one per key row, no split.** `SRC-UCILAW-P2` came back as **one** rule, "subscription tax return
+and payment", which is the key's OBL-02. The operator approved all 6 at G1 and rejected none; there was nothing to
+reject, and the G1 rule recorded in `backend.md` (reject a row only when two rows from one paragraph carry the same
+quote) was not needed. (I compared the row count and sources, not every field; the grader was not run. The reason
+text on the approvals of the two flagged rows, ROW-3 and ROW-5, is the single word "test".)
+
+**Verifier: C-1 and C-2 flagged, nothing else.** Cross-source flags on row 3 (OBL-03) and row 5 (OBL-05); no flag on
+rows 1, 2, 4 and 6. Across the three web-app runs it caught both every time and raised no false alarm. I-1 and the
+altered quote were not in the run (demo rule off). Still not a rate.
+
+**Judge (all 6 rows):**
+
+| Key obligation | Key says | Judge said | Same? | Review A said | Review B said |
+|---|---|---|---|---|---|
+| OBL-01 | applies | **unsure** | **No** | unsure | unsure |
+| OBL-02 | applies | **unsure** | **No** | unsure (both split rows) | not judged (rejected at G1) |
+| OBL-03 | applies | applies | Yes | applies | applies |
+| OBL-04 | **unsure** | unsure | Yes | unsure | unsure |
+| OBL-05 | applies | **unsure** | **No** | unsure | unsure |
+| OBL-06 | does not apply | does_not_apply | Yes | does_not_apply | does_not_apply |
+
+Three matched the key and **three were more cautious than the key** (OBL-01, 02, 05). The named confident error
+("applies" on OBL-04) did not happen in any of the three runs. **OBL-01 and OBL-05 have now come back `unsure` in all
+three runs in which they were judged, with the judge's prompt unchanged.** Read against EC-004 (6 of 6) it would be 3
+of 6 on this run; **nothing is graded.** Whether the key or the judge is wrong is the operator's call (evals.md Open
+Questions 7). I did not re-read this run's stored reasoning.
+
+**G2 and the calendar.** The operator decided the four `unsure` verdicts (OBL-01, 02, 04, 05) as "applies", each with
+a reason, and confirmed OBL-03 (applies) and OBL-06 (does not apply). Stage C built **22 calendar entries with 22
+unique IDs, 0 moved**: OBL-01 12, OBL-02 4, OBL-03 1, OBL-04 4, OBL-05 1 (OBL-06 has none). Stage C finished at 12:34:46
+and G3 recorded "Calendar published (acknowledged 0 rejected rules and 7 unused paragraphs)", against review B's "1
+rejected rules and 8 unused". The audit log has 37 events and **0** with stand-in wording. The collision refusal did
+not fire, because no two rules shared an entry ID.
+
+**The four cautions (keep all four when quoting this run).**
+
+| # | Caution | Why it matters |
+|---|---|---|
+| 1 | **The count and the split per row are checked; the due dates are not compared with the key.** 22 entries, unique IDs, and the per-obligation counts add up. I did not compare each due date with the key | The dates come from code and are tested without a model (EC-007, EC-008). "22 entries" is not "22 right dates" |
+| 2 | **21 of the 22 entries are precautionary.** Only OBL-03's one entry is not | The operator decided four `unsure` verdicts as "applies" at G2, and code adds the label (W-12, P-1). The system worked as the SAD says. It is **not** 21 confirmed deadlines |
+| 3 | **The judge was more cautious than the key.** OBL-01 and OBL-05 `unsure` in review B and in this run; OBL-02 `unsure` here (rejected, so not judged, in review B). The key says all three apply | It costs the specialist extra G2 work; it is not a missed deadline. For EC-004 and F-5 |
+| 4 | **One run is not a rate.** On the new card the extractor has run **once**, and did not split. On the old card it split in 3 of 4 real extractions of this document | One run cannot show the card prevents the split reliably. **Do not pool runs before and after `aa365db76f401580`** (EC-001, EC-002) |
+
+**What this run proves, and what it does not.**
+
+| | |
+|---|---|
+| **Proves (real service, one run)** | The whole path on real agents with a **calendar that matches the key by count**: 22 entries, one row per key obligation, the OBL-02 sentence kept as one rule, start, Stage A, G1, Stage B, G2, Stage C, G3 and publish. 17 of 17 first-try valid answers. A real run that did not split reached the calendar without any rejection at G1 |
+| **Does not prove** | That each **due date** matches the key (caution 1). That the card **reliably** stops the split (caution 4). That the GP's page shows the 22 entries correctly (I did not view it; the database holds them). Any EC criterion (spike run, one run). A real provider failure. I-1, the altered quote and injection (demo rule off). The planted row's refusal in real mode. F-6 is not tested either way: nothing was rejected |
+
+**What it does to F-4 and F-6.** F-4 (the split that broke Stage C) did **not** recur on the new card, once. F-6 (the
+false "duplicate" rejection) could not occur, because the extractor wrote one row. Neither is closed by one run; both
+stay as recorded (section 10).
+
+**The cap.** **58 of 70 slots used, 12 left.** A full run takes about 17 requests (this one took 17), so **12 slots
+are not enough for another full run without a new operator decision. Do not plan on a retry.** The tally's per-role
+tables still read `spike.db` only, so the figures here are from `app.db`.
 
 ## Sources
 
@@ -437,3 +531,4 @@ read-only; `mock-data/expected-obligation-library.md` (the key) and `mock-fund-p
   `backend/services/runs.py` and the audit log). `*verify-change` and the `@security.eng` recommendation are
   **still not made**: B8 is not finished and review B is to come.
 - 2026-11-24 · persona `qa-eng` · action `qa` + `log-defects` (H-088 follow-up: section 12.6, review B, and F-6) · read-only: `data/app.db` (SHA-1 `eef1bba4…`) and `data/spike.db` opened with `mode=ro`. Every figure in `@backend.eng`'s two H-088 updates re-read from the database and **all matched** (16 requests, 5 / 6 / 5 by role, US$0.0355, 41 of 70, 18 entries, the flags, the judge verdicts); added: stage times (25 s and 24 s), the real-call count (40), the entry count per obligation, and the point that review B's judge verdicts repeat review A's. No model call, no real key, no paid call, no code changed. I did not view any page. `*verify-change` and the `@security.eng` recommendation are still not made.
+- 2026-11-24 · persona `qa-eng` · action `qa` + `log-defects` (H-088, third update: section 12.7, the third real run `RUN-20261124-2`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: `data/app.db` (SHA-1 `29068e84…`) and `data/spike.db` (`32376900…`, unchanged) opened with `mode=ro`. Every figure in `@backend.eng`'s third H-088 update and in `backend.md` re-read from the database and **all matched** (17 requests, 5 / 6 / 6 by role, US$0.0385, prompt versions, 6 rows, the flags, the verdicts, 22 entries with 21 precautionary, 0 stand-in audit events, 58 of 70). Added: the model and token figures per role, the approvals' reason text ("test"), the audit counts, and a check that the judge's and verifier's prompt versions are the same in all three runs. Changed in this file: the section 12 heading, the header status, section 11 item 1 and a pointer in 12.6. No model call, no real key, no paid call, no code changed. I did not view any page. **All four cautions are kept (12.7).** `*verify-change` and the `@security.eng` recommendation are still not made.
