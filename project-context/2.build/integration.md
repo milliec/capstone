@@ -298,6 +298,7 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 | D-2 | **Approve only the fixes for E-11 and the 70-call cap in the web path** (P-3, P-5). Park the rest with IDs | Section 3.4 and the table in section 7 (`IFW-1` to `IFW-3`) |
 | D-3 | **New wording** for the two new failure reasons | Section 3.4: `unexpected error`, `call limit` |
 | D-4 | **Skip the timed run; polling stays**, on existing timings, recorded as a known limit | Section 2.2 (KL-1) and `IFW-4` |
+| D-5 | **Section 9 approved:** the rewrite, the rebuild only as the fallback, called from `create_app` and not `init_db`; **the real `data/app.db` is migrated**, after the operator's own backup. The new hash baseline goes to `@qa.eng` | Section 9, 9.6, handoff H-093 |
 
 **What happens next, in order (each its own pull request; nothing here is merged by `@integration.eng`):**
 1. **H-092** to `@system.arch`: record the two new failure reasons in `sad.md` (the run-state failure rows, the
@@ -308,8 +309,10 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 
 ## 9. Proposal: how an existing database gets the two new failure reasons (for H-091, step 3)
 
-**Status: PROPOSED, tested on a copy. Nothing in `backend/` is changed and neither real database was opened for
-writing.** It waits for H-092 (the reasons are recorded in the SAD first) and for the operator's approval.
+**Status: APPROVED by the operator on 2026-11-24 (D-5, section 8): the rewrite, the rebuild only as the fallback,
+called from `create_app` and not from `init_db`, and the real `data/app.db` is migrated** (the operator takes a
+backup first). Tested on a copy. **Nothing in `backend/` is changed yet and neither real database was opened for
+writing.** It waits for H-092 (the reasons are recorded in the SAD first); `@backend.eng` then builds it (H-091).
 
 ### 9.1 The problem
 
@@ -364,9 +367,7 @@ real runs cannot be disturbed, and it makes an old database look exactly like a 
 - **Before that first start, take a backup, read-only, by choice:** `sqlite3 -readonly data/app.db ".backup
   'data/app-before-reasons.db'"` (`data/` is git-ignored). I propose it as a step for you, **not** as something the
   app does by itself.
-- **Fallback if you would rather not migrate the real evidence at all:** start a fresh database
-  (`DATABASE_PATH=data/app-2.db`) and keep `data/app.db` read-only for `@qa.eng`. Cost: the new database's
-  Filing rules list starts empty.
+- ~~Fallback: a fresh database beside the old one.~~ **Not chosen (D-5).** The real `data/app.db` is migrated.
 
 ### 9.5 Tests for the migration (Tier 1, temporary files only, added to H-091)
 
@@ -376,6 +377,36 @@ nothing; (c) the stored text equals a database made from the new `schema.sql`; (
 expected is refused and left as it was; (e) with SQLite's defensive setting on, B is used and passes (a) to (c);
 (f) **`init_db` on a spike-style database does not change `units`** (so `spike.db` stays as it is). The existing
 `test_attempt_trace.py` trace-column test is the pattern to follow.
+
+### 9.6 The new hash baseline for `@qa.eng` (handoff H-093)
+
+**The file hash will change on purpose, so the file hash alone cannot show that the data is intact.** What to
+compare instead is each table's content. Method, read-only, the same before and after:
+```bash
+for t in $(sqlite3 -readonly data/app.db "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"); do
+  echo "$t | $(sqlite3 -readonly data/app.db "SELECT COUNT(*) FROM $t") | $(sqlite3 -readonly data/app.db "SELECT rowid, * FROM $t ORDER BY rowid" | shasum -a 1 | cut -c1-12)"
+done
+```
+**Before the migration** (`data/app.db` SHA-1 `29068e84…`; CLI 3.54.0). I read `units`, `trace` and `audit_log` from the
+real file (read-only) and they equal the backup copy; the other eleven rows come from that copy, which is a
+`.backup` of the same file at the same hash:
+
+| Table | Rows | Content digest | | Table | Rows | Content digest |
+|---|---|---|---|---|---|---|
+| audit_log | 153 | `3e2b103eb89a` | | rows | 19 | `0ffa9882fcab` |
+| calendar_entries | 40 | `a4bf02c7c666` | | runs | 9 | `e7ed1de85b57` |
+| calendar_versions | 4 | `94afe0f54968` | | trace | 52 | `8938b1ff33ee` |
+| flags | 6 | `83c265705b82` | | **units** | 93 | `8c95d012a5e2` |
+| paragraphs | 39 | `d80f31a0f54f` | | verdict_decisions | 18 | `de2b3522d7a5` |
+| publications | 4 | `e975c35560cc` | | verdicts | 18 | `3813641c8fb7` |
+| quote_checks | 19 | `9ed6d2618713` | | row_decisions | 19 | `9ffbab7bce87` |
+
+**After the migration:** every row above must be the same (the migration changes the table's definition, not its
+rows), `PRAGMA integrity_check` must say `ok`, and `data/spike.db` must still be `32376900…`. **Only the file's
+SHA-1 is new**, and `@qa.eng` records it then; I cannot know it before the migration runs. **Two traps:** (1) a
+`.backup` file has a **different** SHA-1 from its source (my copy: `adbf9406…` against `29068e84…`), so never
+compare a backup to the original by file hash, only by the table digests; (2) the app writes new rows on any new
+review, so the digests are only comparable **before the first new review** is started on the migrated database.
 
 ## Sources
 
@@ -396,9 +427,9 @@ expected is refused and left as it was; (e) with SQLite's defensive setting on, 
 
 ## Open Questions
 
-1. **How does an existing `data/app.db` get the two new reasons?** Proposed and tested on a copy: section 9.
-   **The operator still has to approve it,** and decide whether the real `data/app.db` is migrated (section 9.4) or
-   kept as it is with a fresh database started beside it. Neither real database has been touched.
+1. ~~How does an existing `data/app.db` get the two new reasons?~~ **Answered (D-5): section 9, approved.** Still
+   open: the migration has not run. It runs on the first start of the app on the code from H-091, after H-092 and
+   after the operator's backup. Neither real database has been touched yet.
 2. Is E-11 reproduced? I read it in the code; the first test in H-091 settles it.
 3. `IFW-5` (process log) and `IFW-6` (test coverage) are open and parked.
 
@@ -412,3 +443,4 @@ expected is refused and left as it was; (e) with SQLite's defensive setting on, 
   checked for syntax against an empty in-memory copy of the schema only.
 - 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded the operator's decisions D-1 to D-4: no new real run (`RUN-20261124-2` is the proof); P-3 and P-5 approved; P-1, P-2, P-4 parked as `IFW-1` to `IFW-3`; new failure-reason wording proposed; polling stays with known limit KL-1; the timed run parked as `IFW-4`. Raised H-091 (`@backend.eng`) and H-092 (`@system.arch`). **Documentation only; no code, no model call, no key; `data/spike.db` and `data/app.db` not opened.**
 - 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · added section 9, the proposal for how an existing database gets the two new failure reasons, **tested on copies only** (a read-only `.backup` of `data/app.db`, in the scratchpad, outside the repository). `data/app.db` (`29068e84…`) and `data/spike.db` (`32376900…`) had the same SHA-1 before and after, and were opened read-only. **Documentation only; no change in `backend/`, no model call, no key.**
+- 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded D-5 (section 9 approved; the real `data/app.db` is migrated after the operator's backup), wrote 9.6 (the content-digest baseline for `@qa.eng`, read-only: `units`, `trace`, `audit_log` from the real file and the rest from the backup copy), and raised H-093. `data/app.db` (`29068e84…`) and `data/spike.db` (`32376900…`) were opened read-only and had the same SHA-1 before and after. **Documentation only; no change in `backend/`, no model call, no key.**
