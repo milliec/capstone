@@ -276,6 +276,25 @@ and the checker that only copies evidence needed no date check at all. A rule li
 its flaw when real text runs through it, so the spec should be updated from what the build found
 (H-052).
 
+**When a model splits one rule into two, first decide what "one" means; don't add machinery yet.** The
+real model read one sentence that gave two actions with the same deadline and wrote two rules. The
+system refused to build the calendar, because two rules gave the same calendar-entry ID, and it did so
+cleanly: no half-finished calendar, the reason written down. The question was how to stop it. One
+answer was to put the action into the ID so the two rules stay separate. But the ID would then depend
+on a label the model writes, and the same deadline could get a different ID on every run. The other
+answer was to say in the instructions that one sentence with one deadline is one row. We chose that, and
+kept the refusal as the safety net. The model split the sentence in three of four real tries and not in
+the fourth, so the instruction makes a split less likely but cannot prevent it: one try is not a rate.
+It's like a form where two lines mean the same thing: you first decide whether they are one question,
+before you add a rule to catch people who fill in both (H-087).
+
+**Editing the spec does not change what the model is told.** The instructions the model reads were
+a copy in a code file, not read from the design document. So the document said "merge" while the
+model still read the old wording, until someone copied the sentence across and released it. When a
+decision changes what a model is told, find where the model's text really lives, hand that copy to
+whoever owns it, and hold the next real run until it lands. It's like updating the style guide
+and finding the old wording still printed on the signs (H-090).
+
 ## 3. Testing and evaluation
 
 **An answer key is how you prove the agents work.** QA runs the agents on the mock sources and compares
@@ -410,6 +429,15 @@ something that stops surprises instead of only noticing them afterwards. It's li
 prototype only in the design tool's preview: it behaves, until it meets a real phone with a real
 keyboard that nobody drew.
 
+**Write a clean-up rule in terms of what you can see, not what you expect.** In the second real run the
+operator expected the model to split a sentence into two rows again, and rejected one as a duplicate.
+This time the model had not split it. There was only one row, so rejecting it removed a real
+obligation: four deadlines were missing and the calendar had 18 entries instead of 22. The run still
+proved the whole path works, but it could not count as the clean "should succeed" result. We labelled it
+as it happened and did not edit the record. The rule is now: reject a row as a duplicate only when
+**two rows quote the same sentence**, and never a lone row. It's like deleting "the duplicate" photo
+before checking there are two (H-087).
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -508,6 +536,15 @@ Lesson: two copies of "the same" check can disagree; trust the one that guards t
 and when a hand check matters, call the exact tool by its full path (`/usr/bin/grep`). It's like
 checking colour contrast with a different plug-in from the one the design review uses: same
 question, different answer.
+
+**A new working copy of the project does not bring the git-ignored folders with it.** Git only copies
+tracked files into a new worktree, so the folder of real source material and the Python environment
+were missing. The commit hook is built to stop when it cannot run its checks (here the real-name scan),
+so it refused. The right move was not to skip the hook but to link the two folders in, add files by
+name so the links could never be committed, and remove the links afterwards. The hook even had a line
+for this case, because a link to an ignored folder looks like an ordinary new file to git. Check
+that a new working copy has what the guards need before the first commit, not at the first
+refusal (H-087).
 
 ## 5. Domain: fund compliance calendars
 
@@ -657,3 +694,4 @@ bring it back. Changing visible text also touches the tests that check it and th
   word; change only what the user sees, and record that the code's word is never shown)
 - 2026-11-21 · added two notes from the B8 Stage A grader slice (break the code on purpose to see whether a test can fail; try the grader on pretend answers before paying for real ones)
 - 2026-11-23 · added one note from H-076 (the first real call sent a request the pretend server could never show; treat the first real run as a test of what the fake cannot see, and add a guard)
+- 2026-11-24 · added three notes from H-087 (a model splitting one rule: decide what "one" means first; a spec edit does not change the model's text if it is a copy in code; write a clean-up rule from what you see, not what you expect) and one from the new-worktree hook refusal (a new working copy lacks the git-ignored folders the guards need)
