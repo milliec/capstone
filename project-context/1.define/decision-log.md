@@ -1466,6 +1466,27 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   the same paragraph" row), the DL-57 row; `decision-log.md` (this entry); `handoffs.md` (H-087 Outcome; H-090 to `@backend.eng` to copy the sentence into `tasks.yaml`, because the
   SAD edit alone changes no model call).
 
+### DL-59 · An evaluation run is derived; evaluation has its own 57-call cap; copy-case failures do not void (H-095)
+
+- **Decision** (operator, 2026-11-24, H-095). **(1)** An evaluation run is a run with `spend_activity`
+  `evaluation` started by `specialist-eval`. It is derived, so there is **no new column** and the
+  `data/app.db` hash baseline does not move. `specialist-eval` is for the scripted gates only; the
+  sign-in page still offers two identities. An evaluation run refuses stand-in mode and a planted row,
+  and each refusal is audited. **(2)** Evaluation has its own cap of **57 real calls** in the same cap
+  table as spike (70) and tuning (60). It **fails closed**: at the cap, or when the count cannot be
+  read, no call is made and the unit fails with `call limit`. **(3)** The `I-1` and injection calls
+  are not units: a failure makes EC-005 or EC-021 **incomplete**, never a pass, and is not re-run.
+  **(4)** The three-run comparison (EC-R1) is parked, not scheduled.
+- **What follows** (my reading, for the operator to confirm): the two harness calls count; a voided
+  run's calls stay in the count, so a **replacement run needs a recorded decision first** (EC-R10
+  point 3), and without one the cycle reports fewer than three runs; `call limit` never voids a run.
+- **Found, not decided**: a run took 17 requests in the spike and 19 in the first web-app run, so a
+  cycle needs 57 to 63 calls. 57 leaves no room for a retry. See SAD SOQ-36.
+- **Changed**: SAD DL-58 and failure reason 10, CR-030 and T-MODE-1, sign-in text, EC-R2, EC-R7,
+  EC-R8 (points 2, 3, new 6), EC-R10 point 2, EC-005, EC-021, the evaluation budget row, the B8 row,
+  SOQ-36, the DL-59 row; `decision-log.md` (this entry); `handoffs.md` (H-095 Outcome).
+  DL-58 has no entry in this file; that is not changed here.
+
 ## Audit
 
 - 2026-11-09 · persona `product-mgr` · action `update` · log created; DL-01 to DL-12 from the UX and
@@ -1549,3 +1570,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-56 (a stage's units run one after another, as built; the SAD said in parallel). `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-081) · action `update` · DL-55: the bake-off is stated as not owed (a later run needs a new operator decision and entry), and three known limits are added: the false-alarm rate, the extractor on one document of five, the judge's verdicts seen. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-087) · action `update` · new DL-57 (one sentence with one deadline is one row: merge, not separate entries; F-12 stays parked; the card change affects EC-001 and EC-002; a G1 warning is an open option only). `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-095) · action `update` · new DL-59 (an evaluation run is derived and `specialist-eval` is not a sign-in choice; evaluation has its own 57-call cap that fails closed; copy-case failures leave EC-005 or EC-021 incomplete and do not void; the three-run comparison is parked; found: 57 has no room, SOQ-36). `AAMAD_TARGET_RUNTIME=crewai`.
