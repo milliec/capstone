@@ -223,6 +223,17 @@ started; worth a look by `@backend.eng`. **Not tested:** a second start (the "no
 a review on the new code (so a real `unexpected error` or `call limit` ending was not seen; Tier 1 covers both against the
 fake OpenAI).
 
+**Closed 2026-11-24 (`@backend.eng`): the `data/data` symlink was gone when the operator checked on 24 Nov.** The
+operator's listing of `capstone/data` showed only `app.db`, `app.db.bak-20261124` and `spike.db`. Nothing was removed by
+this note and no database was opened. **Can the app start create it? No, by the code.** The start path
+(`backend/db/connection.py`, `init_db`) only calls `mkdir(parents=True, exist_ok=True)` on the folder that holds the
+database and then opens the file; no code under `backend/` or `scripts/` makes a link inside `data/`. The one place that
+can is the manual run-folder loop in `backend.md` ("Before the operator's real clean run", step 1),
+`for f in .venv reference .env data; do ln -s "$PROJECT/$f" "$f"; done`. Run a second time in a worktree whose `data` is
+already a link to the real folder, `ln -s` follows that link and puts a new link called `data` inside the real `data/`,
+pointing back at it (reproduced in a throwaway folder, no real files touched). That fits what was seen, but I cannot tell
+from the files whether the loop was run twice, so this is the likely cause and not a proven one.
+
 ### Verification checklist
 
 **Increment checked:** H-091 to H-094 (2026-11-24), the last code change on `main` (PRs #211 to #214, #216, #219, with
@@ -269,3 +280,4 @@ and the evaluation cycle has not run (Future work 1 to 3), so a recommendation n
 - 2026-11-24 · persona `qa-eng` · action `log-defects` + `update` (H-091, the note to `@qa.eng`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: file hashes of `data/app.db` (SHA-1 `29068e849cc62e921688a30ea31283bcc56ad81e`, equal to `data/app.db.bak-20261124`), `data/spike.db` (`32376900d98eae2eaaaa5ed434610260fa820f0a`); the table digest was read from the backup copy with `mode=ro&immutable=1`, not from the real file. New: the section "Database hash baseline (H-091)". Changed in `spike-report.md`: an Update line after each of the two "does not stop at 70" sentences (12.6 and 12.7). Same Update line added in `evals.md` line 186 (the "Real-run status of Case 1" row), at the operator's instruction. The after-start hash and digests are left open for the operator's first start. No model call, no real key, no paid call, no code changed, no snapshot changed. `*verify-change` and the `@security.eng` recommendation are still not made.
 - 2026-11-24 · persona `qa-eng` · action `verify-change` (the increment H-091 to H-094, `main` at `f31848f`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · ran Tier 1 (660 passed, 0 failed) and `ruff check backend tests` (clean); read the `backend/` diff from H-091's first commit. New: the section "Verification checklist". Result: pass for that increment, with three items left open (first start on the real `data/app.db`; the `call limit` retry test with B13b; the new sentences not viewed on a page). No AC-* exists for the two new reasons, so none was invented. No `*test-visual` run, no `*run-evals`. No model call, no real key, no paid call, no code changed, no snapshot changed; `data/app.db` and `data/spike.db` not opened. The `@security.eng` recommendation is **not** made: B8 is not finished.
 - 2026-11-24 · persona `qa-eng` · action `qa` + `log-defects` (H-091, the four after-start checks) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: file hashes, then `mode=ro&immutable=1` for digests and the stored `units` text; server not running. `data/app.db` SHA-1 `cfcd909e8875fab8f054b31ad6ad8e15d622ba76` (was `29068e84…`; changed as expected); table digests unchanged (names `307b68b55d321f89`, all `e5624554c3c393d3`); `data/spike.db` `32376900d98eae2eaaaa5ed434610260fa820f0a` unchanged. Noted a git-ignored symlink `data/data` (not removed). No model call, no real key, no paid call, no code changed, no snapshot changed. The `@security.eng` recommendation is still not made: B8 is not finished.
+- 2026-11-24 · persona `backend-eng` · action `document-backend` (docs only; closes the `data/data` item from the H-091 after-start check) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read the code only (`backend/db/connection.py`, `scripts/`, the `backend.md` run-folder loop); the link was gone when the operator checked on 24 Nov; no database opened, no model call, no code changed.
