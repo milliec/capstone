@@ -29,6 +29,16 @@ IDENTITIES = {
                      "Bramblegate Partners · view only · demo with mock data"),
 }
 
+# The identity the scripted evaluation gates act as (EC-R2, DL-59, H-096 PR 3). It is kept OUT of
+# IDENTITIES on purpose: the sign-in page lists IDENTITIES, and `sign_in` and the session cookie only
+# accept IDENTITIES, so `specialist-eval` can never be chosen or forged from the browser. Only code
+# that passes it as `started_by` / `actor` (the evaluation run starter) uses it.
+EVALUATION_ACTOR = "specialist-eval"
+SCRIPTED_IDENTITIES = {
+    EVALUATION_ACTOR: Identity(EVALUATION_ACTOR, "specialist", "Evaluation script",
+                               "Scripted gates · evaluation runs only"),
+}
+
 
 class Forbidden(Exception):
     """Raised when the signed-in role may not do this. The web layer shows the 403 page."""
