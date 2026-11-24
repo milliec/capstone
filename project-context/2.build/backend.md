@@ -1129,6 +1129,7 @@ off). **No code or SAD wording is changed by this section.**
   would remain, which is **not enough for a second full review**. That run is the last the cap allows without a new
   operator decision. The rule for it at G1: reject a row only if two rows from the same source paragraph carry the
   same quote (then reject the second); with one row, approve it. H-087 and H-088 carry the facts.
+  *(Done 2026-11-24: that run was RUN-20261124-2; see "Case 1 is met by RUN-20261124-2" below.)*
 
 ### The extractor card release (DL-57, H-090, 2026-11-24)
 
@@ -1141,6 +1142,42 @@ CR-018). **The extractor's prompt version changed from `aec586241001b7a5` to `aa
 it (EC-001, EC-002; do not pool). **The next real run's report must name `aa365db76f401580`.** Tier 1 (615) and
 Tier 2 (161) pass. Not changed: the collision refusal, the entry ID, the 22-entry key. No real call was made, and
 none should be until this is merged.
+
+### Case 1 is met by RUN-20261124-2 (2026-11-24), with cautions
+
+**The run.** `RUN-20261124-2`, real mode, `SPEND_ACTIVITY=spike`, demo rule off, started 2026-11-24 12:15 UTC,
+`COMPLETED`, published as calendar version 1. It ran **after** the extractor card release (DL-57, H-090): all 5
+extractor requests carry prompt version **`aa365db76f401580`** (the verifier's `e76230593ee07c81` and the judge's
+`53dcaa3bf2dc0ab1` did not change). Read back from `app.db`, read-only.
+
+**What it showed.**
+- **Calls:** 17 requests (extractor 5, verifier 6, judge 6), **all valid on the first try**, all on
+  `/v1/chat/completions`, stop reason `stop`, none off the pinned setting, no error; US$0.0385. Mean times: extractor
+  2.3 s, verifier 1.9 s, judge 4.8 s.
+- **Extractor:** 6 rows, one per key row, **no split** (`SRC-UCILAW-P2` came back as one row, "subscription tax return
+  and payment"). The operator approved all 6 at G1 and rejected none.
+- **Verifier:** flagged C-1 and C-2 and nothing else (no false alarm on the other 4 rows). I-1 was not in the run.
+- **Judge:** OBL-03 `applies`, OBL-04 `unsure` and OBL-06 `does_not_apply`, as the key says. **OBL-01, OBL-02 and
+  OBL-05 came back `unsure` where the key says they apply.**
+- **G2 and the calendar:** the operator decided those three and OBL-04 as "applies" with a reason, and confirmed
+  OBL-03 and OBL-06. The calendar has **22 entries, unique IDs** (OBL-01 12, OBL-02 4, OBL-03 1, OBL-04 4,
+  OBL-05 1), 0 moved. The audit log says "Stage C finished" with no stand-in wording.
+
+**Case 1 is met, with these cautions (do not drop them when quoting it).**
+1. **The count is checked, the dates are not.** 22 entries and the split per row add up; I did not compare each
+   due date with the key. Dates come from code and are tested without a model (EC-007, EC-008).
+2. **21 of the 22 entries are marked precautionary.** That is the system working as the SAD says: the operator
+   decided four "unsure" verdicts as "applies" at G2, and code adds the label (W-12, P-1).
+3. **The judge was more cautious than the key.** OBL-01 and OBL-05 came back `unsure` in **both** review B and this
+   run (two runs); OBL-02 came back `unsure` here (it was rejected, so not judged, in review B). The key says all
+   three apply. This costs the specialist extra G2 work; it is not a missed deadline. The harmful error (a confident
+   wrong "applies" on OBL-04) did not happen. For EC-004.
+4. **One run is not a rate.** On the new card the extractor has been run once, and did not split. On the old card it
+   split in 3 of 4 real extractions. Whether the card prevents the split reliably is **not shown** by one run.
+
+**The cap.** **58 of 70 slots used, 12 left** (6 in `spike.db`, 52 in `app.db`); US$0.1331 recorded across both
+databases. A full run takes about 17 requests, so **12 slots are not enough for another full run** without a new
+operator decision. The tally's per-role tables still read `spike.db` only; the figures above are from `app.db`.
 
 ## Pattern Decision compliance
 
@@ -1398,4 +1435,5 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-24 · persona `backend-eng` · `document-backend` (review B recorded, option A) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "do A: Update lines on H-087 and H-088 and label the run honestly in the report". Docs only: a paragraph in the first-real-run section; Update lines on H-087 and H-088 (the report label is asked of `@qa.eng` in H-088, because `spike-report.md` is theirs). Read back from `app.db`, read-only. No code, no real call.
 - 2026-11-24 · persona `backend-eng` · `document-backend` (Case 1 recorded as owed; review C skipped) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "skip review C; record Case 1 as path proven, calendar 18 of 22, matching calendar owed; one real run after H-087's change lands". Docs only: the "Next" bullet in the first-real-run section, and a second Update line on H-088 asking `@qa.eng` to carry it into section 12 and evals Case 1. Stacked on #197 (same lines). No code, no real call.
 - 2026-11-24 · persona `backend-eng` · `develop-be` (H-090: the extractor card sentence copied into `tasks.yaml`, DL-57) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "start H-090 once #200 is on main". One sentence added to `backend/config/tasks.yaml` step 2, checked word for word against sad.md and the handoff; a release: the extract prompt version `aec586241001b7a5` became `aa365db76f401580`. Tier 1 and Tier 2 green. H-090 Outcome filled and moved to Done. No real call.
+- 2026-11-24 · persona `backend-eng` · `document-backend` (Case 1 recorded as met by RUN-20261124-2) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "record Case 1 as met by RUN-20261124-2, with the card version, 22 entries and all the cautions; note 12 slots are not enough for another full run". Docs only: new section "Case 1 is met by RUN-20261124-2", the "Next" bullet marked done, and an Update line on H-088 (a closed entry; `@qa.eng` asked to re-read it). Read back from `app.db`, read-only. No code, no real call.
 - 2026-11-24 · persona `backend-eng` · `document-backend` (H-089: the judge's verdict count) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "H-089". Docs only: one line in "The first real run through the web app" corrected from "one applies, two unsure, one does_not_apply" (4 of 7) to 1 applies, 5 unsure, 1 does_not_apply (7 of 7), as `@qa.eng` found. Read back from `data/app.db` read-only (`verdicts` for `RUN-20261123-1`). Left as written: the older line near "B3 spike finding 3" that says the unsure and does-not-apply verdicts were never produced (true when it was written, 2026-11-23, before this run). No code, no real call.
