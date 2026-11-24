@@ -1429,6 +1429,43 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   (latency, expected volume, time-limit item 3), §2 (runtime shape, the stage table, the units bullet,
   the `max_rpm` row), the DL-56 row.
 
+
+### DL-57 · One sentence with one deadline is one row: merge, not separate entries (H-087)
+
+- **Decision** (operator, 2026-11-24, answering H-087; the answer key is right that the return and the
+  payment in `SRC-UCILAW-P2` are **one** rule). **When one sentence gives two actions with the same
+  recipient, frequency, anchor and deadline, the extractor writes one row and names both actions** (for
+  example "subscription tax return and payment"). The entry ID does **not** gain an obligation part.
+- **What happened**: in the first real web-app run (review A) the real extractor split that sentence
+  into two rows, and Stage C refused to build the calendar on the entry ID collision (DL-35, CR-011), as
+  designed: the audit log named both rows, no calendar was stored, nothing moved forward. In review B it
+  did **not** split. Across the real extractions of this document it has split in 3 of 4: **not
+  predictable, and a small sample, not a rate**.
+- **Why merge**: the answer key has one rule for that sentence, and one entry per deadline keeps the
+  calendar at the key's 22 entries. Separate entries (F-12, which stays parked) would need a label for
+  each obligation that the extractor writes, so the entry ID would depend on the model's wording. That
+  puts at risk the promise that the same occurrence gets the same ID in every run (US-008 c7, EC-008).
+  *(That last point is my inference, not a measured result.)*
+- **What it does not do**: the card sentence makes a split less likely; it cannot prevent one. The
+  collision refusal stays as the safeguard. When two rows quote the same sentence, the specialist
+  rejects the second at G1 as a duplicate. A single row is never rejected for this: review B shows the
+  cost (the extractor had not split, the lone row was rejected, and the calendar had 18 entries, not
+  22). A collision found at Stage C ends the run, and a retry cannot fix it, because the approved rows
+  are unchanged.
+- **Effect on the evaluation: EC-001 and EC-002 are affected.** The extractor card is the extractor's
+  prompt. The real extractions so far (the spike's two calls, review A, review B) ran on the card
+  **without** this sentence, so they are not like-for-like with any run on the card **with** it. The
+  next evaluation run must say which version of the card it ran, and must not pool its extractor
+  results with the earlier ones.
+- **Open option, not decided, not specified, not built**: a warning at G1 when two rows would give the
+  same entry ID. It would catch the collision before G1 and G2 work is spent. It is a new check, so it
+  needs a SAD edit and an operator decision first.
+- **Not changed**: the entry ID format; the collision refusal (DL-35, CR-011); T-ID-1 and T-ID-2;
+  the 22-entry key; F-12 (parked).
+- **Changed**: SAD extractor card (Task `extract_rows`, step 2), Known limitations (the "two rules for
+  the same paragraph" row), the DL-57 row; `decision-log.md` (this entry); `handoffs.md` (H-087 Outcome; H-090 to `@backend.eng` to copy the sentence into `tasks.yaml`, because the
+  SAD edit alone changes no model call).
+
 ## Audit
 
 - 2026-11-09 · persona `product-mgr` · action `update` · log created; DL-01 to DL-12 from the UX and
@@ -1511,3 +1548,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · DL-55: the stage time limits are recorded as the operator's decision (starting limits stay for now); the handoff for the runner docs is renumbered H-081 to H-083, because `@backend.eng` raised its own H-081 and H-082 in PR #180. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-56 (a stage's units run one after another, as built; the SAD said in parallel). `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-081) · action `update` · DL-55: the bake-off is stated as not owed (a later run needs a new operator decision and entry), and three known limits are added: the false-alarm rate, the extractor on one document of five, the judge's verdicts seen. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-087) · action `update` · new DL-57 (one sentence with one deadline is one row: merge, not separate entries; F-12 stays parked; the card change affects EC-001 and EC-002; a G1 warning is an open option only). `AAMAD_TARGET_RUNTIME=crewai`.
