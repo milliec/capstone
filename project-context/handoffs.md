@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-107: `trace.record_call`: a call with an `eval_case` is never stamped `late` (one line; PR 6, #243)
+- From: @qa.eng   To: @backend.eng   Date: 2026-11-24
+- Touches: `backend/services/trace.py` (`record_call`), `tests/tier1/test_trace_eval_case.py`; sad.md DL-45, DL-43 (late results), EC-010; related: H-097 PR 6, H-096
+- Ask: **Please say OK, or give another way.** PR 6 (#243) changes one line in your file: `late = False if eval_case else _is_late(conn, run, stage)`. Why: the `I-1` and injection calls are made after Stage A or at the end of the run, while the run waits at a gate or has finished, so `_is_late` stamps them `late = 1`. Late lines are counted as wasted time by the Stage B grader (EC-010) and are described as "kept in the trace only" in the audit entry, which is wrong for a copy call that is the whole point of the call. A copy-case call belongs to no stage, so it cannot be late for one. A Tier 1 test was added and seen to fail without the line (`test_a_copy_case_call_is_never_late_even_when_the_run_waits_at_a_gate`). No schema change; ordinary calls (`eval_case` empty) are untouched. If you would rather have it another way (for example a `late` argument that the caller passes), tell me and I will change PR 6 and the test.
+- Why: without it a correct evaluation run reports late calls it never made.
+- Outcome: (the owner fills this in)
+
 ### H-106: pages 4 to 6 for an evaluation review show the record and one line, with no decision forms (sad.md DL-61; ux.md Open Question 26 b)
 - From: @system.arch (operator agreed option B2, 2026-11-24; answers H-103)   To: @frontend.eng   Date: 2026-11-24
 - Touches: `backend/web/templates/pages/` (`check_rules.html`, `confirm_applies.html`, `publish.html`) and their view code, `tests/tier2/` (page tests), `tests/visual/`; sad.md DL-61, DL-60, EC-R2; `2.build/ux.md` Open Question 26 and §5 (wording); related: H-105 (`@backend.eng`, the refusal), H-101 (the `is_evaluation` flag is already on the page data)
