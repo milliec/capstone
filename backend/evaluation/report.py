@@ -21,6 +21,9 @@ def _cell(text) -> str:
 
 
 def render_markdown(report: dict) -> str:
+    if report["report"] == "failed-run":                  # a run that did not finish (PR 5)
+        from backend.evaluation import void_rule  # here, because void_rule imports this module
+        return void_rule.render_markdown(report)
     run = report["run"]
     stage = report["report"].removeprefix("stage-").upper()
     lines = [f"# Stage {stage} report", ""]
