@@ -34,13 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-094: refusals: a different ending for `RETRY_NOT_ALLOWED` after `call limit`
-- From: @ux.designer (H-093, `ux.md` Open Question 25, closed by the operator 2026-11-24)   To: @backend.eng   Date: 2026-11-24
-- Touches: `backend/services/refusals.py` (`("RETRY_NOT_ALLOWED", "")` has one fixed ending), and wherever the `{reason}` is chosen; `ux.md` §5 `RETRY_NOT_ALLOWED` row; `sad.md` DL-51, DL-58
-- Ask: **Not waiting on anything.** When the failure reason is `call limit`, the refusal reads, word for word: "This step can't be tried again, because the limit on real model calls was reached. A new review would reach the same limit. Ask the operator to review the limit." The other four reasons keep "…because {reason}. Start a new review from Filing rules." Wording and where it is built only; `RETRY_NOT_ALLOWED` and its 409 do not change. Only reachable with Retry (B13b) built and real agents on, so add a test that builds the sentence for each of the five reasons.
-- Why: The call limit counts an activity's calls across both databases, so a new review reaches it too; the usual advice would send the specialist in a circle.
-- Outcome:
-
 ### H-086: `--tally` counts the pre-flight line inside the extractor's first unit, so its extractor time and cost read high
 - From: @qa.eng (spike report, 2026-11-23)   To: @backend.eng   Date: 2026-11-23
 - Touches: `backend/runtime/spike_tally.py`, `build_units` (the unit's `seconds` and `recorded` are sums over every line of a unit, line 1 included); `2.build/spike-report.md` section 9 and D-1
@@ -145,6 +138,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-094: refusals: a different ending for `RETRY_NOT_ALLOWED` after `call limit`
+- From: @ux.designer (H-093, `ux.md` Open Question 25, closed by the operator 2026-11-24)   To: @backend.eng   Date: 2026-11-24
+- Touches: `backend/services/refusals.py` (`("RETRY_NOT_ALLOWED", "")` has one fixed ending), and wherever the `{reason}` is chosen; `ux.md` §5 `RETRY_NOT_ALLOWED` row; `sad.md` DL-51, DL-58
+- Ask: **Not waiting on anything.** When the failure reason is `call limit`, the refusal reads, word for word: "This step can't be tried again, because the limit on real model calls was reached. A new review would reach the same limit. Ask the operator to review the limit." The other four reasons keep "…because {reason}. Start a new review from Filing rules." Wording and where it is built only; `RETRY_NOT_ALLOWED` and its 409 do not change. Only reachable with Retry (B13b) built and real agents on, so add a test that builds the sentence for each of the five reasons.
+- Why: The call limit counts an activity's calls across both databases, so a new review reaches it too; the usual advice would send the specialist in a circle.
+- Outcome: **Done.** 2026-11-24, `@backend.eng` (branch `backend-eng/h094-retry-not-allowed-call-limit`). `backend/services/refusals.py`: the single `("RETRY_NOT_ALLOWED", "")` sentence with its `{reason}` blank is now five sentences keyed by reason (`cost cap`, `calendar generation`, `evaluation run`, `newer run`, `call limit`), word for word as `ux.md` §5. `call limit` reads exactly as the Ask gives it; the other four keep "Start a new review from Filing rules." `RETRY_NOT_ALLOWED` and its 409 are unchanged. **Nothing raises it yet** (`retry_run` is still a stub), so no `{reason}` was chosen anywhere to change; B13b should pass the stored failure reason as the context (and `evaluation run` or `newer run` for the other two), which `backend.md` Known gaps now says. Tests: three in `tests/tier1/test_refusals.py` (the sentence for each of the five reasons, only `call limit` leaves out the new-review advice, still a 409 with one audit entry). 660 Tier 1 pass; ruff clean. No SAD or `ux.md` edit. No model call.
 
 ### H-093: ux.md page 3: add the sentences for two new failure reasons, `unexpected error` and `call limit`
 - From: @system.arch (H-092, `sad.md` DL-58)   To: @ux.designer   Date: 2026-11-24
