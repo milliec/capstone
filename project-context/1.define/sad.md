@@ -116,6 +116,7 @@ Otherwise a failed run is followed by a new run. See "Known limitations".
 | **DL-55** | **The verifier stays `gpt-5.6-terra`; no model comparison, and no "5 runs each" for the extractor and judge** (operator, 2026-11-23). The basis is one valid verifier run that caught `C-1`, and the pinned settings accepted by every model so far. DL-26's bake-off and switch rule are not run. **Left unmeasured:** `C-2` and `I-1` on the verifier, whose first test is now the evaluation cycle, where a miss is reported as it stands (EC-R10 point 3). The stage time limits keep their starting values (operator, DL-55) |
 | **DL-56** | **The units of a stage run one after another, as built** (operator, 2026-11-23; the SAD said "in parallel" and no code does that). Estimated about 1 minute for Stage A and 25 s for Stage B (from the per-call figures, not measured stage times), against limits of 375 s and 150 s. A failed unit ends the stage before later calls start. Parallel units would be a release, not a tuning step |
 | **DL-57** | **One sentence with one deadline is one row: merge, not separate entries** (operator, 2026-11-24, H-087). The extractor card says so; the entry ID is unchanged and F-12 stays parked. The card change affects EC-001 and EC-002: earlier real extractions ran on the old card. A G1 warning for two rows with one entry ID is an open option only, not specified |
+| **DL-58** | **Two new failure reasons: `unexpected error` and `call limit`** (operator, 2026-11-24, H-092; build spec `2.build/integration.md` §3.4, E-11). `unexpected error`: an uncaught error inside a running stage ends the stage and the run as `FAILED` instead of leaving it on "AI is drafting the rules"; no gate opens; the audit entry holds the error's class name only, never its message. Retry is allowed, once, as for any reason not excluded. `call limit`: in real mode the web path checks the run's real-call count against its activity's cap (EC-R10: `spike` 70, `tuning` 60), counted across both databases as the spike command does, **before each real call**; at or over the cap no call is made. **Not retryable**, like the cost cap (DL-51). Neither is voidable under EC-R8. The pinned US$2.50 cap does not change. Sentences are on `ux.md` page 3 (`@ux.designer`, H-093) |
 
 ### Work Ownership
 
@@ -235,7 +236,7 @@ run may be retried once per stage (rule 10, DL-51). The `runs` table stores both
 | Status | Meaning | Ends when |
 |---|---|---|
 | `ACTIVE` | The run is in one of the six phases above | A stage fails (`FAILED`), the specialist abandons it in an `AT_G*` phase (`ABANDONED`), or G3 is decided (`COMPLETED` if published, `DECLINED` if declined) |
-| `FAILED` (terminal, except Retry) | A unit returned invalid output, a call failed after its one retry (a second timeout included, DL-43), the stage passed its time limit, the cost cap stopped the run (CR-017), the backend restarted while a stage was running, or the failure demo failed stage A (`demo failure`, DL-52). Run status names the step, the unit and the reason | When the specialist retries the failed stage (rule 10): back to `ACTIVE` in that stage's `*_RUNNING` phase. Otherwise never; a new run follows |
+| `FAILED` (terminal, except Retry) | A unit returned invalid output, a call failed after its one retry (a second timeout included, DL-43), the stage passed its time limit, the cost cap stopped the run (CR-017), the backend restarted while a stage was running, the failure demo failed stage A (`demo failure`, DL-52), an unexpected error ended the stage (`unexpected error`, DL-58), or the real-call cap was reached before a call (`call limit`, DL-58). Run status names the step, the unit and the reason | When the specialist retries the failed stage (rule 10): back to `ACTIVE` in that stage's `*_RUNNING` phase. Otherwise never; a new run follows |
 | `ABANDONED` (terminal) | The specialist closed a run in phase `AT_G1`, `AT_G2` or `AT_G3`, with a written reason (W-19a) | Never; a new run follows |
 | `COMPLETED` (terminal) | G3 was decided by publishing the calendar | Never |
 | `DECLINED` (terminal) | The specialist declined G3 with a written reason. Nothing new was published; GPs keep any earlier published version | Never; a new run follows |
@@ -299,8 +300,8 @@ Rules:
     - the run is not `FAILED` (`RUN_NOT_FAILED`);
     - the failed stage has already been retried once (`runs.stage_attempt` is 2), so a new run is
       the way forward (`RETRY_LIMIT_REACHED`);
-    - the run failed on the **cost cap** or on **calendar generation**, the run is an **evaluation
-      run**, or a **newer run** has been started for the fund since (`RETRY_NOT_ALLOWED`; the
+    - the run failed on the **cost cap**, on **calendar generation** or on the **call limit** (DL-58),
+      the run is an **evaluation run**, or a **newer run** has been started for the fund since (`RETRY_NOT_ALLOWED`; the
       sentence names which). Calendar generation is code working on the same decisions, so a
       retry would fail the same way (operator, 2026-11-16, SOQ-32).
 
@@ -331,10 +332,10 @@ This table is the content of the run-state diagram (see "Diagrams"):
 | `AT_G3` | Specialist declines, with a reason | Phase is `AT_G3`; run version matches | `DECLINED` | `REASON_REQUIRED`, `VERSION_MISMATCH` |
 | `AT_G1`, `AT_G2`, `AT_G3` | Specialist abandons, with a reason | Run version matches | `ABANDONED` | `REASON_REQUIRED`, `VERSION_MISMATCH` |
 | `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | Specialist abandons | — | (unchanged) | `RUN_STAGE_RUNNING` |
-| `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | A unit fails after its retry, invalid output, the stage time limit, the cost cap, calendar generation fails, or the failure demo (stage A, first attempt only, DL-52) | — | `FAILED` | — |
+| `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | A unit fails after its retry, invalid output, the stage time limit, the cost cap, calendar generation fails, the failure demo (stage A, first attempt only, DL-52), an unexpected error, or the real-call cap before a call (DL-58) | — | `FAILED` | — |
 | `A_RUNNING`, `B_RUNNING`, `C_RUNNING` | The backend starts again after stopping (start-up rule 7) | — | `FAILED` ("service restarted") | — |
 | Any terminal status | Any decision, abandon, publish or decline | — | (unchanged) | `RUN_NOT_ACTIVE` |
-| `FAILED` | Specialist retries the failed stage (rule 10) | Role `specialist`; no other run `ACTIVE`; no newer run for the fund; `runs.stage_attempt` is 1; the failure reason is not `cost cap` or `calendar generation`; not an evaluation run; run version matches | `ACTIVE` · the failed stage's `*_RUNNING` phase, `stage_attempt` 2 | `FORBIDDEN`, `RUN_ACTIVE`, `VERSION_MISMATCH`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED` |
+| `FAILED` | Specialist retries the failed stage (rule 10) | Role `specialist`; no other run `ACTIVE`; no newer run for the fund; `runs.stage_attempt` is 1; the failure reason is not `cost cap`, `calendar generation` or `call limit`; not an evaluation run; run version matches | `ACTIVE` · the failed stage's `*_RUNNING` phase, `stage_attempt` 2 | `FORBIDDEN`, `RUN_ACTIVE`, `VERSION_MISMATCH`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED` |
 | `ACTIVE`, `ABANDONED`, `DECLINED`, `COMPLETED` | Specialist retries | — | (unchanged) | `RUN_NOT_FAILED` |
 
 *Legend for the diagram:* the six phases are the inside of `ACTIVE`; `FAILED`, `ABANDONED`,
@@ -1519,11 +1520,11 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
   | `RUN_STAGE_RUNNING` | The run's phase is `A_RUNNING`, `B_RUNNING` or `C_RUNNING`, or is not the gate the request belongs to, so it cannot be abandoned or decided yet (DL-46) | 409 |
   | `RUN_NOT_FAILED` | Retry was asked for a run that is not `FAILED` (DL-51) | 409 |
   | `RETRY_LIMIT_REACHED` | The failed stage has already been retried once; start a new run (DL-51) | 409 |
-  | `RETRY_NOT_ALLOWED` | The run cannot be retried: it failed on the cost cap or on calendar generation, it is an evaluation run, or a newer run has been started since. The sentence names which (DL-51) | 409 |
+  | `RETRY_NOT_ALLOWED` | The run cannot be retried: it failed on the cost cap, on calendar generation or on the call limit, it is an evaluation run, or a newer run has been started since. The sentence names which (DL-51) | 409 |
 
 - **Failure reasons.** A failed run stores one reason per failed unit, from this fixed list of
-  **seven** (number 2 is retired, so the numbers stay as they were; number 8, the failure demo, was
-  added by DL-52), so that run status can name it
+  **nine** (number 2 is retired, so the numbers stay as they were; number 8, the failure demo, was
+  added by DL-52; numbers 9 and 10 were added by DL-58), so that run status can name it
   and the void rule (EC-R8) can be applied without judgement:
 
   | # | Reason | When | Model-service failure under EC-R8? |
@@ -1536,11 +1537,13 @@ refusal message. Every `POST` under `/specialist/` needs the `specialist` role (
   | 6 | `service restarted` | The backend restarted while the stage was running | **No** |
   | 7 | `calendar generation` | Stage C could not produce a complete calendar, including an entry ID collision | No |
   | 8 | `demo failure` | The failure-demo switch was on: stage A's first unit, first stage attempt only, stand-in mode only (DL-52, CR-033). Pages show the one sentence in `ux.md` | Not applicable: never on an evaluation run |
+  | 9 | `unexpected error` | An error the list above does not name was raised inside a running stage (for example a model ID or key that is not set in real mode). The stage ends, the run is `FAILED` and no gate opens; nothing from the stage is stored (rule 9). The audit entry records the error's **class name only**, never its message (DL-58) | No |
+  | 10 | `call limit` | In real mode, the run's real model calls, counted across `data/spike.db` and the app's database, had reached the cap of its `SPEND_ACTIVITY` (EC-R10: `spike` 70, `tuning` 60) before a call was made, so no call was made. A call already in flight finishes, as with the cost cap (DL-58) | No |
 
   **A restart cannot void an evaluation run.** `service restarted` is a failure of the machine the
   run was on, not of the model service, so the run counts as it ended.
 
-  **Retry (DL-51)** is allowed after every reason except `cost cap` and `calendar generation`, and only once per stage.
+  **Retry (DL-51)** is allowed after every reason except `cost cap`, `calendar generation` and `call limit` (DL-58), and only once per stage.
 
 - **Streaming**: none (§1).
 
@@ -3445,3 +3448,4 @@ dropped visual pass becomes post-course work (F-17), the link may stay unshared 
 - 2026-11-23 · persona `system-arch` (at the operator's instruction) · action `update` · **Stage units: the SAD now says what the code does (DL-56).** Checked against `backend/runtime/stages.py` first, by reading only: Stage A loops over its 5 documents and then its rows, and Stage B over its approved rows, one `run_step` call each, one at a time; nothing uses `kickoff_for_each`. Changed: Pattern Decision (workflow sub-shape and the two stage rows), Production Shape (latency, expected volume, **time-limit item 3**, which had worked out the limits on a parallel assumption), §2 (runtime shape, stage table header, the units bullet, the `max_rpm` row), the DL-56 row. **The figures:** Stage A about 41 to 58 s (5 extractor calls at 3.7 to 4.4 s, 6 to 7 verifier calls at 3.9 to 5.1 s) and Stage B about 25 s (up to 6 judge calls at 3.9 s), against 375 s and 150 s; estimates, not measured stage times. **The limits are unchanged** (operator, DL-55); item 3 now says they bound a hang and trip only at about six times the measured speed. Not changed: DL-43's call timeouts and retry, the stage limits, the 5-minute target (EC-010), historical audit lines that say "parallel". Stacked on PR #184. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-081) · action `update` · **Answered H-081 on top of DL-55.** Measurement spike: the clause saying the measured figures "set the time limits" now says they stay (decision 3); the "about 63" and "5 times" are marked as the plan as it was, not work owed; "What the findings leave open" says the bake-off is not owed (a later run needs a new operator decision) and lists the three added limits (DL-55 d to f). DL-55 and the H-081 Outcome carry the same. **Checked:** EC-R10 has no bake-off wording. **Not changed:** the model IDs and pins, the thresholds, the 70-call cap, the cost cap, historical audit lines. H-081 item 4 ("run the bake-off as the next step") is superseded by H-083 and DL-55. No code. No model call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-087) · action `update` · **Answered H-087 (DL-57).** Extractor card, Task `extract_rows` step 2: one sentence with the same recipient, frequency, anchor and deadline is one row naming both actions. Known limitations: the "two obligations" row now covers a model splitting one sentence, and says what the specialist does (reject the second row only when two rows quote the same sentence) and that a retry cannot fix a Stage C collision. DL-57 row added. Not changed: entry ID format, DL-35, CR-011, T-ID-2, F-12. **The card is the extractor's prompt, so EC-001 and EC-002 runs before and after are not like-for-like.** No code changed. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-092) · action `update` · **Recorded two new failure reasons (DL-58).** Read `2.build/integration.md` §3.4 and §4 first; no code, no model call, no key; `AAMAD_TARGET_RUNTIME=crewai`, `AGENTS_MODE=stand_in`. Changed in `sad.md`: the failure-reason list (seven to nine reasons: 9 `unexpected error`, 10 `call limit`) and the Retry line under it; the `FAILED` state row; the `A/B/C_RUNNING` to `FAILED` transition; the retry guard row, run-state rule 10 and `RETRY_NOT_ALLOWED` (`call limit` cannot be retried); new DL-58. The sentences are integration.md's proposed text, unchanged, and are worded in `ux.md` (handoff H-093 to `@ux.designer`). **My two inferences, not the operator's words:** both reasons are "No" under EC-R8 (neither is a model-service failure), and `unexpected error` may be retried once like any other reason. Not changed: `backend/db/schema.sql` and `FAILURE_SENTENCES` (`@backend.eng`, H-091).
