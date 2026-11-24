@@ -3,6 +3,7 @@
     .venv/bin/python -m backend.evaluation RUN-20261121-1            # stage A, and B if it finished
     .venv/bin/python -m backend.evaluation RUN-20261121-1 --stage b  # stage B only
     .venv/bin/python -m backend.evaluation RUN-20261121-1 --no-save  # print only
+    .venv/bin/python -m backend.evaluation export RUN-20261121-1     # the trace export (D4)
 
 Reads the database in DATABASE_PATH (the app's own). Starts nothing, calls no model. A miss is a
 result, not an error: the exit code is 0 for any report (DL-34: evaluations report, never block).
@@ -12,6 +13,7 @@ import argparse
 import sys
 
 from backend.db.connection import connect
+from backend.evaluation import trace_export
 from backend.evaluation.report import DEFAULT_OUT, render_markdown, save_report
 from backend.evaluation.stage_a import NotGradable, evaluate_stage_a
 from backend.evaluation.stage_b import evaluate_stage_b
@@ -34,7 +36,44 @@ def _grade(conn, args) -> list[dict]:
     return reports
 
 
+def _export(argv: list[str]) -> int:
+    """`export RUN-ID`: write the run's trace export (D4), then check it against the store.
+    Exit 0: written and matching. Exit 1: the run's export is missing or off (the run is reported
+    failed, and why is printed). Exit 2: nothing to export (no database, or no such run)."""
+    parser = argparse.ArgumentParser(prog="python -m backend.evaluation export",
+                                     description="Write a run's trace export (sad.md D4).")
+    parser.add_argument("run_id")
+    parser.add_argument("--out", default=str(DEFAULT_OUT), help="folder for the export")
+    parser.add_argument("--off", action="store_true",
+                        help="switch the export off: write nothing and report the run failed")
+    args = parser.parse_args(argv)
+    settings = load_settings()
+    if not settings.database_path.exists():
+        print(f"Nothing to export: there is no database at {settings.database_path}.",
+              file=sys.stderr)
+        return 2
+    conn = connect(settings.database_path)
+    try:
+        result = trace_export.export_trace(conn, args.run_id, args.out, enabled=not args.off,
+                                           secrets=[settings.openai_api_key])
+        check = trace_export.check_export(conn, args.run_id, args.out)
+    except NotGradable as error:
+        print(f"Nothing to export: {error}", file=sys.stderr)
+        return 2
+    finally:
+        conn.close()
+    if check.failed:
+        reason = result.why or check.why
+        print(f"RUN REPORTED FAILED: {reason}.", file=sys.stderr)
+        return 1
+    print(f"Exported {result.records} records, secrets removed: {result.folder}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["export"]:
+        return _export(argv[1:])
     parser = argparse.ArgumentParser(prog="python -m backend.evaluation", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_id")
