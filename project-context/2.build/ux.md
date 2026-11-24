@@ -83,8 +83,10 @@ does not fit is dropped (H-019, H-020), and the page must still work as plain, o
    small line **"Luxembourg UCI Part II · year end 31 Dec"**.
 3. **Navigation** (a `<nav>` with `aria-current="page"` on the current item):
    - Specialist: **"Calendar"** · **"Filing rules"**. "Filing rules" is the review list (page 2)
-     and carries a **"Your turn"** tag while a review waits for the specialist. The mock-ups also
-     show **"Funds"**; it is not in this build (see Open Question 11).
+     and carries a **"Your turn"** tag while a review waits for the specialist. **Never for an
+     evaluation review** (operator, 2026-11-24, Open Question 26 a): a script's turn is the only one
+     that counts, so it does not set the tag. The mobile bar's tag is the same signal, so it follows
+     the same rule. The mock-ups also show **"Funds"**; it is not in this build (see Open Question 11).
    - GP: **"Calendar"** only; the calendar is their only page.
 4. **Who is signed in** (at the foot): **"Compliance specialist"** with the line **"Demo with mock
    data"** under it, or **"General Partner / Fund Manager"** with the line **"Bramblegate Partners ·
@@ -382,6 +384,10 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
 3. **Active-review notice** (only when a review is `ACTIVE`): label **"Waiting for you"** at a
    step, or **"AI is working"** while AI or code works; then "**Review {n}:** {status words}." and
    one primary link: **"Continue checking"** (at a step) or **"Open review {n}"** (while working).
+   **For an evaluation review** (operator, 2026-11-24, Open Question 26 a) the label and the link
+   above are not used, at a step or while working. The notice reads **"Evaluation review {n}:
+   {status words}."** with one link, **"Open review {n}"**. Its page 3 still offers "Abandon this
+   review" at a step, so a review the script left stuck can be closed.
 4. **Reviews** (H2): a real table, newest first.
 
    | Column | Content |
@@ -1564,7 +1570,10 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    ending today), so the change is H-094 to `@backend.eng`. The "Start a new review from Filing
    rules" link on the failed page stays: it is a link, not advice, and stand-in reviews still work.
 
-26. **Open. Decision list drafted 2026-11-24 (H-102); nothing here is decided.** An evaluation
+26. **Part closed 2026-11-24 (operator, H-102): (a) A2 and (c) accept as built are decided and
+   written into §1.3 and page 2 above. (b) B2 is agreed in principle and waits for `@system.arch`'s
+   sad.md §4 edit (H-103); nothing is built or worded on the pages for (b) until then.** The list
+   below is kept as the record. An evaluation
    review passes through the same states as any review, but a script, not a person, makes its
    decisions (EC-R2). Checked against the built pages and services (read only, 2026-11-24). The
    label and the outcome sentence (H-100, H-101) do not depend on any of this.
@@ -1617,8 +1626,13 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
      saying so; `@system.arch` only if they want the 63-call limit named on the page, which I do
      not recommend (it is engineering detail, §1.8).
 
-   **Order if the recommendations are taken:** (b) first, because it needs a SAD edit; (a) and
-   (c) need no SAD change. Until they are decided, the built pages stay as they are.
+   **Answers (operator, 2026-11-24).** (a) **A2, as drafted.** (c) **Accept as built, no change**
+   to either line. (b) **B2 agreed in principle:** `@system.arch` records the refusal in sad.md §4
+   first (H-103); after that I settle the §5 sentence and the page line (the wording above is a
+   draft, not final) and `@backend.eng` and `@frontend.eng` build it. Until then the step pages
+   of an evaluation review stay as built. **Not covered by A2, left as built:** page 3's own
+   "Your turn" pill and stepper state for an evaluation review at a step; ask if you want the
+   same rule there.
 
 ## Mock-up differences this revision does not apply
 
@@ -1823,3 +1837,10 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   (DL-58). **Nothing decided.** Proposed wording for (b) is drafted, not final. `*review-ui` is
   **held** until `@qa.eng`'s PR 4b (scripted gates, H-097) is merged, and no temporary database
   was made. Approval status left `approved`. No code. No snapshot. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, operator answers on Open Question 26) ·
+  branch `ux-designer/oq26-decision-list` (PR #240) · docs only, separate worktree. **(a) A2** written
+  into §1.3 (navigation tag) and page 2 item 3; **(c)** accepted as built; **(b) B2** agreed in
+  principle and raised to `@system.arch` (H-103), nothing worded on pages 4 to 6 yet. New: H-103
+  (`@system.arch`), H-104 (`@frontend.eng`, builds A2); H-102 moved to Done. Left as built, named in
+  Open Question 26: page 3's "Your turn" pill and stepper state. `*review-ui` still held for PR 4b.
+  Approval status left `approved`. No code. No snapshot. No model call.

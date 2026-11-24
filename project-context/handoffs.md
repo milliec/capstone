@@ -34,11 +34,18 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-102: three decisions on how an evaluation review looks to a person (ux.md Open Question 26)
-- From: @ux.designer   To: operator (a, b, c); @system.arch for b   Date: 2026-11-24
-- Touches: `2.build/ux.md` Open Question 26, page 2 (active-review notice), page 3 (`Abandon`, the two detail lines), pages 4 to 6, §5; sad.md §4 (only if b is taken); related: H-100, H-101, H-097 (PR 4b)
-- Ask: Read the three small tables in ux.md Open Question 26 and say yes or no to each recommendation. **(a)** No "Your turn" tag and no "Continue checking" link for an evaluation review; the notice says "Evaluation review {n}: {status words}." (recommended A2; the operator decides). **(b)** The server refuses a person's decision on an evaluation review and pages 4 to 6 show the record plus one line (recommended B2; `@system.arch` records it in sad.md §4, with the operator's agreement; then `@backend.eng`, `@frontend.eng` and `@ux.designer`). **(c)** Accept "by Evaluation script (mock)" as built, and leave "The review stops at US$2.50" as it is (recommended; the operator says so, nothing to build).
-- Why: the script decides an evaluation review, but if it stops at a step the review blocks every new review and a person must abandon it; today that person is told "Your turn: check the rules", and could decide by hand and skew the evaluation.
+### H-104: no "Your turn" tag and no "Continue checking" for an evaluation review (ux.md §1.3, page 2; Open Question 26 a)
+- From: @ux.designer (operator decision, 2026-11-24, H-102)   To: @frontend.eng   Date: 2026-11-24
+- Touches: `backend/web/deps.py` (`your_turn`), `templates/parts/sidebar.html` and `side_body.html` (the tag), `templates/pages/filing_rules.html` (the active-review notice), `tests/visual/`; `2.build/ux.md` §1.3 item 3 (navigation), page 2 item 3; related: H-101
+- Ask: For an **evaluation review** (`is_evaluation`), (1) do not set `your_turn`, so the sidebar and mobile-bar "Your turn" tags do not show; (2) on page 2, the notice reads **"Evaluation review {n}: {status words}."** with the one link **"Open review {n}"**, at a step and while working, and never "Waiting for you", "AI is working" or "Continue checking". Page 3 keeps "Abandon this review" at a step (already built). **Not decided, leave as built:** page 3's own "Your turn" pill and stepper state. Ordinary reviews are unchanged, so no existing snapshot should change; a changed one is a real finding, not something to re-record. Propose, do not record, a snapshot of page 2 with an evaluation review waiting at a step. Does not need H-103.
+- Why: a script's turn is the only one that counts; a person told "Your turn: check the rules" on a stuck evaluation review is sent to decide by hand.
+- Outcome: (the owner fills this in)
+
+### H-103: sad.md §4: refuse a person's decision on an evaluation review (ux.md Open Question 26 b)
+- From: @ux.designer (operator agreed in principle, 2026-11-24, H-102)   To: @system.arch   Date: 2026-11-24
+- Touches: `sad.md` §4 (routes and refusal codes; the step-page routes for G1, G2 and G3), EC-R2, DL-60; then `2.build/ux.md` §5 and pages 4 to 6, `@backend.eng` (the guard), `@frontend.eng` (the page line)
+- Ask: Record, in your own words and places, that a decision on an evaluation review's G1, G2 or G3 made by anyone but the scripted identity `specialist-eval` is **refused** (a person signed in as the specialist cannot decide by hand), with its own refusal code, audited like other refusals. "Abandon" is **not** refused: a person must still be able to close a review the script left stuck. The pages then show the existing read-only record plus one line. **Draft wording, mine, to settle after your edit:** line "This is an evaluation review. A script makes its decisions, so there is nothing for you to decide here."; refusal "This review is part of the evaluation. A script makes its decisions, so it can't be decided here." Please check the guard cannot refuse the scripted gates themselves (EC-R2, H-097 PR 4b), and say whether T-EVALPUB-1's neighbours need a Tier 1 test for the refusal.
+- Why: a hand decision on an evaluation review would change what the evaluation measures (EC-R2), and page 6 would tell the person the General Partner will see dates they will not (DL-60).
 - Outcome: (the owner fills this in)
 
 ### H-099: the live calendar skips evaluation runs: one rule in the code that reads publications, and a flag the pages can use (new DL-60)
@@ -169,6 +176,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-102: three decisions on how an evaluation review looks to a person (ux.md Open Question 26)
+- From: @ux.designer   To: operator (a, b, c); @system.arch for b   Date: 2026-11-24
+- Touches: `2.build/ux.md` Open Question 26, page 2 (active-review notice), page 3 (`Abandon`, the two detail lines), pages 4 to 6, §5; sad.md §4 (only if b is taken); related: H-100, H-101, H-097 (PR 4b)
+- Ask: Say yes or no to each recommendation in ux.md Open Question 26: (a) A2, (b) B2, (c) accept as built.
+- Why: the script decides an evaluation review, but if it stops at a step the review blocks every new review and a person must abandon it.
+- Outcome: **Done.** 2026-11-24, operator's answers recorded by `@ux.designer` (PR #240). **(a) A2 as drafted:** written into `ux.md` §1.3 and page 2; building it is **H-104** (`@frontend.eng`). **(c) accept as built, no change** to "by Evaluation script (mock)" or "The review stops at US$2.50". **(b) B2 agreed in principle:** raised to `@system.arch` as **H-103** (the sad.md §4 edit first); nothing on pages 4 to 6 changes until it is Done.
 
 ### H-101: draw the "Evaluation review" label and the evaluation outcome sentence (ux.md, H-100; DL-60)
 - From: @ux.designer (H-100)   To: @frontend.eng   Date: 2026-11-24
