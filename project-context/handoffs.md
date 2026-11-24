@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-102: three decisions on how an evaluation review looks to a person (ux.md Open Question 26)
+- From: @ux.designer   To: operator (a, b, c); @system.arch for b   Date: 2026-11-24
+- Touches: `2.build/ux.md` Open Question 26, page 2 (active-review notice), page 3 (`Abandon`, the two detail lines), pages 4 to 6, §5; sad.md §4 (only if b is taken); related: H-100, H-101, H-097 (PR 4b)
+- Ask: Read the three small tables in ux.md Open Question 26 and say yes or no to each recommendation. **(a)** No "Your turn" tag and no "Continue checking" link for an evaluation review; the notice says "Evaluation review {n}: {status words}." (recommended A2; the operator decides). **(b)** The server refuses a person's decision on an evaluation review and pages 4 to 6 show the record plus one line (recommended B2; `@system.arch` records it in sad.md §4, with the operator's agreement; then `@backend.eng`, `@frontend.eng` and `@ux.designer`). **(c)** Accept "by Evaluation script (mock)" as built, and leave "The review stops at US$2.50" as it is (recommended; the operator says so, nothing to build).
+- Why: the script decides an evaluation review, but if it stops at a step the review blocks every new review and a person must abandon it; today that person is told "Your turn: check the rules", and could decide by hand and skew the evaluation.
+- Outcome: (the owner fills this in)
+
 ### H-099: the live calendar skips evaluation runs: one rule in the code that reads publications, and a flag the pages can use (new DL-60)
 - From: @system.arch (operator decision, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
 - Touches: `backend/services/calendar.py` (`get_published_calendar`, `_previous_publication_at`), `backend/services/runs.py` (`is_evaluation_run`, H-096), `tests/tier1/`; sad.md DL-60, DL-50 item 5, DL-27, CR-012, EC-014, EC-R2; related: H-100 (`@ux.designer`), H-097 (`@qa.eng`, PR 4 makes the scripted G3 publish)

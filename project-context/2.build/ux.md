@@ -1564,23 +1564,61 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    ending today), so the change is H-094 to `@backend.eng`. The "Start a new review from Filing
    rules" link on the failed page stays: it is a link, not advice, and stand-in reviews still work.
 
-26. **Open (found while writing H-100; for `@system.arch` and `@backend.eng` to decide, not
-   decided here).** An evaluation review passes through the same states as any review, but a
-   script, not a person, makes its decisions (EC-R2). Three places on the pages still assume a
-   person:
-   (a) **Waiting-for-you signals.** While an evaluation review sits at a step, page 2 shows
-   "Waiting for you" with a "Continue checking" link, and the sidebar and the mobile bar show
-   "Your turn". Nobody should check an evaluation review by hand, so these would point at nothing.
-   Suggested: no "Your turn" tag and no "Continue checking" link for an evaluation review; the
-   notice says "Evaluation review {n}: {status words}." instead.
-   (b) **Step pages 4 to 6 opened by a person.** Page 6 says "The General Partner will see these
-   {n} dates straight away", which is false for an evaluation review (DL-60). Suggested: the
-   server refuses a person's decision on an evaluation review's step pages, or the pages open
-   read-only. Wording is mine to write once that is decided.
-   (c) **Details and cost lines on page 3.** "Started … by Compliance specialist (mock)" is wrong
-   for an evaluation review (the starter is the script), and "The review stops at US$2.50" says
-   nothing of its own 63-call limit (DL-59). Suggested wording for the first: "by the evaluation
-   script". The label and the outcome sentence in this note do not depend on any of the three.
+26. **Open. Decision list drafted 2026-11-24 (H-102); nothing here is decided.** An evaluation
+   review passes through the same states as any review, but a script, not a person, makes its
+   decisions (EC-R2). Checked against the built pages and services (read only, 2026-11-24). The
+   label and the outcome sentence (H-100, H-101) do not depend on any of this.
+   **Why (a) and (b) matter:** the script makes its decisions straight after each step, so a
+   review is only briefly "at a step". But if the script stops there (an error, a closed
+   terminal), the review stays active, no new review can start (`RUN_ACTIVE`), and a person has to
+   abandon it. That is the one case where a person meets an evaluation review at a step.
+
+   **(a) "Your turn" and "Continue checking" for an evaluation review at a step.** Built today:
+   page 2 says "Waiting for you" with "Continue checking", and the sidebar and mobile bar say
+   "Your turn". For a stuck evaluation review the real job is to abandon it, not to check it.
+   | Option | What it means |
+   |---|---|
+   | A1 | Leave as built. A stuck review says "Your turn: check the rules", which sends a person to decide by hand |
+   | **A2 (recommended)** | No "Your turn" tag and no "Continue checking" link for an evaluation review. Page 2's notice reads **"Evaluation review {n}: {status words}."** with **"Open review {n}"**. Page 3 keeps "Abandon this review" (already offered at a step), so the stuck case still has a way out |
+   | A3 | Keep the tag, change its words for an evaluation review |
+
+   *Why A2:* "Your turn" tells a person to act; for an evaluation review the script's turn is
+   the only one that counts. *Decides:* **the operator** (what the specialist should be told).
+   `@system.arch` only confirms that "Abandon" stays allowed on an evaluation review at a step.
+   `@frontend.eng` builds it from the existing `is_evaluation` flag; no new data.
+
+   **(b) A person opens or decides on step pages 4 to 6 of an evaluation review.** Built today:
+   nothing stops it. Page 6 would say "The General Partner will see these {n} dates straight
+   away", which is false (DL-60), and a hand decision would change what the evaluation measures
+   (EC-R2).
+   | Option | What it means |
+   |---|---|
+   | B1 | Fix only page 6's sentence for an evaluation review. A person can still decide by hand |
+   | **B2 (recommended)** | The server **refuses a person's decision** on an evaluation review (new refusal in sad.md §4 and ux.md §5), and pages 4 to 6 show the existing read-only record plus one line. Proposed wording below |
+   | B3 | Pages 4 to 6 are not reachable for an evaluation review at all (the link and the address both refused) |
+
+   *Why B2:* it protects the evaluation (nobody can decide by hand and skew it) and a person can
+   still read what the script decided. B3 hides evidence. B1 leaves the evaluation open to a
+   mis-click. *Decides:* **`@system.arch`** (the refusal and its code are a SAD edit first, per
+   CLAUDE.md), with **the operator's** agreement. Then `@backend.eng` (the guard),
+   `@frontend.eng` (the line) and me (§5 wording).
+   *Proposed wording (mine, to confirm):* page line **"This is an evaluation review. A script
+   makes its decisions, so there is nothing for you to decide here."**; refusal sentence
+   **"This review is part of the evaluation. A script makes its decisions, so it can't be
+   decided here."** No internal terms; the same two sentences everywhere.
+
+   **(c) Two lines on page 3.** Both are smaller than first thought.
+   - **"Started … by …".** **Already built:** it reads "by Evaluation script (mock)" (the
+     backend's `actor_label`). Recommended: **accept as built**, no change. *Decides:* the
+     operator, by saying so.
+   - **"The review stops at US$2.50."** Still true: DL-58 says the pinned US$2.50 cost cap does
+     not change, and the 63-call limit (DL-59) is a separate limit that shows only as the
+     `call limit` failure sentence. Recommended: **no change.** *Decides:* the operator, by
+     saying so; `@system.arch` only if they want the 63-call limit named on the page, which I do
+     not recommend (it is engineering detail, §1.8).
+
+   **Order if the recommendations are taken:** (b) first, because it needs a SAD edit; (a) and
+   (c) need no SAD change. Until they are decided, the built pages stay as they are.
 
 ## Mock-up differences this revision does not apply
 
@@ -1775,3 +1813,13 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   drops the link to `/calendar` for an evaluation review, because that link would open the real
   calendar and contradict the sentence above it. Approval status left `approved`: wording for a
   decision already made. No code, no template, no snapshot touched. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, Open Question 26 decision list;
+  operator request) · branch `ux-designer/oq26-decision-list` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  `AGENTS_MODE=stand_in` · docs only, separate worktree. Read (read only) `backend/web/deps.py`,
+  `templates/pages/filing_rules.html`, `review_status.html`, `publish.html`, `parts/macros.html`,
+  `backend/services/runs.py`, `auth.py` and sad.md DL-58 to DL-60. Rewrote Open Question 26 as three
+  decisions with options, a recommendation and who decides (also H-102). **Two parts turned out
+  smaller:** "Started by" already reads "Evaluation script (mock)", and the US$2.50 line is still true
+  (DL-58). **Nothing decided.** Proposed wording for (b) is drafted, not final. `*review-ui` is
+  **held** until `@qa.eng`'s PR 4b (scripted gates, H-097) is merged, and no temporary database
+  was made. Approval status left `approved`. No code. No snapshot. No model call.
