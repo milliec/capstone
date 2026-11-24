@@ -5,11 +5,17 @@ Owner: `@integration.eng`. Written 2026-11-24 on branch `integration-eng/build-s
 used no key, and did not open `data/spike.db` or `data/app.db`.** Every fact below was read from the code or
 from `sad.md`, `backend.md`, `setup.md`, `scaffold-plan.md` and `spike-report.md`.
 
-**Status: DECIDED by the operator on 2026-11-24 (section 8). Documentation only: nothing is built yet.**
-Two fixes are approved: **P-3** (a stuck review on an uncaught error, E-11) and **P-5** (the 70-call cap in the web
-path). Everything else is **parked as future work** with an ID (`IFW-1` to `IFW-6`, section 7). Both fixes need
-two **new failure reasons** first, so they wait for `@system.arch` (handoff H-092) before `@backend.eng` builds
-(handoff H-091). Tested with the fake OpenAI only: **no real call.**
+**Status: DECIDED by the operator on 2026-11-24 (section 8). Both approved fixes are now BUILT by `@backend.eng`
+(H-091), merged on 2026-11-24. This file itself is still documentation only.**
+- **P-3** (a stuck review on an uncaught error, E-11): **built, PR #213.**
+- **P-5** (the 70-call cap in the web path): **built, PR #214.**
+- Both rest on two earlier PRs: **#211** (the two new failure reasons in the schema and their page sentences) and
+  **#212** (an existing database learns them at start-up, from `create_app`). `@system.arch` recorded the reasons
+  in `sad.md` first (H-092, #208).
+
+Everything else is **parked as future work** with an ID (`IFW-1` to `IFW-6`, section 7). Built and tested with the
+fake OpenAI only: **no real call.** The sections below were written before the build and still describe the state
+**before** it (for example, section 4 row E-11 says "Gap"); read them with this status line first.
 
 ## 0. What I found first (read this before the rest)
 
@@ -325,11 +331,17 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 
 ## Open Questions
 
-1. **How does an existing `data/app.db` get the two new reasons?** The `units.failure_reason` `CHECK` lives in
-   `schema.sql`, and the schema is created with `CREATE TABLE IF NOT EXISTS`, so an existing database keeps the old
-   list. `@backend.eng` proposes the way (H-091) **before** touching anything, tests on a copy, and **never deletes
-   or changes `data/app.db` or `data/spike.db`** (they are the real-run evidence).
-2. Is E-11 reproduced? I read it in the code; the first test in H-091 settles it.
+1. ~~How does an existing `data/app.db` get the two new reasons?~~ **Answered.** The rewrite of the stored table
+   text, with the table rebuild only as the fallback if the SQLite build refuses the rewrite. Decided in #209
+   (the proposal, with the operator's approval) and built in #212 as `upgrade_failure_reasons`. It runs from
+   `create_app`, **not** `init_db`, so the spike runner never changes `data/spike.db`. **A backup of
+   `data/app.db` was taken first** (the operator's, with the server stopped). Still true: the first start of the
+   app on this code changes `data/app.db`'s file hash (the table definition; the rows are unchanged), so compare
+   table digests, not the file hash.
+2. ~~Is E-11 reproduced?~~ **Answered: yes.** H-091's first test for P-3 (#213) reproduced it against the fake
+   OpenAI: in real mode with the model ID unset, `ModelNotSet` escaped the background task and left the review on
+   "AI is drafting the rules". The test was seen to fail before the fix; after it, the stage ends as Failed with
+   `unexpected error`.
 3. `IFW-5` (process log) and `IFW-6` (test coverage) are open and parked.
 
 ## Audit
@@ -341,3 +353,4 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
   and G1 templates, `sad.md`, `setup.md`, `scaffold-plan.md`, `spike-report.md`. Queries in sections 2.1 and 6 were
   checked for syntax against an empty in-memory copy of the schema only.
 - 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded the operator's decisions D-1 to D-4: no new real run (`RUN-20261124-2` is the proof); P-3 and P-5 approved; P-1, P-2, P-4 parked as `IFW-1` to `IFW-3`; new failure-reason wording proposed; polling stays with known limit KL-1; the timed run parked as `IFW-4`. Raised H-091 (`@backend.eng`) and H-092 (`@system.arch`). **Documentation only; no code, no model call, no key; `data/spike.db` and `data/app.db` not opened.**
+- 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · updated the Status line (P-3 built in #213, P-5 built in #214, on top of #211 and #212) and closed open questions 1 and 2 in section 8's open list: Q1 answered (rewrite with rebuild fallback, decided in #209, built in #212, runs from `create_app` not `init_db`, backup taken first); Q2 answered from H-091's first test (E-11 reproduced, `ModelNotSet`, #213). Facts read from `backend.md` and `git log` only. **Documentation only; no code, no model call, no key; `data/spike.db` and `data/app.db` not opened.**
