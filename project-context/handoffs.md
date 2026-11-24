@@ -34,6 +34,21 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-100: ux.md: the label for an evaluation run, and the sentence on its G3 outcome (new DL-60)
+- From: @system.arch (operator decision, 2026-11-24)   To: @ux.designer   Date: 2026-11-24
+- Touches: `2.build/ux.md` §1.3 item 3 (run labels), page 2 (Filing rules), page 3 (review status), page 6 (G3 outcome); page 7 only to confirm no change; sad.md DL-60, DL-59; related: H-099 (`@backend.eng`)
+- Ask: (1) Give an evaluation run a **run label**, in the family of "Stand-in agents", "Demo rule on" and "Failure demo on" (a text tag, never colour alone), and say on which pages it shows. An evaluation run **uses real agents** (it refuses stand-in mode, T-MODE-1), so the wording must not read like the stand-in label. (2) Write the one sentence a **completed** evaluation run shows where a normal run shows "Published on {date}" (page 6 outcome, and page 3 if it shows the outcome): it was published for the evaluation only and **was not shown to General Partners**. (3) Confirm page 7 needs **no change**: it never shows an evaluation run, so "Published on {date}" there is always a real publication.
+- Why: DL-60 keeps an evaluation run's publication off the live calendar, so the only people who can meet it are specialists on the run pages, and they must not mistake it for a real publish.
+- Outcome: (the owner fills this in)
+
+### H-099: the live calendar skips evaluation runs: one rule in the code that reads publications, and a flag the pages can use (new DL-60)
+- From: @system.arch (operator decision, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
+- Touches: `backend/services/calendar.py` (`get_published_calendar`, `_previous_publication_at`), `backend/services/runs.py` (`is_evaluation_run`, H-096), `tests/tier1/`; sad.md DL-60, DL-50 item 5, DL-27, CR-012, EC-014, EC-R2; related: H-100 (`@ux.designer`), H-097 (`@qa.eng`, PR 4 makes the scripted G3 publish)
+- Ask: (1) **One rule, one place.** "The live publication" is the newest `publications` row for the fund **whose run is not an evaluation run** (`spend_activity` `evaluation` and `started_by` `specialist-eval`, as `is_evaluation_run`). Use it in both readers I found when I read the code (read only, 2026-11-24): `get_published_calendar` (page 7) and `_previous_publication_at` (the "previous publication" line at G3). Leave `publishing.py`'s insert and `runs._published_at` (a run's own publication) as they are: an evaluation run still publishes. (2) **"Being prepared" stays.** If only evaluation runs have published, `get_published_calendar` returns nothing, so the GP still gets the fixed DL-27 message. (3) **A flag for the pages:** give the run's page data a plain `is_evaluation` (from `is_evaluation_run`) so the label in H-100 can show. Do not draw the label until H-100 is Done; changing what a page is given to show means the visual check runs. (4) **Tier 1 test T-EVALPUB-1,** written first and seen to fail: publish an evaluation run in a temporary database; with an earlier real publication, the GP view and the "previous publication" line are unchanged; with none, the GP view shows the fixed message. If this turns out to need a schema change, stop and ask: it moves the `data/app.db` hash baseline.
+- Checks, stated in the PR description: (1) no real call was made: the trace-line count in `data/spike.db` is unchanged and `data/app.db` holds no new line with a real `spend_activity`; (2) the `data/app.db` hash baseline is unchanged (`2.build/evals.md`); (3) `.env` was not changed and `AGENTS_MODE` is `stand_in` there. One branch, never on `main`.
+- Why: Without it the first scripted evaluation publish on `data/app.db` replaces the General Partner's live calendar. Needed **before** the first evaluation run on that database.
+- Outcome: (the owner fills this in)
+
 ### H-097: B8, what is left: PRs 2, 4, 5 and 6, in this order, three checks on each, PR 4 waits for the operator
 - From: @project.mgr (operator request, 2026-11-24)   To: @qa.eng   Date: 2026-11-24
 - Touches: `backend/evaluation/` (new run starter, trace export, void rule, copy cases), `tests/tier1/`, `tests/tier2/`, `2.build/qa.md`; sad.md EC-R2, EC-R7, EC-R8, D4, T-D4-1, DL-45 (read, not edited); related: H-095 (`@system.arch`), H-096 (`@backend.eng`)
