@@ -63,3 +63,12 @@ def test_a_label_outside_the_three_is_refused_by_the_column(conn, run):
                           eval_case="made_up")
     # The refused call left nothing behind: no trace line, and the cost count did not move.
     assert len(trace.list_trace(conn, run["run_id"])) == before
+
+
+def test_a_copy_case_call_is_never_late_even_when_the_run_waits_at_a_gate(conn, run):
+    """The run is at G1, so an ordinary stage-A call written now is late. A copy-case call belongs to no
+    stage and is not (PR 6): otherwise EC-010 would count it as time the run wasted."""
+    trace.record_call(conn, run=run, stage="A", unit_id="U-ORDINARY", call=_call(1))
+    trace.record_call(conn, run=run, stage="A", unit_id="COPY-1", call=_call(2), eval_case="I-1")
+    ordinary, labelled = trace.list_trace(conn, run["run_id"])[-2:]
+    assert (ordinary["late"], labelled["late"]) == (1, 0)
