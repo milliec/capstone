@@ -36,6 +36,9 @@ matter if B13b is built (Open Question 24; see Audit).
 Two failure-reason sentences were added on 2026-11-24 (`unexpected error`, `call limit`; H-093,
 DL-58). Approval unchanged: it is wording for two reasons the SAD already records, plus one refusal
 ending, confirmed by the operator (Open Question 25, closed).
+A fourth run label, "Evaluation review", and its outcome sentence were added on 2026-11-24 (H-100,
+DL-60). Approval unchanged: it is wording for a decision the operator already made. Three
+related questions are open (Open Question 26) and are not decided here.
 
 ---
 
@@ -101,6 +104,25 @@ button, no "someone may be mid-run" line.
    (CR-030), **"Demo rule on"** when the planted-row switch was on, and **"Failure demo on"** when
    the failure-demo switch was on (page 2, proposed). All as text tags next to the H1, never colour
    alone. The mock-ups leave them out; the built app keeps them (H-004, H-005).
+
+   **A fourth label, "Evaluation review"** (DL-60, H-100), shows when the review is part of the AI
+   evaluation. It is a text tag in the same family, never colour alone, and it follows the same
+   rules as the other three.
+   - **Why this wording.** "Stand-in agents" means fixed test outputs and no AI model. An
+     evaluation review is the opposite: it uses the real AI. So the label says what the review
+     *is* (an evaluation) and never uses "stand-in", "test" or "demo", which the other labels use
+     for the fake kind of review. It also does not say "run" (§1.8).
+   - **Never with "Stand-in agents".** An evaluation review refuses stand-in agents (T-MODE-1), so
+     the two labels can never both show. If a page ever shows both, that is a bug.
+   - **Where it shows.** On every page that shows a review, which is pages 2 to 6: the review
+     list (page 2, in the "Review" column, see there), the review status page (page 3), and the
+     three step pages (4, 5 and 6), next to the H1. **Not** on sign-in (page 1) and **not** on the
+     calendar (page 7): an evaluation review never reaches it (page 7, "Evaluation reviews").
+   - **Where the page gets it.** From the plain `is_evaluation` flag that `@backend.eng` gives the
+     review's page data (H-099). The page never works it out itself (§1.2). A review without the
+     flag shows no fourth label, and the other three behave as before.
+   - The General Partner never sees any run label (page 7 shows only the stand-in line, which
+     applies only to a real publication).
 4. **Refusal message** (only after a refused request, §5: the full sentence, or a short line with a
    "Go to rule {i}" link when the refusal is about one card).
 5. The stepper (§1.4), on pages 3 to 6.
@@ -259,8 +281,11 @@ The documents, routes, codes and tests keep their internal names. Only what a us
 | Roll forward / No roll / Not confirmed | Move to the following working day / Move to the preceding working day / Keep the date | U9, H-021 |
 | Run list | Filing rules | U7, H-019 |
 | Obligations calendar | Compliance calendar | U1, H-013 |
+| Evaluation run (`spend_activity` `evaluation`, started by `specialist-eval`) | "Evaluation review" (the label, §1.3) | DL-60, H-100 |
 
 "Stand-in agents" stays as the label's exact text (CR-030), even though other text says "AI".
+"Evaluation review" is the exact text of the fourth label (DL-60, H-100). The words
+"specialist-eval", "scripted", "EC-R2" and "T-MODE-1" never appear on screen.
 
 ---
 
@@ -361,7 +386,7 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
 
    | Column | Content |
    |---|---|
-   | Review | "Review 4", links to review status |
+   | Review | "Review 4", links to review status. For an evaluation review (DL-60, H-100), the text tag **"Evaluation review"** sits under the link, so it is told apart at a glance. No tag for any other review |
    | Started | "Fri 13 Nov 2026, 14:00" |
    | Demo rule | "On" or "Off" |
    | Status | Status words (§1.5) |
@@ -419,7 +444,7 @@ and what to do next. **Who:** specialist. **No re-run of a whole review.** The o
 **On screen, in order**
 
 1. Shared frame; breadcrumb ending **"Review {n}"**.
-2. H1 for the state (see the states table), with the run labels (Stand-in agents, Demo rule on, Failure demo on).
+2. H1 for the state (see the states table), with the run labels (Stand-in agents, Demo rule on, Failure demo on, Evaluation review; §1.3).
 3. Stepper (§1.4).
 4. **Status line** (large text): the status words (§1.5) plus the sentence for the state below.
 5. **Next step** (only at a step that waits for the specialist, or when ended): one primary link
@@ -482,7 +507,7 @@ controls are not shown.
 | `AT_G2` | **"Ready for you to confirm what applies"** | "AI checked **{n} rules** against the fund's facts. **{u} of them** need your decision because AI can't tell." | **"Confirm what applies"** → page 5 |
 | `C_RUNNING` | **"Nothing for you to do yet"** | "You've confirmed what applies. The dates are being worked out by code. This takes a few seconds." | — |
 | `AT_G3` | **"The calendar is ready to check"** | "The calendar is ready: **{n} dates**." | **"Check the calendar and publish"** → page 6 |
-| `COMPLETED` | **"Published"** | "Published on {date} at {time}. The General Partner now sees this calendar." | **"See the calendar as the General Partner sees it"** → `/calendar` |
+| `COMPLETED` | **"Published"** | "Published on {date} at {time}. The General Partner now sees this calendar." For an **evaluation review** (DL-60, H-100) the sentence is instead: **"Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."** (the same words as page 6) | **"See the calendar as the General Partner sees it"** → `/calendar`. For an evaluation review this link is **not shown**; the link is **"Go to Filing rules"**, because `/calendar` shows the real calendar, not this one |
 | `DECLINED` | **"Closed without publishing"** | "Closed without publishing on {date} at {time}. Nothing was published. The General Partner still sees what they saw before." Then: "What needs to change: {reason}" | **"Go to Filing rules"** |
 | `ABANDONED` | **"Abandoned"** | "Abandoned at step {k} ({step name}) on {date} at {time}. Nothing was published, and the decisions made so far stay in the audit log." Then: "Your reason: {reason}" | **"Go to Filing rules"** |
 | `FAILED` | **"This review failed"** | Two versions, see "Failed review" below: without Retry (until B13b is built, or if it is dropped) and with Retry (B13b) | Without Retry: the link **"Start a new review from Filing rules"**. With Retry: the **"Retry step {k}"** form, then the link **"Or start a new review from Filing rules"** |
@@ -1003,7 +1028,7 @@ the review without publishing, with a reason. **Who:** specialist.
 | Not yet at G3 (`C_RUNNING` or earlier) | **"The calendar is not ready yet."** Link: **"Watch progress on the review status page"** |
 | At G3 | Full page |
 | Refused | Same page, message at the top and next to the checkbox (`ACK_REQUIRED`) or the reason field (`REASON_REQUIRED`). The checkbox is shown **unticked** again |
-| After G3 | Read-only calendar with **"Published on {date} at {time}."** or **"Closed without publishing on {date} at {time}. What needs to change: {reason}"**, no forms |
+| After G3 | Read-only calendar with **"Published on {date} at {time}."** or **"Closed without publishing on {date} at {time}. What needs to change: {reason}"**, no forms. **For an evaluation review** (DL-60, H-100) the published line is instead **"Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."**, with the "Evaluation review" label next to the H1 as on every page. The closed-without-publishing line does not change. The calendar table, the two "What's not in this calendar" lists and everything else stay as they are: the review's own publication is still shown, to the specialist, on its own pages |
 
 **After each action**
 
@@ -1108,6 +1133,18 @@ column name as a visible label. The summary cards stack. No horizontal page scro
 
 **Actions.** None, apart from "Sign out". The specialist's navigation is still shown to the
 specialist.
+
+**Evaluation reviews: no change to this page** (DL-60, H-100; confirmed 2026-11-24). Nothing on
+this page is added, removed or reworded, in any state, for either role.
+- The calendar is built only from the newest publication of a review that is **not** an evaluation
+  review (DL-60, the one rule `@backend.eng` builds in H-099). An evaluation review's publication
+  never reaches this page, so this page never needs to show, label or explain one.
+- So **"Published on {date}."** here is always a real publication. The "Evaluation review" label
+  (§1.3) and the evaluation sentence (page 6) never appear on this page.
+- **"Nothing published yet"** stays true when only evaluation reviews have published: the General
+  Partner still sees the fixed message (item 3 above; DL-27, EC-014), never an empty calendar.
+- The stand-in line ("Made with stand-in agents…") is about the real publication shown, so it
+  is unaffected too.
 
 ---
 
@@ -1246,6 +1283,7 @@ unstyled.
 | UX-018 | The General Partner's calendar note reads exactly the U11 sentence (page 7); the specialist sees the longer note | SD FR-020, H-023 |
 | UX-019 | No user-facing text says "run", "Stage A/B/C", "G1/G2/G3", "gate" or "precautionary" (except the exact label "Stand-in agents") | §1.8 |
 | UX-020 | Every decision form (G1, G2, G3) opens with its answer question and nothing chosen; choosing an answer shows only that answer's fields and button; with `:has()` unsupported, every answer's fields show; submitting with no answer shows the `VALIDATION` "Choose an answer first" sentence (§5) and saves nothing | DL-48, H-028, H-030 |
+| UX-025 | An evaluation review (DL-60, H-100) shows the text tag "Evaluation review" next to the H1 on pages 3 to 6 and under its link in the Review column on page 2, and never shows "Stand-in agents". Once published, pages 3 and 6 read exactly "Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."; page 3 has no link to `/calendar`. A review that is not an evaluation review shows none of this, and `/calendar` and the sign-in page never show the label or the sentence. Readable with colour removed | DL-60, H-100, T-MODE-1, §1.3 |
 | UX-016 | The "who files" options read exactly: AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor, Not known | DL-39 |
 | UX-011 | The G3 acknowledgement checkbox is unticked on every load | CR-028 |
 | UX-012 | The GP calendar has no horizontal scroll at 360 px | §3 |
@@ -1526,6 +1564,24 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    ending today), so the change is H-094 to `@backend.eng`. The "Start a new review from Filing
    rules" link on the failed page stays: it is a link, not advice, and stand-in reviews still work.
 
+26. **Open (found while writing H-100; for `@system.arch` and `@backend.eng` to decide, not
+   decided here).** An evaluation review passes through the same states as any review, but a
+   script, not a person, makes its decisions (EC-R2). Three places on the pages still assume a
+   person:
+   (a) **Waiting-for-you signals.** While an evaluation review sits at a step, page 2 shows
+   "Waiting for you" with a "Continue checking" link, and the sidebar and the mobile bar show
+   "Your turn". Nobody should check an evaluation review by hand, so these would point at nothing.
+   Suggested: no "Your turn" tag and no "Continue checking" link for an evaluation review; the
+   notice says "Evaluation review {n}: {status words}." instead.
+   (b) **Step pages 4 to 6 opened by a person.** Page 6 says "The General Partner will see these
+   {n} dates straight away", which is false for an evaluation review (DL-60). Suggested: the
+   server refuses a person's decision on an evaluation review's step pages, or the pages open
+   read-only. Wording is mine to write once that is decided.
+   (c) **Details and cost lines on page 3.** "Started … by Compliance specialist (mock)" is wrong
+   for an evaluation review (the starter is the script), and "The review stops at US$2.50" says
+   nothing of its own 63-call limit (DL-59). Suggested wording for the first: "by the evaluation
+   script". The label and the outcome sentence in this note do not depend on any of the three.
+
 ## Mock-up differences this revision does not apply
 
 These are in `docs/prototype/` but are not among the decisions applied here, so ux.md does not
@@ -1705,3 +1761,17 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   refusal now ends "Ask the operator to review the limit." (§5 row and Open Question 25 updated).
   H-094 re-addressed to `@backend.eng`, no longer waiting. Approval status left `approved`. No code.
   No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, H-100; from `@system.arch`,
+  operator decision DL-60) · branch `ux-designer/h100-evaluation-label` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  `AGENTS_MODE=stand_in` · docs only, in a separate worktree. Read `sad.md` DL-60, DL-59, EC-R2 and
+  T-MODE-1, `handoffs.md` H-100 and H-099, and (read only) `tests/visual/` snapshot names. Changed:
+  §1.3 item 3 (fourth run label "Evaluation review": why that wording, never with "Stand-in
+  agents", pages 2 to 6 only, fed by H-099's `is_evaluation` flag), §1.8 (new row), page 2 (tag in
+  the Review column), page 3 (label list; the `COMPLETED` sentence and next-step link for an
+  evaluation review), page 6 ("After G3" sentence, the same words), page 7 (**confirmed no
+  change**, with the reasons), §8 (UX-025), Open Question 26 (three places that still assume a
+  person; **not decided**). Chose "the General Partner" (singular) in the sentence, as everywhere
+  else in this note (§1.8), not "General Partners". Added one thing the ask did not name: page 3
+  drops the link to `/calendar` for an evaluation review, because that link would open the real
+  calendar and contradict the sentence above it. Approval status left `approved`: wording for a
+  decision already made. No code, no template, no snapshot touched. No model call.
