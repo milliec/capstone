@@ -80,7 +80,7 @@ names below are derived from the SAD §4 routes (Open Question 1). Every stub sa
 | `decisions.get_g2_view(conn, run)` | `GET …/g2` | Placeholder verdicts with the V-9 view fields (H-036) | Stored verdicts (B3) |
 | `decisions.decide_verdict(conn, *, verdict_id, version, decision, value, confirm_reason, override_reason, decide_reason, actor)` | `POST /specialist/verdicts/{verdict_id}/decision` | Audit entry only; reads only the chosen answer's reason (DL-48) | `verdict_decisions`, checks (B2) |
 | `calendar.get_g3_view(conn, run)` | `GET …/g3` | Calendar ID + placeholder entries with the V-10 view fields (H-036); rejected rows are real | Real entries, uncited list (B2, B3, B4) |
-| `calendar.get_published_calendar(conn, fund_id)` | `GET /calendar` | Newest publication is live (real); placeholder entries | Real entries (B4) |
+| `calendar.get_published_calendar(conn, fund_id)` | `GET /calendar` | Newest publication of a run that is not an evaluation run is live (real, DL-60); placeholder entries | Real entries (B4) |
 | `publishing.publish_calendar(conn, *, calendar_id, run_version, acknowledged, rejected_row_ids, uncited_paragraph_ids, actor)` | `POST …/publish` | Insert publication, `COMPLETED`, audited | `ACK_REQUIRED`, version, phase (B2) |
 | `publishing.decline_calendar(conn, *, calendar_id, run_version, decline_reason, actor)` | `POST …/decline` | `DECLINED`, audited | `REASON_REQUIRED`, decision/route match (B2) |
 | `stage_store.add_units`, `mark_unit`, `finish_stage`, `fail_stage` | — | Unit lines and phase moves; stage C creates the calendar version | Rule 9 store, stage-attempt check (B3) |
@@ -1229,6 +1229,31 @@ unchanged), so a check on the file hash will see a change; compare table digests
 and its hash does not change. If the app refuses to start with "not the one this version knows how to upgrade", nothing was
 changed: restore from the backup and say so.
 
+### H-099: the live calendar skips evaluation runs (DL-60, 2026-11-24)
+
+- **The rule, in one place.** `calendar._live_publication(conn, fund_id, not_run_id=None)` returns the newest
+  `publications` row for the fund whose run is **not** an evaluation run. It reads the rows newest first and
+  asks `runs.is_evaluation_run` (DL-59), so the definition of an evaluation run is not copied into SQL.
+- **Two readers use it.** `get_published_calendar` (page 7, GP and specialist) and `_previous_publication_at`
+  (the "previous publication" line at G3, which also leaves out the run being read). If only evaluation runs
+  have published, `get_published_calendar` returns `None` and the GP still gets the fixed "being prepared"
+  message (DL-27, EC-014).
+- **Left as they were.** `publishing.publish_calendar` (an evaluation run still publishes and is acknowledged
+  and audited like any run, EC-R2) and `runs._published_at` (a run's own publication, so an evaluation run's
+  own G3 page still shows its own publish time).
+- **The flag.** Every run's page data now has `is_evaluation` (from `is_evaluation_run`), set in
+  `runs._describe`. **No template reads it yet:** the label is `@ux.designer`'s (H-100), so nothing on a page
+  changed and the visual check still passes.
+- **No schema change.** No column, table or constraint; the `data/app.db` hash is unchanged (`cfcd909e…`).
+- **Test.** `tests/tier1/test_evaluation_publish.py` (T-EVALPUB-1, Tier 1), written first and seen to fail
+  (3 of 5 failed without the fix, then 5 pass). It covers: an evaluation publish leaves page 7 and the G3
+  line alone; an evaluation run is still published and its own page shows it; only evaluation publications
+  means "being prepared" (also over HTTP as the GP); a real publish after an evaluation publish is live
+  again; the flag. The evaluation runs are real ones: started by `specialist-eval`, `SPEND_ACTIVITY=evaluation`,
+  real mode against the fake OpenAI (dummy key, temporary database). The "real" publication is a stand-in
+  review, back-dated by a day, because timestamps are to the second.
+- **Unblocks** `@qa.eng`'s H-097 PR 4b (the scripted G3 publish on `data/app.db`).
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -1514,3 +1539,5 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-24 · persona `backend-eng` · `develop-be` (H-094: the `RETRY_NOT_ALLOWED` sentence for each of five reasons) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "pick up H-094". Code: `backend/services/refusals.py`, the one `("RETRY_NOT_ALLOWED", "")` entry became five, keyed by reason (`cost cap`, `calendar generation`, `evaluation run`, `newer run`, `call limit`), word for word as `ux.md` §5; only `call limit` leaves out "Start a new review from Filing rules" and ends "A new review would reach the same limit. Ask the operator to review the limit." Tests: three in `tests/tier1/test_refusals.py` (each sentence word for word; only `call limit` lacks the new-review advice; still a 409 with one audit entry). 660 Tier 1 tests pass; ruff clean. Nothing raises this refusal yet (`retry_run` is a stub, B13b), so no page or route changed. Known gaps: the B13b open item now says what to pass. No SAD or `ux.md` edit. No model call.
 - 2026-11-24 · persona `backend-eng` · `sync-docs` (after H-094) · Doc sync: no updates. No allowlisted descriptive doc states the old one-sentence `RETRY_NOT_ALLOWED` wording; `backend.md` was updated as part of the change.
 - 2026-11-24 · persona `backend-eng` · `document-backend` (docs only; follow-up to the `data/data` item in `qa.md`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · added `[ -e "$f" ] ||` to the run-folder `ln -s` loop (step 1 of the real clean run) so a second run no longer makes a `data/data` link, plus one explanatory sentence. Tested the guard in a throwaway folder only. No code, no database opened, no model call.
+- 2026-11-24 · persona `backend-eng` · `develop-be` (H-099: the live calendar skips evaluation runs, DL-60) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "H-099". Code: `backend/services/calendar.py` (new `_live_publication`, used by `get_published_calendar` and `_previous_publication_at`), `backend/services/runs.py` (`is_evaluation` in `_describe`); new `tests/tier1/test_evaluation_publish.py` (T-EVALPUB-1). Checks: 869 tests pass; ruff clean; `aamad validate` OK; name scan prints nothing; visual check passes. No real call (trace lines unchanged: 6 in `data/spike.db`, 52 in `data/app.db`, 58 together); `data/app.db` hash unchanged (`cfcd909e…`), `data/spike.db` unchanged (`32376900…`); `.env` unchanged, `AGENTS_MODE=stand_in`. No schema change. LLM, temperature and max-token controls: none resolved (no model call). Branch `backend-eng/h099-evalpub-off-live`, own worktree; PR opened, not merged.
+- 2026-11-24 · persona `backend-eng` · `sync-docs` (after H-099) · Doc sync: one sentence in `backend.md` (the `get_published_calendar` row, "Newest publication is live") corrected as part of the change; no other allowlisted doc states the old rule.
