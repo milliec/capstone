@@ -306,6 +306,77 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 2. **H-091** to `@backend.eng`: the two fixes, with their tests, **against the fake OpenAI only.**
 3. `*sync-docs` after the code change, with the operator's approval before it writes.
 
+## 9. Proposal: how an existing database gets the two new failure reasons (for H-091, step 3)
+
+**Status: PROPOSED, tested on a copy. Nothing in `backend/` is changed and neither real database was opened for
+writing.** It waits for H-092 (the reasons are recorded in the SAD first) and for the operator's approval.
+
+### 9.1 The problem
+
+`units.failure_reason` carries a `CHECK` that lists the seven reasons. `CREATE TABLE IF NOT EXISTS` leaves an
+existing table alone, so a database made before the change would **refuse** `unexpected error` and `call limit`
+with an integrity error, exactly when a review is already failing. SQLite cannot alter a `CHECK` with `ALTER
+TABLE`. The code already has one precedent for an old database (`TRACE_ADDED_COLUMNS` in
+`backend/db/connection.py`), but it only **adds columns**; it cannot change a `CHECK`.
+
+### 9.2 What I tested, and on what
+
+Both on **copies** of a read-only backup of the real app database (made with `sqlite3 -readonly ... ".backup"`),
+in the scratchpad, outside the repository. **Before and after, `data/app.db` and `data/spike.db` had the same
+SHA-1** (`29068e84…` and `32376900…`, the values `@qa.eng` records). The copy holds 9 reviews, 93 units, 52 trace
+lines and 153 audit entries. For each way I compared the row count and a content digest of every table, the
+triggers, `PRAGMA integrity_check`, `PRAGMA foreign_key_check`, whether the new values are accepted and a wrong one
+still refused, and what a second run does.
+
+| | **A. Rewrite the stored table text** (SQLite's documented way to *loosen* a `CHECK`) | **B. Rebuild the table** (new table, copy, drop, rename) |
+|---|---|---|
+| Result on the copy | **Passed.** Every table's content, the 93 unit rows **with their row numbers**, and the 4 triggers unchanged. Integrity `ok`, 0 foreign-key problems. Both new reasons accepted; `banana` refused. Second run: "nothing to do" | **Passed**, same checks |
+| Touches the data rows? | **No.** Only the table's definition changes | **Yes**, every `units` row is copied. Pages and stages read units `ORDER BY rowid`, so a copy that renumbers rows could reorder them (it did not here, because the numbers had no gaps) |
+| Stored table text afterwards | **Identical to a database made fresh from the updated `schema.sql`** (checked with a diff) | Differs in one cosmetic way: `CREATE TABLE "units"` (quoted name) instead of `CREATE TABLE units` |
+| Needs | `PRAGMA writable_schema`, which a **defensive** SQLite build **refuses** ("table sqlite_master may not be modified"; I tested this, it fails cleanly and nothing changes) | Nothing special; works in defensive builds |
+| Risk | Low for data, but it is the "dangerous-looking" pragma. Guarded by an exact-text check (below) | Larger blast radius: a bug here loses or reorders rows |
+
+### 9.3 Recommendation
+
+**Use A, with B as the fallback only when the build refuses A.** A leaves every row alone, so the evidence in the
+real runs cannot be disturbed, and it makes an old database look exactly like a new one.
+
+1. **A new function `upgrade_failure_reasons(conn)`** in `backend/db/connection.py`, **called from
+   `create_app` in `backend/main.py` only, not from `init_db`.** Reason: `init_db` is also called by the spike
+   runner on `data/spike.db` (`spike.py` line 176), so putting it there would **change `spike.db` the next time the
+   spike runs**. The spike never writes the new reasons, so `spike.db` keeps the old list on purpose and is never
+   migrated.
+2. **Guards, in this order:** if the stored `units` text already contains `'call limit'`, do nothing. If it does
+   **not** contain `'demo failure')` exactly once, **stop and refuse to start** with a plain message (the table is
+   not what was expected; nothing is changed). Otherwise run A inside one `BEGIN IMMEDIATE` transaction, raising
+   `schema_version` by one, using `sqlite_master` (works on every SQLite; `sqlite_schema` needs 3.33 or later).
+3. **If A is refused** (a defensive build), run B in one transaction with `PRAGMA foreign_keys = OFF`, copying
+   `ORDER BY rowid`, then `PRAGMA foreign_key_check` must be empty before `COMMIT`, and `foreign_keys` goes back on.
+4. **`schema.sql` gets the same two values** on the same line, so a new database and a migrated one match.
+5. **It runs at start-up, before any request**, so nothing else holds the database. It is idempotent, so
+   `make run --reload` can repeat it.
+
+### 9.4 What the operator does and what changes
+
+- **One visible change:** the first start of the app on the new code changes `data/app.db`'s **file hash** (the
+  schema, not the data). `@qa.eng` watches that hash, so the handoff tells them the new baseline **and that the
+  row contents are unchanged** (compare table digests, as above).
+- **Before that first start, take a backup, read-only, by choice:** `sqlite3 -readonly data/app.db ".backup
+  'data/app-before-reasons.db'"` (`data/` is git-ignored). I propose it as a step for you, **not** as something the
+  app does by itself.
+- **Fallback if you would rather not migrate the real evidence at all:** start a fresh database
+  (`DATABASE_PATH=data/app-2.db`) and keep `data/app.db` read-only for `@qa.eng`. Cost: the new database's
+  Filing rules list starts empty.
+
+### 9.5 Tests for the migration (Tier 1, temporary files only, added to H-091)
+
+Build an old-style database (seven reasons) in a temporary file, then: (a) the upgrade adds both reasons, a wrong
+one is still refused, and every table's rows and the unit row numbers are unchanged; (b) a second run changes
+nothing; (c) the stored text equals a database made from the new `schema.sql`; (d) a table that is **not** what was
+expected is refused and left as it was; (e) with SQLite's defensive setting on, B is used and passes (a) to (c);
+(f) **`init_db` on a spike-style database does not change `units`** (so `spike.db` stays as it is). The existing
+`test_attempt_trace.py` trace-column test is the pattern to follow.
+
 ## Sources
 
 `sad.md` (§4 routes, run states, failure reasons, CR-017, CR-023, CR-030), `setup.md`, `scaffold-plan.md`,
@@ -325,10 +396,9 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 
 ## Open Questions
 
-1. **How does an existing `data/app.db` get the two new reasons?** The `units.failure_reason` `CHECK` lives in
-   `schema.sql`, and the schema is created with `CREATE TABLE IF NOT EXISTS`, so an existing database keeps the old
-   list. `@backend.eng` proposes the way (H-091) **before** touching anything, tests on a copy, and **never deletes
-   or changes `data/app.db` or `data/spike.db`** (they are the real-run evidence).
+1. **How does an existing `data/app.db` get the two new reasons?** Proposed and tested on a copy: section 9.
+   **The operator still has to approve it,** and decide whether the real `data/app.db` is migrated (section 9.4) or
+   kept as it is with a fresh database started beside it. Neither real database has been touched.
 2. Is E-11 reproduced? I read it in the code; the first test in H-091 settles it.
 3. `IFW-5` (process log) and `IFW-6` (test coverage) are open and parked.
 
@@ -341,3 +411,4 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
   and G1 templates, `sad.md`, `setup.md`, `scaffold-plan.md`, `spike-report.md`. Queries in sections 2.1 and 6 were
   checked for syntax against an empty in-memory copy of the schema only.
 - 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded the operator's decisions D-1 to D-4: no new real run (`RUN-20261124-2` is the proof); P-3 and P-5 approved; P-1, P-2, P-4 parked as `IFW-1` to `IFW-3`; new failure-reason wording proposed; polling stays with known limit KL-1; the timed run parked as `IFW-4`. Raised H-091 (`@backend.eng`) and H-092 (`@system.arch`). **Documentation only; no code, no model call, no key; `data/spike.db` and `data/app.db` not opened.**
+- 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · added section 9, the proposal for how an existing database gets the two new failure reasons, **tested on copies only** (a read-only `.backup` of `data/app.db`, in the scratchpad, outside the repository). `data/app.db` (`29068e84…`) and `data/spike.db` (`32376900…`) had the same SHA-1 before and after, and were opened read-only. **Documentation only; no change in `backend/`, no model call, no key.**
