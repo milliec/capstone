@@ -8,8 +8,9 @@ labelled `SPEND_ACTIVITY=spike`, was invisible to the cap and to the tally. Now 
 (`harness.count_real_calls`) sums the real-call lines across both files, and the spike runner's cap check
 and `--tally` use it, with a per-database breakdown.
 
-Not in this change, on purpose: the web app does not STOP at 70. That would need a new refusal or failure
-reason, which is a SAD change. A clean run is about 18 calls.
+Not in this change, on purpose: the web app did not STOP at 70. That needed a new failure reason, which is a
+SAD change. It was built afterwards (H-091, DL-58, 2026-11-24): see test_call_cap_web.py. A clean run is about
+18 calls.
 """
 
 import hashlib
