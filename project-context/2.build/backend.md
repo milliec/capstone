@@ -1045,8 +1045,11 @@ without this one its calls would not count toward the 70.
    git fetch origin
    git worktree add ../capstone-worktrees/operator-run origin/main
    cd ../capstone-worktrees/operator-run
-   for f in .venv reference .env data; do ln -s "$PROJECT/$f" "$f"; done
+   for f in .venv reference .env data; do [ -e "$f" ] || ln -s "$PROJECT/$f" "$f"; done
    ```
+   The `[ -e "$f" ] ||` skips a name that already exists. Without it, a second run makes `ln -s` follow the
+   existing `data` link and put a new `data` link inside the real `data/`, pointing back at it (seen on
+   24 Nov, `qa.md` H-091).
    (If the shared folder is on `main` and `git status` is empty, you can run from it after `git pull`.)
 2. **Check nothing redirects the requests.** The web app prints no Endpoint line, so check the shell:
    `env | grep OPENAI_BASE_URL` must print **nothing**.
@@ -1510,3 +1513,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-24 · persona `backend-eng` · `document-backend` (B13b open item for H-091 test 4e) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "add an open item under B13b: when retry is built, add a test proving a step that failed with call limit cannot be retried". Docs only: the separate "`call limit` cannot be retried" bullet in Known gaps became a sub-item under the `retry_run` stub (B13b) bullet, with what the test must show; nothing else changed. No code, no real call.
 - 2026-11-24 · persona `backend-eng` · `develop-be` (H-094: the `RETRY_NOT_ALLOWED` sentence for each of five reasons) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "pick up H-094". Code: `backend/services/refusals.py`, the one `("RETRY_NOT_ALLOWED", "")` entry became five, keyed by reason (`cost cap`, `calendar generation`, `evaluation run`, `newer run`, `call limit`), word for word as `ux.md` §5; only `call limit` leaves out "Start a new review from Filing rules" and ends "A new review would reach the same limit. Ask the operator to review the limit." Tests: three in `tests/tier1/test_refusals.py` (each sentence word for word; only `call limit` lacks the new-review advice; still a 409 with one audit entry). 660 Tier 1 tests pass; ruff clean. Nothing raises this refusal yet (`retry_run` is a stub, B13b), so no page or route changed. Known gaps: the B13b open item now says what to pass. No SAD or `ux.md` edit. No model call.
 - 2026-11-24 · persona `backend-eng` · `sync-docs` (after H-094) · Doc sync: no updates. No allowlisted descriptive doc states the old one-sentence `RETRY_NOT_ALLOWED` wording; `backend.md` was updated as part of the change.
+- 2026-11-24 · persona `backend-eng` · `document-backend` (docs only; follow-up to the `data/data` item in `qa.md`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · added `[ -e "$f" ] ||` to the run-folder `ln -s` loop (step 1 of the real clean run) so a second run no longer makes a `data/data` link, plus one explanatory sentence. Tested the guard in a throwaway folder only. No code, no database opened, no model call.
