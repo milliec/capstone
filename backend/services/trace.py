@@ -78,7 +78,9 @@ def record_call(conn: sqlite3.Connection, *, run: dict, stage: str, unit_id: str
     conn.commit()                      # nothing of ours is pending
     conn.execute("BEGIN IMMEDIATE")    # the write lock: the run cannot change under us
     try:
-        late = _is_late(conn, run, stage)
+        # A copy-case call belongs to no stage, so it can never be "late" for one (PR 6, DL-45). Without
+        # this, a call made while the run waits at a gate would be stamped late and skew EC-010.
+        late = False if eval_case else _is_late(conn, run, stage)
         conn.execute(
             """INSERT INTO trace (run_id, fund_id, step, stage_attempt, unit_id, attempt_n, at,
                                   prompt_version, model, model_returned, settings_json, max_tokens,
