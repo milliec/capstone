@@ -41,13 +41,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: The count changes the reading of the run: the judge was more cautious than the answer key on 4 rows, which is a finding for EC-004 (spike report F-5), not a small number of `unsure`.
 - Outcome: (the owner fills this in)
 
-### H-090: tasks.yaml: copy the new extractor card sentence in (DL-57); a release
-- From: @system.arch (operator decision, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
-- Touches: `backend/config/tasks.yaml` extractor task, step 2 (about line 26); sad.md extractor card (Task `extract_rows`, step 2); DL-57; the Swap-as-release rule; EC-001, EC-002
-- Ask: Please copy the one new sentence from the SAD card into the extractor's task text, word for word: "When one sentence gives two actions with the same recipient, frequency, anchor and deadline, write one row, not two, and name both actions in `obligation_name`." Treat it as a release (the file's hash is in every trace) and run the Tier 1 tests. Please do not start a real run until it is merged, and say in the next report which card version the run used.
-- Why: The SAD now says merge (DL-57), but the model is told what `tasks.yaml` says, so until it is copied in the real extractor can still split the sentence.
-- Outcome: (the owner fills this in: what changed, or why not)
-
 ### H-088: spike report (new section 12) and evals.md: the first real run, including the real failure at Stage C
 - From: @backend.eng (operator request, 2026-11-23)   To: @qa.eng   Date: 2026-11-23
 - Touches: `2.build/spike-report.md` (section 11 item 1 says "a section 12 here with its calls, times and cost"; also section 10, a new finding); `2.build/evals.md` section 9 Case 1 and Case 3; `2.build/backend.md` section "The first real run through the web app: what it showed" has the numbers
@@ -162,6 +155,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-090: tasks.yaml: copy the new extractor card sentence in (DL-57); a release
+- From: @system.arch (operator decision, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
+- Touches: `backend/config/tasks.yaml` extractor task, step 2 (about line 26); sad.md extractor card (Task `extract_rows`, step 2); DL-57; the Swap-as-release rule; EC-001, EC-002
+- Ask: Please copy the one new sentence from the SAD card into the extractor's task text, word for word: "When one sentence gives two actions with the same recipient, frequency, anchor and deadline, write one row, not two, and name both actions in `obligation_name`." Treat it as a release (the file's hash is in every trace) and run the Tier 1 tests. Please do not start a real run until it is merged, and say in the next report which card version the run used.
+- Why: The SAD now says merge (DL-57), but the model is told what `tasks.yaml` says, so until it is copied in the real extractor can still split the sentence.
+- Outcome: **Done.** 2026-11-24, `@backend.eng` (at the operator's instruction, on branch `backend-eng/h090-extractor-card`). The sentence is in `backend/config/tasks.yaml`, task `extract_rows`, step 2, directly after "creates no row.", **word for word** (checked against sad.md and this handoff). It is a release: the extractor's prompt version changed from `aec586241001b7a5` to **`aa365db76f401580`**; the verifier's and judge's are unchanged. Tier 1 (615) and Tier 2 (161) pass. **Every real extraction so far ran on the old version and is not like-for-like with later ones (EC-001, EC-002: do not pool).** **The next real run's report must name `aa365db76f401580`.** No real run was made, and none should start until this is merged. Details: `2.build/backend.md`, "The extractor card release". Not done, not asked: a test that pins the sentence in `tasks.yaml`.
 
 ### H-087: sad.md: one sentence that gives two rules makes Stage C refuse (DL-35 entry ID collision); merge the rules, or put the obligation in the entry ID?
 - From: @backend.eng (operator request, 2026-11-23)   To: @system.arch   Date: 2026-11-23
