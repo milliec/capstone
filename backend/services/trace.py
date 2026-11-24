@@ -67,8 +67,14 @@ def _is_late(conn: sqlite3.Connection, run: dict, stage: str) -> bool:
 
 
 def record_call(conn: sqlite3.Connection, *, run: dict, stage: str, unit_id: str,
-                call: CallRecord, spend_activity: str | None = None) -> bool:
-    """Write the call's trace line, cost and audit entry together. Returns True if it was late."""
+                call: CallRecord, spend_activity: str | None = None,
+                eval_case: str | None = None) -> bool:
+    """Write the call's trace line, cost and audit entry together. Returns True if it was late.
+
+    `eval_case` (H-096, DL-45) labels a call that belongs to an evaluation copy case:
+    'altered_quote', 'I-1' or 'injection'. None (the default) is an ordinary call. This code does
+    not check the value: the trace column's CHECK refuses anything else, and the whole
+    transaction is then rolled back (no line, no cost, no audit entry)."""
     conn.commit()                      # nothing of ours is pending
     conn.execute("BEGIN IMMEDIATE")    # the write lock: the run cannot change under us
     try:
@@ -79,16 +85,16 @@ def record_call(conn: sqlite3.Connection, *, run: dict, stage: str, unit_id: str
                                   input_hash, raw_output, parsed_output, validation_error,
                                   tokens_in, tokens_out, cost_usd, duration_ms, spend_activity,
                                   late, stop_reason, provider_error, cost_estimated,
-                                  off_pinned_setting, request_path)
+                                  off_pinned_setting, request_path, eval_case)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                       ?)""",
+                       ?, ?)""",
             (run["run_id"], run["fund_id"], call.step, run["stage_attempt"], unit_id,
              call.attempt_n, call.at, call.prompt_version, call.model, call.model_returned,
              call.settings_json, call.max_tokens, call.input_hash, call.raw_output,
              call.parsed_output, call.validation_error, call.tokens_in, call.tokens_out,
              call.cost_usd, call.duration_ms, spend_activity or None, int(late),
              call.stop_reason, call.provider_error, int(call.cost_estimated),
-             int(call.off_pinned_setting), call.request_path))
+             int(call.off_pinned_setting), call.request_path, eval_case or None))
         conn.execute("UPDATE runs SET cost_so_far = cost_so_far + ? WHERE run_id = ?",
                      (call.cost_usd, run["run_id"]))
         key = record_key(run["run_id"], call.step, run["stage_attempt"], unit_id, call.attempt_n)
