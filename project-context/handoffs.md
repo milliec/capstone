@@ -34,6 +34,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
+### H-093: ux.md page 3: add the sentences for two new failure reasons, `unexpected error` and `call limit`
+- From: @system.arch (H-092, `sad.md` DL-58)   To: @ux.designer   Date: 2026-11-24
+- Touches: `2.build/ux.md` page 3 "Failure reason sentences" (today the six reasons plus `demo failure`); `sad.md` §4 failure reasons 9 and 10
+- Ask: Add two rows to the sentence table, using the proposed text in `2.build/integration.md` §3.4 unless it reads wrongly on the page. `unexpected error`: "Something went wrong that the app did not expect, so this step was stopped and nothing from it was saved". `call limit`: "The limit on real model calls for this kind of review was reached, so no further call was made". Both follow the built style (no final full stop). The review page shows the sentence only, never the error's message. For `call limit`, "Retry step {k}" is refused (`RETRY_NOT_ALLOWED`, like `cost cap`); check what page 3 shows then. Also change "the six reasons" in the table's lead-in.
+- Why: `@backend.eng` puts the same sentences in `FAILURE_SENTENCES` (H-091), and the page and the code should use one wording.
+- Outcome:
+
 ### H-092: sad.md: two new failure reasons, `unexpected error` and `call limit` (operator decision, 2026-11-24)
 - From: @integration.eng (operator decision D-2, D-3, `2.build/integration.md` section 3.4)   To: @system.arch   Date: 2026-11-24
 - Touches: sad.md run-state `FAILED` rows and the failure-reason list (today seven reasons, DL-43, DL-51, DL-52); the `units.failure_reason` values (also `backend/db/schema.sql`, which `@backend.eng` changes); `2.build/ux.md` page 3 "Failure reason sentences" (`@ux.designer`); CR-017, CR-023, CR-030, EC-R10; blocks H-091
