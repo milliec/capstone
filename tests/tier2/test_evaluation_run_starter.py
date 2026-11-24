@@ -1,9 +1,9 @@
 """The evaluation run starter, PR 4a (H-097): `python -m backend.evaluation run`.
 
 What PR 4a does: every refusal, the plan, the typed confirmation, then starts an evaluation run as
-`specialist-eval` and lets Stage A finish. It STOPS AT G1: it makes no gate decision (that is PR 4b).
-It also checks Stage A's trace and ends the run if a request got a 400 (even one CrewAI's silent repeat
-got past), a length stop, or an invalid answer.
+`specialist-eval` and lets Stage A finish. It also checks Stage A's trace and ends the run if a request
+got a 400 (even one CrewAI's silent repeat got past), a length stop, or an invalid answer. (Since PR 4b
+the run then goes on through the scripted gates: those tests are in test_evaluation_scripted_gates.py.)
 
 How these tests stay safe (H-097 checks):
   * Real mode against the fake OpenAI on this machine, the dummy key, temporary databases, a temporary
@@ -193,34 +193,33 @@ def test_anything_but_the_exact_words_cancels_and_sends_nothing(typed, env, tmp_
     assert CONFIRM in console.asked[0]                  # the prompt names the exact words
 
 
-# --- Confirmed: a run starts as specialist-eval and stops at G1 ----------------------------------------
+# --- Confirmed: a run starts as specialist-eval (PR 4b: and goes through the scripted gates) -----------
 
-def test_a_confirmed_run_makes_stage_a_and_stops_at_g1_without_any_gate_decision(
+def test_a_confirmed_run_starts_as_specialist_eval_in_real_mode_with_the_planted_row_off(
         env, tmp_path, spike_db, fake):
     console = Console()
     assert start(env, spike_db, tmp_path, console, "--go") == 0
-    assert len(fake.requests) == 11                      # 5 extractions + 6 verifications; no judge call
     conn = app_db(env)
     run = runs.list_runs(conn, FUND_ID)[0]
-    assert (run["status"], run["phase"]) == ("ACTIVE", "AT_G1")
     row = dict(conn.execute("SELECT * FROM runs WHERE run_id = ?", (run["run_id"],)).fetchone())
     assert (row["started_by"], row["spend_activity"], row["agents_mode"], row["demo_planted_row"]) == \
         ("specialist-eval", "evaluation", "real", 0)
     assert runs.is_evaluation_run(row)
-    for table in ("row_decisions", "verdict_decisions", "verdicts", "publications", "calendar_entries"):
-        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0, table
-    assert "Stopped at G1" in console.text and "4b" in console.text
-    assert (tmp_path / "logs" / run["run_id"]).is_dir()  # the Stage A report was saved here, not in the repo
+    assert (tmp_path / "logs" / run["run_id"]).is_dir()  # the reports were saved here, not in the repo
 
 
-def test_a_second_start_while_the_run_waits_at_g1_is_refused_before_the_prompt(
+def test_a_second_start_while_a_review_is_in_progress_is_refused_before_the_prompt(
         env, tmp_path, spike_db, fake):
-    start(env, spike_db, tmp_path, Console(), "--go")
-    sent = len(fake.requests)
+    from backend.db.connection import init_db
+    from tests import flow
+    stand_in = load_settings({"AGENTS_MODE": "stand_in", "DATABASE_PATH": env["DATABASE_PATH"],
+                              "SESSION_SECRET": "test-only", "STAND_IN_UNIT_PAUSE_S": "0"})
+    init_db(stand_in.database_path)
+    flow.start_to_g1(connect(stand_in.database_path), stand_in)      # an ordinary review, waiting at G1
     console = Console()
     assert start(env, spike_db, tmp_path, console, "--go") == 2
     assert "REFUSED" in console.text and "in progress" in console.text
-    assert console.asked == [] and len(fake.requests) == sent
+    assert console.asked == [] and fake.requests == []
 
 
 # --- Stopping: a 400, a length stop, an invalid answer -------------------------------------------------
