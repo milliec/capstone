@@ -1466,13 +1466,34 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   the same paragraph" row), the DL-57 row; `decision-log.md` (this entry); `handoffs.md` (H-087 Outcome; H-090 to `@backend.eng` to copy the sentence into `tasks.yaml`, because the
   SAD edit alone changes no model call).
 
-### DL-59 · An evaluation run is derived; evaluation has its own 57-call cap; copy-case failures do not void (H-095)
+### DL-58 · Two new failure reasons: `unexpected error` and `call limit` (H-092)
+
+- **Decision** (operator, 2026-11-24, H-092; build spec `2.build/integration.md` §3.4, E-11).
+  `unexpected error`: an uncaught error inside a running stage ends the stage and the run as `FAILED`
+  instead of leaving it on "AI is drafting the rules". No gate opens. The audit entry holds the error's
+  class name only, never its message. Retry is allowed, once, as for any reason not excluded.
+  `call limit`: in real mode the web path checks the run's real-call count against its activity's cap,
+  counted across both databases as the spike command does, **before each real call**; at or over the
+  cap no call is made. **Not retryable**, like the cost cap (DL-51).
+- **Why**: the web path caught only the listed failures, so an error outside them (a missing model ID
+  or key, for example) left a review on "AI is drafting the rules" until a restart, and nothing in the
+  web path enforced the real-call cap.
+- **My inferences, not the operator's words**: neither reason is a model-service failure, so neither is
+  voidable under EC-R8; `unexpected error` may be retried once.
+- **Later changes**: DL-59 adds the `evaluation` cap (now 63) to this check and makes it refuse when
+  the count cannot be read, for every activity.
+- **Not changed**: the pinned US$2.50 cap. The sentences are on `ux.md` page 3 (`@ux.designer`, H-093).
+- **Changed**: SAD failure-reason list (nine reasons), the `FAILED` row and transition, the retry guard
+  and rule 10, `RETRY_NOT_ALLOWED`, the DL-58 row. This entry was missing from this file and is written
+  on 2026-11-24 from the SAD row and the H-092 handoff.
+
+### DL-59 · An evaluation run is derived; evaluation has its own 63-call cap; copy-case failures do not void (H-095)
 
 - **Decision** (operator, 2026-11-24, H-095). **(1)** An evaluation run is a run with `spend_activity`
   `evaluation` started by `specialist-eval`. It is derived, so there is **no new column** and the
   `data/app.db` hash baseline does not move. `specialist-eval` is for the scripted gates only; the
   sign-in page still offers two identities. An evaluation run refuses stand-in mode and a planted row,
-  and each refusal is audited. **(2)** Evaluation has its own cap of **57 real calls** in the same cap
+  and each refusal is audited. **(2)** Evaluation has its own cap of **63 real calls** (first recorded as 57; raised, SOQ-36) in the same cap
   table as spike (70) and tuning (60). It **fails closed**: at the cap, or when the count cannot be
   read, no call is made and the unit fails with `call limit`. **(3)** The `I-1` and injection calls
   are not units: a failure makes EC-005 or EC-021 **incomplete**, never a pass, and is not re-run.
@@ -1480,8 +1501,12 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - **What follows** (my reading, for the operator to confirm): the two harness calls count; a voided
   run's calls stay in the count, so a **replacement run needs a recorded decision first** (EC-R10
   point 3), and without one the cycle reports fewer than three runs; `call limit` never voids a run.
-- **Found, not decided**: a run took 17 requests in the spike and 19 in the first web-app run, so a
-  cycle needs 57 to 63 calls. 57 leaves no room for a retry. See SAD SOQ-36.
+- **Raised to 63 (operator, 2026-11-24, SOQ-36)**: a run took 17 requests in the spike and 19 in the
+  first web-app run, so a cycle needs 57 to 63 calls, and 57 was too few. 63 is three runs of 21 (19
+  and the 2 harness calls). It leaves **no slot for a retry** on a 19-request run. The operator also
+  **confirmed** the two readings above (a replacement run needs a recorded decision first) and that
+  the fail-closed rule for an unreadable count applies to **every** activity, spike and tuning
+  included. Estimate total: About 231 (was 225). Not changed: US$7.50 worst case, US$2.50 per run.
 - **Changed**: SAD DL-58 and failure reason 10, CR-030 and T-MODE-1, sign-in text, EC-R2, EC-R7,
   EC-R8 (points 2, 3, new 6), EC-R10 point 2, EC-005, EC-021, the evaluation budget row, the B8 row,
   SOQ-36, the DL-59 row; `decision-log.md` (this entry); `handoffs.md` (H-095 Outcome).
@@ -1571,3 +1596,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-23 · persona `system-arch` (at the operator's instruction; handoff H-081) · action `update` · DL-55: the bake-off is stated as not owed (a later run needs a new operator decision and entry), and three known limits are added: the false-alarm rate, the extractor on one document of five, the judge's verdicts seen. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-087) · action `update` · new DL-57 (one sentence with one deadline is one row: merge, not separate entries; F-12 stays parked; the card change affects EC-001 and EC-002; a G1 warning is an open option only). `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-095) · action `update` · new DL-59 (an evaluation run is derived and `specialist-eval` is not a sign-in choice; evaluation has its own 57-call cap that fails closed; copy-case failures leave EC-005 or EC-021 incomplete and do not void; the three-run comparison is parked; found: 57 has no room, SOQ-36). `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-24 · persona `system-arch` (at the operator's instruction; SOQ-36) · action `update` · DL-59: the evaluation cap raised from 57 to 63 (no slot for a retry on a 19-request run; both readings confirmed; fail-closed on an unreadable count applies to all activities); the missing DL-58 entry written. `AAMAD_TARGET_RUNTIME=crewai`.
