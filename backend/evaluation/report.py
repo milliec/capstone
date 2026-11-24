@@ -2,7 +2,7 @@
 
 One report per grading, keyed by run ID: `<out>/<run_id>/stage-<a|b>-report-<n>.json` and `.md`, with n
 counting up from 1, separately for each stage. Grading the same run again makes report 2, never an edit of report 1 (EC-R1a:
-every report is kept). The export of the trace is separate (D4) and not built yet.
+every report is kept). The export of the trace is separate (D4): see trace_export.py.
 """
 
 import json

@@ -459,6 +459,12 @@ few calls past the limit. That is a fair trade (cutting a call off halfway waste
 spent), but write it down as a known limit and say who accepted it, so nobody later reads "70" as a
 hard wall. It's like the "last orders" bell: drinks already poured still get drunk (H-091).
 
+**Copying a number from another test copies its conditions too.** I wrote "12 model calls" from a
+test that ran with the planted demo rule on; mine ran without it, so the real answer was 11 and my
+first run failed. The fix was to stop guessing: the test now compares its count with the number of
+requests the fake server saw. It's like quoting a recipe's baking time without noticing that the
+recipe used a bigger tray (H-097).
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -724,3 +730,4 @@ bring it back. Changing visible text also touches the tests that check it and th
 - 2026-11-23 · added one note from H-076 (the first real call sent a request the pretend server could never show; treat the first real run as a test of what the fake cannot see, and add a guard)
 - 2026-11-24 · added three notes from H-087 (a model splitting one rule: decide what "one" means first; a spec edit does not change the model's text if it is a copy in code; write a clean-up rule from what you see, not what you expect) and one from the new-worktree hook refusal (a new working copy lacks the git-ignored folders the guards need)
 - 2026-11-24 · added three notes from H-091 in theme 3 (a fallback hides a bug unless the test checks which route ran; keep tests off the real data a rule reads; a limit checked before each step can be passed by the step already running) and one in theme 4 (a catch-all records the kind of error, never its contents)
+- 2026-11-24 · added one note from the trace export tests (copied numbers carry their conditions)
