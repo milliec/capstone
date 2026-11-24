@@ -198,6 +198,11 @@ Each step carries a word, not just a colour: **"Done"**, **"In progress"**, **"Y
 **"Not started"**, **"Failed"** or **"Ended"**. Steps that are done or "Your turn" link to their page. It is an ordered list
 (`<ol>`) with `aria-current="step"` on the current one.
 
+**Evaluation review** (operator, 2026-11-24, Open Question 26 a): the word **"Your turn"** is never
+used. At `AT_G1`, `AT_G2` and `AT_G3` the step that would say "Your turn" says **"In progress"**
+instead, because the script is the one deciding. Every other cell is as in the table. That step is
+then not a link (only "Done" steps link for an evaluation review at a step).
+
 How the flow feels like one sitting:
 
 - Each step page ends with one primary button that finishes the step and lets AI or code start
@@ -453,6 +458,11 @@ and what to do next. **Who:** specialist. **No re-run of a whole review.** The o
 2. H1 for the state (see the states table), with the run labels (Stand-in agents, Demo rule on, Failure demo on, Evaluation review; §1.3).
 3. Stepper (§1.4).
 4. **Status line** (large text): the status words (§1.5) plus the sentence for the state below.
+   Its small pill at the left says **"AI is working"** while AI or code works and **"Your turn"** at
+   a step. **For an evaluation review** (operator, 2026-11-24, Open Question 26 a) the pill never
+   says "Your turn": at a step it says **"In progress"**, in the same quiet tone as "AI is
+   working", not the attention tone "Your turn" has. "Abandon this review" stays offered at a step
+   (item 10), so a review the script left stuck can be closed.
 5. **Next step** (only at a step that waits for the specialist, or when ended): one primary link
    (see states).
 6. **Refresh controls** (only while AI or code is working, see below).
@@ -1630,9 +1640,12 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    to either line. (b) **B2 agreed in principle:** `@system.arch` records the refusal in sad.md §4
    first (H-103); after that I settle the §5 sentence and the page line (the wording above is a
    draft, not final) and `@backend.eng` and `@frontend.eng` build it. Until then the step pages
-   of an evaluation review stay as built. **Not covered by A2, left as built:** page 3's own
-   "Your turn" pill and stepper state for an evaluation review at a step; ask if you want the
-   same rule there.
+   of an evaluation review stay as built. **A2 on page 3 (operator, 2026-11-24, follow-up):** the
+   status pill and the stepper never say "Your turn" for an evaluation review; both say "In
+   progress" at a step (page 3 item 4, §1.4); "Abandon this review" stays. **Still as built, not
+   asked about:** page 3's H1 ("The rules are ready for you to check"), its sentence and its next-step
+   link ("Check the rules") for an evaluation review at a step. They lead to the step pages, so
+   they are best settled together with (b) (H-103).
 
 ## Mock-up differences this revision does not apply
 
@@ -1844,3 +1857,9 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   (`@system.arch`), H-104 (`@frontend.eng`, builds A2); H-102 moved to Done. Left as built, named in
   Open Question 26: page 3's "Your turn" pill and stepper state. `*review-ui` still held for PR 4b.
   Approval status left `approved`. No code. No snapshot. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, operator follow-up on Open Question 26 a) ·
+  branch `ux-designer/oq26-decision-list` (PR #240) · docs only, separate worktree. A2 extended to
+  page 3: §1.4 (stepper) and page 3 item 4 (pill) say "In progress" instead of "Your turn" for an
+  evaluation review at a step; "Abandon this review" kept. H-104 extended to match. **Left as
+  built, named in Open Question 26:** page 3's H1, sentence and "Check the rules" link at a step
+  (settle with H-103). Approval status left `approved`. No code. No snapshot. No model call.
