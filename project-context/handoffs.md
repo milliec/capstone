@@ -34,15 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-089: backend.md and H-088 count the judge's verdicts as four; the stored figure is seven (5 unsure)
-- From: @qa.eng (spike report, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
-- Touches: `2.build/backend.md` section "The first real run through the web app: what it showed" (the line "The judge gave one `applies`, two `unsure` and one `does_not_apply`"); `2.build/spike-report.md` section 12.3 and D-2
-- Ask: Please correct the line. Read from `data/app.db` (read-only) for `RUN-20261123-1`: the judge returned **1 `applies` (ROW-4), 5 `unsure` (ROW-1, 2, 3, 5, 6) and 1 `does_not_apply` (ROW-7)**, 7 verdicts for 7 judge requests. The line adds to 4. The same wording was in H-088 and I did not copy it. Everything else in that section I re-read and it matches (19 requests, 5 / 7 / 7 by role, US$0.0427, C-1 on ROW-4, C-2 on ROW-6, 7 rows, the collision text).
-- Why: The count changes the reading of the run: the judge was more cautious than the answer key on 4 rows, which is a finding for EC-004 (spike report F-5), not a small number of `unsure`.
-- Outcome: (the owner fills this in)
-
-- Outcome: (the owner fills this in)
-
 ### H-086: `--tally` counts the pre-flight line inside the extractor's first unit, so its extractor time and cost read high
 - From: @qa.eng (spike report, 2026-11-23)   To: @backend.eng   Date: 2026-11-23
 - Touches: `backend/runtime/spike_tally.py`, `build_units` (the unit's `seconds` and `recorded` are sums over every line of a unit, line 1 included); `2.build/spike-report.md` section 9 and D-1
@@ -147,6 +138,15 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-089: backend.md and H-088 count the judge's verdicts as four; the stored figure is seven (5 unsure)
+- From: @qa.eng (spike report, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
+- Touches: `2.build/backend.md` section "The first real run through the web app: what it showed" (the line "The judge gave one `applies`, two `unsure` and one `does_not_apply`"); `2.build/spike-report.md` section 12.3 and D-2
+- Ask: Please correct the line. Read from `data/app.db` (read-only) for `RUN-20261123-1`: the judge returned **1 `applies` (ROW-4), 5 `unsure` (ROW-1, 2, 3, 5, 6) and 1 `does_not_apply` (ROW-7)**, 7 verdicts for 7 judge requests. The line adds to 4. The same wording was in H-088 and I did not copy it. Everything else in that section I re-read and it matches (19 requests, 5 / 7 / 7 by role, US$0.0427, C-1 on ROW-4, C-2 on ROW-6, 7 rows, the collision text).
+- Why: The count changes the reading of the run: the judge was more cautious than the answer key on 4 rows, which is a finding for EC-004 (spike report F-5), not a small number of `unsure`.
+- Outcome: **Done.** 2026-11-24, `@backend.eng` (on branch `backend-eng/h089-judge-count`). `2.build/backend.md` only, one line in "The first real run through the web app": now "one `applies` (`ROW-4`), five `unsure` (`ROW-1`, `2`, `3`, `5`, `6`) and one `does_not_apply` (`ROW-7`)", with a short note that the earlier wording was wrong. I re-read the `verdicts` table for `RUN-20261123-1` (read-only) and it gives 1 / 5 / 1. Added an audit line. **Left alone on purpose:** the older line near "B3 spike finding 3" saying `unsure` and `does_not_apply` were never produced, which was true on 2026-11-23. Docs only; no code, no real call.
+
+- Outcome: **Done.** 2026-11-24, `@backend.eng` (on branch `backend-eng/h089-judge-count`). `2.build/backend.md` only, one line in "The first real run through the web app": now "one `applies` (`ROW-4`), five `unsure` (`ROW-1`, `2`, `3`, `5`, `6`) and one `does_not_apply` (`ROW-7`)", with a short note that the earlier wording was wrong. I re-read the `verdicts` table for `RUN-20261123-1` (read-only) and it gives 1 / 5 / 1. Added an audit line. **Left alone on purpose:** the older line near "B3 spike finding 3" saying `unsure` and `does_not_apply` were never produced, which was true on 2026-11-23. Docs only; no code, no real call.
 
 ### H-090: tasks.yaml: copy the new extractor card sentence in (DL-57); a release
 - From: @system.arch (operator decision, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
