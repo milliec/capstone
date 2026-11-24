@@ -44,7 +44,7 @@ from backend.domain import dates, sources
 from backend.domain.fund_facts import load_fund_facts
 from backend.domain.quote_check import check_quote
 from backend.domain.schemas import Row
-from backend.runtime import agents
+from backend.runtime import agents, harness, spike
 from backend.services import audit, stage_store, trace
 from backend.services import runs as runs_service
 from backend.settings import ROOT, Settings
@@ -93,6 +93,28 @@ def _still_current(conn, run: dict, stage: str) -> bool:
             and now["stage_attempt"] == run["stage_attempt"])
 
 
+def _counting_databases(settings: Settings) -> list:
+    """Every database file that can hold this run's real calls: data/spike.db and the app's own, the same
+    two the spike command counts (`spike.counted_databases`). One small function so the test suite can point
+    it away from the real data/spike.db (tests/conftest.py)."""
+    return spike.counted_databases(settings, spike.SPIKE_DB)
+
+
+def _real_call_cap_reached(settings: Settings) -> bool:
+    """Is this run's activity at its real-call cap (EC-R10: spike 70, tuning 60)? Real mode only.
+
+    Stand-in mode makes no real call, so it never looks. The count adds the activity's lines over BOTH
+    database files (a per-file count undercounts: harness.count_real_calls says so). An activity with no
+    cap (rehearsal, demo, evaluation) is never refused. A file that cannot be read RAISES, so the cap
+    fails closed: the error reaches run_stage's handler and ends the review as "unexpected error"."""
+    if settings.agents_mode != "real":
+        return False
+    cap = harness.CALL_CAPS.get(settings.spend_activity)
+    if cap is None:
+        return False
+    return harness.count_real_calls(settings.spend_activity, _counting_databases(settings)).total >= cap
+
+
 def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, call):
     """Run one unit: check it may start, call the agent, trace the call, mark the unit.
 
@@ -100,6 +122,10 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
     with the unit's own inputs already bound, so a loop variable can never leak in). In order:
       1. the stage stopped meanwhile (timer, abandon)  → stop, start no call;
       2. the run reached its cost cap (CR-017)         → fail with "cost cap", start no call;
+      2b. the activity reached its real-call cap (EC-R10, DL-58), real mode only
+                                                       → fail with "call limit", start no call;
+         Like the cost cap, this is checked BEFORE a unit starts: a unit already in flight finishes (and may
+         take the count past the cap by the calls that unit makes); the NEXT unit is the one refused.
       3. call the agent; its trace line, cost and audit entry are written as it returns (CR-018);
          a call whose trace line cannot be written counts as failed ("invalid output");
       4. the output came LATE (rule 9, DL-43)          → stop: it is in the trace only;
@@ -110,6 +136,9 @@ def _run_unit(conn, settings: Settings, run: dict, stage: str, unit_id: str, cal
         raise _StageStopped
     if trace.cost_so_far(conn, run["run_id"]) >= settings.run_cost_cap_usd:
         stage_store.fail_stage(conn, run, stage, unit_id, "cost cap")
+        raise _StageStopped
+    if _real_call_cap_reached(settings):
+        stage_store.fail_stage(conn, run, stage, unit_id, "call limit")
         raise _StageStopped
     stage_store.mark_unit(conn, run, stage, unit_id, "running")
 
