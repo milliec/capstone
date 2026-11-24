@@ -20,7 +20,7 @@
   {%- elif stage == "after" %}
   {%- set out = view.outcome if view.outcome is defined else none %}
   <p class="lead">
-    {%- if run.status == "COMPLETED" %}Published{% if out %} on {{ out.at|date }} at {{ out.at|time }}{% endif %}.
+    {%- if run.status == "COMPLETED" %}Published{% if out %} on {{ out.at|date }} at {{ out.at|time }}{% endif %}{% if run.is_evaluation %} for the evaluation only. It was not shown to the General Partner.{% else %}.{% endif %}
     {%- elif run.status == "DECLINED" %}Closed without publishing{% if out %} on {{ out.at|date }} at {{ out.at|time }}. What needs to change: {{ out.reason }}{% else %}.{% endif %}
     {%- endif %}</p>
   {%- endif %}

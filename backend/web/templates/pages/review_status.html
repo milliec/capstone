@@ -85,7 +85,8 @@
   {%- elif run.status == "ACTIVE" and run.phase == "AT_G3" -%}
     The calendar is ready{% if run.counts is defined and run.counts %}: <b>{{ run.counts.dates }} dates</b>{% endif %}.
   {%- elif run.status == "COMPLETED" -%}
-    Published{% if run.published_at is defined and run.published_at %} on {{ run.published_at|date }} at {{ run.published_at|time }}{% endif %}. The General Partner now sees this calendar.
+    Published{% if run.published_at is defined and run.published_at %} on {{ run.published_at|date }} at {{ run.published_at|time }}{% endif %}
+    {%- if run.is_evaluation %} for the evaluation only. It was not shown to the General Partner.{% else %}. The General Partner now sees this calendar.{% endif %}
   {%- elif run.status == "DECLINED" -%}
     Closed without publishing{% if ended %} on {{ ended.at|date }} at {{ ended.at|time }}{% endif %}. Nothing was published. The General Partner still sees what they saw before.
   {%- elif run.status == "ABANDONED" -%}
@@ -126,6 +127,9 @@
     "FAILED": ("Start a new review from Filing rules", "/specialist/runs#start"),
   } -%}
   {%- set next = NEXT.get(run.phase) if run.status == "ACTIVE" else NEXT.get(run.status) %}
+  {#- An evaluation review never reaches /calendar (that shows the real calendar), so its
+      COMPLETED link goes to Filing rules instead (ux.md page 3, H-101). -#}
+  {%- if run.is_evaluation and run.status == "COMPLETED" %}{% set next = ("Go to Filing rules", "/specialist/runs") %}{% endif %}
   </div>
   {%- if next %}
   <a class="btn" href="{{ next[1] }}">{{ next[0] }}</a>

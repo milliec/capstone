@@ -43,7 +43,9 @@
       <tbody>
         {%- for r in runs %}
         <tr>
-          <th scope="row"><a href="/specialist/runs/{{ r.run_id }}">{{ ui.review_name(r) }}</a></th>
+          <th scope="row"><a href="/specialist/runs/{{ r.run_id }}">{{ ui.review_name(r) }}</a>
+            {#- Evaluation tag sits under the link (ux.md page 2, H-101). -#}
+            {%- if r.is_evaluation %}<div>{{ ui.tag("Evaluation review") }}</div>{% endif %}</th>
           <td class="num" data-label="Started">{{ r.started_at|datetime }}</td>
           <td data-label="Demo rule">{{ "On" if r.demo_planted_row else "Off" }}</td>
           <td data-label="Status">{{ ui.run_tag(r) }}</td>
