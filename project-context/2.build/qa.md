@@ -177,6 +177,34 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 5. ~~EC-010 late calls~~ **Closed (operator, 2026-11-21):** late calls stay in the time as well as the cost, so the time is what a
    user actually waits. The report labels them: "of this, LATE calls: N calls, X s, US$Y".
 
+## Database hash baseline (H-091, set 2026-11-24)
+
+`@backend.eng`'s H-091 (#212) adds `upgrade_failure_reasons`, which runs when the app starts (`create_app`, not
+`init_db`) and rewrites the stored text of the `units` table so its `CHECK` accepts the two new failure reasons.
+No row is touched. **So the first start of the app on this code changes `data/app.db`'s file hash, and that change is
+expected, not a defect.** `data/spike.db` is not migrated; its hash must not change.
+
+| File | SHA-1 now (2026-11-24, before the first start on the new code) | Expected after the first start |
+|---|---|---|
+| `data/app.db` | `29068e84…` (the full value is in the audit line below; same as the backup `data/app.db.bak-20261124`) | **Changes** (stored `units` text only) |
+| `data/spike.db` | `32376900…` | **Must stay** `32376900…` |
+
+**Compare table digests, not the file hash.** Recipe (read-only, `mode=ro`): the names of every table, index and trigger
+(sorted), then every row of every table in `rowid` order, hashed with SHA-256. The stored `CREATE` text is left out on
+purpose, because that is the one thing that changes. I read it from the backup copy, not from the real file:
+
+- Objects: 14 tables, 4 triggers (`audit_log_no_delete`, `audit_log_no_update`, `trace_no_delete`, `trace_no_update`), no indexes.
+- Row counts: `audit_log` 153, `calendar_entries` 40, `calendar_versions` 4, `flags` 6, `paragraphs` 39, `publications` 4,
+  `quote_checks` 19, `row_decisions` 19, `rows` 19, `runs` 9, `trace` 52, `units` 93, `verdict_decisions` 18, `verdicts` 18.
+- Digest of the names: `307b68b55d321f89`. Digest of all tables together: `e5624554c3c393d3`.
+
+**What to check after the operator's first start:** (1) `app.db` has a new file hash; record it here. (2) The names digest
+and the all-tables digest are **unchanged**, except for rows the operator's own use added after the start (a start by
+itself adds none; if a review is run the digests will differ and the per-table row counts say which). (3) `spike.db` is
+still `32376900…`. (4) If the app refuses to start with "not the one this version knows how to upgrade", nothing was
+changed: restore from `data/app.db.bak-20261124`. **Not done yet:** the first start has not happened, so the new hash
+and the after-start digests are not recorded. I did not open `data/app.db` for anything but a hash.
+
 ## Audit
 
 - 2026-11-21 · persona `qa-eng` · action `qa` (B8 Stage A grader slice; `test-unit`, `test-integration`,
@@ -187,3 +215,4 @@ evaluation tests as "not yet tiered" (SOQ-29); Tier 2 runs in CI but does not bl
 - 2026-11-21 · persona `qa-eng` · action `qa` (B8 Stage B grader slice, operator decision; `test-unit`, `test-integration`) · EC-004, EC-010 and EC-012 graded from a finished run read from the database; 45 new tests; 382 passed, 0 failed; no model call, no real key, no paid call. `*verify-change` and the `@security.eng` recommendation are still **not** made: B8 is not finished. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-21 · persona `qa-eng` · action `update` (operator answers to open questions 4 and 5, closed) · EC-004: the key's uncited facts on OBL-01, 02, 03 and 06 are a non-failing note (`Criterion.notes`, shown in the report); EC-010 and EC-012: the late share of the time and cost is labelled. 4 new tests in `test_evaluation_stage_b.py` and 1 in `test_evaluation_stage_b_run.py`; 5 deliberate breaks, all caught. No threshold changed. No model call, no real key, no paid call. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-23 · persona `qa-eng` · action `qa` + `log-defects` (H-077, the spike report) · wrote `2.build/spike-report.md`, an interim report on the 6 real trace lines made so far (extractor 2, verifier 2, judge 1, plus the pre-flight line; US$0.0164), read-only from `data/spike.db` and `data/app.db` and from `--tally`. No test, grader, threshold or code changed here; no model call, no real key, no paid call. Raised H-085 (`@system.arch`: name the report in the SAD Audit) and H-086 (`@backend.eng`: `--tally` adds the pre-flight line to the extractor's time and cost). The real clean run is not made, so the report waits for it. `*verify-change` and the `@security.eng` recommendation are still **not** made: B8 is not finished. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-24 · persona `qa-eng` · action `log-defects` + `update` (H-091, the note to `@qa.eng`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: file hashes of `data/app.db` (SHA-1 `29068e849cc62e921688a30ea31283bcc56ad81e`, equal to `data/app.db.bak-20261124`), `data/spike.db` (`32376900d98eae2eaaaa5ed434610260fa820f0a`); the table digest was read from the backup copy with `mode=ro&immutable=1`, not from the real file. New: the section "Database hash baseline (H-091)". Changed in `spike-report.md`: an Update line after each of the two "does not stop at 70" sentences (12.6 and 12.7). Same Update line added in `evals.md` line 186 (the "Real-run status of Case 1" row), at the operator's instruction. The after-start hash and digests are left open for the operator's first start. No model call, no real key, no paid call, no code changed, no snapshot changed. `*verify-change` and the `@security.eng` recommendation are still not made.
