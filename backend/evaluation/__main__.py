@@ -5,6 +5,7 @@
     .venv/bin/python -m backend.evaluation RUN-20261121-1 --no-save  # print only
     .venv/bin/python -m backend.evaluation export RUN-20261121-1     # the trace export (D4)
     .venv/bin/python -m backend.evaluation void RUN-20261121-1       # is a failed run voided? (EC-R8)
+    .venv/bin/python -m backend.evaluation run                       # the evaluation run starter (plan only)
 
 Reads the database in DATABASE_PATH (the app's own). Starts nothing, calls no model. A miss is a
 result, not an error: the exit code is 0 for any report (DL-34: evaluations report, never block).
@@ -14,7 +15,7 @@ import argparse
 import sys
 
 from backend.db.connection import connect
-from backend.evaluation import trace_export, void_rule
+from backend.evaluation import run_starter, trace_export, void_rule
 from backend.evaluation.report import DEFAULT_OUT, render_markdown, save_report
 from backend.evaluation.stage_a import NotGradable, evaluate_stage_a
 from backend.evaluation.stage_b import evaluate_stage_b
@@ -77,6 +78,8 @@ def main(argv: list[str] | None = None) -> int:
         return _export(argv[1:])
     if argv[:1] == ["void"]:
         return void_rule.main(argv[1:])
+    if argv[:1] == ["run"]:                      # PR 4a: the evaluation run starter
+        return run_starter.main(argv[1:])
     parser = argparse.ArgumentParser(prog="python -m backend.evaluation", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_id")

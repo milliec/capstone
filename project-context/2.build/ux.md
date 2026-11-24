@@ -37,8 +37,8 @@ Two failure-reason sentences were added on 2026-11-24 (`unexpected error`, `call
 DL-58). Approval unchanged: it is wording for two reasons the SAD already records, plus one refusal
 ending, confirmed by the operator (Open Question 25, closed).
 A fourth run label, "Evaluation review", and its outcome sentence were added on 2026-11-24 (H-100,
-DL-60). Approval unchanged: it is wording for a decision the operator already made. Three
-related questions are open (Open Question 26) and are not decided here.
+DL-60). Approval unchanged: it is wording for a decision the operator already made. The three
+related questions (Open Question 26) are closed: see the block after page 3 (DL-61, 2026-11-24).
 
 ---
 
@@ -83,8 +83,10 @@ does not fit is dropped (H-019, H-020), and the page must still work as plain, o
    small line **"Luxembourg UCI Part II · year end 31 Dec"**.
 3. **Navigation** (a `<nav>` with `aria-current="page"` on the current item):
    - Specialist: **"Calendar"** · **"Filing rules"**. "Filing rules" is the review list (page 2)
-     and carries a **"Your turn"** tag while a review waits for the specialist. The mock-ups also
-     show **"Funds"**; it is not in this build (see Open Question 11).
+     and carries a **"Your turn"** tag while a review waits for the specialist. **Never for an
+     evaluation review** (operator, 2026-11-24, Open Question 26 a): a script's turn is the only one
+     that counts, so it does not set the tag. The mobile bar's tag is the same signal, so it follows
+     the same rule. The mock-ups also show **"Funds"**; it is not in this build (see Open Question 11).
    - GP: **"Calendar"** only; the calendar is their only page.
 4. **Who is signed in** (at the foot): **"Compliance specialist"** with the line **"Demo with mock
    data"** under it, or **"General Partner / Fund Manager"** with the line **"Bramblegate Partners ·
@@ -195,6 +197,11 @@ dates) as the start of step 4, so the specialist sees four steps, not six (see A
 Each step carries a word, not just a colour: **"Done"**, **"In progress"**, **"Your turn"**,
 **"Not started"**, **"Failed"** or **"Ended"**. Steps that are done or "Your turn" link to their page. It is an ordered list
 (`<ol>`) with `aria-current="step"` on the current one.
+
+**Evaluation review** (operator, 2026-11-24, Open Question 26 a): the word **"Your turn"** is never
+used. At `AT_G1`, `AT_G2` and `AT_G3` the step that would say "Your turn" says **"In progress"**
+instead, because the script is the one deciding. Every other cell is as in the table. That step is
+then not a link (only "Done" steps link for an evaluation review at a step).
 
 How the flow feels like one sitting:
 
@@ -382,6 +389,10 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
 3. **Active-review notice** (only when a review is `ACTIVE`): label **"Waiting for you"** at a
    step, or **"AI is working"** while AI or code works; then "**Review {n}:** {status words}." and
    one primary link: **"Continue checking"** (at a step) or **"Open review {n}"** (while working).
+   **For an evaluation review** (operator, 2026-11-24, Open Question 26 a) the label and the link
+   above are not used, at a step or while working. The notice reads **"Evaluation review {n}:
+   {status words}."** with one link, **"Open review {n}"**. Its page 3 still offers "Abandon this
+   review" at a step, so a review the script left stuck can be closed.
 4. **Reviews** (H2): a real table, newest first.
 
    | Column | Content |
@@ -447,6 +458,11 @@ and what to do next. **Who:** specialist. **No re-run of a whole review.** The o
 2. H1 for the state (see the states table), with the run labels (Stand-in agents, Demo rule on, Failure demo on, Evaluation review; §1.3).
 3. Stepper (§1.4).
 4. **Status line** (large text): the status words (§1.5) plus the sentence for the state below.
+   Its small pill at the left says **"AI is working"** while AI or code works and **"Your turn"** at
+   a step. **For an evaluation review** (operator, 2026-11-24, Open Question 26 a) the pill never
+   says "Your turn": at a step it says **"In progress"**, in the same quiet tone as "AI is
+   working", not the attention tone "Your turn" has. "Abandon this review" stays offered at a step
+   (item 10), so a review the script left stuck can be closed.
 5. **Next step** (only at a step that waits for the specialist, or when ended): one primary link
    (see states).
 6. **Refresh controls** (only while AI or code is working, see below).
@@ -678,6 +694,54 @@ A review is closed once it is **Published** (`COMPLETED`), **Closed without publ
 | Abandon review | Success: same page, `ABANDONED` state. Refused: `REASON_REQUIRED`, `VERSION_MISMATCH`, `RUN_STAGE_RUNNING`, `RUN_NOT_ACTIVE` |
 | Retry step {k} (sad.md rule 10, DL-51; B13b, left out if B13b is dropped) | Success: same page, running state for that stage. Refused: `RUN_ACTIVE`, `VERSION_MISMATCH`, `RUN_NOT_FAILED`, `RETRY_LIMIT_REACHED`, `RETRY_NOT_ALLOWED` (see "Failed review" above) |
 
+#### Evaluation review: page 3 at a step, and pages 4 to 6 (DL-61, Open Question 26; final wording 2026-11-24)
+
+A person cannot decide on an evaluation review: the server refuses it (`EVALUATION_NOT_DECIDABLE`,
+§5), so no page offers a way to try. A person can still **read** every page and **abandon** the
+review. This block settles what they see. It applies only when `is_evaluation` is true; ordinary
+reviews are unchanged. The label ("Evaluation review", §1.3), the "In progress" pill and stepper
+word (§1.4, page 3 item 4) and the outcome sentence (page 3 and page 6) are already settled.
+
+**Page 3 at a step** (`AT_G1`, `AT_G2`, `AT_G3`). The page reads like a running state, because
+nothing is for the person to do:
+
+| State | H1 | Status line sentence | Next step link |
+|---|---|---|---|
+| `AT_G1` | **"Nothing for you to do yet"** | "AI drafted **{n} rules** and checked each one against the sources. The evaluation script now decides on each rule. Nothing here is for you to decide." | none |
+| `AT_G2` | **"Nothing for you to do yet"** | "AI checked **{n} rules** against the fund's facts. The evaluation script now decides what applies. Nothing here is for you to decide." | none |
+| `AT_G3` | **"Nothing for you to do yet"** | "The calendar is ready: **{n} dates**. The evaluation script now decides whether to publish it. Nothing here is for you to decide." | none |
+
+- **After each sentence, one more line:** **"If this stays the same, the script has probably
+  stopped. You can close this review with "Abandon this review" below."** "Abandon this review"
+  (item 10) stays offered, as built.
+- **No automatic refresh at a step** (as for any review at a step; UX-006): the refresh controls
+  stay hidden. The page is a record that reloads when the person reloads it.
+- The H1 words "Nothing for you to do yet" are the ones the running states already use (§3 states
+  table), so no new heading is invented.
+
+**Pages 4, 5 and 6 for an evaluation review**, in every state a person can reach them in (at the
+step, or after it):
+
+1. **One line, boxed like the date conventions note, directly under the H1**, in place of the
+   page's usual lead (the lead tells the person to decide, which is no longer true):
+   **"This is an evaluation review. The evaluation script makes its decisions, so there is nothing
+   for you to decide here."** Same words on all three pages.
+2. **The record, read-only,** as the page's own "After" state already shows it: every rule, answer
+   or calendar line with what was decided. **No decision form, no "Finish" or "Complete" button,
+   no "Publish calendar", no "Close without publishing", no acknowledgement checkbox, no reason
+   field.** A rule or answer the script has not decided yet keeps its status word (for example "To
+   decide") and simply has no form.
+3. **Page 6 also drops:** the sentence "The General Partner will see these {n} dates straight
+   away…", and the date conventions note's last two sentences ("This does not stop you
+   publishing. The General Partner sees a short note saying the same."), because neither is true
+   for an evaluation review. The calendar table and the two "What's not in this calendar" lists
+   stay.
+4. **Unchanged:** the breadcrumb, the labels, the stepper, and the links back to page 3. Page 6's
+   "Abandon this review" link (to `#abandon` on page 3) stays.
+5. **A form posted anyway** (an old tab, a copied request) is refused with
+   `EVALUATION_NOT_DECIDABLE` (§5), shown at the top of the same page like any refusal. That is the
+   stop; the pages above are what a person sees instead of a form.
+
 ---
 
 ### Page 4 · Check the rules (G1) (`/specialist/runs/{run_id}/g1`)
@@ -814,6 +878,7 @@ See §9.
 | At G1, all decided | Every card shows its decision; the summary cards show **To decide 0**; the finish section is the next thing to do |
 | Refused, about one rule | Same page, landing on that rule's card: the full message sits inside the card, and the top shows the short line and **"Go to rule {i}"** (§5) |
 | Refused, about the page (`GATE_INCOMPLETE`, `VERSION_MISMATCH`, …) | Same page; the full message at the top and next to the button it concerns |
+| **Evaluation review** (DL-61), any state | Read-only record and the one boxed line, no forms (page 3, "Evaluation review: page 3 at a step, and pages 4 to 6") |
 | After G1 (`B_RUNNING` onward, or ended) | Read-only record: every card shows its decision, no forms, no finish button. Line under H1: **"You've finished checking the rules. This is the record of the decisions."** |
 
 **After each action**
@@ -935,6 +1000,7 @@ decisions, as in the SAD (§3 page 5, W-12): **confirm**, **override with a reas
 | At G2 | Full page |
 | All decided | Progress **"All {n} answers decided."** |
 | Refused | Same page, as §5: about one answer, land on its card with the short top line and "Go to rule {i}"; about the page, the full message at the top |
+| **Evaluation review** (DL-61), any state | Read-only record and the one boxed line, no forms (page 3, "Evaluation review: page 3 at a step, and pages 4 to 6") |
 | After G2 | Read-only record, no forms. **"You've confirmed what applies. This is the record of the decisions."** |
 
 The mock-ups design only the "AI can't tell" case. The ordinary confirm and overrule (item 7)
@@ -1028,6 +1094,7 @@ the review without publishing, with a reason. **Who:** specialist.
 | Not yet at G3 (`C_RUNNING` or earlier) | **"The calendar is not ready yet."** Link: **"Watch progress on the review status page"** |
 | At G3 | Full page |
 | Refused | Same page, message at the top and next to the checkbox (`ACK_REQUIRED`) or the reason field (`REASON_REQUIRED`). The checkbox is shown **unticked** again |
+| **Evaluation review** (DL-61), at G3 | Read-only calendar and lists and the one boxed line, no decision form, no publish or close buttons, no "will see these dates straight away" text (page 3, "Evaluation review: page 3 at a step, and pages 4 to 6") |
 | After G3 | Read-only calendar with **"Published on {date} at {time}."** or **"Closed without publishing on {date} at {time}. What needs to change: {reason}"**, no forms. **For an evaluation review** (DL-60, H-100) the published line is instead **"Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."**, with the "Evaluation review" label next to the H1 as on every page. The closed-without-publishing line does not change. The calendar table, the two "What's not in this calendar" lists and everything else stay as they are: the review's own publication is still shown, to the specialist, on its own pages |
 
 **After each action**
@@ -1222,6 +1289,7 @@ for that sentence. `{…}` are values the server fills in.
 | `RUN_NOT_FAILED` | Retry on a review that has not failed (B13b; sentence **proposed**, Open Question 24) | **"This review has not failed, so there is nothing to retry. The page now shows where it is."** |
 | `RETRY_LIMIT_REACHED` | Retry a step that was already retried (B13b; **proposed**, Open Question 24) | **"Step {k} has already been tried again once and failed again. Start a new review from Filing rules."** |
 | `RETRY_NOT_ALLOWED` | Retry refused for one of five reasons (B13b; four reasons **proposed**, Open Question 24; the fifth confirmed, Open Question 25). The sentence names which one | **"This step can't be tried again, because {reason}. Start a new review from Filing rules."** where {reason} is one of: "the review reached its cost limit"; "the dates could not be worked out, and trying again would give the same result"; "this is an evaluation run"; "a newer review has been started". **For the fifth reason, the sentence is different:** **"This step can't be tried again, because the limit on real model calls was reached. A new review would reach the same limit. Ask the operator to review the limit."** (no "Start a new review" advice, which would not help; Open Question 25, closed) |
+| `EVALUATION_NOT_DECIDABLE` | A person's decision, G1 or G2 finish, publish or decline on an **evaluation review** (DL-61; checked straight after `FORBIDDEN`, so the same sentence in every state). Not for abandon or reading. Shown at the top of the same page, headed **"Not done"**, with no "Go to" link (there is no control to go to) | **"This review is part of the evaluation. The evaluation script makes its decisions, so it can't be decided here. Nothing was saved."** |
 | `FORBIDDEN` | GP on a specialist action | **"This page is for the compliance specialist. You are signed in as the General Partner, so you can view the published calendar only."** |
 | `VALIDATION` | Decision submitted with no answer chosen (G1, G2 or G3; DL-48, H-030). Shown beside the form (inside the card at G1 and G2, with the short top line; at G3 next to the question) and at the top | **"Choose an answer first, then use its button. Nothing was saved."** |
 | `VALIDATION` | Malformed form, a "who files" value not offered, or a G3 answer that doesn't match the button used | **"Part of this form was not valid ({field}), so nothing was saved. Check the form and try again."** |
@@ -1284,6 +1352,7 @@ unstyled.
 | UX-019 | No user-facing text says "run", "Stage A/B/C", "G1/G2/G3", "gate" or "precautionary" (except the exact label "Stand-in agents") | §1.8 |
 | UX-020 | Every decision form (G1, G2, G3) opens with its answer question and nothing chosen; choosing an answer shows only that answer's fields and button; with `:has()` unsupported, every answer's fields show; submitting with no answer shows the `VALIDATION` "Choose an answer first" sentence (§5) and saves nothing | DL-48, H-028, H-030 |
 | UX-025 | An evaluation review (DL-60, H-100) shows the text tag "Evaluation review" next to the H1 on pages 3 to 6 and under its link in the Review column on page 2, and never shows "Stand-in agents". Once published, pages 3 and 6 read exactly "Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."; page 3 has no link to `/calendar`. A review that is not an evaluation review shows none of this, and `/calendar` and the sign-in page never show the label or the sentence. Readable with colour removed | DL-60, H-100, T-MODE-1, §1.3 |
+| UX-026 | For an evaluation review (DL-61), pages 4, 5 and 6 each show, under the H1, exactly "This is an evaluation review. The evaluation script makes its decisions, so there is nothing for you to decide here." and have **no** form, radio, checkbox, text field, "Finish", "Complete", "Publish calendar" or "Close without publishing" in the page source (not hidden, not disabled); page 6 never says the General Partner "will see these dates"; page 3 at a step has the H1 "Nothing for you to do yet", no next-step link, no "Your turn" anywhere, no refresh controls, and still offers "Abandon this review". Ordinary reviews are unchanged. A decision posted anyway shows the `EVALUATION_NOT_DECIDABLE` sentence (§5) | DL-61, Open Question 26, UX-025 |
 | UX-016 | The "who files" options read exactly: AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor, Not known | DL-39 |
 | UX-011 | The G3 acknowledgement checkbox is unticked on every load | CR-028 |
 | UX-012 | The GP calendar has no horizontal scroll at 360 px | §3 |
@@ -1564,23 +1633,74 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    ending today), so the change is H-094 to `@backend.eng`. The "Start a new review from Filing
    rules" link on the failed page stays: it is a link, not advice, and stand-in reviews still work.
 
-26. **Open (found while writing H-100; for `@system.arch` and `@backend.eng` to decide, not
-   decided here).** An evaluation review passes through the same states as any review, but a
-   script, not a person, makes its decisions (EC-R2). Three places on the pages still assume a
-   person:
-   (a) **Waiting-for-you signals.** While an evaluation review sits at a step, page 2 shows
-   "Waiting for you" with a "Continue checking" link, and the sidebar and the mobile bar show
-   "Your turn". Nobody should check an evaluation review by hand, so these would point at nothing.
-   Suggested: no "Your turn" tag and no "Continue checking" link for an evaluation review; the
-   notice says "Evaluation review {n}: {status words}." instead.
-   (b) **Step pages 4 to 6 opened by a person.** Page 6 says "The General Partner will see these
-   {n} dates straight away", which is false for an evaluation review (DL-60). Suggested: the
-   server refuses a person's decision on an evaluation review's step pages, or the pages open
-   read-only. Wording is mine to write once that is decided.
-   (c) **Details and cost lines on page 3.** "Started … by Compliance specialist (mock)" is wrong
-   for an evaluation review (the starter is the script), and "The review stops at US$2.50" says
-   nothing of its own 63-call limit (DL-59). Suggested wording for the first: "by the evaluation
-   script". The label and the outcome sentence in this note do not depend on any of the three.
+26. **Closed 2026-11-24 (operator, H-102; sad.md DL-61, H-103). (a) A2 and (c) accept as built
+   are written into §1.3, §1.4 and pages 2 and 3. (b) B2 is in sad.md as DL-61, and its wording is
+   final: the page 3 text at a step, the one line on pages 4 to 6 and the `EVALUATION_NOT_DECIDABLE`
+   sentence are in the block "Evaluation review: page 3 at a step, and pages 4 to 6" (after page
+   3) and §5, check UX-026.** The wording below the line "Answers" is superseded where it differs;
+   the list is kept as the record. An evaluation
+   review passes through the same states as any review, but a script, not a person, makes its
+   decisions (EC-R2). Checked against the built pages and services (read only, 2026-11-24). The
+   label and the outcome sentence (H-100, H-101) do not depend on any of this.
+   **Why (a) and (b) matter:** the script makes its decisions straight after each step, so a
+   review is only briefly "at a step". But if the script stops there (an error, a closed
+   terminal), the review stays active, no new review can start (`RUN_ACTIVE`), and a person has to
+   abandon it. That is the one case where a person meets an evaluation review at a step.
+
+   **(a) "Your turn" and "Continue checking" for an evaluation review at a step.** Built today:
+   page 2 says "Waiting for you" with "Continue checking", and the sidebar and mobile bar say
+   "Your turn". For a stuck evaluation review the real job is to abandon it, not to check it.
+   | Option | What it means |
+   |---|---|
+   | A1 | Leave as built. A stuck review says "Your turn: check the rules", which sends a person to decide by hand |
+   | **A2 (recommended)** | No "Your turn" tag and no "Continue checking" link for an evaluation review. Page 2's notice reads **"Evaluation review {n}: {status words}."** with **"Open review {n}"**. Page 3 keeps "Abandon this review" (already offered at a step), so the stuck case still has a way out |
+   | A3 | Keep the tag, change its words for an evaluation review |
+
+   *Why A2:* "Your turn" tells a person to act; for an evaluation review the script's turn is
+   the only one that counts. *Decides:* **the operator** (what the specialist should be told).
+   `@system.arch` only confirms that "Abandon" stays allowed on an evaluation review at a step.
+   `@frontend.eng` builds it from the existing `is_evaluation` flag; no new data.
+
+   **(b) A person opens or decides on step pages 4 to 6 of an evaluation review.** Built today:
+   nothing stops it. Page 6 would say "The General Partner will see these {n} dates straight
+   away", which is false (DL-60), and a hand decision would change what the evaluation measures
+   (EC-R2).
+   | Option | What it means |
+   |---|---|
+   | B1 | Fix only page 6's sentence for an evaluation review. A person can still decide by hand |
+   | **B2 (recommended)** | The server **refuses a person's decision** on an evaluation review (new refusal in sad.md §4 and ux.md §5), and pages 4 to 6 show the existing read-only record plus one line. Proposed wording below |
+   | B3 | Pages 4 to 6 are not reachable for an evaluation review at all (the link and the address both refused) |
+
+   *Why B2:* it protects the evaluation (nobody can decide by hand and skew it) and a person can
+   still read what the script decided. B3 hides evidence. B1 leaves the evaluation open to a
+   mis-click. *Decides:* **`@system.arch`** (the refusal and its code are a SAD edit first, per
+   CLAUDE.md), with **the operator's** agreement. Then `@backend.eng` (the guard),
+   `@frontend.eng` (the line) and me (§5 wording).
+   *Proposed wording (mine, to confirm):* page line **"This is an evaluation review. A script
+   makes its decisions, so there is nothing for you to decide here."**; refusal sentence
+   **"This review is part of the evaluation. A script makes its decisions, so it can't be
+   decided here."** No internal terms; the same two sentences everywhere.
+
+   **(c) Two lines on page 3.** Both are smaller than first thought.
+   - **"Started … by …".** **Already built:** it reads "by Evaluation script (mock)" (the
+     backend's `actor_label`). Recommended: **accept as built**, no change. *Decides:* the
+     operator, by saying so.
+   - **"The review stops at US$2.50."** Still true: DL-58 says the pinned US$2.50 cost cap does
+     not change, and the 63-call limit (DL-59) is a separate limit that shows only as the
+     `call limit` failure sentence. Recommended: **no change.** *Decides:* the operator, by
+     saying so; `@system.arch` only if they want the 63-call limit named on the page, which I do
+     not recommend (it is engineering detail, §1.8).
+
+   **Answers (operator, 2026-11-24).** (a) **A2, as drafted.** (c) **Accept as built, no change**
+   to either line. (b) **B2 agreed in principle:** `@system.arch` records the refusal in sad.md §4
+   first (H-103); after that I settle the §5 sentence and the page line (the wording above is a
+   draft, not final) and `@backend.eng` and `@frontend.eng` build it. Until then the step pages
+   of an evaluation review stay as built. **A2 on page 3 (operator, 2026-11-24, follow-up):** the
+   status pill and the stepper never say "Your turn" for an evaluation review; both say "In
+   progress" at a step (page 3 item 4, §1.4); "Abandon this review" stays. **Settled
+   afterwards (2026-11-24, with DL-61):** page 3's H1, sentence and next-step link at a step for an
+   evaluation review ("Nothing for you to do yet", an evaluation-script sentence, no link), in the
+   block after page 3.
 
 ## Mock-up differences this revision does not apply
 
@@ -1775,3 +1895,38 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   drops the link to `/calendar` for an evaluation review, because that link would open the real
   calendar and contradict the sentence above it. Approval status left `approved`: wording for a
   decision already made. No code, no template, no snapshot touched. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, Open Question 26 decision list;
+  operator request) · branch `ux-designer/oq26-decision-list` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  `AGENTS_MODE=stand_in` · docs only, separate worktree. Read (read only) `backend/web/deps.py`,
+  `templates/pages/filing_rules.html`, `review_status.html`, `publish.html`, `parts/macros.html`,
+  `backend/services/runs.py`, `auth.py` and sad.md DL-58 to DL-60. Rewrote Open Question 26 as three
+  decisions with options, a recommendation and who decides (also H-102). **Two parts turned out
+  smaller:** "Started by" already reads "Evaluation script (mock)", and the US$2.50 line is still true
+  (DL-58). **Nothing decided.** Proposed wording for (b) is drafted, not final. `*review-ui` is
+  **held** until `@qa.eng`'s PR 4b (scripted gates, H-097) is merged, and no temporary database
+  was made. Approval status left `approved`. No code. No snapshot. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, operator answers on Open Question 26) ·
+  branch `ux-designer/oq26-decision-list` (PR #240) · docs only, separate worktree. **(a) A2** written
+  into §1.3 (navigation tag) and page 2 item 3; **(c)** accepted as built; **(b) B2** agreed in
+  principle and raised to `@system.arch` (H-103), nothing worded on pages 4 to 6 yet. New: H-103
+  (`@system.arch`), H-104 (`@frontend.eng`, builds A2); H-102 moved to Done. Left as built, named in
+  Open Question 26: page 3's "Your turn" pill and stepper state. `*review-ui` still held for PR 4b.
+  Approval status left `approved`. No code. No snapshot. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, operator follow-up on Open Question 26 a) ·
+  branch `ux-designer/oq26-decision-list` (PR #240) · docs only, separate worktree. A2 extended to
+  page 3: §1.4 (stepper) and page 3 item 4 (pill) say "In progress" instead of "Your turn" for an
+  evaluation review at a step; "Abandon this review" kept. H-104 extended to match. **Left as
+  built, named in Open Question 26:** page 3's H1, sentence and "Check the rules" link at a step
+  (settle with H-103). Approval status left `approved`. No code. No snapshot. No model call.
+- 2026-11-24 · persona `ux-designer` · action `design-ux` (revision, H-103 done as DL-61; operator
+  request) · branch `ux-designer/dl61-evaluation-pages-4-6` · `AAMAD_TARGET_RUNTIME=crewai` ·
+  `AGENTS_MODE=stand_in` · docs only, separate worktree. Read `sad.md` DL-61, §4 refusal row and
+  transitions row, `handoffs.md` H-103, H-105, H-106, and (read only) `backend` for the refusal text,
+  which is not built yet, so no code had to change to settle it. New block after page 3: page 3 at a
+  step for an evaluation review (H1 "Nothing for you to do yet", per-step sentence, no link, no refresh,
+  Abandon stays), pages 4 to 6 (one boxed line, read-only record, no forms, page 6 drops two false
+  sentences). §5: `EVALUATION_NOT_DECIDABLE` row. Check UX-026. States tables of pages 4 to 6: one row
+  each. Open Question 26 **closed**. **Wording changes from my draft:** "A script" became "The
+  evaluation script" (the on-screen name already used for "Started by"), and "Nothing was saved." was
+  added to the refusal. Notes added to H-105 and H-106. Approval status left `approved`: wording for a
+  decision already made. No code, no template, no snapshot, no model call.
