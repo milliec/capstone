@@ -5,10 +5,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 8777;
+const EVAL_PORT = 8778; // the evaluation snapshots' own app (evaluation.spec.js)
 
 export default defineConfig({
   testDir: ".",
-  testMatch: "visual.spec.js",
+  testMatch: ["visual.spec.js", "evaluation.spec.js"],
   fullyParallel: false,
   workers: 1, // the spec is one story told in order (sign in, start, decide, publish)
   retries: 0,
@@ -35,20 +36,41 @@ export default defineConfig({
     locale: "en-GB",
   },
   projects: [{ name: "chromium" }],
-  webServer: {
-    // A fresh database every run: the folder is deleted, then the app creates it again.
-    command:
-      "rm -rf tests/visual/.tmp && mkdir -p tests/visual/.tmp && " +
-      `.venv/bin/python -m uvicorn backend.main:create_app --factory --port ${PORT}`,
-    cwd: "../..",
-    url: `http://127.0.0.1:${PORT}/health`,
-    reuseExistingServer: false,
-    timeout: 30_000,
-    env: {
-      AGENTS_MODE: "stand_in",
-      STAND_IN_UNIT_PAUSE_S: "0",
-      SESSION_SECRET: "visual-regression-only",
-      DATABASE_PATH: "tests/visual/.tmp/visual.db",
+  webServer: [
+    {
+      // A fresh database every run: the folder is deleted, then the app creates it again.
+      command:
+        "rm -rf tests/visual/.tmp && mkdir -p tests/visual/.tmp && " +
+        `.venv/bin/python -m uvicorn backend.main:create_app --factory --port ${PORT}`,
+      cwd: "../..",
+      url: `http://127.0.0.1:${PORT}/health`,
+      reuseExistingServer: false,
+      timeout: 30_000,
+      env: {
+        AGENTS_MODE: "stand_in",
+        STAND_IN_UNIT_PAUSE_S: "0",
+        SESSION_SECRET: "visual-regression-only",
+        DATABASE_PATH: "tests/visual/.tmp/visual.db",
+      },
     },
-  },
+    {
+      // The evaluation snapshots (evaluation.spec.js): its own throwaway folder and port, so it never
+      // races the server above. seed_evaluation.py fills the database against a fake model on this
+      // machine (no real call), then the app serves it in stand-in mode.
+      command:
+        "rm -rf tests/visual/.tmp-eval && " +
+        ".venv/bin/python -m tests.visual.seed_evaluation tests/visual/.tmp-eval && " +
+        `.venv/bin/python -m uvicorn backend.main:create_app --factory --port ${EVAL_PORT}`,
+      cwd: "../..",
+      url: `http://127.0.0.1:${EVAL_PORT}/health`,
+      reuseExistingServer: false,
+      timeout: 120_000, // the seed runs two whole reviews first
+      env: {
+        AGENTS_MODE: "stand_in",
+        STAND_IN_UNIT_PAUSE_S: "0",
+        SESSION_SECRET: "visual-regression-only",
+        DATABASE_PATH: "tests/visual/.tmp-eval/app.db",
+      },
+    },
+  ],
 });

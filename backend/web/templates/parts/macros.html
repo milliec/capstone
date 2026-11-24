@@ -56,11 +56,14 @@ Review {{ review_no(run) }}
 
 {#- Run labels (ux.md §1.3 item 3): text tags, never colour alone. -#}
 {% macro run_labels(run) -%}
-{%- if run.agents_mode == "stand_in" or run.demo_planted_row or run.demo_fail_step1 %}
+{%- if run.agents_mode == "stand_in" or run.demo_planted_row or run.demo_fail_step1 or run.is_evaluation %}
 <ul class="tags" aria-label="About this review">
   {%- if run.agents_mode == "stand_in" %}<li>{{ tag("Stand-in agents") }}</li>{% endif %}
   {%- if run.demo_planted_row %}<li>{{ tag("Demo rule on") }}</li>{% endif %}
   {%- if run.demo_fail_step1 %}<li>{{ tag("Failure demo on") }}</li>{% endif %}
+  {#- Fourth label (ux.md §1.3, H-100/H-101, DL-60). The page only reads the server's plain
+      `is_evaluation` flag; it never works out what an evaluation review is. -#}
+  {%- if run.is_evaluation %}<li>{{ tag("Evaluation review") }}</li>{% endif %}
 </ul>
 {%- endif %}
 {%- endmacro %}
