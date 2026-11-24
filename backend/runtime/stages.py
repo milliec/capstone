@@ -25,6 +25,11 @@ B3 step 6:
                   passes STAGE_TIME_LIMIT_<stage>, the running unit fails with "stage time limit".
                   There is no cancel: a call still running finishes, its output is LATE, goes to
                   the trace only (its cost counts), and nothing from the stage is stored (rule 9).
+
+H-091 (DL-58):
+  Unexpected error  any other error that escapes a stage (or its storing) ends the run as FAILED with
+                  "unexpected error", against the same unit the timer would name. The audit entry holds
+                  the error's class name only, never its message (E-11).
 """
 
 import json
@@ -269,15 +274,21 @@ def _on_stage_time_limit(settings: Settings, run: dict, stage: str) -> None:
     """
     conn = connect(settings.database_path)
     try:
-        unit = conn.execute(
-            """SELECT unit_id FROM units WHERE run_id = ? AND stage = ? AND stage_attempt = ?
-               ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting' THEN 1 ELSE 2 END,
-                        CASE status WHEN 'waiting' THEN rowid ELSE -rowid END
-               LIMIT 1""", (run["run_id"], stage, run["stage_attempt"])).fetchone()
-        stage_store.fail_stage(conn, run, stage, unit["unit_id"] if unit else stage,
-                               "stage time limit")
+        stage_store.fail_stage(conn, run, stage, _unit_to_blame(conn, run, stage), "stage time limit")
     finally:
         conn.close()
+
+
+def _unit_to_blame(conn, run: dict, stage: str) -> str:
+    """The unit a stage-wide failure is recorded against: the one running, else the first waiting, else
+    the last one; the stage's own letter if it has no units yet. Shared by the stage timer (rule 6) and
+    the unexpected-error handler (DL-58), so both name the same unit."""
+    unit = conn.execute(
+        """SELECT unit_id FROM units WHERE run_id = ? AND stage = ? AND stage_attempt = ?
+           ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting' THEN 1 ELSE 2 END,
+                    CASE status WHEN 'waiting' THEN rowid ELSE -rowid END
+           LIMIT 1""", (run["run_id"], stage, run["stage_attempt"])).fetchone()
+    return unit["unit_id"] if unit else stage
 
 
 def run_stage(settings: Settings, run_id: str, stage: str) -> None:
@@ -295,11 +306,19 @@ def run_stage(settings: Settings, run_id: str, stage: str) -> None:
         timer.start()
         try:
             outputs = _STAGES[stage](conn, settings, run)
+            stage_store.store_stage_outputs(
+                conn, run_id=run_id, fund_id=run["fund_id"], stage=stage,
+                stage_attempt=run["stage_attempt"], outputs=outputs)
         except _StageStopped:
             return   # the failure is recorded (or the run moved on); nothing is stored (rule 9)
-        stage_store.store_stage_outputs(
-            conn, run_id=run_id, fund_id=run["fund_id"], stage=stage,
-            stage_attempt=run["stage_attempt"], outputs=outputs)
+        except Exception as error:  # noqa: BLE001  (deliberate catch-all: the point of E-11 / DL-58)
+            # E-11, DL-58: an error nobody listed (a missing model ID, a bug, a full disk). Without this
+            # the background task died and the review stayed "AI is drafting" until a restart. End it as
+            # Failed instead. Only Exception: Ctrl-C and exit still stop the app. The audit entry gets the
+            # error's CLASS NAME only; its message could hold anything, so it is never stored or shown.
+            conn.rollback()      # drop anything the failed stage left half-written on this connection
+            stage_store.fail_stage(conn, run, stage, _unit_to_blame(conn, run, stage),
+                                   "unexpected error", detail=type(error).__name__)
     finally:
         if timer is not None:
             timer.cancel()
