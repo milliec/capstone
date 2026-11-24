@@ -186,7 +186,7 @@ expected, not a defect.** `data/spike.db` is not migrated; its hash must not cha
 
 | File | SHA-1 now (2026-11-24, before the first start on the new code) | Expected after the first start |
 |---|---|---|
-| `data/app.db` | `29068e84…` (the full value is in the audit line below; same as the backup `data/app.db.bak-20261124`) | **Changes** (stored `units` text only) |
+| `data/app.db` | `29068e84…` (the full value is in the audit line below; same as the backup `data/app.db.bak-20261124`) | **Changes** (stored `units` text only). **Confirmed 2026-11-24: now `cfcd909e…`** (below) |
 | `data/spike.db` | `32376900…` | **Must stay** `32376900…` |
 
 **Compare table digests, not the file hash.** Recipe (read-only, `mode=ro`): the names of every table, index and trigger
@@ -198,12 +198,30 @@ purpose, because that is the one thing that changes. I read it from the backup c
   `quote_checks` 19, `row_decisions` 19, `rows` 19, `runs` 9, `trace` 52, `units` 93, `verdict_decisions` 18, `verdicts` 18.
 - Digest of the names: `307b68b55d321f89`. Digest of all tables together: `e5624554c3c393d3`.
 
-**What to check after the operator's first start:** (1) `app.db` has a new file hash; record it here. (2) The names digest
-and the all-tables digest are **unchanged**, except for rows the operator's own use added after the start (a start by
-itself adds none; if a review is run the digests will differ and the per-table row counts say which). (3) `spike.db` is
-still `32376900…`. (4) If the app refuses to start with "not the one this version knows how to upgrade", nothing was
-changed: restore from `data/app.db.bak-20261124`. **Not done yet:** the first start has not happened, so the new hash
-and the after-start digests are not recorded. I did not open `data/app.db` for anything but a hash.
+**What to check after the operator's first start** (done 2026-11-24, section below): (1) `app.db` has a new file hash;
+record it. (2) The names digest and the all-tables digest are **unchanged**. (3) `spike.db` is still `32376900…`.
+(4) If the app refuses to start with "not the one this version knows how to upgrade", nothing was changed: restore
+from `data/app.db.bak-20261124`.
+
+**After-start result (2026-11-24, after the operator's first start on `main` at `d7d667b`; server started in stub
+mode, home page loaded, stopped, no review started). Read-only: file hashes, and `mode=ro&immutable=1` for the digests.**
+
+| Check | Result |
+|---|---|
+| (1) `data/app.db` file hash | **Changed, as expected:** `29068e84…` to `cfcd909e8875fab8f054b31ad6ad8e15d622ba76`. The file size is the same (307200 bytes). |
+| (2) Table digests | **Unchanged.** Names digest `307b68b55d321f89`, all-tables digest `e5624554c3c393d3`, and every per-table digest and row count equal the before-start values above (read from the real file this time, and from the backup again for the comparison). No row was added or changed. |
+| (3) `data/spike.db` hash | **Unchanged:** `32376900d98eae2eaaaa5ed434610260fa820f0a`. Its `units` CHECK still has the old list (no `call limit`), as intended. |
+| (4) Refusal to start | **Did not refuse:** the app started and served the home page (the operator's report); the stored `units` text now contains `'unexpected error'` and `'call limit'`, `PRAGMA integrity_check` is `ok`, and the backup still has the old text. |
+
+So the migration ran once on the real file, took way A or B (I cannot tell which from the outside; both leave rows
+alone, and the digests agree), and left every row as it was. The backup `data/app.db.bak-20261124` (`29068e84…`) is
+untouched and can be kept or removed at the operator's choice.
+
+**Seen, not understood:** a symlink `data/data` pointing back to `data/` appeared at 19:57, the time of the start. It is
+git-ignored (`data/`), nothing reads it that I know of, and I did not remove it. It may be an artefact of how the app was
+started; worth a look by `@backend.eng`. **Not tested:** a second start (the "nothing to do" path) on the real file, and
+a review on the new code (so a real `unexpected error` or `call limit` ending was not seen; Tier 1 covers both against the
+fake OpenAI).
 
 ### Verification checklist
 
@@ -235,7 +253,7 @@ runs are recorded (the third met the key's count with four cautions); nothing is
 
 **Result of the checklist: pass for this increment, with three things left open:** (1) the first start on the real
 `data/app.db`, with the new hash and after-start digests recorded; (2) the `call limit` retry test, with B13b;
-(3) a look at the new sentences on a real page. **I am not recommending `@security.eng` yet:** B8 is not finished
+(3) a look at the new sentences on a real page. **Update 2026-11-24: item (1) is closed** (the first start and the four after-start checks, section "Database hash baseline"); (2) and (3) stay open. **I am not recommending `@security.eng` yet:** B8 is not finished
 and the evaluation cycle has not run (Future work 1 to 3), so a recommendation now would be early.
 
 ## Audit
@@ -250,3 +268,4 @@ and the evaluation cycle has not run (Future work 1 to 3), so a recommendation n
 - 2026-11-23 · persona `qa-eng` · action `qa` + `log-defects` (H-077, the spike report) · wrote `2.build/spike-report.md`, an interim report on the 6 real trace lines made so far (extractor 2, verifier 2, judge 1, plus the pre-flight line; US$0.0164), read-only from `data/spike.db` and `data/app.db` and from `--tally`. No test, grader, threshold or code changed here; no model call, no real key, no paid call. Raised H-085 (`@system.arch`: name the report in the SAD Audit) and H-086 (`@backend.eng`: `--tally` adds the pre-flight line to the extractor's time and cost). The real clean run is not made, so the report waits for it. `*verify-change` and the `@security.eng` recommendation are still **not** made: B8 is not finished. `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `qa-eng` · action `log-defects` + `update` (H-091, the note to `@qa.eng`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: file hashes of `data/app.db` (SHA-1 `29068e849cc62e921688a30ea31283bcc56ad81e`, equal to `data/app.db.bak-20261124`), `data/spike.db` (`32376900d98eae2eaaaa5ed434610260fa820f0a`); the table digest was read from the backup copy with `mode=ro&immutable=1`, not from the real file. New: the section "Database hash baseline (H-091)". Changed in `spike-report.md`: an Update line after each of the two "does not stop at 70" sentences (12.6 and 12.7). Same Update line added in `evals.md` line 186 (the "Real-run status of Case 1" row), at the operator's instruction. The after-start hash and digests are left open for the operator's first start. No model call, no real key, no paid call, no code changed, no snapshot changed. `*verify-change` and the `@security.eng` recommendation are still not made.
 - 2026-11-24 · persona `qa-eng` · action `verify-change` (the increment H-091 to H-094, `main` at `f31848f`) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · ran Tier 1 (660 passed, 0 failed) and `ruff check backend tests` (clean); read the `backend/` diff from H-091's first commit. New: the section "Verification checklist". Result: pass for that increment, with three items left open (first start on the real `data/app.db`; the `call limit` retry test with B13b; the new sentences not viewed on a page). No AC-* exists for the two new reasons, so none was invented. No `*test-visual` run, no `*run-evals`. No model call, no real key, no paid call, no code changed, no snapshot changed; `data/app.db` and `data/spike.db` not opened. The `@security.eng` recommendation is **not** made: B8 is not finished.
+- 2026-11-24 · persona `qa-eng` · action `qa` + `log-defects` (H-091, the four after-start checks) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · read-only: file hashes, then `mode=ro&immutable=1` for digests and the stored `units` text; server not running. `data/app.db` SHA-1 `cfcd909e8875fab8f054b31ad6ad8e15d622ba76` (was `29068e84…`; changed as expected); table digests unchanged (names `307b68b55d321f89`, all `e5624554c3c393d3`); `data/spike.db` `32376900d98eae2eaaaa5ed434610260fa820f0a` unchanged. Noted a git-ignored symlink `data/data` (not removed). No model call, no real key, no paid call, no code changed, no snapshot changed. The `@security.eng` recommendation is still not made: B8 is not finished.
