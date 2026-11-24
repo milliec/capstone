@@ -34,11 +34,11 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-093: ux.md page 3: add the sentences for two new failure reasons, `unexpected error` and `call limit`
-- From: @system.arch (H-092, `sad.md` DL-58)   To: @ux.designer   Date: 2026-11-24
-- Touches: `2.build/ux.md` page 3 "Failure reason sentences" (today the six reasons plus `demo failure`); `sad.md` §4 failure reasons 9 and 10
-- Ask: Add two rows to the sentence table, using the proposed text in `2.build/integration.md` §3.4 unless it reads wrongly on the page. `unexpected error`: "Something went wrong that the app did not expect, so this step was stopped and nothing from it was saved". `call limit`: "The limit on real model calls for this kind of review was reached, so no further call was made". Both follow the built style (no final full stop). The review page shows the sentence only, never the error's message. For `call limit`, "Retry step {k}" is refused (`RETRY_NOT_ALLOWED`, like `cost cap`); check what page 3 shows then. Also change "the six reasons" in the table's lead-in.
-- Why: `@backend.eng` puts the same sentences in `FAILURE_SENTENCES` (H-091), and the page and the code should use one wording.
+### H-094: refusals: a different ending for `RETRY_NOT_ALLOWED` after `call limit`
+- From: @ux.designer (H-093, `ux.md` Open Question 25, closed by the operator 2026-11-24)   To: @backend.eng   Date: 2026-11-24
+- Touches: `backend/services/refusals.py` (`("RETRY_NOT_ALLOWED", "")` has one fixed ending), and wherever the `{reason}` is chosen; `ux.md` §5 `RETRY_NOT_ALLOWED` row; `sad.md` DL-51, DL-58
+- Ask: **Not waiting on anything.** When the failure reason is `call limit`, the refusal reads, word for word: "This step can't be tried again, because the limit on real model calls was reached. A new review would reach the same limit. Ask the operator to review the limit." The other four reasons keep "…because {reason}. Start a new review from Filing rules." Wording and where it is built only; `RETRY_NOT_ALLOWED` and its 409 do not change. Only reachable with Retry (B13b) built and real agents on, so add a test that builds the sentence for each of the five reasons.
+- Why: The call limit counts an activity's calls across both databases, so a new review reaches it too; the usual advice would send the specialist in a circle.
 - Outcome:
 
 ### H-086: `--tally` counts the pre-flight line inside the extractor's first unit, so its extractor time and cost read high
@@ -145,6 +145,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-093: ux.md page 3: add the sentences for two new failure reasons, `unexpected error` and `call limit`
+- From: @system.arch (H-092, `sad.md` DL-58)   To: @ux.designer   Date: 2026-11-24
+- Touches: `2.build/ux.md` page 3 "Failure reason sentences" (today the six reasons plus `demo failure`); `sad.md` §4 failure reasons 9 and 10
+- Ask: Add two rows to the sentence table, using the proposed text in `2.build/integration.md` §3.4 unless it reads wrongly on the page. `unexpected error`: "Something went wrong that the app did not expect, so this step was stopped and nothing from it was saved". `call limit`: "The limit on real model calls for this kind of review was reached, so no further call was made". Both follow the built style (no final full stop). The review page shows the sentence only, never the error's message. For `call limit`, "Retry step {k}" is refused (`RETRY_NOT_ALLOWED`, like `cost cap`); check what page 3 shows then. Also change "the six reasons" in the table's lead-in.
+- Why: `@backend.eng` puts the same sentences in `FAILURE_SENTENCES` (H-091), and the page and the code should use one wording.
+- Outcome: **Done.** 2026-11-24, `@ux.designer` (branch `ux-designer/h093-two-failure-sentences`). `ux.md` page 3: the table's lead-in now says nine reasons, and the two rows are in, with `integration.md` 3.4's sentences **unchanged** (they read correctly in the status line; the backend's `FAILURE_SENTENCES` already matches word for word). The page shows the sentence only. For `call limit`, page 3 looks like any failed review (Retry shown, then refused with `RETRY_NOT_ALLOWED`); `unexpected error` may be retried once. `ux.md` §5 and the Retry table list the fifth refusal reason. **One finding, not decided (Open Question 25):** the call limit is counted across both databases, so the refusal's fixed ending "Start a new review from Filing rules" would not help after it; a different ending is drafted and was confirmed by the operator. That is H-094 to `@backend.eng`; the operator then closed it with one added sentence. Approval status of `ux.md` left `approved`. No code. No model call.
 
 ### H-091: Two fixes in the web path, fake OpenAI only: a stage that hits an uncaught error ends as Failed (E-11), and the real-call cap is enforced before each real call
 - From: @integration.eng (operator decision D-1 to D-4, `2.build/integration.md` sections 3.4 and 4)   To: @backend.eng   Date: 2026-11-24
