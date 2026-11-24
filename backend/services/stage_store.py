@@ -167,9 +167,12 @@ _STORERS = {"A": _store_a, "B": _store_b, "C": _store_c}
 
 
 def fail_stage(conn: sqlite3.Connection, run: dict, stage: str, unit_id: str,
-               failure_reason: str) -> bool:
+               failure_reason: str, detail: str | None = None) -> bool:
     """A unit failed: the run becomes FAILED and keeps its phase (DL-46). Stores nothing (rule 9).
     Returns True if it failed the run, False if the run had already moved on.
+
+    `detail` is added to the audit entry's words ("unexpected error: RuntimeError"). Only for a short,
+    safe label, never an error's message: the caller passes the error's CLASS NAME (DL-58).
 
     Like the store, it first checks that the run is still ACTIVE in this stage and attempt; a
     failure that arrives after a retry started must not fail the new attempt. Since B3 step 6 the
@@ -192,7 +195,8 @@ def fail_stage(conn: sqlite3.Connection, run: dict, stage: str, unit_id: str,
             (failure_reason, run["run_id"], stage, run["stage_attempt"], unit_id))
         conn.execute("UPDATE runs SET status = 'FAILED' WHERE run_id = ?", (run["run_id"],))
         write_audit(conn, fund_id=run["fund_id"], actor=f"stage {stage}", event_type="system",
-                    run_id=run["run_id"], subject_id=unit_id, reason=failure_reason)
+                    run_id=run["run_id"], subject_id=unit_id,
+                    reason=failure_reason if detail is None else f"{failure_reason}: {detail}")
         conn.commit()
         return True
     except BaseException:
