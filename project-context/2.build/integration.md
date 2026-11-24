@@ -5,8 +5,11 @@ Owner: `@integration.eng`. Written 2026-11-24 on branch `integration-eng/build-s
 used no key, and did not open `data/spike.db` or `data/app.db`.** Every fact below was read from the code or
 from `sad.md`, `backend.md`, `setup.md`, `scaffold-plan.md` and `spike-report.md`.
 
-**Status: PROPOSED. Nothing is built from this until the operator approves it.** Sections 3 and 4 list the
-changes I propose; each one that touches the contract or the SAD is marked and waits for `@system.arch`.
+**Status: DECIDED by the operator on 2026-11-24 (section 8). Documentation only: nothing is built yet.**
+Two fixes are approved: **P-3** (a stuck review on an uncaught error, E-11) and **P-5** (the 70-call cap in the web
+path). Everything else is **parked as future work** with an ID (`IFW-1` to `IFW-6`, section 7). Both fixes need
+two **new failure reasons** first, so they wait for `@system.arch` (handoff H-092) before `@backend.eng` builds
+(handoff H-091). Tested with the fake OpenAI only: **no real call.**
 
 ## 0. What I found first (read this before the rest)
 
@@ -19,11 +22,12 @@ Four things in the request do not match the repository. The spec below follows w
    as done at the stand-in bar") and reuse that. **I add no second shape and no new endpoint** (section 3).
 2. **Most of this path already exists and has run for real.** The three real runs in `spike-report.md` §12
    (`RUN-20261123-1`, `-20261124-1`, `-20261124-2`) went through this same button, API and crews. So this
-   sprint **proves and hardens the path; it does not build a new one.** The work is: timing, the error paths,
-   one screen label, one gap in how a crash shows, and the log check.
+   sprint **proves and hardens the path; it does not build a new one.** The work left is two fixes (item 4).
 3. **The real-call budget is nearly spent.** `spike` has a cap of 70 real calls and **58 are used** (spike-report
-   §12.7). A whole run needs about 17. So **a real-provider proof run cannot be paid from `spike`.** Decision
-   D-1 in section 8.
+   §12.7). A whole run needs about 17. **Decided (D-1): no new real run. `RUN-20261124-2` is the proof** that the
+   real crews work through this path: it completed and published a 22-entry calendar. It is **one run, not graded,
+   with four cautions** (spike-report §12.7). I have not re-read its log; the logging pass test in section 6 has
+   not been applied to it.
 4. **Two gaps, found by reading the code, not yet reproduced:**
    (a) if a real-mode stage meets a problem our code does not catch, the review can be left on "AI is drafting
    the rules" for good (section 4, row E-11);
@@ -58,7 +62,9 @@ show fixed test answers as if the model had worked.
 
 ## 2. Pattern: which way the screen learns that the result is ready
 
-### 2.1 How to time one stand-in run (you run this; it costs nothing and calls no model)
+### 2.1 How to time one stand-in run (PARKED as `IFW-4`: decided not to run it, D-4)
+
+*Kept for later; nobody needs to run it now. It costs nothing and calls no model.*
 
 **What this measures, honestly:** a stand-in step waits `STAND_IN_UNIT_PAUSE_S` (default 1 s) per unit, so its
 times are the **plumbing** (the page reloads, the database, the hand-over between stages), **not model speed.**
@@ -93,7 +99,7 @@ in 2.2.
 7. Send me the three felt waits, the printout, and the number from the second query.
    (I checked that both queries run against the schema; I did not run them on any data.)
 
-### 2.2 Choosing the pattern (rule decided now, number decided by your timing)
+### 2.2 Choosing the pattern
 
 | Pattern | What it is here | Fits when | Cost |
 |---|---|---|---|
@@ -102,14 +108,15 @@ in 2.2.
 | **SSE** | Server pushes unit updates over one open connection | Stages over ~1 to 2 min, or reload flicker is a real problem | A script, an open connection, a SAD edit (SAD §4 chose "no script") |
 | **WebSocket** | Two-way open connection | A reviewer must send messages mid-stage | Never needed: the reviewer cannot act while a stage runs (`RUN_STAGE_RUNNING`) |
 
-**Decision rule:** keep polling if your timed stage A, B and C are each **under 60 s of server time** and the reload
-lag stays **3 s or less**. Move to SSE only if a stage goes over about 2 minutes **or** a person who watches the
-run says the reloads are a problem, and then only after a SAD edit.
+**Decided (D-4): polling stays.** It is chosen on timings already on file (real runs, `spike-report.md` §12):
+stage A 25 to 30 s, stage B about 24 s, stage C under 1 s, all model calls together 47 to 53 s, against limits of
+375, 150 and 30 s. **No code changes.** The rule for revisiting it: move to SSE only if a stage goes over about
+2 minutes **or** a person who watches a run says the reloads are a problem, and then only after a SAD edit.
 
-**Provisional choice: keep polling.** Evidence already on file (real runs, `spike-report.md` §12): stage A 25 to
-30 s, stage B about 24 s, stage C under 1 s, all model calls together 47 to 53 s, against limits of 375, 150 and
-30 s. **This choice is provisional until your timed stand-in run confirms the plumbing and the next real run
-confirms the model times.** No code changes if it holds.
+**Known limit KL-1 (recorded, not fixed).** The choice rests on **real-run times only**. I did **not** time a
+stand-in run, so the page-reload plumbing and the **reload lag (0 to 3 s, because the page reloads every 3 s)**
+are stated, not measured. Three runs gave only two or three values per stage, so the times are a guide, not a
+distribution.
 
 ## 3. Contract (reused exactly; nothing renamed)
 
@@ -148,17 +155,37 @@ out of scope (section 7).
 (`unit_id`, `label`, `status`, `group`, `failure_reason`). The page shows these values as sent and never works
 anything out itself.
 
-### 3.4 Proposed changes to the contract (none is built; each waits for approval)
+### 3.4 Changes to the contract: decided 2026-11-24 (D-2)
+
+**Approved (two):**
 
 | # | Change | Why | Touches |
 |---|---|---|---|
-| P-1 | Add a visible **"Real agents"** tag beside "Stand-in agents" (`run_labels` shows only the stand-in tag today) | The reviewer should see which kind of run they are looking at without inferring it from the absence of a tag | Template part only. `@frontend.eng`; visual snapshots change, so `@frontend.eng` proposes them and you approve |
-| P-2 | **Refuse to start a real-mode review** when a model ID or the key is missing (`ModelNotSet`, `KeyNotSet`), using the existing `VALIDATION` refusal | Today a missing setting is found **after** the review has started (E-11) | `runs.start_run` and a test. No new status, no schema change |
-| P-3 | **Catch any unexpected error in a running stage and end the review as Failed** (E-11) | So no stage can hang on "AI is drafting the rules" | Needs a failure reason to name it. **A new reason is a SAD edit and a schema `CHECK` change**: `@system.arch` first. Option: reuse `invalid output` (cheap, misleading) |
-| P-4 | Write the **accepted / rejected** word and the run's felt-wait helper query into `integration.md` (no new column) | Section 6 | Documentation only |
-| P-5 | **Call the existing cap check before each real call from the web app**, so the `spike` and `tuning` caps hold there too (0 (a)) | Today only the spike command stops at the cap | `agents` or `stages` (one call to `check_call_allowed`). On the cap, the stage must end as Failed with a reason, so it **shares P-3's reason decision (D-3)**. It does not touch the pinned US$2.50 cap |
+| P-3 | **Catch any unexpected error in a running stage and end the review as Failed** with a new reason `unexpected error` (E-11) | So no stage can hang on "AI is drafting the rules" | `runs.failure_reason` and the `units.failure_reason` `CHECK` get a new value; `FAILURE_SENTENCES` gets its sentence. **SAD edit first** (H-092), then `@backend.eng` (H-091) |
+| P-5 | **Check the real-call cap before each real call from the web app** (`harness.count_real_calls`, counted across `data/spike.db` **and** the app's database, as the spike command does), and end the review as Failed with a new reason `call limit` | Today only the spike command stops at the cap | Same two places as P-3; one check in `stages._run_unit`, real mode only. The pinned US$2.50 cap does not change |
 
-**No new endpoint, no new status value and no new result field is proposed.**
+**New failure reasons (D-3: new wording, not a reuse).** The sentences follow the built style (no final full stop).
+They are **proposed text**: `@system.arch` records them and `@ux.designer` owns the sentence table (ux.md page 3).
+
+| Reason (stored) | Sentence on the review page |
+|---|---|
+| `unexpected error` | Something went wrong that the app did not expect, so this step was stopped and nothing from it was saved |
+| `call limit` | The limit on real model calls for this kind of review was reached, so no further call was made |
+
+For `unexpected error`, the audit entry records **the error's class name only**, never its message: a provider or
+prompt error can carry text that must not be stored or shown. The review page says nothing about the cause beyond
+the sentence above.
+
+**Parked as future work (not built, IDs in section 7):**
+
+| Was | ID | Change |
+|---|---|---|
+| P-1 | `IFW-1` | A visible **"Real agents"** tag beside "Stand-in agents" |
+| P-2 | `IFW-2` | **Refuse to start** a real-mode review when a model ID or the key is missing. **Why parking it is safe:** with P-3 a missing setting now ends the review as **Failed with a sentence**, not a hang |
+| P-4 | `IFW-3` | A written "accepted / rejected" helper for the trace. The derived word and the query stay in section 6 as documentation only |
+
+**No new endpoint, no new status value and no new result field.** A failed review still shows the same fields; only
+`failure.reason_sentence` can now read one of two new sentences.
 
 ## 4. Errors and timeouts: what the screen shows
 
@@ -178,17 +205,16 @@ rules"** (Retry is B13b). No gate opens after a failure. Sentences are the built
 | E-8 | The dates cannot be made into one calendar | Stage C | **Failed:** "The dates could not be worked out into one complete calendar" | Yes |
 | E-9 | The failure demo (stand-in only) | Stage A, first unit | **Failed:** the demo sentence, which says nothing else went wrong | Yes |
 | E-10 | The server is not running while the page reloads | The browser | **The browser's own "can't connect" page. The app cannot show anything here.** Accepted for the MVP (one local user, one run). Stated, not fixed | Limit, stated |
-| E-11 | **Something unexpected inside a running stage**, such as a missing model ID or key in real mode (`ModelNotSet`, `KeyNotSet`) | **Not caught.** `stages._run_unit` handles only the listed failures, and `run_stage` cancels its timer in `finally`, so the stage ends with the review still `A_RUNNING` | **The review sits on "AI is drafting the rules" and keeps reloading until the app restarts** (then E-7). This is the nearest thing to a "blank screen" on the path | **Gap. P-2 and P-3** |
+| E-11 | **Something unexpected inside a running stage**, such as a missing model ID or key in real mode (`ModelNotSet`, `KeyNotSet`) | **Not caught.** `stages._run_unit` handles only the listed failures, and `run_stage` cancels its timer in `finally`, so the stage ends with the review still `A_RUNNING` | **The review sits on "AI is drafting the rules" and keeps reloading until the app restarts** (then E-7). This is the nearest thing to a "blank screen" on the path | **Gap. Fixed by P-3 (approved)** |
 | E-12 | An unexpected error while a page is built | `main.py` handler | The plain error page with the sentence for the signed-in role, never the error's details | Yes |
 
 **Reproducing E-11 without any paid call:** with real mode set and the model ID left empty, start a review
 against the **fake OpenAI** already used by the tests (`tests/fake_openai.py`). If the review stays on A_RUNNING,
-the gap is real. I will write that as a failing test **only after you approve** this spec.
+the gap is real. That is the first test in handoff H-091, written to fail before the fix.
 
-**How error paths are tested without paying:** E-3 to E-9 run the **real CrewAI crews against the fake OpenAI**
-(`tests/fake_openai.py` can answer, fail with a status such as 429 or 500, be slow, or give a scripted answer, so
-a wrong-shape answer is one more script). Only the proof run in section 8 (D-1) uses the real provider, and only
-the operator starts it.
+**E-3 to E-9 are not re-tested here.** Existing tests already drive the real CrewAI crews against the fake OpenAI
+(`tests/fake_openai.py`); I have not re-checked their coverage against this table (`IFW-6`). **No real call is
+made for any of this work.**
 
 ## 5. Where the human gates sit on this path
 
@@ -243,7 +269,7 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 ## 7. Out of scope for this sprint
 
 - **Retry** (B13b). A failed review is followed by a new review.
-- **SSE and WebSockets**, unless the timed run overturns section 2.2 and `@system.arch` edits the SAD.
+- **SSE and WebSockets** (section 2.2, KL-1).
 - **Any JSON API, new endpoint, new status value or new result field.**
 - **An automatic fallback from real to stand-in.**
 - **A second provider, a bake-off or any model other than the three pinned** (DL-55).
@@ -251,26 +277,34 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 - **Hosted deploy** and anything in Appendix A or the parked F-IDs (CLAUDE.md).
 - **Changing `docs/architecture-decisions-summary.html`** (frozen).
 - **Changing the pinned model settings, prompts, call timeouts or the US$2.50 cap.**
-- **Any paid call started by an agent.** Only the operator starts a real run.
+- **Any real model call by this work.** No new real run (D-1); tests use the fake OpenAI only.
 
-## 8. Decisions I need from you, then what happens next
+**Parked as future work (D-2, D-4), none of it built:**
 
-| # | Decision | My recommendation |
+| ID | What | Source |
 |---|---|---|
-| D-1 | **Which spend activity pays for the real proof run?** `spike` has 12 of 70 slots left and a run needs about 17. `tuning` (cap 60) and `rehearsal`, `demo` (no cap) are the others | `rehearsal`, one run, about US$0.05 on the figures so far, which needs no new cap. Your call, and it goes in `decision-log.md` |
-| D-2 | **Approve P-1 to P-5** (section 3.4), or strike any | Approve all five. P-3 and P-5 need their failure reason from `@system.arch` first. P-5 matters most if D-1 is `spike` or `tuning` |
-| D-3 | **The wording for P-3 and P-5:** a new failure reason ("something went wrong that the app did not expect"; and for P-5, "the real-call limit was reached"), or reuse an existing one | New reasons. Reusing "invalid output" or "cost cap" would tell the reviewer something false |
-| D-4 | **Run the timing in 2.1 and send me the numbers**, so section 2.2 stops being provisional | Yes, before any build |
+| `IFW-1` | "Real agents" tag beside "Stand-in agents" (`@frontend.eng`; snapshots would change, so you approve them) | was P-1 |
+| `IFW-2` | Refuse to start a real-mode review when a model ID or the key is missing (existing `VALIDATION` refusal) | was P-2 |
+| `IFW-3` | A written accepted / rejected helper for the trace (documentation only; the query is in section 6) | was P-4 |
+| `IFW-4` | The timed stand-in run in 2.1, to measure the page-reload plumbing and lag (KL-1) | D-4 |
+| `IFW-5` | Check whether the app's own process log carries the run id on each stage event (section 6) | Open question 2 |
+| `IFW-6` | Check that the existing tests cover E-3 to E-9 with the real crews against the fake OpenAI | section 4 |
 
-**After you approve, in this order (small steps, each one its own pull request):**
-1. You time the stand-in run; I fix section 2.2 with your numbers.
-2. `@system.arch` records the reasons for P-3 and P-5 (if D-3 says new). I change no code before that.
-3. A failing test for E-11 and one for the call cap, against the fake OpenAI; then P-2, P-3 and P-5 to make them
-   pass (`@backend.eng`).
-4. P-1, the label (`@frontend.eng`; snapshots go to you for approval).
-5. Error-path tests E-3 to E-9 with the real crews against the fake OpenAI.
-6. One real proof run, started by you under D-1's activity, and its log checked with section 6.
-7. `*sync-docs` after any code change, with your approval before it writes.
+## 8. Decisions (operator, 2026-11-24) and what happens next
+
+| # | Decision | Recorded as |
+|---|---|---|
+| D-1 | **No new real run.** `RUN-20261124-2` is the proof | Section 0, item 3. Not recorded in `decision-log.md` here: that file is `@system.arch`'s |
+| D-2 | **Approve only the fixes for E-11 and the 70-call cap in the web path** (P-3, P-5). Park the rest with IDs | Section 3.4 and the table in section 7 (`IFW-1` to `IFW-3`) |
+| D-3 | **New wording** for the two new failure reasons | Section 3.4: `unexpected error`, `call limit` |
+| D-4 | **Skip the timed run; polling stays**, on existing timings, recorded as a known limit | Section 2.2 (KL-1) and `IFW-4` |
+
+**What happens next, in order (each its own pull request; nothing here is merged by `@integration.eng`):**
+1. **H-092** to `@system.arch`: record the two new failure reasons in `sad.md` (the run-state failure rows, the
+   reason list and the `units.failure_reason` values), and say so to `@ux.designer` for the sentence table.
+   **`@backend.eng` does not start before this is done** (CLAUDE.md: a SAD edit comes first).
+2. **H-091** to `@backend.eng`: the two fixes, with their tests, **against the fake OpenAI only.**
+3. `*sync-docs` after the code change, with the operator's approval before it writes.
 
 ## Sources
 
@@ -284,17 +318,19 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
 
 - "The Week 3 contract" means the Sprint 3 stand-in slice, and "`startRun`" means `runs.start_run` behind
   `POST /specialist/runs`. **If you meant something else, tell me before anything is built** (section 0).
-- "Real crews" means the CrewAI crews with the real provider only for the operator's proof run, and the same crews
-  against the fake OpenAI for every error path.
+- "Real crews" means the CrewAI crews. **No new real run** (D-1): the proof is `RUN-20261124-2`; error paths and
+  the two fixes use the same crews against the fake OpenAI.
 - "Accepted / rejected" in the log means both: our checks on the model's output, and the person's decision at a gate.
 - "Same sprint 3 slice" means the demo fund, the demo documents, the demo rule off and the failure demo off.
 
 ## Open Questions
 
-1. D-1 to D-4 in section 8 (the spend activity, the five proposed changes, the failure-reason wording, your timing).
-2. Does the app's own process log carry the run id on each stage event? (Section 6; I did not look at the log
-   because that needs a running app.)
-3. Is E-11 reproduced? I read it in the code; a free test against the fake OpenAI will settle it, after approval.
+1. **How does an existing `data/app.db` get the two new reasons?** The `units.failure_reason` `CHECK` lives in
+   `schema.sql`, and the schema is created with `CREATE TABLE IF NOT EXISTS`, so an existing database keeps the old
+   list. `@backend.eng` proposes the way (H-091) **before** touching anything, tests on a copy, and **never deletes
+   or changes `data/app.db` or `data/spike.db`** (they are the real-run evidence).
+2. Is E-11 reproduced? I read it in the code; the first test in H-091 settles it.
+3. `IFW-5` (process log) and `IFW-6` (test coverage) are open and parked.
 
 ## Audit
 
@@ -304,3 +340,4 @@ has a `provider_error`; and the audit log has one entry per start, per stage end
   `agents.py`, `model_settings.py`, `harness.py`, `backend/db/schema.sql`, `backend/main.py`, the review status
   and G1 templates, `sad.md`, `setup.md`, `scaffold-plan.md`, `spike-report.md`. Queries in sections 2.1 and 6 were
   checked for syntax against an empty in-memory copy of the schema only.
+- 2026-11-24 · persona `integration-eng` · action `log-integration` · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · recorded the operator's decisions D-1 to D-4: no new real run (`RUN-20261124-2` is the proof); P-3 and P-5 approved; P-1, P-2, P-4 parked as `IFW-1` to `IFW-3`; new failure-reason wording proposed; polling stays with known limit KL-1; the timed run parked as `IFW-4`. Raised H-091 (`@backend.eng`) and H-092 (`@system.arch`). **Documentation only; no code, no model call, no key; `data/spike.db` and `data/app.db` not opened.**
