@@ -50,6 +50,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: `@qa.eng`'s trace export, run starter and copy cases (H-097) need the label and the guards, and the files belong to you.
 - Outcome: (the owner fills this in)
 
+### H-098: qa.eng: the new `data/app.db` hash baseline after the failure-reason migration (the file hash changes on purpose; the data does not)
+- From: @integration.eng (operator decision D-5, `2.build/integration.md` sections 9 and 9.6)   To: @qa.eng   Date: 2026-11-24
+- Touches: `2.build/qa.md` and `2.build/spike-report.md` wherever they record `data/app.db`'s SHA-1 (`29068e84…`) and `data/spike.db`'s (`32376900…`); H-091, H-092
+- Ask: **Blocked until H-092 is Done, H-091 is merged, and the operator says the backup is taken and the app has started once on the new code.** Then: (1) read `data/app.db` **read-only** and record its **new SHA-1** as the baseline; (2) run the per-table content check in `integration.md` 9.6 and confirm all 14 tables match the "before" rows and digests listed there (so the migration changed the table definition and no data), and `PRAGMA integrity_check` is `ok`; (3) confirm `data/spike.db` is still `32376900…` (the migration is called from `create_app`, so `spike.db` must not change); (4) record in your own files that the hash change is **expected and caused by the migration**, so a later reader does not take it for tampering, and that `units.failure_reason` now allows `unexpected error` and `call limit`. Do the content check **before** any new review is started on the migrated database, because a new review adds rows and the digests stop matching.
+- Why: You watch these hashes to show the real-run evidence is untouched; the migration changes the file hash once by design, so the proof has to be the table contents, not the file hash. A `.backup` copy has a different file hash from its source (`adbf9406…` against `29068e84…`), so never compare a backup to the original by file hash.
+- Outcome:
+
 ### H-086: `--tally` counts the pre-flight line inside the extractor's first unit, so its extractor time and cost read high
 - From: @qa.eng (spike report, 2026-11-23)   To: @backend.eng   Date: 2026-11-23
 - Touches: `backend/runtime/spike_tally.py`, `build_units` (the unit's `seconds` and `recorded` are sums over every line of a unit, line 1 included); `2.build/spike-report.md` section 9 and D-1
