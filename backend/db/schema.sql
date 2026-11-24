@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS units (
     attempts        INTEGER NOT NULL DEFAULT 0,        -- call attempts, 1 or 2
     failure_reason  TEXT CHECK (failure_reason IS NULL OR failure_reason IN (
                         'model service', 'stage time limit', 'invalid output', 'cost cap',
-                        'service restarted', 'calendar generation', 'demo failure')),
+                        'service restarted', 'calendar generation', 'demo failure',
+                        'unexpected error', 'call limit')),   -- the last two: DL-58, H-092
     PRIMARY KEY (run_id, stage, stage_attempt, unit_id),
     FOREIGN KEY (run_id, fund_id) REFERENCES runs (run_id, fund_id)
 );
