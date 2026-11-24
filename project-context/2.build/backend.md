@@ -1103,6 +1103,28 @@ off). **No code or SAD wording is changed by this section.**
   is the duplicate depends on that run's extraction; the rule is "the second row from `SRC-UCILAW-P2` with the same
   quote", whatever its number.
 
+**Review B (RUN-20261124-1, 2026-11-24): the full path works, but it is not a clean happy-path result.**
+- **What worked.** G1, G2, G3 and the publish completed on the real service. 16 requests (extractor 5, verifier 6,
+  judge 5), all valid on the first try, all on `/v1/chat/completions`, none off the pinned setting, US$0.0355;
+  slots 41 of 70 (6 in `spike.db`, 35 in `app.db`). The audit log says "Stage C finished" with no stand-in wording.
+  The verifier flagged C-1 and C-2 again and nothing else. The judge, on the 5 approved rows: OBL-03 `applies`,
+  OBL-04 `unsure` and OBL-06 `does_not_apply` as the answer key says; **OBL-01 and OBL-05 `unsure` where the key says
+  they apply** (one run, not a rate; for EC-004).
+- **The extractor did not split the sentence this time.** It returned one row for `SRC-UCILAW-P2`, "subscription
+  tax return and payment", which is the key's OBL-02. Across the real extractions of this document it has now split in
+  3 of 4 (the spike's two calls and review A) and not in review B: **not predictable, and a small sample**.
+- **The operator's reject was a mistake, and the run is labelled for it.** Expecting a split, the operator rejected
+  that single row at G1 as a duplicate. The audit log's reason is untrue for this run. The calendar has **18
+  entries, not the key's 22**: the 4 quarterly AED entries for OBL-02 are missing. So this run proves the path, and
+  **is not evidence for Case 1** (the happy path). It is on record as it happened; nothing was edited.
+- **Case 1, as recorded (operator, 2026-11-24):** the **full real path is proven** by RUN-20261124-1; the calendar
+  is **18 of 22** because OBL-02 was wrongly rejected at G1; **a calendar that matches the key is still owed**.
+- **Next (operator's plan; review C is skipped for now).** **One more real run, after `@system.arch`'s change for
+  H-087 lands**, which tests that fix and Case 1 together. It needs about 16 slots: 41 of 70 are used, so about 13
+  would remain, which is **not enough for a second full review**. That run is the last the cap allows without a new
+  operator decision. The rule for it at G1: reject a row only if two rows from the same source paragraph carry the
+  same quote (then reject the second); with one row, approve it. H-087 and H-088 carry the facts.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -1355,3 +1377,5 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-23 · persona `backend-eng` · `document-backend` (H-083: the runner docs in line with DL-55) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "go onto H-083". Docs only, no code: the bake-off section is now "dropped by DL-55, not owed, optional future work"; "the stated next step: run the bake-off" is gone (the operator's earlier instruction to keep it is superseded by DL-55 and H-083; reworded, flagged to the operator); limits 1 and 4 and finding 3's "not decided yet" lines say what DL-55 settled; "4 of 5" is not a five-run share; added that nothing in the runner expects five calls per role (`RUNS_PER_CASE = 5` is display only). H-082 and H-077 amended, H-083 moved to Done. No model call, no real call.
 - 2026-11-23 · persona `backend-eng` · `develop-be` (the tally's "Run cost" line covers both databases) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "make it include app.db too, or label it clearly". Code: `spike_tally.format_tally` prints "Run cost" from the cross-database count and relabels the per-file figure "This file only"; two tests in `test_call_count.py` (sabotaged to prove they fail). Docs: a paragraph before the clean-run steps. No SAD change, no real call.
 - 2026-11-23 · persona `backend-eng` · `document-backend` (the first real web-app run: the extractor split and the Stage C refusal) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "record the finding first". Docs only: new section "The first real run through the web app: what it showed" (read back from `app.db`, read-only); handoffs H-087 (`@system.arch`) and H-088 (`@qa.eng`). No code, no real call.
+- 2026-11-24 · persona `backend-eng` · `document-backend` (review B recorded, option A) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "do A: Update lines on H-087 and H-088 and label the run honestly in the report". Docs only: a paragraph in the first-real-run section; Update lines on H-087 and H-088 (the report label is asked of `@qa.eng` in H-088, because `spike-report.md` is theirs). Read back from `app.db`, read-only. No code, no real call.
+- 2026-11-24 · persona `backend-eng` · `document-backend` (Case 1 recorded as owed; review C skipped) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "skip review C; record Case 1 as path proven, calendar 18 of 22, matching calendar owed; one real run after H-087's change lands". Docs only: the "Next" bullet in the first-real-run section, and a second Update line on H-088 asking `@qa.eng` to carry it into section 12 and evals Case 1. Stacked on #197 (same lines). No code, no real call.
