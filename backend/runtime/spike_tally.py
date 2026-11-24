@@ -76,6 +76,12 @@ class Tally:
     units: list = field(default_factory=list)
     recorded_total: float = 0.0
     repriced_total: float = 0.0
+    # The lines that were NOT model calls (the first call's pre-flight, H-086): shown on their own line, and
+    # left out of every unit's time and cost, so the mean time and cost of a call are the model's alone.
+    preflight_lines: int = 0
+    preflight_seconds: float = 0.0
+    preflight_recorded: float = 0.0
+    preflight_estimated: int = 0
     role_models: dict = field(default_factory=dict)
     note: str = ""
     count: object = None              # harness.CallCount: the real calls in EVERY database that can hold them
@@ -145,15 +151,18 @@ def build_units(lines: list[dict], role_models: dict, exclude: set) -> list[Unit
             status = "not_a_call"
         else:
             status = "invalid" if final.get("validation_error") else "valid"
-        priced = [reprice(line, role, role_models) for line in group]
+        # A line that was not a model call (the pre-flight) is in the unit's `lines` but NOT in its time or
+        # cost: those are the model's own. The tally prints the pre-flight apart, so the totals still add up.
+        calls = [line for line in group if line_kind(line) != "not a model call"]
+        priced = [reprice(line, role, role_models) for line in calls]
         unit = Unit(
             step=step, unit_id=unit_id, model=final["model"], status=status, lines=len(group),
             tokens_in=final["tokens_in"], tokens_out=final["tokens_out"],
-            seconds=sum(line["duration_ms"] for line in group) / 1000,
-            recorded=sum(float(line["cost_usd"]) for line in group),
+            seconds=sum(line["duration_ms"] for line in calls) / 1000,
+            recorded=sum(float(line["cost_usd"]) for line in calls),
             repriced=sum(cost for cost, _ in priced),
             priced_as=next((r for _, r in reversed(priced) if r), ""),
-            estimated_lines=sum(1 for line in group if line["cost_estimated"]),
+            estimated_lines=sum(1 for line in calls if line["cost_estimated"]),
             excluded=(step == "check_conflicts" and unit_id in exclude))
         if step == "check_conflicts":
             # Each row belongs to one case, so the unit's name says which case it ran, even when the
@@ -210,7 +219,13 @@ def collect(path: Path, role_models: dict | None = None, exclude: set | None = N
         tally.line_kinds[kind] = tally.line_kinds.get(kind, 0) + 1
     tally.units = build_units(lines, role_models, exclude or set())
     tally.recorded_total = sum(float(line["cost_usd"]) for line in lines)
-    tally.repriced_total = sum(unit.repriced for unit in tally.units)
+    preflight = [line for line in lines if line_kind(line) == "not a model call"]
+    tally.preflight_lines = len(preflight)
+    tally.preflight_seconds = sum(line["duration_ms"] for line in preflight) / 1000
+    tally.preflight_recorded = sum(float(line["cost_usd"]) for line in preflight)
+    tally.preflight_estimated = sum(1 for line in preflight if line["cost_estimated"])
+    # The pre-flight is left as recorded (it is an estimate, not a priced model), so the two totals still add up.
+    tally.repriced_total = sum(unit.repriced for unit in tally.units) + tally.preflight_recorded
     return tally
 
 
@@ -283,6 +298,13 @@ def format_tally(tally: Tally) -> str:
               if tally.count else []),
             (f"This file only : {_money(tally.recorded_total)} recorded; {_money(tally.repriced_total)} "
              "when each line is priced for the model that ran (the tables below read this file only)")]
+    if tally.preflight_lines:
+        n = tally.preflight_lines
+        out.append(f"Pre-flight     : {n} line{'s' if n != 1 else ''}, {tally.preflight_seconds:.1f} s, "
+                   f"{_money(tally.preflight_recorded)} recorded"
+                   + (" (an estimate)" if tally.preflight_estimated else "")
+                   + "; not a model call: it used a slot and is in the run cost, and is left out of the "
+                   "time and cost of the calls below")
     if tally.note:
         out.append(f"Note           : {tally.note}")
     for step in ("extract_rows", "check_conflicts", "judge_applicability"):

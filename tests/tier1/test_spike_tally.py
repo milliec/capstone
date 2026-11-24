@@ -190,7 +190,8 @@ def test_slots_calls_and_the_kinds_of_line(db):
     assert t.line_kinds == {"not a model call": 1, "model answer": 2, "no answer": 1, "refused (never sent)": 1}
     assert len(t.units) == 4
     first = next(u for u in t.units if u.unit_id == "SRC-UCILAW#1")
-    assert (first.lines, first.status) == (2, "valid") and first.seconds == pytest.approx(5.9)   # 1.5 + 4.4
+    # The unit has two lines, but its time is the model's alone: 4.4 s, not 1.5 + 4.4 (H-086).
+    assert (first.lines, first.status) == (2, "valid") and first.seconds == pytest.approx(4.4)
     text = run_tally(db.path)[1]
     assert "Slots used     : 5 of 70 (65 left)" in text and "Calls          : 4" in text
 
@@ -425,3 +426,41 @@ def test_the_tally_reads_what_the_runner_actually_wrote(db, fake_openai, as_open
     assert two.repriced < two.recorded
     assert (ok.case_id, ok.good) == ("OK-1", True)
     assert t.repriced_total < t.recorded_total
+
+
+def test_the_preflight_is_left_out_of_the_extractors_mean_and_has_its_own_line(db):
+    # H-086. The first call: a 1.5 s pre-flight (estimated US$0.0011), then two model calls of 3.7 s and 4.4 s.
+    db.add("extract_rows", "SRC-UCILAW#1", 1, MODELS["extract"], cost=0.0011, estimated=1, ms=1500)
+    db.add("extract_rows", "SRC-UCILAW#1", 2, MODELS["extract"], raw=json.dumps({"rows": []}),
+           tin=1500, tout=360, cost=0.0003, ms=3700)
+    db.add("extract_rows", "SRC-UCILAW#2", 1, MODELS["extract"], raw=json.dumps({"rows": []}),
+           tin=1500, tout=360, cost=0.0003, ms=4400)
+    t = db.tally()
+    extract = [u for u in t.units if u.step == "extract_rows"]
+    group = spike_tally._group(extract)
+    assert group["seconds"] == pytest.approx(4.05)        # the mean of 3.7 and 4.4, NOT of 5.2 and 4.4 (4.8)
+    assert group["recorded"] == pytest.approx(0.0006)     # two model calls, NOT 0.0017
+    assert (t.preflight_lines, t.preflight_seconds) == (1, pytest.approx(1.5))
+    assert t.preflight_recorded == pytest.approx(0.0011)
+    text = spike_tally.format_tally(t)
+    assert "Pre-flight     : 1 line, 1.5 s, US$0.0011 recorded (an estimate); not a model call" in text
+    assert "time (mean) 4.0 s" in text or "time (mean) 4.1 s" in text      # 4.05, whichever way it rounds
+    assert "cost US$0.0006 recorded" in text
+
+
+def test_the_totals_still_add_up_with_the_preflight_on_its_own_line(db):
+    db.add("extract_rows", "SRC-UCILAW#1", 1, MODELS["extract"], cost=0.0011, estimated=1, ms=1500)
+    db.add("extract_rows", "SRC-UCILAW#1", 2, MODELS["extract"], raw=json.dumps({"rows": []}),
+           tin=1500, tout=360, cost=0.0003, ms=3700)
+    t = db.tally()
+    calls_cost = sum(u.recorded for u in t.units)
+    assert calls_cost + t.preflight_recorded == pytest.approx(t.recorded_total)      # nothing lost, nothing twice
+    assert sum(u.repriced for u in t.units) + t.preflight_recorded == pytest.approx(t.repriced_total)
+    assert t.slots_used == 2                                                          # the pre-flight still used a slot
+
+
+def test_with_no_preflight_there_is_no_preflight_line(db):
+    db.add("extract_rows", "SRC-UCILAW#1", 1, MODELS["extract"], raw=json.dumps({"rows": []}), tin=1500, tout=360)
+    t = db.tally()
+    assert t.preflight_lines == 0 and "Pre-flight" not in spike_tally.format_tally(t)
+
