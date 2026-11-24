@@ -465,6 +465,13 @@ first run failed. The fix was to stop guessing: the test now compares its count 
 requests the fake server saw. It's like quoting a recipe's baking time without noticing that the
 recipe used a bigger tray (H-097).
 
+**When two safety nets overlap, a test of the whole journey cannot tell you one of them is missing.**
+I switched off the script's own "should I stop?" check on purpose, to see which tests would fail. The
+journey tests still passed, because the service behind it refuses to carry on with a run that has
+already failed, so the run stopped anyway. Only the small tests that call the check on its own failed.
+So test each net separately, and use the journey test to prove the result. It's like a building with
+a smoke alarm and sprinklers: a fire drill alone can't tell you the alarm is unplugged (H-097, PR 4b).
+
 ## 4. Data, privacy and public repositories
 
 **A public repo is published forever.** Treat anything committed as public, even if deleted later.
@@ -731,3 +738,4 @@ bring it back. Changing visible text also touches the tests that check it and th
 - 2026-11-24 · added three notes from H-087 (a model splitting one rule: decide what "one" means first; a spec edit does not change the model's text if it is a copy in code; write a clean-up rule from what you see, not what you expect) and one from the new-worktree hook refusal (a new working copy lacks the git-ignored folders the guards need)
 - 2026-11-24 · added three notes from H-091 in theme 3 (a fallback hides a bug unless the test checks which route ran; keep tests off the real data a rule reads; a limit checked before each step can be passed by the step already running) and one in theme 4 (a catch-all records the kind of error, never its contents)
 - 2026-11-24 · added one note from the trace export tests (copied numbers carry their conditions)
+- 2026-11-24 · added one note on overlapping safety nets (testing the script's stop check, B8 PR 4b)
