@@ -385,13 +385,15 @@ not view the screen). **The system did what the human decided.** This is finding
 
 | | |
 |---|---|
-| **Proves (real service, one run)** | The whole path ran on real agents: start, Stage A, G1 (with a rejection), Stage B, G2, Stage C, G3, publish. 16 of 16 first-try valid answers. The audit log has **0** events with stand-in wording. Stage C, which failed in review A, finished here **because no duplicate existed** (H-087 is still open, so the refusal itself is unchanged) |
+| **Proves (real service, one run)** | The whole path ran on real agents: start, Stage A, G1 (with a rejection), Stage B, G2, Stage C, G3, publish. 16 of 16 first-try valid answers. The audit log has **0** events with stand-in wording. Stage C, which failed in review A, finished here **because no duplicate existed** (the refusal itself is unchanged: DL-57 changes the extractor card, not DL-35) |
 | **Does not prove** | A calendar that matches the key (22 entries): **still owed**. Any EC criterion (spike run, one run). That the GP's page shows the calendar correctly (I did not view it; the database holds the 18 entries). A real provider failure. I-1, the altered quote, injection. The collision refusal and review B together show it **never fires when the extractor does not split**, and that a specialist at G1 must tell "two rules" from "one rule" by reading the rows (for H-087) |
 
 **What comes next (the operator's plan, 2026-11-24).** Review C is **skipped for now.** There will be **one more real run,
 after `@system.arch`'s change for H-087 lands**, testing that change and Case 1 together. It needs about 16 slots; 41 of 70
 are used, so about 13 would remain, **not enough for a second full review. That run is the last one the cap allows without
 a new operator decision; do not plan on a retry.**
+
+**Update on merge, 2026-11-24:** `main` now carries the H-087 answer. **DL-57: one sentence with one deadline is one row (merge)**, written into the extractor card, and H-090 copied it into `tasks.yaml`. So the change this plan waited for has landed and the one more real run is no longer blocked. Two cautions from DL-57 itself: **every extraction in this report ran on the old card** (so "split in 3 of 4" describes the old card), and EC-001 and EC-002 runs before and after are **not like-for-like**. I have not re-read the card or the code beyond that.
 
 ## Sources
 

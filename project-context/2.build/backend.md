@@ -1125,6 +1125,18 @@ off). **No code or SAD wording is changed by this section.**
   operator decision. The rule for it at G1: reject a row only if two rows from the same source paragraph carry the
   same quote (then reject the second); with one row, approve it. H-087 and H-088 carry the facts.
 
+### The extractor card release (DL-57, H-090, 2026-11-24)
+
+`backend/config/tasks.yaml`, task `extract_rows`, step 2, now ends with the SAD card's sentence, **word for word**:
+"When one sentence gives two actions with the same recipient, frequency, anchor and deadline, write one row, not
+two, and name both actions in `obligation_name`." This is a **release** (the file's hash is in every trace line,
+CR-018). **The extractor's prompt version changed from `aec586241001b7a5` to `aa365db76f401580`; the verifier's
+(`e76230593ee07c81`) and the judge's (`53dcaa3bf2dc0ab1`) did not.** Every real extraction before this release
+(the spike's two calls, review A, review B) ran on `aec586241001b7a5` and is **not like-for-like** with a run after
+it (EC-001, EC-002; do not pool). **The next real run's report must name `aa365db76f401580`.** Tier 1 (615) and
+Tier 2 (161) pass. Not changed: the collision refusal, the entry ID, the 22-entry key. No real call was made, and
+none should be until this is merged.
+
 ## Pattern Decision compliance
 
 No agent loop, no retrieval over live state, no side-effecting tool. **Stand-in mode (the default)
@@ -1379,3 +1391,4 @@ never read the "Decides" column, test notes or amendments (T-LEAK-1, loader half
 - 2026-11-23 · persona `backend-eng` · `document-backend` (the first real web-app run: the extractor split and the Stage C refusal) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "record the finding first". Docs only: new section "The first real run through the web app: what it showed" (read back from `app.db`, read-only); handoffs H-087 (`@system.arch`) and H-088 (`@qa.eng`). No code, no real call.
 - 2026-11-24 · persona `backend-eng` · `document-backend` (review B recorded, option A) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "do A: Update lines on H-087 and H-088 and label the run honestly in the report". Docs only: a paragraph in the first-real-run section; Update lines on H-087 and H-088 (the report label is asked of `@qa.eng` in H-088, because `spike-report.md` is theirs). Read back from `app.db`, read-only. No code, no real call.
 - 2026-11-24 · persona `backend-eng` · `document-backend` (Case 1 recorded as owed; review C skipped) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "skip review C; record Case 1 as path proven, calendar 18 of 22, matching calendar owed; one real run after H-087's change lands". Docs only: the "Next" bullet in the first-real-run section, and a second Update line on H-088 asking `@qa.eng` to carry it into section 12 and evals Case 1. Stacked on #197 (same lines). No code, no real call.
+- 2026-11-24 · persona `backend-eng` · `develop-be` (H-090: the extractor card sentence copied into `tasks.yaml`, DL-57) · `AAMAD_TARGET_RUNTIME=crewai` · `AGENTS_MODE=stand_in` · operator instruction "start H-090 once #200 is on main". One sentence added to `backend/config/tasks.yaml` step 2, checked word for word against sad.md and the handoff; a release: the extract prompt version `aec586241001b7a5` became `aa365db76f401580`. Tier 1 and Tier 2 green. H-090 Outcome filled and moved to Done. No real call.

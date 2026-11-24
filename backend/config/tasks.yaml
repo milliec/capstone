@@ -25,7 +25,8 @@ extract_rows:
 
     2. Create one row for each duty to do something by a deadline: file, submit, publish, pay or
     report. A paragraph that only defines a term, sets the scope, or says who may file or how to
-    file creates no row.
+    file creates no row. When one sentence gives two actions with the same recipient, frequency,
+    anchor and deadline, write one row, not two, and name both actions in `obligation_name`.
 
     3. For each row give: obligation_name (a short name in the source's own terms); frequency,
     anchor and offset as the paragraph states them; recipient_code from the allowed recipient
