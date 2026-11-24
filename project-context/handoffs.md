@@ -41,13 +41,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Why: `@backend.eng` puts the same sentences in `FAILURE_SENTENCES` (H-091), and the page and the code should use one wording.
 - Outcome:
 
-### H-092: sad.md: two new failure reasons, `unexpected error` and `call limit` (operator decision, 2026-11-24)
-- From: @integration.eng (operator decision D-2, D-3, `2.build/integration.md` section 3.4)   To: @system.arch   Date: 2026-11-24
-- Touches: sad.md run-state `FAILED` rows and the failure-reason list (today seven reasons, DL-43, DL-51, DL-52); the `units.failure_reason` values (also `backend/db/schema.sql`, which `@backend.eng` changes); `2.build/ux.md` page 3 "Failure reason sentences" (`@ux.designer`); CR-017, CR-023, CR-030, EC-R10; blocks H-091
-- Ask: Record two new failure reasons so a review can end as Failed instead of hanging, and say so to `@ux.designer` for the sentence table. `unexpected error`: an uncaught error inside a running stage ends the review as `FAILED` and no gate opens; proposed sentence "Something went wrong that the app did not expect, so this step was stopped and nothing from it was saved"; the audit entry records the error's class name only, never its message. `call limit`: the real-call cap (EC-R10: `spike` 70, `tuning` 60) is now checked in the web path before each real call, counted across both databases as the spike command does; proposed sentence "The limit on real model calls for this kind of review was reached, so no further call was made"; **not retryable**, like the cost cap (DL-51). Both are in `integration.md` section 3.4. Wording is a proposal: change it if the SAD or ux.md needs it.
-- Why: The web path today catches only the listed failures, so an error outside them (a missing model ID or key, for example) leaves a review on "AI is drafting the rules" until a restart, and nothing in the web path enforces the real-call cap. A new reason is a SAD edit first (CLAUDE.md).
-- Outcome:
-
 ### H-091: Two fixes in the web path, fake OpenAI only: a stage that hits an uncaught error ends as Failed (E-11), and the real-call cap is enforced before each real call
 - From: @integration.eng (operator decision D-1 to D-4, `2.build/integration.md` sections 3.4 and 4)   To: @backend.eng   Date: 2026-11-24
 - Touches: `backend/runtime/stages.py` (`run_stage`, `_run_unit`), `backend/services/stage_store.py` (`fail_stage`), `backend/runtime/harness.py` (`count_real_calls`, `CALL_CAPS`), `backend/runtime/spike.py` (`counted_databases`, `SPIKE_DB`), `backend/services/runs.py` (`FAILURE_SENTENCES`), `backend/db/schema.sql`, `2.build/backend.md`, tests under `tests/tier1/`
@@ -164,6 +157,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-092: sad.md: two new failure reasons, `unexpected error` and `call limit` (operator decision, 2026-11-24)
+- From: @integration.eng (operator decision D-2, D-3, `2.build/integration.md` section 3.4)   To: @system.arch   Date: 2026-11-24
+- Touches: sad.md run-state `FAILED` rows and the failure-reason list (today seven reasons, DL-43, DL-51, DL-52); the `units.failure_reason` values (also `backend/db/schema.sql`, which `@backend.eng` changes); `2.build/ux.md` page 3 "Failure reason sentences" (`@ux.designer`); CR-017, CR-023, CR-030, EC-R10; blocks H-091
+- Ask: Record two new failure reasons so a review can end as Failed instead of hanging, and say so to `@ux.designer` for the sentence table. `unexpected error`: an uncaught error inside a running stage ends the review as `FAILED` and no gate opens; proposed sentence "Something went wrong that the app did not expect, so this step was stopped and nothing from it was saved"; the audit entry records the error's class name only, never its message. `call limit`: the real-call cap (EC-R10: `spike` 70, `tuning` 60) is now checked in the web path before each real call, counted across both databases as the spike command does; proposed sentence "The limit on real model calls for this kind of review was reached, so no further call was made"; **not retryable**, like the cost cap (DL-51). Both are in `integration.md` section 3.4. Wording is a proposal: change it if the SAD or ux.md needs it.
+- Why: The web path today catches only the listed failures, so an error outside them (a missing model ID or key, for example) leaves a review on "AI is drafting the rules" until a restart, and nothing in the web path enforces the real-call cap. A new reason is a SAD edit first (CLAUDE.md).
+- Outcome: **Done.** 2026-11-24, `@system.arch` (at the operator's instruction, branch `system-arch/h092-two-failure-reasons`, PR #208, merged). `sad.md` §4 failure reasons 9 `unexpected error` and 10 `call limit` (integration.md's sentences, unchanged), the `FAILED` row and transition, and the Retry rules (`call limit` cannot be retried); new DL-58 and an Audit entry. Two inferences, flagged in the PR: both reasons are "No" under EC-R8, and `unexpected error` may be retried once. The sentence table in `ux.md` is H-093 (`@ux.designer`). **`@backend.eng` can start H-091** (`schema.sql` and `FAILURE_SENTENCES` are theirs).
 
 ### H-089: backend.md and H-088 count the judge's verdicts as four; the stored figure is seven (5 unsure)
 - From: @qa.eng (spike report, 2026-11-24)   To: @backend.eng   Date: 2026-11-24
