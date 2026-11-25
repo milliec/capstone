@@ -78,7 +78,8 @@ def test_a_clean_run_goes_through_g1_g2_and_g3_by_script(env, spike_db, tmp_path
     by_model = {}
     for request in fake.requests:
         by_model[ROLE_OF_MODEL[request.body["model"]]] = by_model.get(ROLE_OF_MODEL[request.body["model"]], 0) + 1
-    assert by_model == {"extract": 5, "verify": 6, "judge": 6} and len(fake.requests) == 17
+    # 5 + 6 + 6 for the run, plus the two copy calls made after G3: the injection (extract) and I-1 (verify)
+    assert by_model == {"extract": 6, "verify": 7, "judge": 6} and len(fake.requests) == 19
     assert "G1 by script: 6 rules approved, 0 rejected" in console.text
     assert "G2 by script: 5 verdicts confirmed, 1 unsure resolved as applies" in console.text
     assert "G3 by script: published" in console.text and "Done:" in console.text
@@ -146,8 +147,8 @@ def test_both_reports_and_a_matching_trace_export_are_saved_in_the_temporary_fol
     folder = tmp_path / "logs" / run["run_id"]
     assert (folder / "stage-a-report-1.json").exists() and (folder / "stage-b-report-1.json").exists()
     assert trace_export.check_export(conn, run["run_id"], tmp_path / "logs").ok
-    assert len(list(conn.execute("SELECT 1 FROM trace WHERE run_id = ?", (run["run_id"],)))) == 17
-    assert "Trace export: 17 records" in console.text
+    assert len(list(conn.execute("SELECT 1 FROM trace WHERE run_id = ?", (run["run_id"],)))) == 19
+    assert "Trace export: 19 records" in console.text
 
 
 # --- Rows the key does not expect, and rows that cannot be approved --------------------------------
