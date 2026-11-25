@@ -6,10 +6,13 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 8777;
 const EVAL_PORT = 8778; // the evaluation snapshots' own app (evaluation.spec.js)
+// One app per step for "an evaluation review waiting at a step" (H-106): only one review can be
+// active at a time, so each step has its own database and port (evaluation-at-step.spec.js).
+const STEP_PORTS = { g1: 8779, g2: 8780, g3: 8781 };
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["visual.spec.js", "evaluation.spec.js"],
+  testMatch: ["visual.spec.js", "evaluation.spec.js", "evaluation-at-step.spec.js"],
   fullyParallel: false,
   workers: 1, // the spec is one story told in order (sign in, start, decide, publish)
   retries: 0,
@@ -72,5 +75,21 @@ export default defineConfig({
         DATABASE_PATH: "tests/visual/.tmp-eval/app.db",
       },
     },
+    ...Object.entries(STEP_PORTS).map(([step, port]) => ({
+      command:
+        `rm -rf tests/visual/.tmp-eval-${step} && ` +
+        `.venv/bin/python -m tests.visual.seed_evaluation tests/visual/.tmp-eval-${step} ${step} && ` +
+        `.venv/bin/python -m uvicorn backend.main:create_app --factory --port ${port}`,
+      cwd: "../..",
+      url: `http://127.0.0.1:${port}/health`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: {
+        AGENTS_MODE: "stand_in",
+        STAND_IN_UNIT_PAUSE_S: "0",
+        SESSION_SECRET: "visual-regression-only",
+        DATABASE_PATH: `tests/visual/.tmp-eval-${step}/app.db`,
+      },
+    })),
   ],
 });
