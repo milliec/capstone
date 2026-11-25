@@ -191,6 +191,7 @@ def decide_row(conn: sqlite3.Connection, *, row_id: str, version: int, decision:
     n = _n(row_id)
     here = {"subject_id": row_id, "anchor": f"row-{n}", "target_label": f"rule {n}",
             "typed": {"approve_reason": approve_reason or "", "reject_reason": reject_reason or ""}}
+    guards.require_decidable_by(conn, run, actor, subject_id=row_id)     # DL-61: first, after the role check
     guards.require_active(conn, run, actor, subject_id=row_id)
     guards.require_phase(conn, run, "AT_G1", actor, subject_id=row_id)
 
@@ -306,6 +307,7 @@ def decide_verdict(conn: sqlite3.Connection, *, verdict_id: str, version: int, d
     here = {"subject_id": verdict_id, "anchor": f"verdict-{n}", "target_label": f"rule {n}",
             "typed": {"confirm_reason": confirm_reason or "", "override_reason": override_reason or "",
                       "decide_reason": decide_reason or ""}}
+    guards.require_decidable_by(conn, run, actor, subject_id=verdict_id)     # DL-61: first, after the role check
     guards.require_active(conn, run, actor, subject_id=verdict_id)
     guards.require_phase(conn, run, "AT_G2", actor, subject_id=verdict_id)
 

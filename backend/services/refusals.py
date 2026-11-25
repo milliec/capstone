@@ -33,6 +33,7 @@ HTTP_STATUS = {
     "RUN_NOT_FAILED": 409,
     "RETRY_LIMIT_REACHED": 409,
     "RETRY_NOT_ALLOWED": 409,
+    "EVALUATION_NOT_DECIDABLE": 409,    # DL-61, H-105
 }
 
 # (code, context) → sentence. `{…}` are values the service fills in. The context is "" when a
@@ -122,6 +123,11 @@ SENTENCES = {
     ("RETRY_NOT_ALLOWED", "call limit"): (
         "This step can't be tried again, because the limit on real model calls was reached. A new "
         "review would reach the same limit. Ask the operator to review the limit."),
+    # DL-61 (H-105): a person decides, finishes a gate, publishes or declines on an evaluation review.
+    # ux.md §5, final (2026-11-24). One sentence, in this one place. No internal terms in it.
+    ("EVALUATION_NOT_DECIDABLE", ""): (
+        "This review is part of the evaluation. The evaluation script makes its decisions, so it can't "
+        "be decided here. Nothing was saved."),
     ("VALIDATION", "no_answer"): "Choose an answer first, then use its button. Nothing was saved.",
     ("VALIDATION", "field"): ("Part of this form was not valid ({field}), so nothing was saved. "
                               "Check the form and try again."),

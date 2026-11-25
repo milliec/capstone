@@ -59,7 +59,9 @@ class World:
 
     def evaluation_run_at_g3(self) -> str:
         """A real-mode evaluation run, started by the script identity, taken to G3 as the scripted gates
-        will take it (the same decisions as `flow.to_g3`)."""
+        will take it (the same decisions as `flow.to_g3`). It acts as the script: a person cannot decide on an
+        evaluation run (DL-61, T-EVALHAND-1)."""
+        script = {"actor": EVALUATION_ACTOR}
         conn, settings = self.conn, self.evaluation
         conn.execute("UPDATE runs SET status = 'ABANDONED' WHERE status = 'ACTIVE'")   # test set-up
         conn.commit()
@@ -67,13 +69,13 @@ class World:
                                 started_by=EVALUATION_ACTOR, demo_planted_row=False,
                                 demo_fail_step1=False)
         for n in flow.RULES:
-            flow.approve_rule(conn, run_id, n, rule=flow.DEMO_RULES[n], who=flow.DEMO_WHO[n])
-        flow.finish_g1(conn, settings, run_id)
+            flow.approve_rule(conn, run_id, n, rule=flow.DEMO_RULES[n], who=flow.DEMO_WHO[n], **script)
+        flow.finish_g1(conn, settings, run_id, **script)
         for n in flow.APPLIES_NS:
-            flow.answer(conn, run_id, n, "confirm", "applies")
-        flow.answer(conn, run_id, flow.UNSURE_N, "decide", "applies", "Not confirmed in fund records yet")
-        flow.answer(conn, run_id, flow.DOES_NOT_APPLY_N, "confirm", "does_not_apply")
-        flow.finish_g2(conn, settings, run_id)
+            flow.answer(conn, run_id, n, "confirm", "applies", **script)
+        flow.answer(conn, run_id, flow.UNSURE_N, "decide", "applies", "Not confirmed in fund records yet", **script)
+        flow.answer(conn, run_id, flow.DOES_NOT_APPLY_N, "confirm", "does_not_apply", **script)
+        flow.finish_g2(conn, settings, run_id, **script)
         assert runs.is_evaluation_run(runs.get_run(conn, run_id))      # it really is one, not a shortcut
         return run_id
 

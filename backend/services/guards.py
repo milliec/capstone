@@ -1,14 +1,35 @@
 """Checks several services share (SAD §4 "Transitions and guards").
 
 Each one refuses with the shared refusal object (refusals.refuse) or returns quietly. They are
-called BEFORE a service writes anything, in this order: the run has ended (RUN_NOT_ACTIVE), the
-phase is wrong (RUN_STAGE_RUNNING), the page is stale (VERSION_MISMATCH). The first that applies
-wins, because it is the most useful thing to tell the person.
+called BEFORE a service writes anything, in this order: a person decides on an evaluation review
+(EVALUATION_NOT_DECIDABLE, DL-61: first, straight after the role check, so the sentence is the same in
+every state), the run has ended (RUN_NOT_ACTIVE), the phase is wrong (RUN_STAGE_RUNNING), the page is
+stale (VERSION_MISMATCH). The first that applies wins, because it is the most useful thing to tell the
+person.
 
 `**where` is the refusal's place on the page (anchor, target_label, subject_id, typed).
 """
 
+from backend.services.auth import EVALUATION_ACTOR
 from backend.services.refusals import refuse
+
+
+def require_decidable_by(conn, run: dict, actor: str, **where) -> None:
+    """EVALUATION_NOT_DECIDABLE (DL-61, H-105): on an evaluation run only `specialist-eval` may decide.
+
+    Used by the six requests that change a review's decisions: the row decision, G1 complete, the
+    verdict decision, G2 complete, publish and decline. NOT by abandon, and not by reading a page.
+
+    It keys on the ACTOR, never on the route or the page: the scripted gates call these same service
+    functions as `specialist-eval` and must pass, and nobody can sign in as `specialist-eval`.
+    The role check (FORBIDDEN) is the web layer's and has already run; this is the first check a
+    service makes.
+    """
+    from backend.services.runs import is_evaluation_run  # here: runs imports this module
+
+    if is_evaluation_run(run) and actor != EVALUATION_ACTOR:
+        refuse(conn, "EVALUATION_NOT_DECIDABLE", actor=actor, fund_id=run["fund_id"],
+               run_id=run["run_id"], **where)
 
 
 def require_active(conn, run: dict, actor: str, **where) -> None:
