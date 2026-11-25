@@ -6,7 +6,8 @@ request that got no answer (a timeout, a 500) is a line too, so its cost counts 
 `record_call` does four things in ONE transaction, so they always agree:
   1. decides whether the output is LATE: it arrived after its stage failed, the run ended, or a
      retry started (rule 9, DL-43). A late output is kept in the trace only; the stage stores
-     nothing from it;
+     nothing from it. A call labelled with an `eval_case` (an evaluation copy-case call, DL-45)
+     belongs to no stage, so it is never late (H-107);
   2. inserts the trace line (with `late` set);
   3. adds the call's cost to the run's `cost_so_far`. A late call's cost still counts (DL-43);
   4. writes one `agent_output` audit entry whose `trace_ref` is the record key, so any row,
@@ -74,7 +75,11 @@ def record_call(conn: sqlite3.Connection, *, run: dict, stage: str, unit_id: str
     `eval_case` (H-096, DL-45) labels a call that belongs to an evaluation copy case:
     'altered_quote', 'I-1' or 'injection'. None (the default) is an ordinary call. This code does
     not check the value: the trace column's CHECK refuses anything else, and the whole
-    transaction is then rolled back (no line, no cost, no audit entry)."""
+    transaction is then rolled back (no line, no cost, no audit entry).
+
+    A labelled call is never late: it belongs to no stage, so there is no stage for it to be late
+    for (H-107). Without this, a copy call made while the run waits at a gate, or after it has
+    finished, would be stamped late and reported as wasted time (EC-010). The cost still counts."""
     conn.commit()                      # nothing of ours is pending
     conn.execute("BEGIN IMMEDIATE")    # the write lock: the run cannot change under us
     try:

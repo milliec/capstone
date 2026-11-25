@@ -14,7 +14,10 @@ What it does, in order:
   5. ASKS THE STOP RULES (stop_rules.py) and grades Stage A.
   6. THE SCRIPTED G1, G2 AND G3 (scripted_gates.py, PR 4b), asking the stop rules before each gate.
      Stage B runs between G1 and G2 and sends its requests; Stage C and the publish send none.
-  7. GRADES STAGE B and EXPORTS THE WHOLE TRACE (D4), on a clean run and on a stopped one.
+  7. THE TWO COPY-CASE CALLS (I-1 and the injection, runtime/copy_calls.py, PR 6), only for a run that went
+     through G3; then grades Stage A (with their results) and Stage B, and EXPORTS THE WHOLE TRACE (D4), on a
+     clean run and on a stopped one.
+  8. A FAILED RUN gets the void rule's verdict (void_rule.py, EC-R8) printed and a failed-run report saved.
 
 Exit codes follow the spike command: 0 the plan was shown or the run went through G3, 1 it was stopped
 or failed, 2 it refused or was not confirmed.
@@ -28,11 +31,11 @@ from pathlib import Path
 
 from backend.db.connection import connect, init_db
 from backend.domain import sources
-from backend.evaluation import golden, scripted_gates, stop_rules, trace_export
+from backend.evaluation import golden, scripted_gates, stop_rules, trace_export, void_rule
 from backend.evaluation.report import DEFAULT_OUT, save_report
 from backend.evaluation.stage_a import NotGradable, evaluate_stage_a
 from backend.evaluation.stage_b import evaluate_stage_b
-from backend.runtime import harness, model_settings, spike
+from backend.runtime import copy_calls, harness, model_settings, spike
 from backend.services import FUND_ID, runs
 from backend.services.auth import EVALUATION_ACTOR
 from backend.services.refusals import Refused
@@ -42,7 +45,10 @@ SPIKE_DB = spike.SPIKE_DB        # a module name so a test can point it away fro
 ACTIVITY = "evaluation"
 # The most requests one run has needed (19 in the first web-app run, DL-59). The plan is checked against
 # the cap with this number, not with the expected one, because the cap has no room for a surprise.
-WORST_CASE_CALLS = 19
+RUN_WORST_CASE = 19
+# Plus the two copy-case calls, I-1 and the injection (DL-45, DL-59): 21 per run, three runs = 63.
+HARNESS_CALLS = 2
+WORST_CASE_CALLS = RUN_WORST_CASE + HARNESS_CALLS
 
 
 class StarterRefused(Exception):
@@ -120,7 +126,8 @@ def build_plan(settings, *, spike_db, commit: str, demo_planted_row: bool = Fals
     active = _active_review(settings)
     if active:
         raise StarterRefused(f"review {active} is in progress. Finish or abandon it first.")
-    return RunPlan(commit=commit, models=models, expected=expected_calls(), worst_case=WORST_CASE_CALLS,
+    return RunPlan(commit=commit, models=models, expected=expected_calls() + HARNESS_CALLS,
+                   worst_case=WORST_CASE_CALLS,
                    used=count.total, cap=cap, breakdown=count.breakdown())
 
 
@@ -130,11 +137,11 @@ def format_plan(plan: RunPlan, *, go: bool) -> str:
         f"  Commit         : {plan.commit}{_dirty_note()}",
         "  Models         : " + ", ".join(f"{role} {model}" for role, model in plan.models.items()),
         (f"  Projected calls: {plan.expected} calls expected, {plan.worst_case} at most "
-         "(5 extractions + 6 verifications + 6 judgements; Stage A makes 11 of them)"),
+         "(5 extractions + 6 verifications + 6 judgements + 2 copy-case calls, I-1 and the injection)"),
         f"  Budget         : {plan.used} of {plan.cap} evaluation calls used ({plan.breakdown})",
         "  Acts as        : specialist-eval; the planted row is off; AGENTS_MODE real",
         ("  Gates          : G1, G2 and G3 by script as specialist-eval (demo decisions); the publish "
-         "is kept off the live calendar (DL-60)"),
+         "is kept off the live calendar (DL-60); then the I-1 and injection copy calls"),
         ("  Stops          : on a 400, a length stop, an invalid answer, a failed unit, a refused gate "
          "step, or a run not where the script expects it"),
     ]
@@ -182,17 +189,20 @@ def _execute(settings, plan: RunPlan, out, report_dir: Path) -> int:
             out(f"REFUSED: {refusal.refusal.sentence}")
             return 2
         problems = stop_rules.problems(conn, run_id, expect_phase="AT_G1")   # stage A, as the script sees it
-        _grade(conn, run_id, report_dir, out)
         stopped = problems
         if not problems:
             result = scripted_gates.run_gates(conn, settings, run_id, _run_now, out)
             stopped = result.stopped
         elif runs.get_run(conn, run_id)["status"] == "ACTIVE":
             scripted_gates.end_run(conn, run_id, problems[0])
+        results = {} if stopped else _copy_calls(conn, settings, run_id, out)
+        _grade(conn, run_id, report_dir, out, copy_calls.graded(results))     # last, so it sees the two results
         _grade_stage_b(conn, run_id, report_dir, out)
         _export(conn, run_id, settings, report_dir, out)
         run = runs.get_run(conn, run_id)
         out(f"Run {run_id}: {run['status']} at {run['phase']}; cost US${run['cost_so_far']:.4f}.")
+        if run["status"] == "FAILED":                       # EC-R8: say now, and keep the report
+            _void_report(conn, run_id, report_dir, out)
         if stopped:
             out("STOPPED, and the run was ended. Why:")
             out("\n".join(f"  - {p}" for p in stopped))
@@ -205,9 +215,35 @@ def _execute(settings, plan: RunPlan, out, report_dir: Path) -> int:
         conn.close()
 
 
-def _grade(conn, run_id: str, report_dir: Path, out) -> None:
+def _copy_calls(conn, settings, run_id: str, out) -> dict:
+    """The two copy-case calls (PR 6), only for a run that went through G3: a stopped run is voided or a
+    miss anyway, and the calls would spend slots of the 63. A call that fails is incomplete, not re-run."""
     try:
-        json_path, md_path = save_report(evaluate_stage_a(conn, run_id), report_dir)
+        results = copy_calls.run_copy_calls(conn, settings, run_id)
+    except copy_calls.CopyCallsRefused as refusal:
+        out(f"Copy calls not made: {refusal}")
+        return {}
+    for result in results.values():
+        out(f"Copy case {result.case_id} ({result.scored_under}): {result.result.status.upper()}: "
+            f"{result.result.note}")
+        for line in result.details:
+            out(f"    {line}")
+    return results
+
+
+def _void_report(conn, run_id: str, report_dir: Path, out) -> None:
+    """A failed run: what the void rule says (EC-R8), and the saved report. It decides nothing about a
+    replacement: that needs the operator's recorded decision (DL-59), given to the `void` command."""
+    report = void_rule.evaluate_failed_run(conn, run_id)
+    json_path, md_path = save_report(report, report_dir)
+    out(f"Void rule (EC-R8): {report['why']}. {report['next_step_sentence']}")
+    out(f"Failed-run report saved: {json_path}\n                         {md_path}")
+
+
+def _grade(conn, run_id: str, report_dir: Path, out, copy_results: dict | None = None) -> None:
+    try:
+        json_path, md_path = save_report(evaluate_stage_a(conn, run_id, copy_calls=copy_results or None),
+                                         report_dir)
         out(f"Stage A report saved: {json_path}\n                      {md_path}")
     except NotGradable as error:
         out(f"Stage A was not graded: {error}")
