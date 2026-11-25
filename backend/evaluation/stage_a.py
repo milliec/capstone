@@ -65,20 +65,22 @@ def cycle_stamp(run: dict) -> tuple[bool, list[str]]:
 NOT_IN_THIS_SLICE = (
     "EC-004, EC-007, EC-008: stage B and C (EC-007 and EC-008 are already Tier 1 tests)",
     "EC-010, EC-011, EC-012: whole-run time, review time and cost",
-    "I-1 and the injection case (EC-005, EC-021): they need the agents (model calls)",
+    ("I-1 and the injection case (EC-005, EC-021): two model calls made after the run; without their "
+     "results (runtime/copy_calls.py) both are not tested"),
     "The run starter: evaluation-run type, scripted gates, EC-R7 refusal (B8, after the spike)",
     "The trace export (D4, T-D4-1) and the void rule (EC-R8)",
     "EC-R1: this is ONE run; a criterion passes only on 3 of 3 consecutive runs of one commit",
 )
 
 
-def evaluate_stage_a(conn: sqlite3.Connection, run_id: str, *, now: datetime | None = None) -> dict:
+def evaluate_stage_a(conn: sqlite3.Connection, run_id: str, *, now: datetime | None = None,
+                     copy_calls: dict | None = None) -> dict:
     """The stage A report for one run, as plain data (JSON-ready). Raises NotGradable."""
     run, out = load_stage_a(conn, run_id)
     key = golden.load_golden_set()
     copy_cases = cases.run_copy_cases(key, out.paragraphs)
     counts, reasons = cycle_stamp(run)
-    criteria = grade.grade_stage_a(out, key, copy_cases)
+    criteria = grade.grade_stage_a(out, key, copy_cases, copy_calls)
     return {
         "report": "stage-a",
         "generated_at": (now or datetime.now(UTC)).isoformat(timespec="seconds"),
