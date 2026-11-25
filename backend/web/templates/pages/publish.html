@@ -7,6 +7,9 @@
 {% import "parts/macros.html" as ui with context %}
 
 {%- set rid = run.run_id -%}
+{#- H-106 (UX-026, DL-61): an evaluation review is decided by the script, so this page is the record
+    and one line, never a form. Reads only the server's `is_evaluation` flag. -#}
+{%- set ev = run.is_evaluation -%}
 {%- set stage = view.stage -%}
 {%- set entries = view.entries -%}
 {%- set rejected = view.rejected_rows if view.rejected_rows is defined else none -%}
@@ -15,12 +18,15 @@
 {% block title %}Check the calendar and publish{% endblock %}
 {% block main %}
 {% call ui.review_head(run, "Check the calendar and publish", refusal) %}
-  {%- if stage == "at" %}
+  {%- if ev and stage == "at" %}
+  {{ ui.evaluation_line() }}
+  {%- elif stage == "at" %}
   <p class="lead">These {{ entries|length }} dates were calculated from the rules you approved. Check them, read what was left out, then publish for the General Partner. Some marks are shown only to you.</p>
   {%- elif stage == "after" %}
+  {%- if ev %}{{ ui.evaluation_line() }}{% endif %}
   {%- set out = view.outcome if view.outcome is defined else none %}
   <p class="lead">
-    {%- if run.status == "COMPLETED" %}Published{% if out %} on {{ out.at|date }} at {{ out.at|time }}{% endif %}{% if run.is_evaluation %} for the evaluation only. It was not shown to the General Partner.{% else %}.{% endif %}
+    {%- if run.status == "COMPLETED" %}Published{% if out %} on {{ out.at|date }} at {{ out.at|time }}{% endif %}{% if ev %} for the evaluation only. It was not shown to the General Partner.{% else %}.{% endif %}
     {%- elif run.status == "DECLINED" %}Closed without publishing{% if out %} on {{ out.at|date }} at {{ out.at|time }}. What needs to change: {{ out.reason }}{% else %}.{% endif %}
     {%- endif %}</p>
   {%- endif %}
@@ -31,7 +37,9 @@
 {%- else %}
 
 {#- Date conventions note, specialist version (DL-12). -#}
-<p class="note section">Before anyone relies on these dates: the way deadlines are counted (for example, the day 'six months after year end' falls on) has not yet been checked against the legal texts. This does not stop you publishing. The General Partner sees a short note saying the same.</p>
+{#- An evaluation review drops the last two sentences: nobody is publishing by hand, and the General
+    Partner sees nothing from it (ux.md, "Pages 4, 5 and 6 for an evaluation review", item 3). -#}
+<p class="note section">Before anyone relies on these dates: the way deadlines are counted (for example, the day 'six months after year end' falls on) has not yet been checked against the legal texts.{% if not ev %} This does not stop you publishing. The General Partner sees a short note saying the same.{% endif %}</p>
 
 <section class="section" aria-labelledby="cal-h">
   <div class="sec-h"><h2 id="cal-h">Calendar</h2></div>
@@ -115,8 +123,10 @@
 </section>
 
 {%- if stage == "at" %}
-<section class="section" aria-label="Publish or close">
+<section class="section" aria-label="{{ 'Abandon' if ev else 'Publish or close' }}">
+  {%- if not ev %}
   {% include "parts/decision_publish.html" %}
+  {%- endif %}
   <p class="section small"><a href="/specialist/runs/{{ rid }}#abandon">Abandon this review</a></p>
 </section>
 {%- endif %}

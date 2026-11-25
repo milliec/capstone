@@ -124,6 +124,15 @@ Review {{ review_no(run) }}
 {%- endmacro %}
 
 
+{#- The one line on pages 4 to 6 of an evaluation review (ux.md "Evaluation review: page 3 at a step,
+    and pages 4 to 6", UX-026, H-106). Boxed like the date conventions note, it stands in the page's
+    lead, because the lead tells a person to decide and nobody can. One place, so the three pages
+    use the same words. -#}
+{% macro evaluation_line() -%}
+<p class="note">This is an evaluation review. The evaluation script makes its decisions, so there is nothing for you to decide here.</p>
+{%- endmacro %}
+
+
 {#- The head of a page about one review (pages 3 to 6), in the ux.md §1.3 order:
     breadcrumb → H1 with run labels → lead (the caller's content) → refusal → stepper. -#}
 {% macro review_head(run, h1, refusal=none) -%}
