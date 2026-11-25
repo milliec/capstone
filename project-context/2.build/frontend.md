@@ -79,7 +79,7 @@ cards) live in that page.
 | `macros.html` · `review_no`, `review_name` | §1.8 | pages 2 to 6 | "Review {n}" (`review_number`, H-036 V-1) |
 | `macros.html` · `breadcrumb`, `run_labels`, `stepper`, `review_head` | §1.3, §1.4 | pages 3 to 6 | the head of a review page in the §1.3 order: breadcrumb → H1 with run labels → lead → refusal → stepper |
 | `macros.html` · `refusal_top`, `refusal_here` | §5 | all forms | the "Not done" box or the short line with "Go to …" at the top; the full sentence beside the control or inside the card the server names (`refusal.anchor`) |
-| `macros.html` · `stage_of`, `not_reached` | pages 4 to 6, "Closed review" | pages 4 to 6 | where a step page stands (before / at / after / ended before) and the one-line "not ready" message |
+| `macros.html` · `stage_of`, `not_reached`, `evaluation_line` | pages 4 to 6, "Closed review" | pages 4 to 6 | where a step page stands (before / at / after / ended before), the one-line "not ready" message, and the one boxed line for an evaluation review (H-106) |
 | `macros.html` · `mark_label` | page 6 "Mark labels" | page 6 | "Moved off a weekend", "May not be required", "Depends on open question OQ-7", each with its line |
 | `parts/lookups.html` | §1.4, §1.5, pages 3 to 5 | via the macros and pages | ux.md's fixed wording only (step names, weekend and holiday words, AI answer words, unit words). The interim lookups were deleted with H-045 (§2) |
 | `parts/decision_rule.html` | page 4 item 5.8 | page 4 | G1 answer-first form (§3) |
@@ -176,7 +176,7 @@ it always finishes by itself." On a closed review: nothing.
 | at G1, all decided | every card shows its decision; "To decide 0"; finish section H2 "All rules decided" |
 | refused, about one rule | lands on `#row-{i}`; full sentence inside the card under "Not done"; short top line "Not done. The reason is shown beside rule {i}." + "Go to rule {i}"; the demo rule's tag becomes "Approval blocked" |
 | refused, about the page | full sentence in a box at the top and beside "Finish checking" |
-| after G1, or ended | read-only record; line "You've finished checking the rules. This is the record of the decisions."; no forms. On a review that ended before G1: "This review ended before this step." |
+| after G1, or ended | read-only record; line "You've finished checking the rules. This is the record of the decisions."; no forms. On a review that ended before G1: "This review ended before this step." For an evaluation review the boxed line replaces that lead, and at the step the page is the same record with no forms (H-106). |
 
 | | |
 |---|---|
@@ -191,7 +191,7 @@ it always finishes by itself." On a closed review: nothing.
 | at G2 | lead, progress line, index ("can't tell" first), one card per answer, finish section, abandon link |
 | all decided | progress "All {n} answers decided." |
 | refused | as page 4: about one answer, land on `#verdict-{i}`; about the page, the box at the top |
-| after G2 | read-only record: "You've confirmed what applies. This is the record of the decisions." |
+| after G2 | read-only record: "You've confirmed what applies. This is the record of the decisions." For an evaluation review the boxed line replaces that lead, and at the step the page is the same record with no forms (H-106). |
 
 | | |
 |---|---|
@@ -203,9 +203,9 @@ it always finishes by itself." On a closed review: nothing.
 | State | What shows |
 |---|---|
 | not yet (`C_RUNNING` or earlier) | "The calendar is not ready yet." + "Watch progress on the review status page" |
-| at G3 | lead; the boxed date-conventions note; calendar table; "What's not in this calendar" with its two tables; the decision form; abandon link |
+| at G3 | lead; the boxed date-conventions note; calendar table; "What's not in this calendar" with its two tables; the decision form; abandon link. For an evaluation review: the one boxed line instead of the lead, the note's first sentence only, no decision form, abandon link kept (H-106) |
 | refused | the sentence at the top and beside the checkbox (`ACK_REQUIRED`) or the reason field (`REASON_REQUIRED`); the checkbox **unticked** again |
-| after G3 | read-only calendar with "Published on {date} at {time}." or "Closed without publishing on {date} at {time}. What needs to change: {reason}"; no forms |
+| after G3 | read-only calendar with "Published on {date} at {time}." or "Closed without publishing on {date} at {time}. What needs to change: {reason}"; no forms. For an evaluation review the boxed line comes first, then the published sentence |
 
 | | |
 |---|---|
@@ -743,6 +743,7 @@ overrule button's `value`. The service should refuse a `value` that does not mat
   after G3, each with an evaluation review, 1280 px). It uses its own app on port 8778, over a database that
   `seed_evaluation.py` fills against a fake model on this machine (no real call). Shared helpers are in
   `helpers.js`. Candidates mode (`npm run test:visual:candidates`) writes all pictures to `candidates/`.
+  `06-publish-after-g3-evaluation-1280` was re-recorded on 2026-11-25 (H-106, operator approved): it now shows the evaluation line. The at-a-step pictures for pages 3 to 6 are held for the H-104 PR.
 
 ## Sources
 
@@ -817,8 +818,8 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - **Open (small), 2026-11-24: page 6 heading after publish.** For a published review, page 6 still reads
   "Check the calendar and publish" (the same on an ordinary review). Seen in the evaluation snapshot
   `06-publish-after-g3-evaluation`. Not changed; `@ux.designer` to say whether the heading should change once published.
-- **Re-record note, 2026-11-24 (operator):** the three evaluation snapshots (H-101 follow-up) will be re-recorded once H-104 (A2)
-  is built. Propose the new pictures then; do not treat the change as a regression.
+- **Re-record note, 2026-11-24 (operator), updated 2026-11-25:** `06-publish-after-g3-evaluation-1280` was re-recorded in H-106 (it now shows the evaluation line). The other two (`02-…`, `03-…`) are still to be re-recorded once H-104 (A2)
+  is built; propose the new pictures then, and do not treat the change as a regression. The at-a-step pictures for pages 3 to 6 are recorded once, in the H-104 PR.
 
 ## Audit
 
@@ -920,3 +921,5 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-19 · persona `frontend-eng` · `document-frontend` (docs only) · Added an "Out of scope (MVP)" signpost near the top that points to where each deferral is already recorded (source picking A5, Funds pages, phone-menu outside-tap / Escape close, shorter publish phone layout, Retry, fields dropped from H-036). No new decisions. No code, no snapshot touched.
 - 2026-11-24 · persona `frontend-eng` · `develop-fe` (H-101: "Evaluation review" label and outcome sentence, DL-60) · `parts/macros.html`, `pages/review_status.html`, `pages/publish.html`, `pages/filing_rules.html`; new `tests/tier1/test_evaluation_label.py` (UX-025). Checks: 893 tests pass; ruff clean; `aamad validate` OK; name scan prints nothing; visual check passes (no existing snapshot changed, none re-recorded). New snapshots for page 2, page 3 and page 6 with an evaluation review proposed, not recorded. `AGENTS_MODE=stand_in`, no real call.
 - 2026-11-24 · persona `frontend-eng` · `develop-fe` (H-101 follow-up: evaluation-review snapshots, operator-approved) · new `tests/visual/evaluation.spec.js`, `seed_evaluation.py`, `helpers.js` (helpers moved unchanged out of `visual.spec.js`); `playwright.config.js` starts a second app on 8778; `.gitignore` +`.tmp-eval/`. Recorded exactly 3 snapshots (`02-filing-rules-populated-evaluation`, `03-review-status-published-evaluation`, `06-publish-after-g3-evaluation`, 1280 px). Full visual check: all 26 existing + 3 new pass; no existing snapshot changed. No real call (17 requests, all to the fake, placeholder key); real databases not opened. Open item and re-record note (H-104) added to Open Questions. `AGENTS_MODE=stand_in`.
+- 2026-11-25 · persona `frontend-eng` · `develop-fe` (H-106: pages 3 to 6 of an evaluation review offer no decision control; DL-61, UX-026) · `parts/macros.html` (new `evaluation_line`), `pages/check_rules.html`, `confirm_applies.html`, `publish.html`, `review_status.html`, `site.css` (one rule, `.head .note`); new `tests/tier2/test_evaluation_pages.py`, written first and seen to fail (10 red). Reads only the server's `is_evaluation` flag; no backend change. Pages 4 to 6 (at the step and after): the one boxed line replaces the lead; no form, button, input, "Finish", "Publish" or "Close" and no "next rule" links (absent from the source); the orange "needs a person" bar and square dropped; the rule index, summary cards and status words stay; "Abandon this review" link stays. Page 6 also drops the date-note's last two sentences and the "will see these dates" text (it lived in the removed form). Page 3 at a step: H1 "Nothing for you to do yet", the per-step sentence, the "stopped" line, no next-step link (no refresh controls already). Ordinary reviews unchanged. Checks: 1060 tests pass; ruff clean; `aamad validate` OK; name scan prints nothing. Visual check: every ordinary snapshot passes; **one evaluation snapshot changes, `06-publish-after-g3-evaluation-1280`** (it now shows the new line). Proposed for operator approval, **not re-recorded**; new snapshots for pages 3 to 6 at a step also proposed, not recorded. Assumptions: page 6 after the step shows the line *and* keeps the outcome sentence (UX-025 needs it); "Read both lists before you publish" under "What's not in this calendar" left as built (ux.md did not list it). Still open: the "Your turn" pill and stepper word on page 3 are H-104's, not built yet, so UX-026's "no 'Your turn' anywhere" is not fully met until H-104.
+- 2026-11-25 · persona `frontend-eng` · `sync-docs` (operator-approved, items 1 to 6) · partials table row, page 4, 5 and 6 state rows, evaluation snapshot notes. No rejected items; no spec drift.

@@ -235,3 +235,4 @@ this table is the agent's reading, not the acceptance decision.
 - 2026-11-17 · persona `frontend-eng` · H-036 refresh: the operator approved all 18; candidates
   made again from the committed code, the same 18 copied over their baselines (no other snapshot
   touched); suite passes on all 26.
+- 2026-11-25 · persona `frontend-eng` · H-106 (evaluation review, pages 4 to 6): rendered page 6 after G3 at 1280 px only (the one existing evaluation snapshot): the line sits under the H1, above the stepper, in the note box; calendar and lists intact. Pages 3 at a step, 4, 5 and the narrow widths were checked by page tests (source), not by eye: **not visually tested**, new snapshots proposed to the operator. No high-severity finding.

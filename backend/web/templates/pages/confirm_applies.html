@@ -11,6 +11,9 @@
 {%- set stage = view.stage -%}
 {%- set verdicts = view.verdicts -%}
 {%- set n = verdicts|length -%}
+{#- H-106 (UX-026, DL-61): an evaluation review is decided by the script, so this page is the record
+    and one line, never a form. Reads only the server's `is_evaluation` flag. -#}
+{%- set ev = run.is_evaluation -%}
 
 {#- Each answer's decided line: the server's (H-036 V-9). -#}
 {%- set ns = namespace(cards=[], undecided=[]) -%}
@@ -34,7 +37,9 @@
 {% block title %}Confirm what applies{% endblock %}
 {% block main %}
 {% call ui.review_head(run, "Confirm what applies", refusal) %}
-  {%- if stage == "at" %}
+  {%- if ev and stage in ("at", "after") %}
+  {{ ui.evaluation_line() }}
+  {%- elif stage == "at" %}
   <p class="lead">AI checked the {{ n }} rules you approved against the fund's facts. Confirm each answer or overrule it. Where AI can't tell, you decide.</p>
   {%- elif stage == "after" %}
   <p class="lead">You've confirmed what applies. This is the record of the decisions.</p>
@@ -70,12 +75,12 @@
 <div class="stack">
   {%- for c in ns.cards %}
   {%- set v = c.v %}{%- set i = c.i %}
-  <article class="rule-card{{ ' open' if stage == 'at' and not c.decided }}{{ ' refused' if refusal and refusal.anchor is defined and refusal.anchor == 'verdict-' ~ i }}" id="verdict-{{ i }}" aria-labelledby="verdict-{{ i }}-h">
-    {%- if stage == "at" and i == next_i %}<span class="jump" id="next"></span>{% endif %}
+  <article class="rule-card{{ ' open' if stage == 'at' and not c.decided and not ev }}{{ ' refused' if refusal and refusal.anchor is defined and refusal.anchor == 'verdict-' ~ i }}" id="verdict-{{ i }}" aria-labelledby="verdict-{{ i }}-h">
+    {%- if stage == "at" and i == next_i and not ev %}<span class="jump" id="next"></span>{% endif %}
     <header>
       <div>
         <p class="n"><span class="id">{{ v.row_id }}</span></p>
-        <h2 class="sq{{ ' you' if stage == 'at' and not c.decided }}" id="verdict-{{ i }}-h">{{ v.obligation_name }}</h2>
+        <h2 class="sq{{ ' you' if stage == 'at' and not c.decided and not ev }}" id="verdict-{{ i }}-h">{{ v.obligation_name }}</h2>
       </div>
     </header>
 
@@ -119,7 +124,7 @@
     </div>
     {%- endif %}
 
-    {%- if stage == "at" and not c.decided %}
+    {%- if stage == "at" and not c.decided and not ev %}
     {% include "parts/decision_answer.html" %}
     {%- elif c.decided %}
     <div class="decided">
@@ -130,7 +135,7 @@
       {%- else %}
       <p><b>{{ c.decided }}</b>.</p>
       {%- endif %}
-      {%- if stage == "at" %}
+      {%- if stage == "at" and not ev %}
       {%- set later = ns.undecided|select(">", i)|list %}
       {%- if later %}<p><a class="more" href="#verdict-{{ later|first }}">Next answer to decide</a></p>
       {%- elif ns.undecided %}<p><a class="more" href="#verdict-{{ ns.undecided|first }}">Next answer to decide</a></p>
@@ -142,7 +147,10 @@
   {%- endfor %}
 </div>
 
-{%- if stage == "at" %}
+{%- if stage == "at" and ev %}
+{#- Nothing to finish: only the way out (page 3's "Abandon this review") stays. -#}
+<p class="section small"><a href="/specialist/runs/{{ rid }}#abandon">Abandon this review</a></p>
+{%- elif stage == "at" %}
 {%- if not next_i %}<span class="jump" id="next"></span>{% endif %}
 <section class="section" id="finish" aria-labelledby="finish-h">
   <div class="sec-h"><h2 id="finish-h" class="sq you">{{ "All answers decided" if left == 0 else left ~ (" answer left to confirm" if left == 1 else " answers left to confirm") }}</h2></div>

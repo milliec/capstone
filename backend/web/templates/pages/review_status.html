@@ -32,6 +32,11 @@
                 "ABANDONED": "Abandoned", "FAILED": "This review failed"}[run.status] -%}
 {%- endif -%}
 
+{#- H-106 (UX-026, DL-61): an evaluation review waiting at a step has nothing for a person to do; the
+    script decides. So the page reads like a running one (the words the running states use). -#}
+{%- set ev_at_step = run.is_evaluation and run.status == "ACTIVE" and run.is_at_gate -%}
+{%- if ev_at_step -%}{%- set H1 = "Nothing for you to do yet" -%}{%- endif -%}
+
 {% block title %}{{ ui.review_name(run) }}: {{ run.status_words }}{% endblock %}
 
 {% block head %}
@@ -74,6 +79,12 @@
   <p class="sentence">
   {%- if run.status == "ACTIVE" and run.phase == "A_RUNNING" -%}
     AI is drafting the rules and checking each one against the sources. You check the rules when it finishes. The items below finish one by one.
+  {%- elif ev_at_step and run.phase == "AT_G1" -%}
+    {%- if run.counts is defined and run.counts %}AI drafted <b>{{ run.counts.rules }} rules</b> and checked each one against the sources.{% else %}AI drafted the rules and checked each one against the sources.{% endif %} The evaluation script now decides on each rule. Nothing here is for you to decide.
+  {%- elif ev_at_step and run.phase == "AT_G2" -%}
+    {%- if run.counts is defined and run.counts %}AI checked <b>{{ run.counts.rules }} rules</b> against the fund's facts.{% else %}AI checked the approved rules against the fund's facts.{% endif %} The evaluation script now decides what applies. Nothing here is for you to decide.
+  {%- elif ev_at_step and run.phase == "AT_G3" -%}
+    The calendar is ready{% if run.counts is defined and run.counts %}: <b>{{ run.counts.dates }} dates</b>{% endif %}. The evaluation script now decides whether to publish it. Nothing here is for you to decide.
   {%- elif run.status == "ACTIVE" and run.phase == "AT_G1" -%}
     {%- if run.counts is defined and run.counts %}AI drafted <b>{{ run.counts.rules }} rules</b> and checked each one against the sources.{% else %}AI drafted the rules and checked each one against the sources.{% endif %} Nothing reaches the calendar until you approve it.
   {%- elif run.status == "ACTIVE" and run.phase == "B_RUNNING" -%}
@@ -96,6 +107,9 @@
     This review failed at step {{ fail.step }} ({{ fail.step_name }}){% if fail.unit_label %}, while working on {{ fail.unit_label }}{% endif %}.{% if fail.reason_sentence %} {{ fail.reason_sentence }}.{% endif %} Nothing moved forward. Decisions you already made stay in the audit log.
   {%- endif -%}
   </p>
+  {%- if ev_at_step %}
+  <p>If this stays the same, the script has probably stopped. You can close this review with "Abandon this review" below.</p>
+  {%- endif %}
 
   {%- if ended and ended.reason %}
   <p>{{ "What needs to change: " if run.status == "DECLINED" else "Your reason: " }}{{ ended.reason }}</p>
@@ -130,6 +144,8 @@
   {#- An evaluation review never reaches /calendar (that shows the real calendar), so its
       COMPLETED link goes to Filing rules instead (ux.md page 3, H-101). -#}
   {%- if run.is_evaluation and run.status == "COMPLETED" %}{% set next = ("Go to Filing rules", "/specialist/runs") %}{% endif %}
+  {#- At a step an evaluation review has no next step for a person: no link (H-106). -#}
+  {%- if ev_at_step %}{% set next = none %}{% endif %}
   </div>
   {%- if next %}
   <a class="btn" href="{{ next[1] }}">{{ next[0] }}</a>
