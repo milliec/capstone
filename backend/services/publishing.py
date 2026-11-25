@@ -32,6 +32,7 @@ def publish_calendar(conn: sqlite3.Connection, *, calendar_id: str, run_version:
     """Publish the whole calendar; the run ends COMPLETED. Returns the run ID."""
     run = _run_for_calendar(conn, calendar_id)
     where = {"subject_id": calendar_id}
+    guards.require_decidable_by(conn, run, actor, **where)     # DL-61: first, after the role check
     guards.require_active(conn, run, actor, **where)
     guards.require_phase(conn, run, "AT_G3", actor, **where)
     guards.require_version(conn, run, run_version, actor, **where)
@@ -66,6 +67,7 @@ def decline_calendar(conn: sqlite3.Connection, *, calendar_id: str, run_version:
     """Close without publishing; the run ends DECLINED. Returns the run ID."""
     run = _run_for_calendar(conn, calendar_id)
     where = {"subject_id": calendar_id}
+    guards.require_decidable_by(conn, run, actor, **where)     # DL-61: first, after the role check
     guards.require_active(conn, run, actor, **where)
     guards.require_phase(conn, run, "AT_G3", actor, **where)
     guards.require_version(conn, run, run_version, actor, **where)

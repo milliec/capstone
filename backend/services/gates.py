@@ -37,6 +37,7 @@ def _complete_gate(conn: sqlite3.Connection, settings: Settings, schedule: Calla
     if run is None:
         raise NotFound(run_id)
     where = {"subject_id": run_id}
+    guards.require_decidable_by(conn, run, actor, **where)     # DL-61: first, after the role check
     guards.require_active(conn, run, actor, **where)
     guards.require_phase(conn, run, f"AT_{gate}", actor, **where)
     guards.require_version(conn, run, run_version, actor, **where)

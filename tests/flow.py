@@ -103,11 +103,11 @@ def start_to_g1(conn, settings, demo=False):
                           demo_planted_row=demo, demo_fail_step1=False)
 
 
-def approve_rule(conn, run_id, n, rule="roll_forward", who="AIFM", reason=None):
+def approve_rule(conn, run_id, n, rule="roll_forward", who="AIFM", reason=None, actor=SPECIALIST):
     reason = reason or (FLAG_REASON if n == FLAGGED_N else None)
     return decisions.decide_row(
         conn, row_id=f"ROW-{run_id}-{n}", version=1, decision="approve", business_day_rule=rule,
-        who_files=who, approve_reason=reason, reject_reason=None, actor=SPECIALIST)
+        who_files=who, approve_reason=reason, reject_reason=None, actor=actor)
 
 
 def reject_rule(conn, run_id, n, reason="Test"):
@@ -116,21 +116,21 @@ def reject_rule(conn, run_id, n, reason="Test"):
         who_files=None, approve_reason=None, reject_reason=reason, actor=SPECIALIST)
 
 
-def answer(conn, run_id, n, decision, value, reason=None):
+def answer(conn, run_id, n, decision, value, reason=None, actor=SPECIALIST):
     return decisions.decide_verdict(
         conn, verdict_id=f"VER-{run_id}-{n}", version=1, decision=decision, value=value,
         confirm_reason=None, override_reason=reason if decision == "override" else None,
-        decide_reason=reason if decision == "decide" else None, actor=SPECIALIST)
+        decide_reason=reason if decision == "decide" else None, actor=actor)
 
 
-def finish_g1(conn, settings, run_id):
+def finish_g1(conn, settings, run_id, actor=SPECIALIST):
     gates.complete_g1(conn, settings, run_now, run_id=run_id,
-                      run_version=runs.get_run(conn, run_id)["run_version"], actor=SPECIALIST)
+                      run_version=runs.get_run(conn, run_id)["run_version"], actor=actor)
 
 
-def finish_g2(conn, settings, run_id):
+def finish_g2(conn, settings, run_id, actor=SPECIALIST):
     gates.complete_g2(conn, settings, run_now, run_id=run_id,
-                      run_version=runs.get_run(conn, run_id)["run_version"], actor=SPECIALIST)
+                      run_version=runs.get_run(conn, run_id)["run_version"], actor=actor)
 
 
 def to_g3(conn, settings, demo=False):

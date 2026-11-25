@@ -8,8 +8,8 @@ from backend.services.refusals import HTTP_STATUS, SENTENCES, Refusal, Refused, 
 
 
 def test_every_code_has_a_status_and_at_least_one_sentence():
-    """The SAD's 17 codes each have an HTTP status, and a sentence in ux.md §5 wording."""
-    assert len(HTTP_STATUS) == 17
+    """The SAD's 18 codes each have an HTTP status, and a sentence in ux.md §5 wording (18th: DL-61)."""
+    assert len(HTTP_STATUS) == 18
     coded = {code for code, _ in SENTENCES}
     assert coded == set(HTTP_STATUS)
 
