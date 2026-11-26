@@ -135,7 +135,10 @@ with `Not done: ` so a screen reader announces the refusal when the page loads. 
 status page the title starts with the review and its status words instead:
 `Review {n}: {status words} · ACME Compliance calendar (demo)`, for example `Review 4: AI is
 drafting the rules`, so a screen-reader user can check progress from the tab while the page refreshes
-(operator, 2026-11-17).
+(operator, 2026-11-17). **Evaluation review** (H-108, 2026-11-26): the pattern does not change; the
+status words are the evaluation ones (§1.5), for example `Review 4: The evaluation script is deciding
+on the rules · ACME Compliance calendar (demo)`. Only page 3's `<title>` uses this pattern (pages 4 to 6 keep their own page names), so
+that is the one `<title>` that changes; no page `<title>` of an evaluation review says "Your turn".
 
 **Mobile shell (below 960 px)** (operator decision, 2026-11-19, H-062; on every page except sign-in).
 Below 960 px, the same width at which the calendar's Month and Year views hide (page 7), the sidebar
@@ -216,6 +219,28 @@ How the flow feels like one sitting:
 ### 1.5 Status words
 
 A status is always a word first; colour only supports it.
+
+**Evaluation review: different words at a step** (H-108, `@ux.designer`, 2026-11-26). The three
+"Your turn" rows below are for ordinary reviews only. For an evaluation review (`is_evaluation`)
+waiting at a step, "Your turn" is never used (§1.4, Open Question 26 a), and the status words are:
+
+| Server value | Words shown, evaluation review only | Tone |
+|---|---|---|
+| `ACTIVE` · `AT_G1` | **The evaluation script is deciding on the rules** | info |
+| `ACTIVE` · `AT_G2` | **The evaluation script is deciding what applies** | info |
+| `ACTIVE` · `AT_G3` | **The evaluation script is deciding whether to publish** | info |
+
+Why these words: they say who is acting and on what, like the ordinary rows ("Your turn: check the
+rules" names the job), and they match the sentences already on page 3 at a step ("The evaluation
+script now decides on each rule" and so on). They use the on-screen name "evaluation script" (§1.8),
+not a new one. They do **not** start with "In progress": the pill beside them already says that, and
+the words would repeat it. The tone is "info" (the quiet tone of "AI is working"), as the pill is.
+
+**Where they appear.** Everywhere the status words appear (page 2's notice and Status column, page 3's
+status line and page 3's `<title>`: §1.3), because they are one string. **The server sends
+them** (`@backend.eng`, H-109): this note's own rule is that pages work nothing out (§1.2), so a
+template never swaps the words by testing `is_evaluation`. Every other state of an evaluation review
+(`A_RUNNING`, `B_RUNNING`, `C_RUNNING`, ended states) uses the ordinary words below, unchanged.
 
 | Server value | Words shown | Tone (colour role) |
 |---|---|---|
@@ -392,7 +417,9 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
    **For an evaluation review** (operator, 2026-11-24, Open Question 26 a) the label and the link
    above are not used, at a step or while working. The notice reads **"Evaluation review {n}:
    {status words}."** with one link, **"Open review {n}"**. Its page 3 still offers "Abandon this
-   review" at a step, so a review the script left stuck can be closed.
+   review" at a step, so a review the script left stuck can be closed. At a step the status words
+   are the evaluation ones in §1.5 (H-108), for example **"Evaluation review 4: The evaluation
+   script is deciding on the rules."**, never "Your turn: check the rules".
 4. **Reviews** (H2): a real table, newest first.
 
    | Column | Content |
@@ -400,7 +427,7 @@ keeps its name; on screen this is **"Filing rules"** (U2, U7).
    | Review | "Review 4", links to review status. For an evaluation review (DL-60, H-100), the text tag **"Evaluation review"** sits under the link, so it is told apart at a glance. No tag for any other review |
    | Started | "Fri 13 Nov 2026, 14:00" |
    | Demo rule | "On" or "Off" |
-   | Status | Status words (§1.5) |
+   | Status | Status words (§1.5; for an evaluation review at a step, the evaluation words, H-108). The pill wraps onto two lines when the words are long; it is never cut off |
    | Ended because | For `FAILED`, the reason in words (page 3); for `ABANDONED` and `DECLINED`, the first line of the written reason; otherwise empty |
 
 5. **Start a new review** (under the table), one form (`POST /specialist/runs`):
@@ -462,7 +489,11 @@ and what to do next. **Who:** specialist. **No re-run of a whole review.** The o
    a step. **For an evaluation review** (operator, 2026-11-24, Open Question 26 a) the pill never
    says "Your turn": at a step it says **"In progress"**, in the same quiet tone as "AI is
    working", not the attention tone "Your turn" has. "Abandon this review" stays offered at a step
-   (item 10), so a review the script left stuck can be closed.
+   (item 10), so a review the script left stuck can be closed. **The large status words beside the
+   pill** (the box heading) are the evaluation ones in §1.5 at a step (H-108), for example "The
+   evaluation script is deciding on the rules", never "Your turn: check the rules". The pill and
+   the words therefore do not repeat each other: "In progress" says the state, the words say who is
+   acting.
 5. **Next step** (only at a step that waits for the specialist, or when ended): one primary link
    (see states).
 6. **Refresh controls** (only while AI or code is working, see below).
@@ -718,6 +749,11 @@ nothing is for the person to do:
   stay hidden. The page is a record that reloads when the person reloads it.
 - The H1 words "Nothing for you to do yet" are the ones the running states already use (§3 states
   table), so no new heading is invented.
+- **The status line's large words** (the box under the pill) are the evaluation words of §1.5
+  (H-108): "The evaluation script is deciding on the rules", "…deciding what applies" or "…deciding
+  whether to publish". They sit under the H1 "Nothing for you to do yet" and beside the pill "In
+  progress", and each of the three says something different, so the page does not say one thing
+  three times.
 
 **Pages 4, 5 and 6 for an evaluation review**, in every state a person can reach them in (at the
 step, or after it):
@@ -735,7 +771,18 @@ step, or after it):
    away…", and the date conventions note's last two sentences ("This does not stop you
    publishing. The General Partner sees a short note saying the same."), because neither is true
    for an evaluation review. The calendar table and the two "What's not in this calendar" lists
-   stay.
+   stay, with **two words changed** (2026-11-26, from H-106's open note): the intro **"Read both
+   lists before you publish."** becomes **"These two lists show what was left out."** (nobody is
+   about to publish; the old sentence tells a person to prepare for an action the page does not
+   offer), and the column header **"Your reason"** in "Rules you rejected" becomes **"Reason"**
+   (the script rejected the rule, not the person). Ordinary reviews keep both. After G3 the same
+   two changes apply, because the lists read the same after publishing.
+   **After G3 on page 6** (confirmed 2026-11-26, H-106's other open note): the one boxed line
+   **and** the sentence "Published on {date} at {time} for the evaluation only. It was not shown to
+   the General Partner." both show. They do different jobs: the boxed line says nothing here is
+   for the person to decide; the published sentence says what happened to the calendar and that
+   the General Partner never saw it (UX-025). Neither makes the other redundant, so both stay,
+   and the boxed line stays directly under the H1 as UX-026 requires.
 4. **Unchanged:** the breadcrumb, the labels, the stepper, and the links back to page 3. Page 6's
    "Abandon this review" link (to `#abandon` on page 3) stays.
 5. **A form posted anyway** (an old tab, a copied request) is refused with
@@ -1053,7 +1100,9 @@ the review without publishing, with a reason. **Who:** specialist.
    There is no "Rule not confirmed" mark any more: every approved rule has one of the three
    weekend-or-holiday choices (U9, H-021; Q1, H-024). Only "May not be required" reaches the
    General Partner view.
-5. **What's not in this calendar** (H2), intro **"Read both lists before you publish."**, then two
+5. **What's not in this calendar** (H2), intro **"Read both lists before you publish."** (for an evaluation review: **"These two lists show
+   what was left out."**, and the column header "Your reason" reads "Reason"; page 3, "Evaluation
+   review: page 3 at a step, and pages 4 to 6"), then two
    real tables:
    - **Rules you rejected**: Rule · Your reason. The demo rule appears here tagged **"Demo"**. If
      none: **"No rules were rejected."**
@@ -1352,7 +1401,7 @@ unstyled.
 | UX-019 | No user-facing text says "run", "Stage A/B/C", "G1/G2/G3", "gate" or "precautionary" (except the exact label "Stand-in agents") | §1.8 |
 | UX-020 | Every decision form (G1, G2, G3) opens with its answer question and nothing chosen; choosing an answer shows only that answer's fields and button; with `:has()` unsupported, every answer's fields show; submitting with no answer shows the `VALIDATION` "Choose an answer first" sentence (§5) and saves nothing | DL-48, H-028, H-030 |
 | UX-025 | An evaluation review (DL-60, H-100) shows the text tag "Evaluation review" next to the H1 on pages 3 to 6 and under its link in the Review column on page 2, and never shows "Stand-in agents". Once published, pages 3 and 6 read exactly "Published on {date} at {time} for the evaluation only. It was not shown to the General Partner."; page 3 has no link to `/calendar`. A review that is not an evaluation review shows none of this, and `/calendar` and the sign-in page never show the label or the sentence. Readable with colour removed | DL-60, H-100, T-MODE-1, §1.3 |
-| UX-026 | For an evaluation review (DL-61), pages 4, 5 and 6 each show, under the H1, exactly "This is an evaluation review. The evaluation script makes its decisions, so there is nothing for you to decide here." and have **no** form, radio, checkbox, text field, "Finish", "Complete", "Publish calendar" or "Close without publishing" in the page source (not hidden, not disabled); page 6 never says the General Partner "will see these dates"; page 3 at a step has the H1 "Nothing for you to do yet", no next-step link, no "Your turn" anywhere, no refresh controls, and still offers "Abandon this review". Ordinary reviews are unchanged. A decision posted anyway shows the `EVALUATION_NOT_DECIDABLE` sentence (§5) | DL-61, Open Question 26, UX-025 |
+| UX-026 | For an evaluation review (DL-61), pages 4, 5 and 6 each show, under the H1, exactly "This is an evaluation review. The evaluation script makes its decisions, so there is nothing for you to decide here." and have **no** form, radio, checkbox, text field, "Finish", "Complete", "Publish calendar" or "Close without publishing" in the page source (not hidden, not disabled); page 6 never says the General Partner "will see these dates"; page 3 at a step has the H1 "Nothing for you to do yet", no next-step link, no "Your turn" anywhere, no refresh controls, and still offers "Abandon this review". **At a step, the status words are "The evaluation script is deciding on the rules" (`AT_G1`), "…deciding what applies" (`AT_G2`) or "…deciding whether to publish" (`AT_G3`) (§1.5, H-108), and "Your turn" appears nowhere in the page source of pages 2 and 3, including page 2's notice and Status pill, page 3's status line and page 3's `<title>`.** Page 6 reads "These two lists show what was left out." and its rejected-rules column is headed "Reason", before and after G3. Ordinary reviews are unchanged. A decision posted anyway shows the `EVALUATION_NOT_DECIDABLE` sentence (§5) | DL-61, H-108, Open Question 26, UX-025 |
 | UX-016 | The "who files" options read exactly: AIFM, Fund administrator, Auditor, Local reporting agent (Spain), Tax advisor, Not known | DL-39 |
 | UX-011 | The G3 acknowledgement checkbox is unticked on every load | CR-028 |
 | UX-012 | The GP calendar has no horizontal scroll at 360 px | §3 |
@@ -1700,7 +1749,10 @@ Not read or used: Future Work, Appendix A, git tag `sad-full-design`, user-story
    progress" at a step (page 3 item 4, §1.4); "Abandon this review" stays. **Settled
    afterwards (2026-11-24, with DL-61):** page 3's H1, sentence and next-step link at a step for an
    evaluation review ("Nothing for you to do yet", an evaluation-script sentence, no link), in the
-   block after page 3.
+   block after page 3. **Status words at a step settled (2026-11-26, H-108):** §1.5 gives the
+   evaluation words; page 2's notice and Status pill, page 3's status line and page 3's `<title>` use
+   them; page 6's "Read both lists before you publish." and "Your reason" are reworded for an
+   evaluation review (the block after page 3).
 
 ## Mock-up differences this revision does not apply
 
@@ -1930,3 +1982,17 @@ one batch (H-032; DL-44, DL-27, DL-51 to DL-53). No row in this table is open.
   evaluation script" (the on-screen name already used for "Started by"), and "Nothing was saved." was
   added to the refusal. Notes added to H-105 and H-106. Approval status left `approved`: wording for a
   decision already made. No code, no template, no snapshot, no model call.
+- 2026-11-26 · persona `ux-designer` · action `design-ux` (revision, H-108; and two open notes from
+  H-106, H-104) · branch `ux-designer/h108-evaluation-status-words` · `AGENTS_MODE=stand_in` · docs
+  only. **Status words at a step for an evaluation review** (§1.5 new table; §1.3 `<title>`; page 2
+  items 3 and 4; page 3 item 4 and the evaluation block): "The evaluation script is deciding on the
+  rules" / "…deciding what applies" / "…deciding whether to publish", info tone, sent by the server
+  (new H-109 for `@backend.eng`, because pages work nothing out, §1.2). It answers page 3's box
+  heading too. **Only page 3's `<title>` carries the status words** (pages 4 to 6 use their own
+  names), so H-108's "every page's `<title>`" is one page. **Page 6 after G3 (H-106 note 1):**
+  the boxed line and the "Published … for the evaluation only" sentence both show, confirmed.
+  **"Read both lists before you publish." (H-106 note 2): changed**, not left as built: it tells a
+  person to prepare for an action the page does not offer. Now "These two lists show what was left
+  out.", and the "Your reason" column header becomes "Reason" (same cause, found while checking).
+  UX-026 extended. Approval status left `approved`: wording for a decision already made. No code,
+  no template, no snapshot, no model call.
