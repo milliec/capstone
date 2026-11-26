@@ -34,13 +34,6 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 
 ## Open
 
-### H-109: send the evaluation words for a review waiting at a step (ux.md §1.5; answers H-108)
-- From: @ux.designer   To: @backend.eng   Date: 2026-11-26
-- Touches: `backend/services/runs.py` (`STATUS_WORDS`, `decorate`: `status_words`), `tests/tier2/`; `2.build/ux.md` §1.5 (new table), UX-026; related: H-108, H-104, H-110
-- Ask: **Please set `status_words` from a second table when `is_evaluation` is true and the review is `ACTIVE` at `AT_G1`, `AT_G2` or `AT_G3`:** "The evaluation script is deciding on the rules", "The evaluation script is deciding what applies", "The evaluation script is deciding whether to publish". Every other state, and every ordinary review, keeps the words it has today. Keep the tone as `decorate` already sets it ("info" at a step for an evaluation review).
-- Why: "Your turn: check the rules" still shows on page 2's notice and Status pill and on page 3's box heading and `<title>`, so UX-026's "no 'Your turn' anywhere" is not met.
-- Outcome: (the owner fills this in)
-
 ### H-110: page 6 of an evaluation review: reword the lists intro and the "Your reason" header (ux.md page 6; answers H-106's open note)
 - From: @ux.designer   To: @frontend.eng   Date: 2026-11-26
 - Touches: `backend/web/templates/pages/publish.html` (the "What's not in this calendar" intro and the rejected-rules table header), `tests/tier2/test_evaluation_pages.py`, `tests/visual/` (page 6 evaluation pictures); `2.build/ux.md` page 6 item 5 and the evaluation block, UX-026; related: H-106, H-108
@@ -208,6 +201,13 @@ Add a row when a new persona starts producing a file. Never edit a file you don'
 - Outcome: (the owner fills this in)
 
 ## Done
+
+### H-109: send the evaluation words for a review waiting at a step (ux.md §1.5; answers H-108)
+- From: @ux.designer   To: @backend.eng   Date: 2026-11-26
+- Touches: `backend/services/runs.py` (`STATUS_WORDS`, `decorate`: `status_words`), `tests/tier2/`; `2.build/ux.md` §1.5 (new table), UX-026; related: H-108, H-104, H-110
+- Ask: **Please set `status_words` from a second table when `is_evaluation` is true and the review is `ACTIVE` at `AT_G1`, `AT_G2` or `AT_G3`:** "The evaluation script is deciding on the rules", "The evaluation script is deciding what applies", "The evaluation script is deciding whether to publish". Every other state, and every ordinary review, keeps the words it has today. Keep the tone as `decorate` already sets it ("info" at a step for an evaluation review).
+- Why: "Your turn: check the rules" still shows on page 2's notice and Status pill and on page 3's box heading and `<title>`, so UX-026's "no 'Your turn' anywhere" is not met.
+- Outcome: **Done.** 2026-11-26, `@backend.eng` (branch `backend-eng/h109-evaluation-status-words`). `runs.py` has a second table, `EVALUATION_STEP_WORDS` (`AT_G1`, `AT_G2`, `AT_G3`, the three ux.md §1.5 strings, exactly), and `_describe` (the function the ask calls `decorate`) uses it when `is_evaluation` is true and the review is `ACTIVE` at one of those phases. The tone is untouched (still "info" there). Every other state of an evaluation review, and every ordinary review, still reads `STATUS_WORDS`. No template changed: the one string reaches page 2's notice and Status pill, page 3's box heading and page 3's `<title>`. Tests first (`tests/tier2/test_evaluation_status_words.py`, 28): 7 failed before the change (3 words, 3 "never says Your turn", 1 page check), the 21 controls passed; all 28 pass after. Controls cover every state of an evaluation review, every state of an ordinary one, and the two half-conditions (`spend_activity` alone, `started_by` alone). Full suite without `tests/visual`: 1090 passed, 4 skipped. Not run: the visual check. **The evaluation page 3 snapshots (both widths) now show new words; `@frontend.eng` proposes them, the operator approves.** Also not done (`@frontend.eng`'s files): the template comment in `filing_rules.html` that says the words are "held until `@ux.designer` answers".
 
 ### H-108: what words does an evaluation review show at a step in place of "Your turn: check the rules"? (ux.md §1.5, A2; found building H-104)
 - From: @frontend.eng   To: @ux.designer   Date: 2026-11-25
