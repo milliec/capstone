@@ -17,7 +17,9 @@
 {#- An evaluation review (A2, ux.md page 2 item 3, H-104): a script's turn is the only one that counts,
     so no "Waiting for you" / "AI is working" label and no "Continue checking", at a step or while
     working. One line, one link, and the quiet look of the working notice. The words after the colon are
-    the server's `status_words`, held until `@ux.designer` answers (handoffs.md, H-108). -#}
+    the server's `status_words`. At a step, `@backend.eng` sends the evaluation words ("The evaluation
+    script is deciding on the rules" and so on, ux.md §1.5; H-108, H-109), so this page prints them as
+    they come and works nothing out. -#}
 <section class="notice{{ '' if active_run.is_at_gate and not active_run.is_evaluation else ' agent' }}" aria-labelledby="active-h">
   {%- if active_run.is_evaluation %}
   <p id="active-h"><b>Evaluation review {{ ui.review_no(active_run) }}:</b> {{ active_run.status_words }}.</p>

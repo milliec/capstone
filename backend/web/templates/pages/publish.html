@@ -75,17 +75,17 @@
 </section>
 
 <section class="section" aria-labelledby="left-out-h">
-  <div class="sec-h"><div><h2 id="left-out-h">What's not in this calendar</h2><p>Read both lists before you publish.</p></div></div>
+  <div class="sec-h"><div><h2 id="left-out-h">What's not in this calendar</h2><p>{{ "These two lists show what was left out." if ev else "Read both lists before you publish." }}</p></div></div>
 
   <div class="card">
     <div class="card-h"><h3>Rules you rejected</h3></div>
     {%- if (rejected if rejected is not none else view.rejected_row_ids) %}
     <table class="stack-sm">
-      <thead><tr><th scope="col">Rule</th><th scope="col">Your reason</th></tr></thead>
+      <thead><tr><th scope="col">Rule</th><th scope="col">{{ "Reason" if ev else "Your reason" }}</th></tr></thead>
       <tbody>
         {%- if rejected is not none %}
         {%- for r in rejected %}
-        <tr><th scope="row">{{ r.label }}{% if r.is_demo %} {{ ui.tag("Demo") }}{% endif %}</th><td data-label="Your reason">{{ r.reason }}</td></tr>
+        <tr><th scope="row">{{ r.label }}{% if r.is_demo %} {{ ui.tag("Demo") }}{% endif %}</th><td data-label="{{ 'Reason' if ev else 'Your reason' }}">{{ r.reason }}</td></tr>
         {%- endfor %}
         {%- else %}
         {%- for id in view.rejected_row_ids %}

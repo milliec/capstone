@@ -11,6 +11,7 @@ evaluation runs answered by the fake OpenAI (dummy key, temporary database). No 
   (3) After the step (published): the same line, no form, the record still shown.
   (4) Page 3 at a step: "Nothing for you to do yet", the evaluation-script sentence, the "stopped"
       line, no next-step link, no refresh controls, "Abandon this review" still offered.
+  (4b) H-110: page 6 reads "These two lists show what was left out." and heads the rejected column "Reason".
   (5) Ordinary reviews are unchanged: the same pages still offer their forms and old sentences.
 """
 
@@ -18,7 +19,7 @@ import re
 
 import pytest
 
-from backend.services import FUND_ID, runs
+from backend.services import FUND_ID, decisions, runs
 from backend.services.auth import EVALUATION_ACTOR
 from tests import flow
 from tests.conftest import _signed_in
@@ -39,8 +40,12 @@ def world(tmp_path, as_openai):
     return World(tmp_path)
 
 
-def _eval_run_at(world, step):
-    """A real-mode evaluation run, taken to `step` ("g1", "g2" or "g3") by the script identity."""
+def _eval_run_at(world, step, reject_rule_3=False):
+    """A real-mode evaluation run, taken to `step` ("g1", "g2" or "g3") by the script identity.
+
+    `reject_rule_3=True` has the script reject rule 3 instead of approving it, so page 6 has a "Rules you
+    rejected" table (with none, the page says "No rules were rejected" and shows no table header). An
+    evaluation run can never carry the planted demo rule (EC-R7), so a real rule is rejected."""
     script = {"actor": EVALUATION_ACTOR}
     conn, settings = world.conn, world.evaluation
     conn.execute("UPDATE runs SET status = 'ABANDONED' WHERE status = 'ACTIVE'")   # test set-up
@@ -50,11 +55,18 @@ def _eval_run_at(world, step):
     if step == "g1":
         return run_id
     for n in flow.RULES:
-        flow.approve_rule(conn, run_id, n, rule=flow.DEMO_RULES[n], who=flow.DEMO_WHO[n], **script)
+        if reject_rule_3 and n == 3:
+            decisions.decide_row(conn, row_id=f"ROW-{run_id}-{n}", version=1, decision="reject",
+                                 business_day_rule=None, who_files=None, approve_reason=None,
+                                 reject_reason="Quote doesn't support the rule", actor=EVALUATION_ACTOR)
+        else:
+            flow.approve_rule(conn, run_id, n, rule=flow.DEMO_RULES[n], who=flow.DEMO_WHO[n], **script)
     flow.finish_g1(conn, settings, run_id, **script)
     if step == "g2":
         return run_id
     for n in flow.APPLIES_NS:
+        if reject_rule_3 and n == 3:                 # a rejected rule has no question to answer
+            continue
         flow.answer(conn, run_id, n, "confirm", "applies", **script)
     flow.answer(conn, run_id, flow.UNSURE_N, "decide", "applies", "Not confirmed in fund records yet", **script)
     flow.answer(conn, run_id, flow.DOES_NOT_APPLY_N, "confirm", "does_not_apply", **script)
@@ -156,6 +168,38 @@ def test_page_3_at_a_step_has_nothing_for_the_person_to_do(world, step):
     assert f'action="/specialist/runs/{run_id}/abandon"' in body      # the way out stays
 
 
+# --- (4b) page 6: the lists intro and the "Reason" header (H-110) ------------------------------------
+
+OLD_INTRO = "Read both lists before you publish."
+NEW_INTRO = "These two lists show what was left out."
+
+
+def _assert_evaluation_lists(body, where):
+    text = _words(body)
+    assert NEW_INTRO in text, where
+    assert OLD_INTRO not in text, where
+    # The rejected-rules table must be on the page for the header check to mean anything.
+    assert "Rules you rejected" in text and "<thead>" in body, where
+    assert '<th scope="col">Reason</th>' in body, where
+    assert 'data-label="Reason"' in body, where
+    assert "Your reason" not in body, where             # neither the header nor its data-label
+
+
+def test_page_6_at_the_step_has_the_evaluation_lists_wording(world):
+    run_id = _eval_run_at(world, "g3", reject_rule_3=True)
+    _assert_evaluation_lists(_main(world, f"/specialist/runs/{run_id}/g3"), "at the step")
+
+
+def test_page_6_after_g3_has_the_same_wording_and_keeps_the_published_sentence(world):
+    run_id = _eval_run_at(world, "g3", reject_rule_3=True)
+    flow.publish(world.conn, run_id, actor=EVALUATION_ACTOR)
+    body = _main(world, f"/specialist/runs/{run_id}/g3")
+    _assert_evaluation_lists(body, "after G3")
+    # Nothing else on page 6 changes (H-110): the boxed line and the published sentence stay.
+    assert LINE in _words(body)
+    assert "for the evaluation only. It was not shown to the General Partner." in _words(body)
+
+
 # --- (5) ordinary reviews are unchanged ------------------------------------------------------------
 
 def test_an_ordinary_review_keeps_its_forms_and_its_old_words(world):
@@ -167,8 +211,12 @@ def test_an_ordinary_review_keeps_its_forms_and_its_old_words(world):
     assert "The rules are ready for you to check" in status
     assert STOPPED not in status and "Check the rules" in status
 
-    g3_id = flow.to_g3(conn, settings)
+    g3_id = flow.to_g3(conn, settings, demo=True)       # demo=True: a rejected rule, so the "Rules you rejected" table shows
     g3 = _words(_main(world, f"/specialist/runs/{g3_id}/g3"))
     assert "will see these" in g3
     assert "then publish for the General Partner" in g3
     assert "This does not stop you publishing. The General Partner sees a short note saying the same." in g3
+    # H-110: the lists intro and the column header keep their old words for an ordinary review.
+    assert OLD_INTRO in g3 and NEW_INTRO not in g3
+    g3_html = _main(world, f"/specialist/runs/{g3_id}/g3")
+    assert '<th scope="col">Your reason</th>' in g3_html and 'data-label="Your reason"' in g3_html
