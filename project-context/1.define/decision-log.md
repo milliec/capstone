@@ -1512,6 +1512,57 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   SOQ-36, the DL-59 row; `decision-log.md` (this entry); `handoffs.md` (H-095 Outcome).
   DL-58 has no entry in this file; that is not changed here.
 
+### DL-62 · The real run for the Sprint 4 demo is labelled `demo`, not `spike`; the spike cap is not raised (proposed)
+
+- **Status: proposed by `@system.arch` at the operator's request, 2026-11-26. Not yet confirmed by the
+  operator.** Docs only: no code, no test, no real call.
+- **The question.** The spike cap has 12 of 70 slots left (58 used: 6 in `data/spike.db`, 52 in
+  `data/app.db`; `2.build/evals.md`, Case 1). One real end-to-end run takes about 19 requests (17 in the
+  spike, 19 in the first web-app run, DL-59). The operator asked for the smallest safe way to make that
+  run: a raise of the spike cap, or a separate demo budget.
+- **What I found.** The 70 is a count of trace lines **with one activity label**, `spike`
+  (`harness.count_real_calls` filters on `spend_activity`). The cap table in `backend/runtime/harness.py`
+  has three labels (`spike` 70, `tuning` 60, `evaluation` 63). **`rehearsal` and `demo` are real labels
+  (`SPEND_ACTIVITIES` in `backend/settings.py`) with no call cap, by design** (`stages.py`: such a run "is
+  never refused and never reads the count"). DL-36 already allows "one rehearsal run and the demo run" and
+  EC-R10 point 4 already keeps at least US$5 for them. So the separate demo budget exists; it only lacked
+  a written ceiling.
+- **Decision (proposed).**
+  1. **No raise.** The spike cap stays 70 and its 12 free slots stay as they are.
+  2. **The one run for the Sprint 4 demo is made with `SPEND_ACTIVITY=demo`.** Its calls are counted under
+     `demo`. They do not touch the `spike` count and never read it. (`rehearsal` would work the same way;
+     see the open point.)
+  3. **A written ceiling: one run, at most 25 real calls** (about 19 requests, plus up to 6 for the one
+     Retry that DL-51 allows on a failed stage). The US$2.50 per-run hard stop (CR-017) is unchanged. The
+     operator checks the count by reading the trace after the run (rows with `spend_activity = 'demo'`).
+  4. **A second `demo` run, or any call beyond 25, needs a new recorded operator decision first**, the same
+     rule EC-R10 point 3 sets for any extra spend.
+  5. **Money.** US$0.1331 has been spent in all against a target of about US$15 (DL-36). A run costs about
+     US$0.04 (US$0.0385 for the third web-app run). The worst case is US$2.50. All of it is inside the
+     US$5 kept for the rehearsal and the demo.
+- **Why this and not a raise.** A raise needs a code change (`CALL_CAPS`, which the spike tally also
+  reads) and a SAD edit to every place that says 70. It would also put a demo run under the wrong label:
+  `spike` means a measurement, and a `spike` run is not graded (EC-R6, EC-R10). It would loosen the one
+  cap whose job is to stop measurement creep, to make room for something that is not a measurement. Even
+  a raise to 80 leaves one slot of margin and none for a Retry.
+- **Considered**: raising the spike cap (not chosen, above); a new demo label with its own code cap (not
+  needed, because the label exists; and a code cap counts by label across **all** runs, so a cap of 25
+  on `demo` would refuse the final demo run after this one, and the cap would have to be sized for both);
+  enforcing the ceiling in code now (not chosen: the operator said no code changes, and one run at the
+  US$2.50 hard stop is a small risk).
+- **What this does not give.** Nothing in the code refuses a second `demo` run: the stops are the per-run
+  cost cap, the prepaid balance, and the deliberate settings (`AGENTS_MODE=real` and a `SPEND_ACTIVITY`
+  are both needed, T-MODE-1). If the operator wants a code cap on `rehearsal` and `demo`, that is a
+  separate small change for `@backend.eng`, sized for both runs together. It is not raised here.
+- **Open point for the operator (one choice).** DL-36 allows **both** a rehearsal run and the demo run,
+  and EC-011 (review time under 30 minutes) is measured on the **rehearsal** run made by a person with no
+  failure. I used `demo` because the run is for the demo. If this run is also meant to be the
+  EC-011 measurement, label it `rehearsal` instead; nothing else in this entry changes. Either way, the
+  label that is used is spent, and the other keeps its one run.
+- **Not changed**: the 70, 60 and 63 caps, US$2.50, the retry rules, EC-R6, EC-011, any code, test or
+  hash baseline, and `docs/architecture-decisions-summary.html` (frozen until after the demo).
+- **Changed**: this entry; the DL-62 row in `sad.md` and one pointer sentence in EC-R10 point 2.
+
 ## Audit
 
 - 2026-11-09 · persona `product-mgr` · action `update` · log created; DL-01 to DL-12 from the UX and
@@ -1597,3 +1648,4 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-087) · action `update` · new DL-57 (one sentence with one deadline is one row: merge, not separate entries; F-12 stays parked; the card change affects EC-001 and EC-002; a G1 warning is an open option only). `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-095) · action `update` · new DL-59 (an evaluation run is derived and `specialist-eval` is not a sign-in choice; evaluation has its own 57-call cap that fails closed; copy-case failures leave EC-005 or EC-021 incomplete and do not void; the three-run comparison is parked; found: 57 has no room, SOQ-36). `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; SOQ-36) · action `update` · DL-59: the evaluation cap raised from 57 to 63 (no slot for a retry on a 19-request run; both readings confirmed; fail-closed on an unreadable count applies to all activities); the missing DL-58 entry written. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-26 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-62, **proposed, pending operator confirmation** (the one real run for the Sprint 4 demo is labelled `demo`, not `spike`; the spike cap stays 70 with 12 free; `rehearsal` and `demo` have no code cap, so the entry writes a ceiling of one run and 25 calls; open point: `demo` or `rehearsal`). Docs only: no code, no real call. `AAMAD_TARGET_RUNTIME=crewai`.
