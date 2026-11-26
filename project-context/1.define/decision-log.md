@@ -1512,10 +1512,68 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   SOQ-36, the DL-59 row; `decision-log.md` (this entry); `handoffs.md` (H-095 Outcome).
   DL-58 has no entry in this file; that is not changed here.
 
-### DL-62 · The real run for the Sprint 4 demo is labelled `demo`, not `spike`; the spike cap is not raised (proposed)
+### DL-60 · An evaluation run publishes at G3 but is never the live calendar (found by `@qa.eng`, B8 PR 4)
 
-- **Status: proposed by `@system.arch` at the operator's request, 2026-11-26. Not yet confirmed by the
-  operator.** Docs only: no code, no test, no real call.
+- **Decision** (operator, 2026-11-24, option (b)). **(1) The publish stays.** An evaluation run goes
+  through G3 and publishes like any run (the same one insert, the same acknowledgement, CR-028, the same
+  audit entry), so the evaluation still measures the real route (EC-R2). No new column or table: the run
+  is derived (DL-59). **(2) The live calendar skips evaluation runs.** It is the newest publication of a
+  run that is not an evaluation run. Everything that asks for "the live calendar" or "the previous
+  publication" uses this one rule: the calendar page (page 7, GP and specialist) and the "previous
+  publication" line at G3. An evaluation publish changes neither, and the evaluation run's own pages
+  still show its own publication. **(3) "Being prepared" stays true.** If only evaluation runs have
+  published, the GP still sees the fixed message (DL-27, EC-014). **(4) Labelled.** The pages that show a
+  run say it is an evaluation run, and its G3 outcome says the calendar was not shown to General
+  Partners. The wording is `@ux.designer`'s (H-100). **(5) Test T-EVALPUB-1, Tier 1** (operator,
+  2026-11-24): publish an evaluation run; with an earlier real publication the GP view and the "previous
+  publication" line are unchanged, with none the GP view still shows the fixed message. Written first and
+  seen to fail (H-099). The filter is a rule in the code that reads publications, **not a stored flag or
+  a database constraint** (operator, 2026-11-24), so the `data/app.db` hash baseline does not move.
+- **Why**: `publications` has one row per publish and the newest row for the fund is the live calendar
+  (DL-50 item 5), so a scripted evaluation publish would replace what the GP sees, and nothing on the GP
+  view could tell the two apart.
+- **Not changed**: the 63-call cap, EC-R7, retry and run-state rules, what a real publish does.
+  **Needed before** the first evaluation run on `data/app.db`, which is the database the GP view reads.
+- **Changed**: SAD DL-60 row. This entry was missing from this file and is written on 2026-11-26 from the
+  SAD row.
+
+### DL-61 · A person cannot decide on an evaluation review; the server refuses it (H-103)
+
+- **Decision** (operator, 2026-11-24, `ux.md` Open Question 26 (b), option B2). **(1) The refusal.** On an
+  evaluation run, six requests made by any identity other than `specialist-eval` are refused with the new
+  code `EVALUATION_NOT_DECIDABLE` (409): the row decision, G1 complete, the verdict decision, G2 complete,
+  publish and decline. The request is audited (CR-001) and changes nothing. **(2) The guard keys on who is
+  acting, not on the route or the page.** The scripted gates call the same service functions as the
+  pages, with the actor `specialist-eval` (EC-R2, H-097 PR 4b), so they pass. A person cannot pass,
+  because `specialist-eval` is not a sign-in choice (SAD §4, the sign-in paragraph). **(3) Place in the
+  order of checks.** The check is in the service function, straight after the role check (`FORBIDDEN`)
+  and before every other check (run state, version, gate, reason, acknowledgement, row rules), so a
+  person gets the same refusal sentence whatever state the review is in (the wording is
+  `@ux.designer`'s). **(4) What is not refused.** **Abandon**: a person may still abandon an evaluation
+  review at `AT_G1`, `AT_G2` or `AT_G3`, with a reason, because a script that stopped at a step leaves the
+  review `ACTIVE` and blocks every new review (`RUN_ACTIVE`). **Reading**: the `GET` pages for G1, G2 and
+  G3 still open. **Retry** is unchanged (already `RETRY_NOT_ALLOWED` for an evaluation run, DL-51).
+  **(5) The pages.** For an evaluation review, pages 4 to 6 show the record read-only plus one line, with
+  no decision form and no Complete, Publish or Decline button; the refusal stays as the server-side stop
+  if a form is posted anyway. **(6) Test T-EVALHAND-1, Tier 1** (operator, 2026-11-24): as the specialist,
+  each of the six requests on an evaluation run is refused `EVALUATION_NOT_DECIDABLE`, audited, and
+  nothing changes; the same six as `specialist-eval` are not refused; abandon as the specialist still
+  works; an ordinary run is unchanged. Written first and seen to fail (H-105). The page part is a
+  per-state page test, Tier 2 (SAD §9 "Pages").
+- **Why**: an evaluation run (DL-59) is decided by script, but it is an ordinary run, so a person signed
+  in as the specialist who opens one of its step pages could decide by hand. That would change what the
+  evaluation measures, and page 6 would tell them the General Partner will see dates it will not (DL-60).
+- **Not changed**: DL-60, the 63-call cap, EC-R7, the retry and run-state rules, who may start a run. No
+  schema change; the `data/app.db` hash baseline does not move. **Needed before** the first evaluation
+  run on `data/app.db`, which is the first run a person could meet at a step.
+- **Changed**: SAD DL-61 row. This entry was missing from this file and is written on 2026-11-26 from the
+  SAD row.
+
+### DL-62 · The real run for the Sprint 4 demo is labelled `rehearsal`, not `spike`; the spike cap is not raised
+
+- **Status: confirmed by the operator, 2026-11-26** (proposed by `@system.arch` the same day; the operator
+  chose the `rehearsal` label, kept the 25-call ceiling and asked for no code cap). Docs only: no code,
+  no test, no real call.
 - **The question.** The spike cap has 12 of 70 slots left (58 used: 6 in `data/spike.db`, 52 in
   `data/app.db`; `2.build/evals.md`, Case 1). One real end-to-end run takes about 19 requests (17 in the
   spike, 19 in the first web-app run, DL-59). The operator asked for the smallest safe way to make that
@@ -1525,42 +1583,43 @@ or adds to a Define document, so it is logged here as DL-13 requires.
   has three labels (`spike` 70, `tuning` 60, `evaluation` 63). **`rehearsal` and `demo` are real labels
   (`SPEND_ACTIVITIES` in `backend/settings.py`) with no call cap, by design** (`stages.py`: such a run "is
   never refused and never reads the count"). DL-36 already allows "one rehearsal run and the demo run" and
-  EC-R10 point 4 already keeps at least US$5 for them. So the separate demo budget exists; it only lacked
-  a written ceiling.
-- **Decision (proposed).**
+  EC-R10 point 4 already keeps at least US$5 for them. So the budget exists; it only lacked a written
+  ceiling.
+- **Decision** (operator, 2026-11-26).
   1. **No raise.** The spike cap stays 70 and its 12 free slots stay as they are.
-  2. **The one run for the Sprint 4 demo is made with `SPEND_ACTIVITY=demo`.** Its calls are counted under
-     `demo`. They do not touch the `spike` count and never read it. (`rehearsal` would work the same way;
-     see the open point.)
+  2. **The one run for the Sprint 4 demo is made with `SPEND_ACTIVITY=rehearsal`.** Its calls are counted
+     under `rehearsal`. They do not touch the `spike` count and never read it. **This run also counts as
+     the rehearsal run for EC-011** (review time from G1 opened to G3 published, under 30 minutes, made by
+     a person), so the one rehearsal allowed by DL-36 is spent on it. The `demo` label keeps its one run
+     for the final demo.
   3. **A written ceiling: one run, at most 25 real calls** (about 19 requests, plus up to 6 for the one
      Retry that DL-51 allows on a failed stage). The US$2.50 per-run hard stop (CR-017) is unchanged. The
-     operator checks the count by reading the trace after the run (rows with `spend_activity = 'demo'`).
-  4. **A second `demo` run, or any call beyond 25, needs a new recorded operator decision first**, the same
-     rule EC-R10 point 3 sets for any extra spend.
-  5. **Money.** US$0.1331 has been spent in all against a target of about US$15 (DL-36). A run costs about
+     operator checks the count by reading the trace after the run (rows with
+     `spend_activity = 'rehearsal'`).
+  4. **A second `rehearsal` run, or any call beyond 25, needs a new recorded operator decision first**,
+     the same rule EC-R10 point 3 sets for any extra spend.
+  5. **No code cap.** Nothing in the code refuses a second `rehearsal` run. The stops are the per-run
+     cost cap, the prepaid balance, and the deliberate settings (`AGENTS_MODE=real` and a
+     `SPEND_ACTIVITY` are both needed, T-MODE-1).
+  6. **Money.** US$0.1331 has been spent in all against a target of about US$15 (DL-36). A run costs about
      US$0.04 (US$0.0385 for the third web-app run). The worst case is US$2.50. All of it is inside the
      US$5 kept for the rehearsal and the demo.
+- **What this means for EC-011 (my reading of the operator's words, for the operator to correct).**
+  EC-011 counts only a run "made by a person, with no failure in that run" (SAD EC-011). So if a stage
+  fails and the one Retry is used, or the run ends `FAILED`, **this run is not a valid EC-011
+  measurement**, and the report says EC-011 is not measured. A second rehearsal run would then need a new
+  recorded decision (point 4). The Retry stays inside the 25 calls, but using it costs the measurement.
 - **Why this and not a raise.** A raise needs a code change (`CALL_CAPS`, which the spike tally also
-  reads) and a SAD edit to every place that says 70. It would also put a demo run under the wrong label:
-  `spike` means a measurement, and a `spike` run is not graded (EC-R6, EC-R10). It would loosen the one
-  cap whose job is to stop measurement creep, to make room for something that is not a measurement. Even
-  a raise to 80 leaves one slot of margin and none for a Retry.
-- **Considered**: raising the spike cap (not chosen, above); a new demo label with its own code cap (not
-  needed, because the label exists; and a code cap counts by label across **all** runs, so a cap of 25
-  on `demo` would refuse the final demo run after this one, and the cap would have to be sized for both);
-  enforcing the ceiling in code now (not chosen: the operator said no code changes, and one run at the
-  US$2.50 hard stop is a small risk).
-- **What this does not give.** Nothing in the code refuses a second `demo` run: the stops are the per-run
-  cost cap, the prepaid balance, and the deliberate settings (`AGENTS_MODE=real` and a `SPEND_ACTIVITY`
-  are both needed, T-MODE-1). If the operator wants a code cap on `rehearsal` and `demo`, that is a
-  separate small change for `@backend.eng`, sized for both runs together. It is not raised here.
-- **Open point for the operator (one choice).** DL-36 allows **both** a rehearsal run and the demo run,
-  and EC-011 (review time under 30 minutes) is measured on the **rehearsal** run made by a person with no
-  failure. I used `demo` because the run is for the demo. If this run is also meant to be the
-  EC-011 measurement, label it `rehearsal` instead; nothing else in this entry changes. Either way, the
-  label that is used is spent, and the other keeps its one run.
-- **Not changed**: the 70, 60 and 63 caps, US$2.50, the retry rules, EC-R6, EC-011, any code, test or
-  hash baseline, and `docs/architecture-decisions-summary.html` (frozen until after the demo).
+  reads) and a SAD edit to every place that says 70. It would also put a rehearsal run under the wrong
+  label: `spike` means a measurement of the models, and a `spike` run is not graded (EC-R6, EC-R10). It
+  would loosen the one cap whose job is to stop measurement creep, to make room for something that is not
+  a spike measurement. Even a raise to 80 leaves one slot of margin and none for a Retry.
+- **Considered**: raising the spike cap (not chosen, above); labelling the run `demo` (not chosen by the
+  operator: the run is also the EC-011 measurement); a code cap on `rehearsal` and `demo` (not chosen by
+  the operator; a code cap counts by label across all runs, so it would have to be sized for the
+  rehearsal and the demo run together, or it would refuse the final demo run).
+- **Not changed**: the 70, 60 and 63 caps, US$2.50, the retry rules, EC-R6, EC-011's threshold, any code,
+  test or hash baseline, and `docs/architecture-decisions-summary.html` (frozen until after the demo).
 - **Changed**: this entry; the DL-62 row in `sad.md` and one pointer sentence in EC-R10 point 2.
 
 ## Audit
@@ -1648,4 +1707,5 @@ or adds to a Define document, so it is logged here as DL-13 requires.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-087) · action `update` · new DL-57 (one sentence with one deadline is one row: merge, not separate entries; F-12 stays parked; the card change affects EC-001 and EC-002; a G1 warning is an open option only). `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; handoff H-095) · action `update` · new DL-59 (an evaluation run is derived and `specialist-eval` is not a sign-in choice; evaluation has its own 57-call cap that fails closed; copy-case failures leave EC-005 or EC-021 incomplete and do not void; the three-run comparison is parked; found: 57 has no room, SOQ-36). `AAMAD_TARGET_RUNTIME=crewai`.
 - 2026-11-24 · persona `system-arch` (at the operator's instruction; SOQ-36) · action `update` · DL-59: the evaluation cap raised from 57 to 63 (no slot for a retry on a 19-request run; both readings confirmed; fail-closed on an unreadable count applies to all activities); the missing DL-58 entry written. `AAMAD_TARGET_RUNTIME=crewai`.
-- 2026-11-26 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-62, **proposed, pending operator confirmation** (the one real run for the Sprint 4 demo is labelled `demo`, not `spike`; the spike cap stays 70 with 12 free; `rehearsal` and `demo` have no code cap, so the entry writes a ceiling of one run and 25 calls; open point: `demo` or `rehearsal`). Docs only: no code, no real call. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-26 · persona `system-arch` (at the operator's instruction) · action `update` · DL-60 and DL-61 entries written here from their SAD rows (they were in `sad.md` only); no decision changed. `AAMAD_TARGET_RUNTIME=crewai`.
+- 2026-11-26 · persona `system-arch` (at the operator's instruction) · action `update` · new DL-62, **confirmed**: the one real run for the Sprint 4 demo is labelled `rehearsal` and is also the EC-011 measurement (a Retry or a failed run means EC-011 is not measured); the spike cap stays 70 with 12 free; ceiling of one run and 25 calls; no code cap. Docs only: no code, no real call. `AAMAD_TARGET_RUNTIME=crewai`.
