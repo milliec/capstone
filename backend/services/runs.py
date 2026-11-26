@@ -30,6 +30,15 @@ STATUS_WORDS = {
     "COMPLETED": "Published",
 }
 
+# ux.md §1.5 (H-108, H-109): an evaluation review waiting at a step is never "Your turn", because a script
+# decides, not a person. Keyed by phase; used only for an ACTIVE evaluation review. Every other state of
+# an evaluation review, and every ordinary review, uses STATUS_WORDS above.
+EVALUATION_STEP_WORDS = {
+    "AT_G1": "The evaluation script is deciding on the rules",
+    "AT_G2": "The evaluation script is deciding what applies",
+    "AT_G3": "The evaluation script is deciding whether to publish",
+}
+
 # ux.md §10.1: the four review states the workflow names.
 WORKFLOW_STATE = {"ACTIVE": "running", "FAILED": "failed", "ABANDONED": "done",
                   "DECLINED": "done", "COMPLETED": "done"}
@@ -220,6 +229,8 @@ def _describe(conn: sqlite3.Connection, run: dict) -> dict:
     run["is_working"] = status == "ACTIVE" and phase.endswith("_RUNNING")
     run["is_at_gate"] = status == "ACTIVE" and phase.startswith("AT_G")
     run["is_evaluation"] = is_evaluation_run(run)      # H-099, DL-60: for the label H-100 words; no page reads it yet
+    if run["is_evaluation"] and status == "ACTIVE" and phase in EVALUATION_STEP_WORDS:
+        run["status_words"] = EVALUATION_STEP_WORDS[phase]    # H-109: the script is deciding, not "Your turn"
     # H-036 view fields (placeholder-safe in stand-in mode)
     run["review_number"] = _review_number(conn, run)                                # V-1
     run["status_tone"] = (TONE_ACTIVE.get(phase, "neutral") if status == "ACTIVE"

@@ -11,9 +11,8 @@ review waiting at a step:
 An ordinary review is unchanged (control tests). Same set-up as test_evaluation_pages.py: real-mode
 evaluation runs answered by the fake OpenAI, temporary database, no real call.
 
-NOT checked here: the words after the colon in page 2's notice, page 3's box heading and every page's
-<title>. All three print the server's `status_words` ("Your turn: check the rules"). That is held until
-`@ux.designer` answers (handoffs.md, H-108).
+The words after the colon in page 2's notice, page 3's box heading and page 3's <title> are the server's
+`status_words`; they are checked in test_evaluation_status_words.py (H-109).
 """
 
 import re
