@@ -17,6 +17,7 @@ The database is <folder>/app.db. Nothing here reads or writes data/app.db or dat
 """
 
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -30,7 +31,10 @@ from tests.tier1.test_evaluation_publish import World
 from tests.tier1.test_real_mode_green_path import the_answer_key
 
 
-def seed(folder: Path) -> None:
+@contextmanager
+def _fake_world(folder: Path):
+    """The shared set-up: the real databases out of reach, CrewAI talking to a fake server on this
+    machine with a placeholder key. Yields (world, fake); undoes everything afterwards."""
     folder.mkdir(parents=True, exist_ok=True)
     patches = pytest.MonkeyPatch()
 
@@ -49,24 +53,43 @@ def seed(folder: Path) -> None:
     patches.setenv("OPENAI_API_KEY", TEST_API_KEY)
     fake.answer_with(the_answer_key)
     try:
-        world = World(folder)
+        yield World(folder), fake
+        # Proof that nothing went out: every request reached the fake, and carried the placeholder key.
+        assert fake.requests, "the evaluation review should have asked the fake"
+        assert {seen.api_key for seen in fake.requests} == {TEST_API_KEY}
+        assert not fake.unscripted, "a request nobody scripted reached the fake"
+    finally:
+        fake.stop()
+        patches.undo()
+
+
+def seed(folder: Path) -> None:
+    with _fake_world(folder) as (world, fake):
         ordinary = flow.to_g3(world.conn, world.stand_in)        # Review 1
         flow.publish(world.conn, ordinary)
         evaluation = world.publish_evaluation_run()              # Review 2
         assert runs.get_run(world.conn, evaluation)["is_evaluation"] is True
         assert runs.get_run(world.conn, ordinary)["is_evaluation"] is False
         world.conn.close()
-
-        # Proof that nothing went out: every request reached the fake, and carried the placeholder key.
-        assert fake.requests, "the evaluation review should have asked the fake"
-        assert {seen.api_key for seen in fake.requests} == {TEST_API_KEY}
-        assert not fake.unscripted, "a request nobody scripted reached the fake"
         print(f"Seeded {folder / 'app.db'}: 2 reviews published; {len(fake.requests)} requests, "
               "all to the fake server on this machine.")
-    finally:
-        fake.stop()
-        patches.undo()
+
+
+def seed_at_step(folder: Path, step: str) -> None:
+    """One evaluation review waiting at `step` ("g1", "g2" or "g3") and nothing else, for the "at a
+    step" snapshots (H-106). Only one review can be active, so each step has its own database."""
+    from tests.tier2.test_evaluation_pages import _eval_run_at       # the script takes it to the step
+    with _fake_world(folder) as (world, fake):
+        run_id = _eval_run_at(world, step)
+        run = runs.get_run(world.conn, run_id)
+        assert run["is_evaluation"] is True and run["status"] == "ACTIVE" and run["is_at_gate"]
+        world.conn.close()
+        print(f"Seeded {folder / 'app.db'}: one evaluation review at {step}; {len(fake.requests)} requests, "
+              "all to the fake server on this machine.")
 
 
 if __name__ == "__main__":
-    seed(Path(sys.argv[1]))
+    if len(sys.argv) > 2:
+        seed_at_step(Path(sys.argv[1]), sys.argv[2])       # <folder> g1|g2|g3
+    else:
+        seed(Path(sys.argv[1]))

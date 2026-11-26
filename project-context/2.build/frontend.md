@@ -74,7 +74,7 @@ cards) live in that page.
 | File · macro | ux.md | Used on | Contents |
 |---|---|---|---|
 | `base.html` | §1.3 | every page | `<title>` (`<Page name> · ACME Compliance calendar (demo)`, prefixed `Not done: ` after a refusal, except on the 403 page, ux.md §1.7); fonts and `site.css`; skip link to `#main`; the sidebar when signed in, else one white panel |
-| `parts/sidebar.html` | §1.3 | every page but sign-in | wordmark and product name; fund block; `<nav aria-label="Main">` with `aria-current="page"`; the "Your turn" pill on Filing rules; identity and its demo line; "Sign out" |
+| `parts/sidebar.html` | §1.3 | every page but sign-in | wordmark and product name; fund block; `<nav aria-label="Main">` with `aria-current="page"`; the "Your turn" pill on Filing rules (never for an evaluation review, H-104); identity and its demo line; "Sign out" |
 | `macros.html` · `tag`, `run_tag`, `run_tone` | §1.5 | everywhere | the status pill: word inside, tone → style-note family (§4.2) |
 | `macros.html` · `review_no`, `review_name` | §1.8 | pages 2 to 6 | "Review {n}" (`review_number`, H-036 V-1) |
 | `macros.html` · `breadcrumb`, `run_labels`, `stepper`, `review_head` | §1.3, §1.4 | pages 3 to 6 | the head of a review page in the §1.3 order: breadcrumb → H1 with run labels → lead → refusal → stepper |
@@ -124,7 +124,7 @@ looked up.
 | idle, no reviews | "No reviews yet. Start the first review below." in place of the table |
 | idle, reviews | the table, newest first; no active-review notice |
 | running, AI working | notice: label "AI is working", "**Review {n}:** {status words}.", link "Open review {n}" |
-| running, your turn | notice: label "Waiting for you", same line, link "Continue checking" |
+| running, your turn | notice: label "Waiting for you", same line, link "Continue checking". An evaluation review instead reads "Evaluation review {n}: {status words}." with the one link "Open review {n}", at a step and while working (H-104) |
 | refused `RUN_ACTIVE` | short top line "Not done. A new review can't start while review {n} is in progress." + "Go to 'Start a new review'"; the full sentence beside the button |
 | refused `VALIDATION` | the full sentence at the top and beside the button |
 
@@ -423,8 +423,8 @@ All five meet AA contrast already (style-note "Status families").
 | review status banner | §1.5 status words |
 | Filing rules table, Status column | the same §1.5 words, the same pill |
 | Filing rules active-review notice | "**Review {n}:** {§1.5 words}." |
-| sidebar tag | "Your turn" (orange, the same pill) |
-| stepper | "Done", "In progress", "Your turn", "Not started", "Failed", "Ended" |
+| sidebar tag | "Your turn" (orange, the same pill); not shown for an evaluation review (H-104) |
+| stepper | "Done", "In progress", "Your turn", "Not started", "Failed", "Ended". For an evaluation review at a step, "In progress" stands where "Your turn" would, and that step is not a link (H-104) |
 | page `<title>` on review status | "Review {n}: {§1.5 words} · ACME Compliance calendar (demo)", for example "Review 4: AI is drafting the rules" (**new**, approved) |
 | buttons and next-step links | ux.md verb + object ("Check the rules", "Confirm what applies", "Check the calendar and publish") |
 | refusal sentences | ux.md §5, using the same §1.5 words in `RUN_NOT_ACTIVE` ("This review has ended ({status words}) …") |
@@ -639,7 +639,7 @@ placeholders in stand-in mode.
 |---|---|---|---|
 | V-1 | every run (`runs._describe`) | `review_number` (int) | all review pages, Filing rules |
 | V-2 | every run; every G1 row | run `status_tone`; row `status_tone`: one of `info`, `action`, `problem`, `neutral`, `success` (ux.md §1.5) | pills |
-| V-3 | every run (review pages) | `steps` = four items of `{state, href, current}`: `state` one of "Done", "In progress", "Your turn", "Not started", "Failed", "Ended"; `href` the step's page or none; `current` true on the step the review is at (operator, 17 Nov 2026) | stepper, pages 3 to 6 |
+| V-3 | every run (review pages) | `steps` = four items of `{state, href, current}`: `state` one of "Done", "In progress", "Your turn", "Not started", "Failed", "Ended"; `href` the step's page or none; `current` true on the step the review is at (operator, 17 Nov 2026); an evaluation review at a step sends "In progress" and no `href` for the step that would be "Your turn", and its `status_tone` is `info` (H-104) | stepper, pages 3 to 6 |
 | V-4 | each unit (`runs.list_units`) | `group`: one of `drafting` (step 1, one per source document), `checking_drafts` (step 1, one per drafted rule), `applies` (step 3), `dates` (step 4). **The backend assigns it; the page never works it out.** The page maps each code to ux.md page 3's heading and intro, in that order; a unit with any other code shows under "Other units" (operator, 17 Nov 2026) | page 3 |
 | V-5 | `run` (review status) | `counts.rules`, `counts.unsure`, `counts.dates` (ints) | page 3 sentences |
 | V-6 | `run` | `ended.at` (ISO time), `ended.reason` (text, first line shown); `published_at` (ISO time); on Filing rules rows `ended_because` (text: the failure sentence or the first line of the reason) | pages 2, 3 |
@@ -743,6 +743,7 @@ overrule button's `value`. The service should refuse a `value` that does not mat
   after G3, each with an evaluation review, 1280 px). It uses its own app on port 8778, over a database that
   `seed_evaluation.py` fills against a fake model on this machine (no real call). Shared helpers are in
   `helpers.js`. Candidates mode (`npm run test:visual:candidates`) writes all pictures to `candidates/`.
+  `evaluation-at-step.spec.js` (H-104) adds 9 pictures of an evaluation review waiting at a step: pages 2, 4, 5 and 6 at 1280 and 360 px, plus a 360 px top crop of page 4. Only one review can be active at a time, so each step has its own app and database (ports 8779 to 8781, `seed_evaluation.py` `seed_at_step`). Page 3 is held until H-108 is answered.
   `06-publish-after-g3-evaluation-1280` was re-recorded on 2026-11-25 (H-106, operator approved): it now shows the evaluation line. The at-a-step pictures for pages 3 to 6 are held for the H-104 PR.
 
 ## Sources
@@ -818,8 +819,7 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - **Open (small), 2026-11-24: page 6 heading after publish.** For a published review, page 6 still reads
   "Check the calendar and publish" (the same on an ordinary review). Seen in the evaluation snapshot
   `06-publish-after-g3-evaluation`. Not changed; `@ux.designer` to say whether the heading should change once published.
-- **Re-record note, 2026-11-24 (operator), updated 2026-11-25:** `06-publish-after-g3-evaluation-1280` was re-recorded in H-106 (it now shows the evaluation line). The other two (`02-…`, `03-…`) are still to be re-recorded once H-104 (A2)
-  is built; propose the new pictures then, and do not treat the change as a regression. The at-a-step pictures for pages 3 to 6 are recorded once, in the H-104 PR.
+- **Re-record note, 2026-11-24 (operator), updated 2026-11-25:** `06-publish-after-g3-evaluation-1280` was re-recorded in H-106 (it now shows the evaluation line). The other two (`02-…`, `03-…`) need no re-record: they are published reviews and never showed "Your turn" (checked in H-104, operator, 2026-11-26). The at-a-step pictures for pages 2, 4, 5 and 6 were recorded in H-104; page 3's are held until H-108 is answered and come in a follow-up.
 
 ## Audit
 
@@ -923,3 +923,5 @@ All nine closed by the operator on 2026-11-17, when approving this spec.
 - 2026-11-24 · persona `frontend-eng` · `develop-fe` (H-101 follow-up: evaluation-review snapshots, operator-approved) · new `tests/visual/evaluation.spec.js`, `seed_evaluation.py`, `helpers.js` (helpers moved unchanged out of `visual.spec.js`); `playwright.config.js` starts a second app on 8778; `.gitignore` +`.tmp-eval/`. Recorded exactly 3 snapshots (`02-filing-rules-populated-evaluation`, `03-review-status-published-evaluation`, `06-publish-after-g3-evaluation`, 1280 px). Full visual check: all 26 existing + 3 new pass; no existing snapshot changed. No real call (17 requests, all to the fake, placeholder key); real databases not opened. Open item and re-record note (H-104) added to Open Questions. `AGENTS_MODE=stand_in`.
 - 2026-11-25 · persona `frontend-eng` · `develop-fe` (H-106: pages 3 to 6 of an evaluation review offer no decision control; DL-61, UX-026) · `parts/macros.html` (new `evaluation_line`), `pages/check_rules.html`, `confirm_applies.html`, `publish.html`, `review_status.html`, `site.css` (one rule, `.head .note`); new `tests/tier2/test_evaluation_pages.py`, written first and seen to fail (10 red). Reads only the server's `is_evaluation` flag; no backend change. Pages 4 to 6 (at the step and after): the one boxed line replaces the lead; no form, button, input, "Finish", "Publish" or "Close" and no "next rule" links (absent from the source); the orange "needs a person" bar and square dropped; the rule index, summary cards and status words stay; "Abandon this review" link stays. Page 6 also drops the date-note's last two sentences and the "will see these dates" text (it lived in the removed form). Page 3 at a step: H1 "Nothing for you to do yet", the per-step sentence, the "stopped" line, no next-step link (no refresh controls already). Ordinary reviews unchanged. Checks: 1060 tests pass; ruff clean; `aamad validate` OK; name scan prints nothing. Visual check: every ordinary snapshot passes; **one evaluation snapshot changes, `06-publish-after-g3-evaluation-1280`** (it now shows the new line). Proposed for operator approval, **not re-recorded**; new snapshots for pages 3 to 6 at a step also proposed, not recorded. Assumptions: page 6 after the step shows the line *and* keeps the outcome sentence (UX-025 needs it); "Read both lists before you publish" under "What's not in this calendar" left as built (ux.md did not list it). Still open: the "Your turn" pill and stepper word on page 3 are H-104's, not built yet, so UX-026's "no 'Your turn' anywhere" is not fully met until H-104.
 - 2026-11-25 · persona `frontend-eng` · `sync-docs` (operator-approved, items 1 to 6) · partials table row, page 4, 5 and 6 state rows, evaluation snapshot notes. No rejected items; no spec drift.
+- 2026-11-26 · persona `frontend-eng` · `develop-fe` (H-104, A2: no "Your turn" on an evaluation review) · `backend/web/deps.py` (`your_turn`), `backend/services/runs.py` (stepper word, `status_tone`), `pages/filing_rules.html` (notice), `pages/review_status.html` (pill); new `tests/tier2/test_evaluation_your_turn.py` (6, written first, 3 red without the code); `tests/visual/evaluation-at-step.spec.js`, `seed_evaluation.py` (`seed_at_step`), `playwright.config.js` (one app per step). Checks: 1062 tests pass; ruff, `aamad validate`, name scan clean; visual check 5 of 5 twice. Recorded 9 baselines with operator approval (pages 2, 4, 5, 6 at 1280 and 360, plus a 360 px top crop of page 4); page 3 held. Finding: the test file first built 13 real-mode evaluation reviews and the suite hit "can't start new thread" (CrewAI timer threads never stopped), failing 4 `test_trace_export` tests; now 3 reviews. Held: `status_words` (H-108).
+- 2026-11-26 · persona `frontend-eng` · `sync-docs` (operator-approved, items 1 to 7) · sidebar row, page 2 notice row, sidebar tag and stepper rows, V-3 row, evaluation snapshots bullet, re-record note. No rejected items. Spec drift listed, not edited: H-108 (`status_words` still says "Your turn" for an evaluation review).

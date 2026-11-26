@@ -113,7 +113,9 @@ def render(request: Request, conn: sqlite3.Connection | None, template: str,
     your_turn = False
     if conn is not None and identity is not None and identity.role == "specialist":
         active = get_active_run(conn, FUND_ID)
-        your_turn = bool(active and active["is_at_gate"])
+        # A2 (ux.md §1.3 item 3): a script's turn is the only one that counts, so an evaluation
+        # review never sets the "Your turn" tag.
+        your_turn = bool(active and active["is_at_gate"] and not active["is_evaluation"])
     frame = {
         "identity": identity,
         "fund": load_fund(FUND_ID),

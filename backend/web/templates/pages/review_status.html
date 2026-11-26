@@ -62,7 +62,8 @@
   <div class="body">
   <div class="top">
     {%- if run.status == "ACTIVE" %}
-    {{ ui.tag("AI is working" if run.is_working else "Your turn", tone) }}
+    {#- A2 (ux.md page 3 item 4): an evaluation review at a step says "In progress", never "Your turn". -#}
+    {{ ui.tag("AI is working" if run.is_working else ("In progress" if ev_at_step else "Your turn"), tone) }}
     {%- else %}
     {{ ui.run_tag(run) }}
     {%- endif %}
