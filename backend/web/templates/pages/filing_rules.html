@@ -14,7 +14,15 @@
 
 {#- Active-review notice: only while a review is ACTIVE (ux.md page 2 item 3). -#}
 {%- if active_run %}
-<section class="notice{{ '' if active_run.is_at_gate else ' agent' }}" aria-labelledby="active-h">
+{#- An evaluation review (A2, ux.md page 2 item 3, H-104): a script's turn is the only one that counts,
+    so no "Waiting for you" / "AI is working" label and no "Continue checking", at a step or while
+    working. One line, one link, and the quiet look of the working notice. The words after the colon are
+    the server's `status_words`, held until `@ux.designer` answers (handoffs.md, H-108). -#}
+<section class="notice{{ '' if active_run.is_at_gate and not active_run.is_evaluation else ' agent' }}" aria-labelledby="active-h">
+  {%- if active_run.is_evaluation %}
+  <p id="active-h"><b>Evaluation review {{ ui.review_no(active_run) }}:</b> {{ active_run.status_words }}.</p>
+  <p><a class="more" href="/specialist/runs/{{ active_run.run_id }}">Open review {{ ui.review_no(active_run) }}</a></p>
+  {%- else %}
   <p class="k" id="active-h">{{ "Waiting for you" if active_run.is_at_gate else "AI is working" }}</p>
   <p><b>{{ ui.review_name(active_run) }}:</b> {{ active_run.status_words }}.</p>
   {%- if active_run.is_at_gate %}
@@ -22,6 +30,7 @@
   <p><a class="more" href="{{ (active_run.steps|selectattr('state', 'equalto', 'Your turn')|first).href }}">Continue checking</a></p>
   {%- else %}
   <p><a class="more" href="/specialist/runs/{{ active_run.run_id }}">Open review {{ ui.review_no(active_run) }}</a></p>
+  {%- endif %}
   {%- endif %}
 </section>
 {%- endif %}

@@ -132,6 +132,10 @@ def _steps(run: dict) -> list[dict]:
     status, phase = run["status"], run["phase"]
     if status == "ACTIVE":
         states = STEPS_ACTIVE[phase]
+        if run.get("is_evaluation") and phase.startswith("AT_G"):
+            # A2 (ux.md §1.4, OQ 26 a): the script decides, so the step is "In progress", not
+            # "Your turn", and (only "Done" steps link) it is not a link.
+            states = ["In progress" if st == "Your turn" else st for st in states]
     elif status == "COMPLETED":
         states = ["Done"] * 4
     else:   # stopped: earlier steps Done, the stopping step Ended/Failed, later ones Not started
@@ -220,6 +224,8 @@ def _describe(conn: sqlite3.Connection, run: dict) -> dict:
     run["review_number"] = _review_number(conn, run)                                # V-1
     run["status_tone"] = (TONE_ACTIVE.get(phase, "neutral") if status == "ACTIVE"
                           else TONE_ENDED.get(status, "neutral"))                   # V-2
+    if run["is_evaluation"] and run["is_at_gate"]:
+        run["status_tone"] = "info"     # A2: the quiet tone of "AI is working", not the attention tone
     run["started_by_label"] = actor_label(run["started_by"])                   # V-7
     run["steps"] = _steps(run)                                                       # V-3
     run["counts"] = _counts(conn, run)                                               # V-5
